@@ -1,55 +1,61 @@
 import "server-only";
 
 import { db } from "@/lib/db";
+import type { SubmissionStatus } from "@/lib/constants";
+import {
+  MAX_PAPER_CHARS,
+  MIN_PAPER_CHARS,
+  normalizePaperText,
+  txtFileProblem,
+  validatePaperText,
+} from "@/lib/paper";
 
 /**
  * Submission intake shared by the teacher "Add submission" flow and the
  * student submit form. Paper text is stored verbatim as untrusted data.
+ * The rules themselves live in src/lib/paper.ts so client forms share them.
  */
 
-export const MAX_PAPER_CHARS = 40_000;
-export const MIN_PAPER_CHARS = 20;
+export { MAX_PAPER_CHARS, MIN_PAPER_CHARS, normalizePaperText, validatePaperText };
 
 export type IntakeResult = { ok: true; submissionId: string } | { ok: false; error: string };
 
-/** Normalize pasted or uploaded text without changing its meaning. */
-export function normalizePaperText(raw: string): string {
-  return raw
-    .replace(/^﻿/, "") // byte-order mark
-    .replace(/\r\n?/g, "\n")
-    .replace(/\u0000/g, "")
-    .replace(/[ \t]+\n/g, "\n")
-    .trim();
-}
+/** Statuses a teacher may replace a paper in. Published grades are never overwritten. */
+export const TEACHER_REPLACEABLE_STATUSES: SubmissionStatus[] = [
+  "SUBMITTED",
+  "GRADING_FAILED",
+  "NEEDS_REVIEW",
+  "RETURNED",
+];
+
+/** A student may only resubmit after the teacher sent the paper back. */
+export const STUDENT_REPLACEABLE_STATUSES: SubmissionStatus[] = ["RETURNED"];
 
 /** Validate a .txt upload from a server action's FormData. */
-export async function readTxtUpload(file: File | null): Promise<{ text: string; fileName: string } | { error: string } | null> {
+export async function readTxtUpload(
+  file: File | null
+): Promise<{ text: string; fileName: string } | { error: string } | null> {
   if (!file || file.size === 0) return null;
-  const name = file.name || "paper.txt";
-  if (!name.toLowerCase().endsWith(".txt") || (file.type && file.type !== "text/plain")) {
-    return { error: "Upload a plain-text .txt file." };
-  }
-  if (file.size > MAX_PAPER_CHARS * 4) return { error: "That file is too large for one paper." };
+  const problem = txtFileProblem(file);
+  if (problem) return { error: problem };
   const text = await file.text();
-  return { text, fileName: name };
+  return { text, fileName: file.name || "paper.txt" };
 }
 
-export function validatePaperText(text: string): string | null {
-  if (text.length < MIN_PAPER_CHARS) return "That paper looks empty. Paste the full text or upload a .txt file.";
-  if (text.length > MAX_PAPER_CHARS) return `Papers are limited to ${MAX_PAPER_CHARS.toLocaleString()} characters.`;
-  return null;
-}
+class SubmissionConflict extends Error {}
 
 /**
- * Create a submission, or replace a previous one when the student resubmits
- * after being sent back. Published grades are never overwritten: a published
- * submission cannot be replaced.
+ * Create a submission, or replace an existing one whose status is in
+ * `replaceable` (e.g. a student resubmitting after being sent back). The
+ * status check and the overwrite happen atomically, so a paper that was
+ * approved, published, or claimed for grading a moment ago is never replaced.
  */
 export async function upsertSubmission(input: {
   assignmentId: string;
   studentId: string;
   content: string;
   fileName?: string | null;
+  replaceable: SubmissionStatus[];
 }): Promise<IntakeResult> {
   const content = normalizePaperText(input.content);
   const problem = validatePaperText(content);
@@ -60,19 +66,36 @@ export async function upsertSubmission(input: {
     select: { id: true, status: true },
   });
 
-  if (existing) {
-    if (existing.status === "PUBLISHED" || existing.status === "APPROVED") {
-      return { ok: false, error: "This paper already has a published grade." };
-    }
-    if (existing.status === "GRADING") {
-      return { ok: false, error: "This paper is being graded right now. Try again in a moment." };
-    }
-    // Resubmission: clear the previous AI pass and review state.
-    const submission = await db.$transaction(async (tx) => {
-      await tx.aiGrade.deleteMany({ where: { submissionId: existing.id } });
-      await tx.criterionScore.deleteMany({ where: { submissionId: existing.id } });
-      return tx.submission.update({
-        where: { id: existing.id },
+  if (!existing) {
+    const created = await db.submission.create({
+      data: {
+        assignmentId: input.assignmentId,
+        studentId: input.studentId,
+        content,
+        fileName: input.fileName ?? null,
+        status: "SUBMITTED",
+      },
+      select: { id: true },
+    });
+    return { ok: true, submissionId: created.id };
+  }
+
+  // Friendly messages for the common cases; the guarded update below is the
+  // real check.
+  if (existing.status === "PUBLISHED" || existing.status === "APPROVED") {
+    return { ok: false, error: "This paper already has a published grade." };
+  }
+  if (existing.status === "GRADING") {
+    return { ok: false, error: "This paper is being graded right now. Try again in a moment." };
+  }
+  if (!input.replaceable.includes(existing.status as SubmissionStatus)) {
+    return { ok: false, error: "This paper is already with your teacher." };
+  }
+
+  try {
+    await db.$transaction(async (tx) => {
+      const claimed = await tx.submission.updateMany({
+        where: { id: existing.id, status: { in: input.replaceable } },
         data: {
           content,
           fileName: input.fileName ?? null,
@@ -83,21 +106,17 @@ export async function upsertSubmission(input: {
           approvedById: null,
           // Keep returnNote/returnedAt so the history of the send-back is visible.
         },
-        select: { id: true },
       });
+      if (claimed.count !== 1) throw new SubmissionConflict();
+      // The previous AI pass and draft edits belong to the old text.
+      await tx.aiGrade.deleteMany({ where: { submissionId: existing.id } });
+      await tx.criterionScore.deleteMany({ where: { submissionId: existing.id } });
     });
-    return { ok: true, submissionId: submission.id };
+  } catch (error) {
+    if (error instanceof SubmissionConflict) {
+      return { ok: false, error: "This paper changed a moment ago. Refresh and try again." };
+    }
+    throw error;
   }
-
-  const created = await db.submission.create({
-    data: {
-      assignmentId: input.assignmentId,
-      studentId: input.studentId,
-      content,
-      fileName: input.fileName ?? null,
-      status: "SUBMITTED",
-    },
-    select: { id: true },
-  });
-  return { ok: true, submissionId: created.id };
+  return { ok: true, submissionId: existing.id };
 }

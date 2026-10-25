@@ -49,7 +49,7 @@ export function UserMenu({
         {demoLogin && user.role === "TEACHER" && students.length > 0 ? (
           <>
             <DropdownMenuLabel>Demo: view as a student</DropdownMenuLabel>
-            <div className="max-h-56 overflow-y-auto">
+            <div className="max-h-[min(60vh,22rem)] overflow-y-auto">
               {students.map((student) => (
                 <DropdownMenuItem key={student.id} onSelect={() => viewAsStudent(student.id)}>
                   <UserRound aria-hidden />

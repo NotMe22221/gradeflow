@@ -65,7 +65,7 @@ export function QueueList({
                     aria-label={`${item.ai?.flags.length ?? 0} flag${item.ai?.flags.length === 1 ? "" : "s"} to check`}
                   />
                 ) : null}
-                {item.ai ? <ConfidenceBadge confidence={item.ai.confidence} showLabel={false} /> : null}
+                {item.ai ? <ConfidenceBadge confidence={item.ai.confidence} showLabel={false} interactive={false} /> : null}
               </span>
             </button>
           </li>

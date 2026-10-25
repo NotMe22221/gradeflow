@@ -6,7 +6,12 @@ import { z } from "zod";
 import { getEnrolledAssignment } from "@/lib/access";
 import { AuthError, requireStudent } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { MAX_PAPER_CHARS, readTxtUpload, upsertSubmission } from "@/lib/submissions";
+import {
+  MAX_PAPER_CHARS,
+  readTxtUpload,
+  STUDENT_REPLACEABLE_STATUSES,
+  upsertSubmission,
+} from "@/lib/submissions";
 
 export type SubmitPaperResult = { ok: true } | { ok: false; error: string };
 
@@ -79,6 +84,7 @@ export async function submitPaper(assignmentId: string, formData: FormData): Pro
       studentId: student.id,
       content,
       fileName,
+      replaceable: STUDENT_REPLACEABLE_STATUSES,
     });
     if (!result.ok) return { ok: false, error: result.error };
   } catch (error) {

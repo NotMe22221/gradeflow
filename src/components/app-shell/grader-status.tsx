@@ -21,7 +21,7 @@ export function GraderStatus({ info, className }: { info: GraderInfo; className?
           )}
         >
           {demo ? <FlaskConical className="size-3.5" aria-hidden /> : <Sparkles className="size-3.5" aria-hidden />}
-          {demo ? "Demo grader" : "Claude grading"}
+          {demo ? info.label : `${info.label} grading`}
         </span>
       </TooltipTrigger>
       <TooltipContent align="end">

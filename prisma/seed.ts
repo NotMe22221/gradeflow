@@ -11,6 +11,8 @@ import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 
 import { PrismaClient, type Prisma } from "../src/generated/prisma/client";
 import { DEMO_STUDENT_EMAIL, DEMO_TEACHER_EMAIL } from "../src/lib/constants";
+import { DATABASE_URL } from "../src/lib/db-url";
+import { serializeBreakdown, type BreakdownItem } from "../src/lib/grades/breakdown";
 import { findEvidenceSpan } from "../src/lib/grading/evidence";
 import { createClock, sum, type Clock } from "./seed-data/helpers";
 import { PUBLISHED_HISTORY, type PublishedHistoryEntry } from "./seed-data/history";
@@ -20,7 +22,7 @@ import { ASSIGNMENTS, type AssignmentKey, type SeedAssignment } from "./seed-dat
 import { PENDING_SUBMISSIONS, type SeedSubmission } from "./seed-data/submissions";
 
 const prisma = new PrismaClient({
-  adapter: new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? "file:./prisma/dev.db" }),
+  adapter: new PrismaBetterSqlite3({ url: DATABASE_URL }),
 });
 
 // --- Validation ----------------------------------------------------------------
@@ -285,7 +287,7 @@ async function seedPublishedHistory(tx: Tx, clock: Clock, ids: Ids, entry: Publi
     })),
   });
 
-  const breakdown = rows.map(({ criterion, score, comment }) => ({
+  const breakdown: BreakdownItem[] = rows.map(({ criterion, score, comment }) => ({
     criterionId: criterion.id,
     title: criterion.title,
     maxPoints: criterion.maxPoints,
@@ -298,7 +300,7 @@ async function seedPublishedHistory(tx: Tx, clock: Clock, ids: Ids, entry: Publi
       submissionId: submission.id,
       totalScore: sum(rows.map(({ score }) => score.finalScore)),
       maxScore: sum(rows.map(({ criterion }) => criterion.maxPoints)),
-      breakdown: JSON.stringify(breakdown),
+      breakdown: serializeBreakdown(breakdown),
       feedback: entry.feedback,
       aiTotalScore: sum(rows.map(({ score }) => score.aiScore)),
       approvedById: ids.teacherId,

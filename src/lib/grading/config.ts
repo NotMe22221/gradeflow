@@ -1,8 +1,21 @@
 import "server-only";
 
-import type { GraderKind } from "@/lib/constants";
+import { GRADER_LABELS, type GraderKind } from "@/lib/constants";
 
 export const DEFAULT_CLAUDE_MODEL = "claude-opus-5-5";
+
+/**
+ * The single switch for which grader runs the AI first pass. getGrader()
+ * (index.ts) and getGraderInfo() both read it, so the UI label always matches
+ * the engine that actually grades.
+ */
+export function activeGraderKind(): GraderKind {
+  return process.env.ANTHROPIC_API_KEY ? "claude" : "demo";
+}
+
+export function claudeModel(): string {
+  return process.env.ANTHROPIC_MODEL || DEFAULT_CLAUDE_MODEL;
+}
 
 export type GraderInfo = {
   kind: GraderKind;
@@ -16,9 +29,6 @@ export type GraderInfo = {
  * it never contains the API key, only whether one is configured.
  */
 export function getGraderInfo(): GraderInfo {
-  if (process.env.ANTHROPIC_API_KEY) {
-    const model = process.env.ANTHROPIC_MODEL || DEFAULT_CLAUDE_MODEL;
-    return { kind: "claude", label: "Claude", model };
-  }
-  return { kind: "demo", label: "Demo grader", model: null };
+  const kind = activeGraderKind();
+  return { kind, label: GRADER_LABELS[kind], model: kind === "claude" ? claudeModel() : null };
 }

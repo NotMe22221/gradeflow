@@ -14,11 +14,28 @@ export const SUBMISSION_STATUSES = [
 ] as const;
 export type SubmissionStatus = (typeof SUBMISSION_STATUSES)[number];
 
+/** Papers waiting for an AI first pass (what the batch "Run AI first pass" grades). */
+export const READY_FOR_AI_STATUSES: SubmissionStatus[] = ["SUBMITTED", "GRADING_FAILED"];
+
+/** Papers the server lets the AI pass (re-)run on. Re-running NEEDS_REVIEW replaces the suggestion. */
+export const AI_RERUNNABLE_STATUSES: SubmissionStatus[] = [...READY_FOR_AI_STATUSES, "NEEDS_REVIEW"];
+
 export const CONFIDENCE_LEVELS = ["high", "medium", "low"] as const;
 export type Confidence = (typeof CONFIDENCE_LEVELS)[number];
 
 export const GRADERS = ["claude", "demo"] as const;
 export type GraderKind = (typeof GRADERS)[number];
+
+/** UI label per grader. Add an entry here when adding a grader to GRADERS. */
+export const GRADER_LABELS: Record<GraderKind, string> = {
+  claude: "Claude",
+  demo: "Demo grader",
+};
+
+/** Coerce a stored AiGrade.grader value. Unknown values are treated as the demo grader. */
+export function parseGraderKind(value: string | null | undefined): GraderKind {
+  return (GRADERS as readonly string[]).includes(value ?? "") ? (value as GraderKind) : "demo";
+}
 
 export const DEMO_TEACHER_EMAIL = "morgan.hale@gradeflow.example";
 

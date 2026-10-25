@@ -1,6 +1,8 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+import { DATABASE_URL } from "./src/lib/db-url";
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
@@ -9,6 +11,6 @@ export default defineConfig({
   },
   datasource: {
     // Zero-setup default: a local SQLite file next to the schema.
-    url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
+    url: DATABASE_URL,
   },
 });

@@ -2,11 +2,17 @@
 
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
+/**
+ * Toasts sit at the top, just under the 56px top bar, so they never cover the
+ * review queue's sticky Approve / Send back bar at the bottom of the screen.
+ */
 function Toaster(props: ToasterProps) {
   return (
     <Sonner
       theme="light"
-      position="bottom-right"
+      position="top-center"
+      offset={{ top: 72 }}
+      mobileOffset={{ top: 64, left: 16, right: 16 }}
       className="toaster group"
       toastOptions={{
         classNames: {

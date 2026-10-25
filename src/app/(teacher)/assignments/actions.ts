@@ -8,7 +8,12 @@ import { getOwnedAssignment } from "@/lib/access";
 import { AuthError, requireTeacher } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { pickSampleSet } from "@/lib/demo/sample-papers";
-import { MAX_PAPER_CHARS, readTxtUpload, upsertSubmission } from "@/lib/submissions";
+import {
+  MAX_PAPER_CHARS,
+  readTxtUpload,
+  TEACHER_REPLACEABLE_STATUSES,
+  upsertSubmission,
+} from "@/lib/submissions";
 
 const IdSchema = z
   .string()
@@ -82,6 +87,7 @@ export async function addSubmission(assignmentId: string, formData: FormData): P
       studentId: enrollment.student.id,
       content: text,
       fileName,
+      replaceable: TEACHER_REPLACEABLE_STATUSES,
     });
     if (!result.ok) {
       return { ok: false, error: result.error, field: parsed.data.mode === "upload" ? "file" : "content" };
@@ -132,6 +138,7 @@ export async function loadSamplePapers(assignmentId: string): Promise<LoadSample
         studentId,
         content: sample.content,
         fileName: null,
+        replaceable: [],
       });
       if (result.ok) count++;
     }

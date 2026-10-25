@@ -1,10 +1,10 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { db } from "@/lib/db";
-import { isRole, type Role } from "@/lib/constants";
+import { demoLoginEnabled, isRole, type Role } from "@/lib/constants";
 
 /**
  * Minimal signed-cookie sessions for the demo.
@@ -20,12 +20,32 @@ let warnedAboutSecret = false;
 function secret(): string {
   const value = process.env.SESSION_SECRET;
   if (value && value.length >= 16) return value;
-  if (process.env.NODE_ENV === "production" && !warnedAboutSecret) {
-    // Still usable for a local `next start` demo, but make the gap obvious.
-    warnedAboutSecret = true;
-    console.warn("[gradeflow] SESSION_SECRET is not set; using the built-in demo secret.");
+  if (process.env.NODE_ENV === "production") {
+    // With one-click demo sign-in on, a forged cookie grants nothing a visitor
+    // can't already get by clicking "View the demo", so a local `next start`
+    // demo keeps working. Once demo sign-in is off (real auth), fail closed.
+    if (!demoLoginEnabled()) {
+      throw new Error("SESSION_SECRET must be set (16+ characters) when demo sign-in is off.");
+    }
+    if (!warnedAboutSecret) {
+      warnedAboutSecret = true;
+      console.warn("[gradeflow] SESSION_SECRET is not set; using the built-in demo secret.");
+    }
   }
   return "gradeflow-local-demo-secret-not-for-production";
+}
+
+/**
+ * Secure cookies by default in production, but follow the actual request
+ * protocol so a production build demoed over plain HTTP on a LAN (e.g. from
+ * a phone) still signs in. SESSION_COOKIE_SECURE=true|false overrides.
+ */
+async function shouldUseSecureCookie(): Promise<boolean> {
+  const override = process.env.SESSION_COOKIE_SECURE;
+  if (override) return override !== "false";
+  const proto = (await headers()).get("x-forwarded-proto")?.split(",")[0]?.trim();
+  if (proto) return proto === "https";
+  return process.env.NODE_ENV === "production";
 }
 
 function sign(payload: string): string {
@@ -69,7 +89,7 @@ export async function setSessionCookie(userId: string) {
   store.set(COOKIE_NAME, encode(userId), {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: await shouldUseSecureCookie(),
     path: "/",
     maxAge: MAX_AGE_SECONDS,
   });

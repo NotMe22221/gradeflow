@@ -1,8 +1,7 @@
 import "server-only";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "@/generated/prisma/client";
-
-export const DATABASE_URL = process.env.DATABASE_URL ?? "file:./prisma/dev.db";
+import { DATABASE_URL } from "@/lib/db-url";
 
 function createClient() {
   const adapter = new PrismaBetterSqlite3({ url: DATABASE_URL });

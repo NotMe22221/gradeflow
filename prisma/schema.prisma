@@ -162,8 +162,9 @@ model CriterionScore {
 }
 
 // The only table the gradebook and student view read scores from.
-// Rows are created exclusively by publishApprovedGrade() after a teacher
-// approval and are an immutable snapshot of what was approved.
+// At runtime, rows are created exclusively by publishApprovedGrade() after a
+// teacher approval and are an immutable snapshot of what was approved.
+// (prisma/seed.ts inserts synthetic historical rows directly.)
 model PublishedGrade {
   id           String   @id @default(cuid())
   submissionId String   @unique

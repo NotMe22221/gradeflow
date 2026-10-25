@@ -93,7 +93,3 @@ export function findEvidenceSpan(paper: string, quote: string | null | undefined
     end: haystack.map[index + needle.length - 1] + 1,
   };
 }
-
-export function evidenceAppearsInPaper(paper: string, quote: string | null | undefined): boolean {
-  return findEvidenceSpan(paper, quote) !== null;
-}
