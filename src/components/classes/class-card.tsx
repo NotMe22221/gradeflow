@@ -17,18 +17,19 @@ export type ClassCardData = {
 
 /** A whole-card link to a class with its roster size and grading backlog. */
 export function ClassCard({ data }: { data: ClassCardData }) {
-  const eyebrow = [data.section, data.subject].filter(Boolean).join(" · ");
+  const meta = [data.section, data.subject].filter(Boolean).join(" · ");
   const hasBacklog = data.reviewCount > 0 || data.readyCount > 0;
 
   return (
     <Link
       href={`/classes/${data.id}`}
-      className="group flex flex-col rounded-xl border border-border bg-card p-6 shadow-card transition-[box-shadow,border-color] outline-none hover:border-primary/25 hover:shadow-raised focus-visible:ring-[3px] focus-visible:ring-ring"
+      className="group flex flex-col rounded-xl border border-border bg-card p-6 shadow-card transition-[box-shadow,border-color] outline-none hover:border-foreground/15 hover:shadow-raised focus-visible:ring-[3px] focus-visible:ring-ring"
     >
       <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 space-y-1">
-          {eyebrow ? <p className="truncate text-[13px] font-medium text-muted-foreground">{eyebrow}</p> : null}
+        {/* Title first, then meta: the same order as the dashboard class cards. */}
+        <div className="min-w-0">
           <h2 className="truncate text-base font-semibold tracking-tight text-foreground">{data.name}</h2>
+          <p className="mt-0.5 truncate text-sm text-muted-foreground">{meta || "No section or subject"}</p>
         </div>
         <ArrowRight
           className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground"

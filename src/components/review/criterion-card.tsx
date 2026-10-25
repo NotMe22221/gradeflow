@@ -18,16 +18,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { GraderKind } from "@/lib/constants";
+import { formatPoints } from "@/lib/format";
 import {
   MAX_COMMENT_CHARS,
   checkScore,
   criterionCardId,
   scoreInputId,
   type CriterionDraft,
-} from "@/components/review/review-model";
-import type { ReviewCriterion } from "@/components/review/types";
-import type { GraderKind } from "@/lib/constants";
-import { formatPoints } from "@/lib/format";
+} from "@/lib/review/model";
+import { SCORE_STEP } from "@/lib/review/scores";
+import type { ReviewCriterion } from "@/lib/review/types";
 import { cn } from "@/lib/utils";
 
 export function CriterionCard({
@@ -85,7 +86,7 @@ export function CriterionCard({
           {number}
         </span>
         <div className="min-w-0 flex-1 space-y-2">
-          <h3 className="text-sm leading-6 font-semibold text-foreground">
+          <h3 className="text-sm leading-6 font-semibold break-words text-foreground">
             <span className="sr-only">Criterion {number}: </span>
             {criterion.title}
           </h3>
@@ -96,9 +97,9 @@ export function CriterionCard({
                 {demo ? "Demo suggested" : "AI suggested"} {formatPoints(criterion.aiScore)}
               </Badge>
             ) : (
-              <Badge variant="danger">
+              <Badge variant="danger" className="max-w-full whitespace-normal">
                 <CircleAlert aria-hidden />
-                No valid AI score – enter one
+                No valid AI score
               </Badge>
             )}
             {edited ? (
@@ -131,7 +132,7 @@ export function CriterionCard({
             id={inputId}
             type="number"
             inputMode="decimal"
-            step={0.5}
+            step={SCORE_STEP}
             min={0}
             max={criterion.maxPoints}
             value={draft.raw}
@@ -179,7 +180,7 @@ export function CriterionCard({
         <p
           id={descriptionId}
           hidden={!showDescription}
-          className="mt-2 rounded-lg bg-muted/70 px-3 py-2.5 text-[13px] leading-relaxed whitespace-pre-line text-muted-foreground"
+          className="mt-2 rounded-lg bg-muted/70 px-3 py-2.5 text-[13px] leading-relaxed break-words whitespace-pre-line text-muted-foreground"
         >
           {criterion.description}
         </p>
@@ -249,7 +250,7 @@ function EvidenceQuote({
             Show in paper
           </span>
         </span>
-        <q className="block text-[13px] leading-relaxed text-foreground italic">{evidence}</q>
+        <q className="block text-[13px] leading-relaxed break-words text-foreground italic">{evidence}</q>
       </button>
     );
   }
@@ -260,7 +261,7 @@ function EvidenceQuote({
         <CircleAlert className="size-3.5" aria-hidden />
         Not found in paper
       </span>
-      <q className="block text-[13px] leading-relaxed text-muted-foreground italic">{evidence}</q>
+      <q className="block text-[13px] leading-relaxed break-words text-muted-foreground italic">{evidence}</q>
     </div>
   );
 }

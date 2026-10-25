@@ -34,7 +34,7 @@ function StatCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="p-6">
+    <Card className="min-w-0 p-6">
       <div className="flex items-start justify-between gap-4">
         <h3 className="text-sm font-medium text-muted-foreground">{label}</h3>
         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground ring-1 ring-border">
@@ -69,7 +69,7 @@ export function StatRow({ stats, className }: { stats: DashboardStats; className
   const timeSaved = formatTimeSaved(stats.timeSavedMinutes);
 
   return (
-    <section aria-labelledby="dashboard-stats-heading" className={cn("grid gap-4 md:grid-cols-3", className)}>
+    <section aria-labelledby="dashboard-stats-heading" className={cn("grid grid-cols-1 gap-4 md:grid-cols-3", className)}>
       <h2 id="dashboard-stats-heading" className="sr-only">
         Grading at a glance
       </h2>

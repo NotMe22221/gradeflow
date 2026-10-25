@@ -4,7 +4,6 @@ import { useState, useTransition } from "react";
 import { Loader2, Plus } from "lucide-react";
 
 import { createClass } from "@/app/(teacher)/classes/actions";
-import type { FieldErrors } from "@/components/classes/schemas";
 import { FieldError, FormAlert } from "@/components/classes/form-feedback";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { FieldErrors } from "@/lib/validation/form";
 
 const EMPTY = { name: "", section: "", subject: "" };
 

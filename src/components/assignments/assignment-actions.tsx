@@ -18,7 +18,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { pluralize } from "@/lib/format";
 
-/** Page-header actions: overflow menu, add submission, and the AI pass / review CTA. */
+/**
+ * Page-header actions: overflow menu, add submission, and the AI pass / review
+ * CTA. On phones the CTA comes first at full width, then the review link, then
+ * the utility buttons.
+ */
 export function AssignmentActions({
   classId,
   eligibleStudents,
@@ -41,59 +45,61 @@ export function AssignmentActions({
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon" aria-label="More actions">
-            {samples.pending ? <Loader2 className="animate-spin" /> : <MoreHorizontal />}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-72">
-          {missingCount > 0 ? (
-            <>
-              <DropdownMenuLabel>Demo</DropdownMenuLabel>
-              <DropdownMenuItem onSelect={samples.load} disabled={samples.pending || isRunning} className="items-start">
-                <FlaskConical className="mt-0.5" aria-hidden />
-                <span className="grid gap-0.5">
-                  <span>Load sample papers (demo)</span>
-                  <span className="text-xs text-muted-foreground">{LOAD_SAMPLES_HINT}</span>
-                </span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-            </>
-          ) : null}
-          <DropdownMenuItem asChild>
-            <Link href={`/gradebook?class=${encodeURIComponent(classId)}`}>
-              <Table2 aria-hidden />
-              Open gradebook
-            </Link>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex items-center gap-2 max-sm:order-last">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" aria-label="More actions">
+              {samples.pending ? <Loader2 className="animate-spin" /> : <MoreHorizontal />}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-72">
+            {missingCount > 0 ? (
+              <>
+                <DropdownMenuLabel>Demo</DropdownMenuLabel>
+                <DropdownMenuItem onSelect={samples.load} disabled={samples.pending || isRunning} className="items-start">
+                  <FlaskConical className="mt-0.5" aria-hidden />
+                  <span className="grid gap-0.5">
+                    <span>Load sample papers (demo)</span>
+                    <span className="text-xs text-muted-foreground">{LOAD_SAMPLES_HINT}</span>
+                  </span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            ) : null}
+            <DropdownMenuItem asChild>
+              <Link href={`/gradebook?class=${encodeURIComponent(classId)}`}>
+                <Table2 aria-hidden />
+                Open gradebook
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-      <AddSubmissionDialog
-        assignmentId={assignmentId}
-        students={eligibleStudents}
-        hasRoster={hasRoster}
-        disabled={isRunning}
-      />
+        <AddSubmissionDialog
+          assignmentId={assignmentId}
+          students={eligibleStudents}
+          hasRoster={hasRoster}
+          disabled={isRunning}
+        />
+      </div>
 
       {gradable > 0 || isRunning ? (
         <>
           {reviewCount > 0 && !isRunning ? (
-            <Button variant="outline" asChild>
+            <Button variant="outline" asChild className="max-sm:w-full">
               <Link href={reviewHref}>
                 <Inbox aria-hidden />
                 Review {pluralize(reviewCount, "paper")}
               </Link>
             </Button>
           ) : null}
-          <Button onClick={() => start()} disabled={isRunning}>
+          <Button onClick={() => start()} disabled={isRunning} className="max-sm:order-first max-sm:w-full">
             {isRunning ? <Loader2 className="animate-spin" aria-hidden /> : <Sparkles aria-hidden />}
             {isRunning ? runningLabel : `Run AI first pass on ${pluralize(gradable, "paper")}`}
           </Button>
         </>
       ) : reviewCount > 0 ? (
-        <Button asChild>
+        <Button asChild className="max-sm:order-first max-sm:w-full">
           <Link href={reviewHref}>
             <Inbox aria-hidden />
             Review {pluralize(reviewCount, "paper")}

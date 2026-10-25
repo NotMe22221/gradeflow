@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { CELL_DISPLAY } from "@/components/gradebook/cell-display";
 import { Badge } from "@/components/ui/badge";
 import { formatPercent, formatScore } from "@/lib/format";
 import type { GradebookCell } from "@/lib/gradebook/types";
@@ -16,7 +17,8 @@ const pillLink =
 /**
  * One gradebook cell. Only published cells show a score; every other state
  * is a workflow label, so an unapproved AI suggestion can never be mistaken
- * for a grade.
+ * for a grade. Labels, badge styles, and hover text come from CELL_DISPLAY,
+ * which the legend renders from too.
  */
 export function GradebookCellView({
   cell,
@@ -27,6 +29,9 @@ export function GradebookCellView({
   studentName: string;
   assignmentTitle: string;
 }) {
+  const display = CELL_DISPLAY[cell.state];
+  const variant = display.variant ?? "secondary";
+
   switch (cell.state) {
     case "published": {
       if (cell.score === null) return <NoScore label="No published score" />;
@@ -38,54 +43,53 @@ export function GradebookCellView({
       );
     }
     case "in_review": {
-      const title = "AI draft waiting for your approval. Not counted until you publish it.";
       if (!cell.submissionId) {
         return (
-          <Badge variant="warning" title={title}>
-            In review
+          <Badge variant={variant} title={display.hint}>
+            {display.label}
           </Badge>
         );
       }
       const href = `/review?assignment=${encodeURIComponent(cell.assignmentId)}&s=${encodeURIComponent(cell.submissionId)}`;
       return (
-        <Badge asChild variant="warning" className={cn(pillLink, "hover:brightness-95")}>
+        <Badge asChild variant={variant} className={cn(pillLink, "hover:brightness-95")}>
           <Link
             href={href}
-            title={title}
-            aria-label={`In review: ${studentName}, ${assignmentTitle}. Open in the review queue.`}
+            title={display.hint}
+            aria-label={`${display.label}: ${studentName}, ${assignmentTitle}. Open in the review queue.`}
           >
-            In review
+            {display.label}
           </Link>
         </Badge>
       );
     }
     case "ready":
       return (
-        <Badge asChild variant="secondary" className={cn(pillLink, "hover:brightness-95")}>
+        <Badge asChild variant={variant} className={cn(pillLink, "hover:brightness-95")}>
           <Link
             href={`/assignments/${encodeURIComponent(cell.assignmentId)}`}
-            title="Submitted. Run the AI first pass from the assignment page."
-            aria-label={`Ready for AI: ${studentName}, ${assignmentTitle}. Open the assignment.`}
+            title={display.hint}
+            aria-label={`${display.label}: ${studentName}, ${assignmentTitle}. Open the assignment.`}
           >
-            Ready for AI
+            {display.label}
           </Link>
         </Badge>
       );
     case "grading":
       return (
-        <Badge variant="secondary" title="The AI first pass is running.">
+        <Badge variant={variant} title={display.hint}>
           <span className="size-1.5 animate-pulse rounded-full bg-muted-foreground" aria-hidden />
-          Grading
+          {display.label}
         </Badge>
       );
     case "returned":
       return (
-        <Badge variant="outline" title="Sent back to the student with a note.">
-          Sent back
+        <Badge variant={variant} title={display.hint}>
+          {display.label}
         </Badge>
       );
     case "missing":
-      return <NoScore label="No submission yet" />;
+      return <NoScore label={display.label} />;
   }
 }
 

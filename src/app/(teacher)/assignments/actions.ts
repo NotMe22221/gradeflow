@@ -14,15 +14,10 @@ import {
   TEACHER_REPLACEABLE_STATUSES,
   upsertSubmission,
 } from "@/lib/submissions";
-
-const IdSchema = z
-  .string()
-  .min(1)
-  .max(64)
-  .regex(/^[A-Za-z0-9_-]+$/);
+import { idSchema } from "@/lib/validation/id";
 
 const AddSubmissionSchema = z.object({
-  studentId: IdSchema,
+  studentId: idSchema,
   mode: z.enum(["paste", "upload"]),
   // Generous ceiling before normalization; upsertSubmission enforces the real limit.
   content: z.string().max(MAX_PAPER_CHARS * 2),
@@ -41,7 +36,7 @@ function failure(error: unknown, fallback: string): { ok: false; error: string }
 export async function addSubmission(assignmentId: string, formData: FormData): Promise<AddSubmissionResult> {
   try {
     const teacher = await requireTeacher();
-    const id = IdSchema.safeParse(assignmentId);
+    const id = idSchema.safeParse(assignmentId);
     if (!id.success) return { ok: false, error: "Assignment not found." };
     const assignment = await getOwnedAssignment(teacher.id, id.data);
 
@@ -108,7 +103,7 @@ export async function addSubmission(assignmentId: string, formData: FormData): P
 export async function loadSamplePapers(assignmentId: string): Promise<LoadSamplesResult> {
   try {
     const teacher = await requireTeacher();
-    const id = IdSchema.safeParse(assignmentId);
+    const id = idSchema.safeParse(assignmentId);
     if (!id.success) return { ok: false, error: "Assignment not found." };
     const assignment = await getOwnedAssignment(teacher.id, id.data);
 

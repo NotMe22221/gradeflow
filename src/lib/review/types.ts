@@ -2,12 +2,10 @@
 // workspace (client). Pure types: safe to import anywhere.
 
 import type { Confidence, GraderKind } from "@/lib/constants";
+import type { StoredFlag } from "@/lib/grading/flags";
 
-export type ReviewFlag = {
-  code: string;
-  message: string;
-  criterionId?: string;
-};
+/** A validation flag on the AI suggestion, as stored in AiGrade.flags. */
+export type ReviewFlag = StoredFlag;
 
 export type ReviewCriterion = {
   id: string;
@@ -22,7 +20,11 @@ export type ReviewCriterion = {
   aiEvidence: string | null;
   /** true only when the server verified the quote appears in the paper. */
   evidenceFound: boolean;
-  /** Teacher draft values. null means "not edited yet". */
+  /**
+   * Teacher draft values. A saved draft always stores a string comment, so
+   * finalComment === null means "not edited yet" and finalScore === null
+   * with a non-null finalComment means the teacher cleared the score.
+   */
   finalScore: number | null;
   finalComment: string | null;
 };

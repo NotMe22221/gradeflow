@@ -4,10 +4,13 @@
 //
 // Scores come from surface features of the text (length against the expected
 // length, paragraphing, sentence variety, transitions, evidence markers,
-// numbers, quotations, keyword overlap with each criterion, and mechanical
-// slips). Grader-directed sentences ("ignore the rubric...") are removed
-// before any feature is computed and are never quoted as evidence, so
-// injected text cannot raise a score.
+// numbers, quotations, hedging, keyword overlap with each criterion, and
+// mechanical slips), plus lab-report features (hypothesis wording, procedure
+// detail, measurements with units, sources of error). The wording of each
+// justification follows the score it explains. Recognized grader-directed
+// sentences ("ignore the rubric...") are removed before any feature is
+// computed and are never quoted as evidence; detection is a heuristic (see
+// injection.ts), and the teacher's approval is the real safeguard.
 
 import type { Confidence } from "@/lib/constants";
 import { pluralize } from "@/lib/format";
@@ -26,7 +29,9 @@ import type {
   RubricCriterionInput,
 } from "@/lib/grading/types";
 
-type Dimension = "thesis" | "evidence" | "organization" | "mechanics" | "analysis" | "counterargument" | "general";
+type EssayDimension = "thesis" | "evidence" | "organization" | "mechanics" | "analysis" | "counterargument";
+type LabDimension = "hypothesis" | "method" | "results" | "limitations";
+type Dimension = EssayDimension | LabDimension | "general";
 type Band = "strong" | "mid" | "weak";
 
 const DEFAULT_TARGET_WORDS = 350;
@@ -180,6 +185,21 @@ const CLAIM_MARKERS = [
   "is essential",
   "the best",
 ];
+// Hedges in the opening weaken a stated position ("kind of a good idea but
+// also maybe not").
+const HEDGE_MARKERS = [
+  "maybe",
+  "kind of",
+  "sort of",
+  "it depends",
+  "not sure",
+  "i guess",
+  "but also",
+  "probably",
+  "i dont know",
+  "i don't know",
+  "i don’t know",
+];
 const CONCLUSION_MARKERS = ["in conclusion", "to conclude", "overall", "ultimately", "in summary", "to sum up", "in the end", "all in all", "in short"];
 const MISSPELLINGS = new Set(
   (
@@ -187,6 +207,116 @@ const MISSPELLINGS = new Set(
     "beleive tommorow truely wierd noone dont doesnt didnt isnt cant wouldnt couldnt shouldnt im thru alright"
   ).split(" ")
 );
+
+// Lab reports.
+const HYPOTHESIS_LABEL = /^(?:(?:research\s+)?question\s+and\s+)?hypothes[ie]s\b\s*:?/;
+const IF_THEN = /\bif\b[^.!?]*\bthen\b/;
+const PREDICTION = /\b(?:predict(?:s|ed|ion)?|hypothesi[sz]e[sd]?)\b|\b(?:i|we)\s+(?:think|expect|predict)\b[^.!?]*\b(?:will|would|should)\b/;
+const HYPOTHESIS_VERDICT =
+  /\b(?:support|supports|supported|confirm|confirms|confirmed|contradict|contradicts|contradicted|refute|refutes|refuted)\b[^.!?]{0,40}\bhypothes[ie]s\b|\bhypothes[ie]s\s+(?:was|is)\s+(?:[a-z]+\s+)?(?:right|wrong|correct|incorrect|supported|confirmed|true|false)\b/;
+const DIRECTION =
+  /\b(?:increase[sd]?|decrease[sd]?|rises?|falls?|drops?|grows?|higher|lower|faster|slower|more|less|fewer|greater|bigger|larger|smaller|longer|shorter|warmer|colder|cooler|hotter|dirtier|cleaner|worse|better)\b/;
+const HYPOTHESIS_REASON = /\b(?:because|since|due to|as a result|caus(?:e|es|ed|ing)|so that|which means|leads? to)\b/;
+const REPEATED_TRIALS = /\b(?:trials?|repeated|repetitions?|averaged|average of|three times|twice)\b/;
+const MEASUREMENT_WITH_UNIT =
+  /\b\d+(?:[.,]\d+)?\s?(?:°\s?[cf]|mm|cm|km|m|ml|mg\/l|l|kg|mg|g|seconds?|secs?|s|minutes?|mins?|hours?|hrs?|ntu|ppm|degrees?|percent|%)(?![a-z])/g;
+const PROCEDURE_VERBS = [
+  "measured",
+  "recorded",
+  "timed",
+  "tested",
+  "sampled",
+  "filled",
+  "rinsed",
+  "calibrated",
+  "mixed",
+  "added",
+  "poured",
+  "placed",
+  "repeated",
+  "averaged",
+  "weighed",
+  "heated",
+  "cooled",
+  "stretched",
+  "collected",
+  "counted",
+  "swirled",
+  "stirred",
+  "labeled",
+  "labelled",
+  "attached",
+  "released",
+  "waited",
+  "used",
+  "put",
+];
+const EQUIPMENT = [
+  "stopwatch",
+  "timer",
+  "thermometer",
+  "ruler",
+  "meter stick",
+  "measuring tape",
+  "tape measure",
+  "scale",
+  "balance",
+  "beaker",
+  "beakers",
+  "flask",
+  "flasks",
+  "graduated cylinder",
+  "bottle",
+  "bottles",
+  "kit",
+  "kits",
+  "probe",
+  "sensor",
+  "pen",
+  "tube",
+  "tubes",
+  "pipette",
+  "balloon",
+  "balloons",
+  "hot plate",
+  "dropper",
+  "syringe",
+  "titration",
+];
+const ERROR_MARKERS = [
+  "source of error",
+  "sources of error",
+  "error",
+  "errors",
+  "limitation",
+  "limitations",
+  "uncertain",
+  "uncertainty",
+  "reaction time",
+  "not precise",
+  "imprecise",
+  "inaccurate",
+  "not accurate",
+  "only one",
+  "only once",
+  "ran out of time",
+  "not constant",
+  "leaked",
+  "rushing",
+];
+const IMPROVEMENT_MARKERS = [
+  "next time",
+  "in the future",
+  "to improve",
+  "improvement",
+  "we could use",
+  "we should",
+  "could have",
+  "would have",
+  "should have",
+  "more trials",
+  "more time",
+];
 
 function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -285,10 +415,14 @@ function countWords(text: string): number {
   return text.split(/\s+/).filter(Boolean).length;
 }
 
-function joinList(parts: string[]): string {
+function joinList(parts: string[], conjunction: "and" | "or" = "and"): string {
   if (parts.length <= 1) return parts[0] ?? "";
-  if (parts.length === 2) return `${parts[0]} and ${parts[1]}`;
-  return `${parts.slice(0, -1).join(", ")}, and ${parts[parts.length - 1]}`;
+  if (parts.length === 2) return `${parts[0]} ${conjunction} ${parts[1]}`;
+  return `${parts.slice(0, -1).join(", ")}, ${conjunction} ${parts[parts.length - 1]}`;
+}
+
+function on(flag: boolean): number {
+  return flag ? 1 : 0;
 }
 
 function quoteList(phrases: string[], max = 2): string {
@@ -317,6 +451,31 @@ type MechanicsIssues = {
   missingPunctuation: number;
 };
 
+type LabFeatures = {
+  /** A hypothesis or prediction is stated (a "Hypothesis:" section, an if-then, "I predict"). */
+  hypothesisStated: boolean;
+  hypothesisIfThen: boolean;
+  /** The prediction names a direction of change ("will increase", "dirtier"). */
+  hypothesisDirection: boolean;
+  /** The prediction comes with a reason ("because...", or an explaining sentence in its section). */
+  hypothesisReason: boolean;
+  /** A question near the start ("Does water quality...?"). */
+  questionPosed: boolean;
+  /** How many of independent / dependent / controlled variables are named. */
+  variablesNamed: number;
+  procedureSteps: number;
+  equipment: number;
+  measurementsWithUnits: number;
+  repeatedTrials: boolean;
+  /** Lines with three or more numbers: table rows or lists of readings. */
+  dataRows: number;
+  /** Sentences that name a source of error or a limitation. */
+  errorSources: number;
+  improvement: boolean;
+  /** States whether the data support the hypothesis. */
+  hypothesisVerdict: boolean;
+};
+
 type Features = {
   wordCount: number;
   targetWords: number;
@@ -336,6 +495,8 @@ type Features = {
   counterMarkers: number;
   counterUsed: string[];
   claimMarkersIntro: number;
+  hedgesIntro: number;
+  hedgesUsed: string[];
   hasConclusionMarker: boolean;
   introConclusionEcho: number;
   topicOverlap: number;
@@ -343,6 +504,7 @@ type Features = {
   issues: MechanicsIssues;
   errorCount: number;
   stems: Set<string>;
+  lab: LabFeatures;
 };
 
 /** The expected length, read from instructions like "400-600 words" or "at least 500 words". */
@@ -371,6 +533,74 @@ function sentenceHasError(text: string, words: number): boolean {
   if (tokenize(text.toLowerCase()).some((token) => MISSPELLINGS.has(token))) return true;
   if (words > 45) return true;
   return words >= 6 && !/[.!?"”')\]]$/.test(text);
+}
+
+/**
+ * The prediction a sentence states, without its "Hypothesis:" label, or null
+ * for a bare label, a question, or a verdict ("the data support my
+ * hypothesis").
+ */
+function hypothesisBody(lower: string): string | null {
+  if (HYPOTHESIS_VERDICT.test(lower)) return null;
+  const body = lower.replace(HYPOTHESIS_LABEL, "").trim();
+  return body && !body.endsWith("?") ? body : null;
+}
+
+/** True when a sentence states a prediction: a labelled hypothesis, an if-then, or "I predict". */
+function statesHypothesis(lower: string): boolean {
+  const body = hypothesisBody(lower);
+  return body !== null && (HYPOTHESIS_LABEL.test(lower) || IF_THEN.test(body) || PREDICTION.test(body));
+}
+
+function analyzeLab(sentences: Sentence[], clean: string, lowerAll: string): LabFeatures {
+  // A paragraph that opens with a "Hypothesis" label is the hypothesis
+  // section: every statement in it counts, not only the first.
+  const labelled = new Set(
+    sentences.filter((s) => s.index === 0 && HYPOTHESIS_LABEL.test(s.lower)).map((s) => s.paragraph)
+  );
+  const statements = sentences.filter(
+    (s) => statesHypothesis(s.lower) || (labelled.has(s.paragraph) && hypothesisBody(s.lower) !== null)
+  );
+  const explainedInSection = [...labelled].some(
+    (paragraph) => statements.filter((s) => s.paragraph === paragraph).length >= 2
+  );
+
+  const variablesNamed = [
+    /\bindependent\s+variables?\b/,
+    /\bdependent\s+variables?\b/,
+    /\b(?:controlled|control|constant)\s+variables?\b|\bconstants\b/,
+  ].filter((pattern) => pattern.test(lowerAll)).length;
+
+  const dataRows = clean.split("\n").filter((line) => (line.match(/\d+(?:[.,]\d+)?/g)?.length ?? 0) >= 3).length;
+
+  // "One source of error is... Another is..." names two, though only the
+  // first sentence says "error".
+  let errorSources = 0;
+  let previousNamedError = false;
+  for (const sentence of sentences) {
+    const named: boolean =
+      countPhrases(sentence.lower, ERROR_MARKERS, 1).total > 0 ||
+      (previousNamedError && /^(?:another|a second|a third|second|third|also)\b/.test(sentence.lower));
+    if (named) errorSources++;
+    previousNamedError = named;
+  }
+
+  return {
+    hypothesisStated: statements.length > 0,
+    hypothesisIfThen: statements.some((s) => IF_THEN.test(s.lower)),
+    hypothesisDirection: statements.some((s) => DIRECTION.test(s.lower)),
+    hypothesisReason: explainedInSection || statements.some((s) => HYPOTHESIS_REASON.test(s.lower)),
+    questionPosed: sentences.some((s) => s.paragraph <= 1 && s.text.trim().endsWith("?")),
+    variablesNamed,
+    procedureSteps: countPhrases(lowerAll, PROCEDURE_VERBS, 2).total,
+    equipment: countPhrases(lowerAll, EQUIPMENT, 2).total,
+    measurementsWithUnits: Math.min(12, lowerAll.match(MEASUREMENT_WITH_UNIT)?.length ?? 0),
+    repeatedTrials: REPEATED_TRIALS.test(lowerAll),
+    dataRows,
+    errorSources,
+    improvement: countPhrases(lowerAll, IMPROVEMENT_MARKERS, 1).total > 0,
+    hypothesisVerdict: HYPOTHESIS_VERDICT.test(lowerAll),
+  };
 }
 
 function analyze(input: GradingInput): Features {
@@ -436,6 +666,7 @@ function analyze(input: GradingInput): Features {
   const intro = sentences.filter((s) => s.paragraph === 0 || (paragraphs.length === 1 && s.index < 3));
   const introLower = intro.map((s) => s.lower).join(" ");
   const claimMarkersIntro = countPhrases(introLower, CLAIM_MARKERS, 2).total;
+  const hedges = countPhrases(introLower, HEDGE_MARKERS, 2);
   const lastParagraph = paragraphs.length > 1 ? paragraphs[paragraphs.length - 1].toLowerCase() : "";
   const hasConclusionMarker = CONCLUSION_MARKERS.some((m) => countPhrase(lastParagraph || lowerAll.slice(-600), m) > 0);
   const introConclusionEcho = paragraphs.length > 1 ? jaccard(contentStems(paragraphs[0]), contentStems(lastParagraph)) : 0;
@@ -483,6 +714,8 @@ function analyze(input: GradingInput): Features {
     counterMarkers: counter.total,
     counterUsed: counter.used,
     claimMarkersIntro,
+    hedgesIntro: hedges.total,
+    hedgesUsed: hedges.used,
     hasConclusionMarker,
     introConclusionEcho,
     topicOverlap,
@@ -490,6 +723,7 @@ function analyze(input: GradingInput): Features {
     issues,
     errorCount,
     stems,
+    lab: analyzeLab(sentences, clean, lowerAll),
   };
 }
 
@@ -497,6 +731,10 @@ function analyze(input: GradingInput): Features {
 
 const DIMENSION_PATTERNS: Array<[Exclude<Dimension, "general">, RegExp]> = [
   ["counterargument", /counter|opposing|rebut|objection|other side|alternative (?:view|perspective)/],
+  ["hypothesis", /hypothes|predict|testable|research question/],
+  ["method", /method|procedure|materials|experimental design|sampling/],
+  ["results", /\bresults?\b|measurements?|observations|findings/],
+  ["limitations", /sources? of error|error analysis|experimental error|limitations?|uncertaint/],
   ["evidence", /evidence|support|example|source|citation|cite|data|research|quot|detail|textual/],
   ["thesis", /thesis|claim|argument|position|main idea|focus|purpose|central idea|controlling idea|stance/],
   ["organization", /organi[sz]|structure|flow|transition|paragraph|coheren|order|sequence|introduction|conclusion/],
@@ -504,18 +742,32 @@ const DIMENSION_PATTERNS: Array<[Exclude<Dimension, "general">, RegExp]> = [
   ["mechanics", /grammar|mechanic|spelling|punctuation|convention|style|clarity|language|word choice|voice|tone|sentence|fluency|proofread|usage/],
 ];
 
+const LAB_DIMENSIONS: ReadonlySet<Dimension> = new Set<LabDimension>(["hypothesis", "method", "results", "limitations"]);
+// Essay dimensions whose words also turn up in lab-report titles ("Data and
+// results", "Conclusion and sources of error", "Clarity of procedure"). A lab
+// dimension named in the same title takes precedence over these.
+const YIELDS_TO_LAB: ReadonlySet<Dimension> = new Set<EssayDimension>(["evidence", "thesis", "organization", "mechanics"]);
+
 /** Which kind of quality a criterion measures, judged from its title first. */
 export function classifyCriterion(criterion: Pick<RubricCriterionInput, "title" | "description">): Dimension {
   const title = criterion.title.toLowerCase();
   let best: Dimension = "general";
   let bestIndex = Number.POSITIVE_INFINITY;
+  let bestLab: Dimension | null = null;
+  let bestLabIndex = Number.POSITIVE_INFINITY;
   for (const [dimension, pattern] of DIMENSION_PATTERNS) {
     const index = title.search(pattern);
-    if (index !== -1 && index < bestIndex) {
+    if (index === -1) continue;
+    if (index < bestIndex) {
       best = dimension;
       bestIndex = index;
     }
+    if (LAB_DIMENSIONS.has(dimension) && index < bestLabIndex) {
+      bestLab = dimension;
+      bestLabIndex = index;
+    }
   }
+  if (bestLab && YIELDS_TO_LAB.has(best)) return bestLab;
   if (best !== "general") return best;
 
   const description = criterion.description.toLowerCase();
@@ -535,7 +787,8 @@ function dimensionScore(dimension: Dimension, f: Features): number {
   const per100 = Math.max(2, f.wordCount / 100);
   switch (dimension) {
     case "thesis": {
-      const claim = saturate(f.claimMarkersIntro, 1.2);
+      // Hedging in the opening ("maybe", "it depends") undercuts the claim.
+      const claim = saturate(f.claimMarkersIntro, 1.2) * (1 - clamp01(f.hedgesIntro / 2));
       const topic = clamp01(f.topicOverlap * 2.2);
       const focus = f.paragraphCount > 1 ? clamp01(f.introConclusionEcho * 6) : 0.3;
       return clamp01(0.2 + 0.35 * claim + 0.25 * topic + 0.2 * focus);
@@ -566,6 +819,44 @@ function dimensionScore(dimension: Dimension, f: Features): number {
     }
     case "counterargument":
       return clamp01(0.15 + 0.85 * saturate(f.counterMarkers, 1.5));
+    case "hypothesis": {
+      const { lab } = f;
+      // A question or named variables frame the prediction; rubrics ask for one or the other.
+      const framing = Math.max(on(lab.questionPosed), saturate(lab.variablesNamed, 1.2));
+      if (!lab.hypothesisStated) return clamp01(0.1 + 0.15 * framing);
+      return clamp01(
+        0.4 +
+          0.15 * on(lab.hypothesisIfThen) +
+          0.15 * on(lab.hypothesisDirection) +
+          0.15 * on(lab.hypothesisReason) +
+          0.15 * framing
+      );
+    }
+    case "method": {
+      const { lab } = f;
+      return clamp01(
+        0.15 +
+          0.3 * saturate(lab.procedureSteps, 3) +
+          0.2 * saturate(lab.equipment, 2) +
+          0.2 * saturate(lab.measurementsWithUnits, 3) +
+          0.15 * on(lab.repeatedTrials)
+      );
+    }
+    case "results": {
+      const { lab } = f;
+      return clamp01(
+        0.2 +
+          0.4 * saturate(lab.measurementsWithUnits, 3) +
+          0.25 * saturate(f.numbers / per100, 1.5) +
+          0.15 * saturate(lab.dataRows, 1.5)
+      );
+    }
+    case "limitations": {
+      const { lab } = f;
+      return clamp01(
+        0.1 + 0.5 * clamp01(lab.errorSources / 2) + 0.15 * on(lab.improvement) + 0.25 * on(lab.hypothesisVerdict)
+      );
+    }
     case "general":
       return (
         (dimensionScore("thesis", f) +
@@ -598,6 +889,23 @@ function bandFor(fraction: number): Band {
   return "weak";
 }
 
+const BAND_ORDER: Band[] = ["weak", "mid", "strong"];
+
+/**
+ * Which wording a criterion gets. It follows the score actually suggested, so
+ * a 3 out of 5 never reads as strong. The one exception: when the paper is
+ * short and length alone pulls a score into the weak band although its
+ * features are better, the wording is the middle band and the length note
+ * explains the rest, so a short paper with a clear claim is not told it has
+ * none.
+ */
+function wordingBand(score: number, maxPoints: number, featureScore: number, shortPaper: boolean): Band {
+  const scoreRank = BAND_ORDER.indexOf(bandFor(maxPoints > 0 ? score / maxPoints : 0));
+  if (!shortPaper) return BAND_ORDER[scoreRank];
+  const featureRank = BAND_ORDER.indexOf(bandFor(featureScore));
+  return BAND_ORDER[Math.max(scoreRank, Math.min(featureRank, BAND_ORDER.indexOf("mid")))];
+}
+
 // --- Justifications ----------------------------------------------------------
 
 type Template = (f: Features, criterion: RubricCriterionInput) => string;
@@ -625,6 +933,69 @@ function paragraphPhrase(count: number): string {
   return count <= 1 ? "a single block of text" : pluralize(count, "paragraph");
 }
 
+/** What a lab-report section includes and what it still lacks, in rubric order. */
+type Parts = { has: string[]; missing: string[] };
+
+function partsOf(items: Array<[present: boolean, has: string, missing: string]>): Parts {
+  return {
+    has: items.filter(([present]) => present).map(([, has]) => has),
+    missing: items.filter(([present]) => !present).map(([, , missing]) => missing),
+  };
+}
+
+function criterionAsks(criterion: RubricCriterionInput, pattern: RegExp): boolean {
+  return pattern.test(`${criterion.title} ${criterion.description}`.toLowerCase());
+}
+
+function hypothesisParts(f: Features, criterion: RubricCriterionInput): Parts {
+  const { lab } = f;
+  const items: Array<[boolean, string, string]> = [
+    [lab.hypothesisIfThen, "an if-then prediction", "an if-then structure"],
+    [lab.hypothesisDirection, "a predicted direction of change", "a specific direction of change"],
+    [lab.hypothesisReason, "a reason for the prediction", "a scientific reason"],
+  ];
+  if (criterionAsks(criterion, /question/)) items.push([lab.questionPosed, "a focused question", "a focused question"]);
+  if (criterionAsks(criterion, /variable/)) {
+    items.push([lab.variablesNamed >= 2, "named variables", "named independent and dependent variables"]);
+  }
+  return partsOf(items);
+}
+
+function methodParts(f: Features): Parts {
+  const { lab } = f;
+  return partsOf([
+    [lab.procedureSteps >= 3, "step-by-step actions", "the steps in order"],
+    [lab.equipment >= 1, "the equipment used", "the equipment used"],
+    [lab.measurementsWithUnits >= 2, "measured amounts with units", "amounts and measurements with units"],
+    [lab.repeatedTrials, "repeated trials", "repeated trials"],
+  ]);
+}
+
+function limitationParts(f: Features, criterion: RubricCriterionInput): Parts {
+  const { lab } = f;
+  const items: Array<[boolean, string, string]> = [
+    lab.errorSources >= 2
+      ? [true, "two or more sources of error", ""]
+      : lab.errorSources === 1
+        ? [false, "", "a second source of error"]
+        : [false, "", "specific sources of error"],
+  ];
+  if (criterionAsks(criterion, /improv|future|next time|suggest/)) {
+    items.push([lab.improvement, "a concrete improvement", "a concrete improvement"]);
+  }
+  if (criterionAsks(criterion, /hypothes|support|conclu/)) {
+    items.push([lab.hypothesisVerdict, "whether the data support the hypothesis", "whether the data support the hypothesis"]);
+  }
+  const parts = partsOf(items);
+  if (lab.errorSources === 1) parts.has.unshift("one source of error");
+  return parts;
+}
+
+/** " It could still add X." when a strong section still lacks something. */
+function stillMissing(parts: Parts, verb = "add"): string {
+  return parts.missing.length ? ` It could still ${verb} ${parts.missing[0]}.` : "";
+}
+
 const TEMPLATES: Record<Dimension, Record<Band, Template[]>> = {
   thesis: {
     strong: [
@@ -632,12 +1003,24 @@ const TEMPLATES: Record<Dimension, Record<Band, Template[]>> = {
       () => "A specific claim appears in the opening paragraph, and the body paragraphs keep building on it rather than drifting.",
     ],
     mid: [
-      () => "The paper signals a position early, but the claim is broad and the conclusion only partly returns to it.",
-      () => "A main idea is present, though it is stated loosely and could say more precisely what the paper sets out to prove.",
+      (f) =>
+        f.hedgesIntro
+          ? `The paper leans toward a position but hedges it (${quoteList(f.hedgesUsed)}), so the claim never becomes firm.`
+          : "The paper signals a position early, but the claim is broad and the conclusion only partly returns to it.",
+      (f) =>
+        f.hedgesIntro
+          ? `A main idea is present, but hedges such as ${quoteList(f.hedgesUsed)} keep it from becoming an arguable claim.`
+          : "A main idea is present, though it is stated loosely and could say more precisely what the paper sets out to prove.",
     ],
     weak: [
-      () => "The paper never states a clear, arguable position, so it is hard to tell what it sets out to prove.",
-      () => "The main claim is missing or only implied; the opening reads as background rather than an argument.",
+      (f) =>
+        f.hedgesIntro
+          ? `The opening hedges (${quoteList(f.hedgesUsed)}) instead of committing to a position, so it is hard to tell what the paper argues.`
+          : "The paper never states a clear, arguable position, so it is hard to tell what it sets out to prove.",
+      (f) =>
+        f.hedgesIntro
+          ? `The paper never commits to one side; hedges like ${quoteList(f.hedgesUsed)} leave the main claim unclear.`
+          : "The main claim is missing or only implied; the opening reads as background rather than an argument.",
     ],
   },
   evidence: {
@@ -677,7 +1060,10 @@ const TEMPLATES: Record<Dimension, Record<Band, Template[]>> = {
     ],
     weak: [
       (f) => `Ideas run together in ${paragraphPhrase(f.paragraphCount)} with few transitions, which makes the line of reasoning hard to follow.`,
-      () => "There is no clear introduction, body, and conclusion, so the reader has to work out how the ideas connect.",
+      (f) =>
+        f.paragraphCount >= 3 && f.hasConclusionMarker
+          ? "The paragraphs are there, but ideas jump between them with few links, so the reader has to work out how they connect."
+          : "There is no clear introduction, body, and conclusion, so the reader has to work out how the ideas connect.",
     ],
   },
   mechanics: {
@@ -733,8 +1119,184 @@ const TEMPLATES: Record<Dimension, Record<Band, Template[]>> = {
       () => "Nods to an opposing view, though the rebuttal is short and leaves the objection partly unanswered.",
     ],
     weak: [
-      () => "Does not address counterarguments or alternative viewpoints.",
-      () => "The paper presents only one side and never engages with how someone might disagree.",
+      (f) =>
+        f.counterMarkers
+          ? `Mentions another view (${quoteList(f.counterUsed, 1)}) only in passing and does not respond to it.`
+          : "Does not address counterarguments or alternative viewpoints.",
+      (f) =>
+        f.counterMarkers
+          ? "Nods to the other side, but never explains why the paper's position still holds."
+          : "The paper presents only one side and never engages with how someone might disagree.",
+    ],
+  },
+  hypothesis: {
+    strong: [
+      (f, c) => {
+        const parts = hypothesisParts(f, c);
+        return parts.has.length
+          ? `States a clear, testable hypothesis with ${joinList(parts.has.slice(0, 3))}.${stillMissing(parts)}`
+          : "States a clear, testable hypothesis.";
+      },
+      (f, c) => {
+        const parts = hypothesisParts(f, c);
+        return parts.has.length
+          ? `The prediction is specific and testable: it includes ${joinList(parts.has.slice(0, 3))}.${stillMissing(parts)}`
+          : "The prediction is specific and testable.";
+      },
+    ],
+    mid: [
+      (f, c) => {
+        const { missing } = hypothesisParts(f, c);
+        return missing.length
+          ? `A hypothesis is stated, but it lacks ${joinList(missing.slice(0, 2))}.`
+          : "A hypothesis is stated, though it could say more precisely what will change and why.";
+      },
+      (f, c) => {
+        const { missing } = hypothesisParts(f, c);
+        return missing.length
+          ? `The prediction is testable in principle, but without ${joinList(missing.slice(0, 2), "or")} it stays general.`
+          : "The prediction is testable in principle, though it could say more precisely what will change and why.";
+      },
+    ],
+    weak: [
+      (f, c) => {
+        if (!f.lab.hypothesisStated) return "The report does not state a clear, testable hypothesis or prediction.";
+        const { missing } = hypothesisParts(f, c);
+        return missing.length
+          ? `The hypothesis is too vague to test well: it lacks ${joinList(missing.slice(0, 3))}.`
+          : "The hypothesis is brief and needs more detail to be testable.";
+      },
+      (f, c) => {
+        if (!f.lab.hypothesisStated) return "No testable prediction is given, so it is unclear what the experiment sets out to show.";
+        const { missing } = hypothesisParts(f, c);
+        return missing.length
+          ? `A prediction appears, but without ${joinList(missing.slice(0, 2), "or")} it is hard to test.`
+          : "A prediction appears, but it is too brief to test well.";
+      },
+    ],
+  },
+  method: {
+    strong: [
+      (f) => {
+        const parts = methodParts(f);
+        return parts.has.length
+          ? `Describes the procedure clearly enough to repeat, including ${joinList(parts.has)}.${stillMissing(parts)}`
+          : "Describes the procedure clearly enough to repeat.";
+      },
+      (f) => {
+        const parts = methodParts(f);
+        return parts.has.length
+          ? `Another group could follow this method: it gives ${joinList(parts.has)}.${stillMissing(parts)}`
+          : "Another group could follow this method.";
+      },
+    ],
+    mid: [
+      (f) => {
+        const { missing } = methodParts(f);
+        return missing.length
+          ? `Outlines the procedure, but leaves out ${joinList(missing.slice(0, 2))}, so another group would have to guess at some steps.`
+          : "Outlines the procedure, though some steps are too brief for another group to repeat exactly.";
+      },
+      (f) => {
+        const { has, missing } = methodParts(f);
+        return missing.length
+          ? `The method gives ${has.length ? joinList(has) : "a general outline"}, but without ${joinList(missing.slice(0, 2), "or")} it would be hard to repeat exactly.`
+          : "Outlines the procedure, though some steps are too brief for another group to repeat exactly.";
+      },
+    ],
+    weak: [
+      (f) => {
+        const { missing } = methodParts(f);
+        return missing.length
+          ? `The method is too vague to repeat: it leaves out ${joinList(missing.slice(0, 3))}.`
+          : "The method is too brief for another group to repeat.";
+      },
+      (f) => {
+        const { missing } = methodParts(f);
+        return missing.length
+          ? `Only a general outline of what was done is given; it does not include ${joinList(missing.slice(0, 2), "or")}.`
+          : "Only a general outline of what was done is given, which is not enough for another group to repeat it.";
+      },
+    ],
+  },
+  results: {
+    strong: [
+      (f) =>
+        f.lab.measurementsWithUnits
+          ? `Reports specific results, including ${pluralize(f.lab.measurementsWithUnits, "measurement")} with units${f.lab.dataRows >= 2 ? " laid out in a table or list" : ""}, so the numbers are easy to check.`
+          : `Reports specific values for each condition${f.lab.dataRows >= 2 ? " in a table or list" : ""}, though units would make them easier to check.`,
+      (f) =>
+        f.lab.measurementsWithUnits
+          ? `Results are reported precisely, with units on ${pluralize(f.lab.measurementsWithUnits, "measurement")}, and the key numbers are easy to find.`
+          : `Reports specific values for each condition${f.lab.dataRows >= 2 ? " in a table or list" : ""}, though units would make them easier to check.`,
+    ],
+    mid: [
+      (f) =>
+        !f.numbers
+          ? "Describes the results mostly in words, with few specific measurements."
+          : !f.lab.measurementsWithUnits
+            ? `Reports ${pluralize(f.numbers, "value")}, but none of them include units, so the reader cannot tell exactly what was measured.`
+            : `Reports some measurements (${pluralize(f.lab.measurementsWithUnits, "value")} with units), but the results are thin in places or not clearly organized.`,
+      (f) =>
+        !f.numbers
+          ? "Describes the results mostly in words, with few specific measurements."
+          : !f.lab.measurementsWithUnits
+            ? "The numbers are there, but without units or labels they are hard to interpret."
+            : `Includes ${pluralize(f.lab.measurementsWithUnits, "measurement")} with units, though some results are missing or not tied to a specific condition.`,
+    ],
+    weak: [
+      (f) =>
+        f.numbers
+          ? `Gives ${pluralize(f.numbers, "number")}${f.lab.measurementsWithUnits ? "" : " with no units"}, but the results need a specific, labelled measurement for each condition.`
+          : "The results describe what happened in general terms, without specific measurements.",
+      (f) =>
+        f.numbers
+          ? `The results are incomplete: ${f.lab.measurementsWithUnits ? "several conditions have no clear measurement" : "the numbers have no units"}, so they are hard to check.`
+          : "No specific measurements are reported, so the results cannot be checked.",
+    ],
+  },
+  limitations: {
+    strong: [
+      (f, c) => {
+        const parts = limitationParts(f, c);
+        return parts.has.length
+          ? `Addresses ${joinList(parts.has)}.${stillMissing(parts)}`
+          : "Discusses the limits of the experiment in specific terms.";
+      },
+      (f, c) => {
+        const parts = limitationParts(f, c);
+        return parts.has.length
+          ? `The wrap-up is thorough: it covers ${joinList(parts.has)}.${stillMissing(parts)}`
+          : "Discusses the limits of the experiment in specific terms.";
+      },
+    ],
+    mid: [
+      (f, c) => {
+        const { has, missing } = limitationParts(f, c);
+        if (!missing.length) return `Addresses ${joinList(has)}, though each point is covered only briefly.`;
+        return `Addresses ${has.length ? joinList(has) : "the results only briefly"}, but leaves out ${joinList(missing.slice(0, 2))}.`;
+      },
+      (f, c) => {
+        const { has, missing } = limitationParts(f, c);
+        if (!missing.length) return `Addresses ${joinList(has)}, though each point is covered only briefly.`;
+        return `${has.length ? `Covers ${joinList(has)}; adding` : "Adding"} ${joinList(missing.slice(0, 2))} would complete it.`;
+      },
+    ],
+    weak: [
+      (f, c) => {
+        const { has, missing } = limitationParts(f, c);
+        if (!f.lab.errorSources) {
+          return `Does not name specific sources of error${criterionAsks(c, /improv|future|next time|suggest/) ? " or ways to improve the experiment" : ""}.`;
+        }
+        return missing.length
+          ? `Mentions ${joinList(has)} only briefly and leaves out ${joinList(missing.slice(0, 2))}.`
+          : "Mentions sources of error only briefly, without explaining how they affected the results.";
+      },
+      (f, c) => {
+        const { has, missing } = limitationParts(f, c);
+        if (!missing.length) return "Mentions sources of error only briefly, without explaining how they affected the results.";
+        return `Needs ${joinList(missing.slice(0, 3))}${has.length ? `; for now it offers only ${joinList(has)}` : ""}.`;
+      },
     ],
   },
   general: {
@@ -772,6 +1334,16 @@ type Candidate = {
   reasoning: number;
   counter: number;
   commas: number;
+  // Lab-report cues.
+  hypothesis: boolean;
+  question: boolean;
+  verdict: boolean;
+  procedure: number;
+  equipment: number;
+  measurements: number;
+  trials: boolean;
+  errors: number;
+  improvement: number;
 };
 
 const CLAUSE_BREAK = /[,;:](?=\s)|\s[—–-]\s/g;
@@ -815,6 +1387,15 @@ function describeCandidate(text: string, sentence: Sentence, partial: boolean, s
     reasoning: countPhrases(lower, REASONING_MARKERS, 2).total,
     counter: countPhrases(lower, COUNTER_MARKERS, 2).total,
     commas: Math.min(3, text.match(/,/g)?.length ?? 0),
+    hypothesis: statesHypothesis(lower),
+    question: text.trim().endsWith("?"),
+    verdict: HYPOTHESIS_VERDICT.test(lower),
+    procedure: countPhrases(lower, PROCEDURE_VERBS, 1).total,
+    equipment: countPhrases(lower, EQUIPMENT, 1).total,
+    measurements: lower.match(MEASUREMENT_WITH_UNIT)?.length ?? 0,
+    trials: REPEATED_TRIALS.test(lower),
+    errors: countPhrases(lower, ERROR_MARKERS, 1).total,
+    improvement: countPhrases(lower, IMPROVEMENT_MARKERS, 1).total,
   };
 }
 
@@ -882,6 +1463,28 @@ function candidateScore(
       break;
     case "counterargument":
       score += candidate.counter * 3;
+      break;
+    case "hypothesis":
+      if (candidate.hypothesis) score += 4;
+      if (candidate.question) score += 1.5;
+      if (sentence.paragraph === 0) score += 1;
+      // "The data support my hypothesis" is a conclusion, not the hypothesis.
+      if (candidate.verdict) score -= 3;
+      break;
+    case "method":
+      // Show what was done: a sentence with no procedure verb is a result or a claim.
+      score +=
+        1.5 * Math.min(3, candidate.procedure) +
+        Math.min(2, candidate.equipment) +
+        0.5 * Math.min(2, candidate.measurements) +
+        (candidate.trials ? 1.5 : 0);
+      if (candidate.procedure === 0) score -= 2;
+      break;
+    case "results":
+      score += 1.5 * Math.min(4, candidate.measurements) + 0.5 * Math.min(4, candidate.numbers);
+      break;
+    case "limitations":
+      score += 3 * Math.min(2, candidate.errors) + 2 * Math.min(1, candidate.improvement) + (candidate.verdict ? 1.5 : 0);
       break;
     case "general":
       score += overlapRatio(topicStems, candidate.stems) * 3 + Math.min(1, candidate.reasoning);
@@ -975,9 +1578,11 @@ export function gradeWithDemoHeuristics(input: GradingInput): RawGradingResult {
     const keywordOverlap = criterionStems.size ? overlapRatio(criterionStems, f.stems) : 0.4;
     const fraction = scoreFraction(dimension, f, keywordOverlap);
     fractions.push(fraction);
-    // The wording describes what the paper does on this dimension; when length
-    // is what pulls the score down, the note below says so.
-    const band = bandFor(f.wordCount === 0 ? 0 : dimensionScore(dimension, f));
+    const score = toHalfPoints(fraction, criterion.maxPoints);
+    const shortPaper = f.wordCount > 0 && f.lengthFactor < 0.7;
+    // The wording matches the suggested score; when length is what pulls the
+    // score down, the note below says so.
+    const band = wordingBand(score, criterion.maxPoints, f.wordCount === 0 ? 0 : dimensionScore(dimension, f), shortPaper);
 
     const variants = TEMPLATES[dimension][band];
     const variantKey = `${dimension}:${band}`;
@@ -987,13 +1592,13 @@ export function gradeWithDemoHeuristics(input: GradingInput): RawGradingResult {
       f.wordCount === 0
         ? "The paper has no text to evaluate for this criterion."
         : variants[(hash(`${criterion.id}|${criterion.title}`) + offset) % variants.length](f, criterion);
-    if (f.wordCount > 0 && f.lengthFactor < 0.7) {
+    if (shortPaper) {
       justification += ` At ${pluralize(f.wordCount, "word")}, the paper is well under the expected length of about ${f.targetWords} words.`;
     }
 
     return {
       criterionId: criterion.id,
-      score: toHalfPoints(fraction, criterion.maxPoints),
+      score,
       justification,
       evidence: pickEvidence(input.paper, dimension, candidates, band, criterionStems, f.topicStems, usedEvidence),
     };

@@ -33,7 +33,7 @@ export function AppShell({
         <MobileNav counts={counts} />
         <Logo href="/dashboard" />
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <GraderStatus info={graderInfo} className="hidden sm:inline-flex" />
+          <GraderStatus info={graderInfo} />
           <UserMenu user={user} students={students} demoLogin={demoLogin} />
         </div>
       </header>

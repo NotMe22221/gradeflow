@@ -33,18 +33,23 @@ export type ExportResult = {
  *   3. Return a summary body (what was pushed, what was skipped and why) so the
  *      teacher sees exactly what happened.
  *
- * A network-backed exporter would likely make export() async and run behind
- * the same teacher-only, ownership-checked route. No LMS calls exist in this
- * codebase; they are intentionally out of scope for the demo.
+ * A network-backed exporter returns a Promise from export(); the route awaits
+ * every exporter, and each one runs behind the same teacher-only,
+ * ownership-checked route. Registering it in ./index.ts is all it takes to
+ * add its button to the gradebook page. No LMS calls exist in this codebase;
+ * they are intentionally out of scope for the demo.
  */
 export interface GradebookExporter {
   /** Stable id used in `?format=<id>` on the export route. */
   id: string;
-  /** Human-readable name for menus, e.g. "CSV". */
+  /** Human-readable name for buttons and menus, e.g. "CSV" (shown as "Export CSV"). */
   label: string;
+  /** Optional one-line note shown under the export control when it is the only format. */
+  description?: string;
   /** Response Content-Type, including the charset. */
   contentType: string;
   /** File extension without the dot, e.g. "csv". */
   fileExtension: string;
-  export(data: GradebookData, options?: ExportOptions): ExportResult;
+  /** Build the export. May be async (return a Promise), e.g. to call an LMS API. */
+  export(data: GradebookData, options?: ExportOptions): ExportResult | Promise<ExportResult>;
 }

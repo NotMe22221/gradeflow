@@ -6,52 +6,25 @@ import { NewClassDialog } from "@/components/classes/new-class-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { requireTeacherPage } from "@/lib/auth/session";
-import { db } from "@/lib/db";
 import { pluralize } from "@/lib/format";
+import { getClassSummaries } from "@/lib/stats";
 
 export const metadata: Metadata = { title: "Classes" };
 
 export default async function ClassesPage() {
   const teacher = await requireTeacherPage();
 
-  const [classes, backlog] = await Promise.all([
-    db.class.findMany({
-      where: { teacherId: teacher.id },
-      orderBy: { createdAt: "asc" },
-      select: {
-        id: true,
-        name: true,
-        section: true,
-        subject: true,
-        _count: { select: { enrollments: true, assignments: true } },
-      },
-    }),
-    db.submission.findMany({
-      where: {
-        status: { in: ["NEEDS_REVIEW", "SUBMITTED", "GRADING_FAILED"] },
-        assignment: { class: { teacherId: teacher.id } },
-      },
-      select: { status: true, assignment: { select: { classId: true } } },
-    }),
-  ]);
-
-  const counts = new Map<string, { review: number; ready: number }>();
-  for (const submission of backlog) {
-    const entry = counts.get(submission.assignment.classId) ?? { review: 0, ready: 0 };
-    if (submission.status === "NEEDS_REVIEW") entry.review++;
-    else entry.ready++;
-    counts.set(submission.assignment.classId, entry);
-  }
-
-  const cards: ClassCardData[] = classes.map((klass) => ({
-    id: klass.id,
-    name: klass.name,
-    section: klass.section,
-    subject: klass.subject,
-    studentCount: klass._count.enrollments,
-    assignmentCount: klass._count.assignments,
-    reviewCount: counts.get(klass.id)?.review ?? 0,
-    readyCount: counts.get(klass.id)?.ready ?? 0,
+  // Same per-class counts as the dashboard (review queue and READY_FOR_AI_STATUSES).
+  const summaries = await getClassSummaries(teacher.id);
+  const cards: ClassCardData[] = summaries.map((summary) => ({
+    id: summary.id,
+    name: summary.name,
+    section: summary.section,
+    subject: summary.subject,
+    studentCount: summary.studentCount,
+    assignmentCount: summary.assignmentCount,
+    reviewCount: summary.pendingReview,
+    readyCount: summary.readyForAi,
   }));
 
   const totalReview = cards.reduce((sum, card) => sum + card.reviewCount, 0);

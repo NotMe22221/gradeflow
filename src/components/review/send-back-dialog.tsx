@@ -15,8 +15,8 @@ import {
 import { Kbd } from "@/components/ui/kbd";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { MAX_RETURN_NOTE_CHARS } from "@/components/review/review-model";
 import { firstName } from "@/lib/format";
+import { MAX_RETURN_NOTE_CHARS } from "@/lib/review/model";
 
 export function SendBackDialog({
   open,

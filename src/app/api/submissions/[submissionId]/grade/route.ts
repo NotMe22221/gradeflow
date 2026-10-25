@@ -1,17 +1,11 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
-import { z } from "zod";
 
 import { AuthError, requireTeacher } from "@/lib/auth/session";
 import { GradingConflictError, GradingError, runAiFirstPass } from "@/lib/grading/run";
+import { idSchema } from "@/lib/validation/id";
 
 export const dynamic = "force-dynamic";
-
-const SubmissionIdSchema = z
-  .string()
-  .min(1)
-  .max(64)
-  .regex(/^[A-Za-z0-9_-]+$/);
 
 function errorResponse(error: string, status: number) {
   return NextResponse.json({ ok: false, error }, { status });
@@ -25,7 +19,7 @@ function errorResponse(error: string, status: number) {
 export async function POST(_request: Request, { params }: { params: Promise<{ submissionId: string }> }) {
   try {
     const user = await requireTeacher();
-    const parsed = SubmissionIdSchema.safeParse((await params).submissionId);
+    const parsed = idSchema.safeParse((await params).submissionId);
     if (!parsed.success) return errorResponse("Submission not found.", 404);
 
     const submission = await runAiFirstPass(user.id, parsed.data);

@@ -13,10 +13,11 @@ import type { EligibleStudent, SubmissionFlag, SubmissionRowData } from "@/compo
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { getOwnedAssignment } from "@/lib/access";
 import { AuthError, requireTeacherPage } from "@/lib/auth/session";
-import { isConfidence } from "@/lib/constants";
+import { isConfidence, parseGraderKind, STALE_GRADING_CLAIM_MS } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { formatDate, formatDateTime, formatRelative, pluralize, wordCount } from "@/lib/format";
 import { getGraderInfo } from "@/lib/grading/config";
+import { describeFlag, parseFlags, type FlagCriterion } from "@/lib/grading/flags";
 
 type Params = Promise<{ assignmentId: string }>;
 
@@ -37,21 +38,15 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return { title: assignment?.title ?? "Assignment" };
 }
 
-/** AiGrade.flags is a JSON string; anything malformed reads as no flags. */
-function parseFlags(json: string): SubmissionFlag[] {
-  try {
-    const value: unknown = JSON.parse(json);
-    if (!Array.isArray(value)) return [];
-    return value.flatMap((item) => {
-      if (!item || typeof item !== "object") return [];
-      const { code, message } = item as { code?: unknown; message?: unknown };
-      return typeof message === "string" && message
-        ? [{ code: typeof code === "string" ? code : "FLAG", message }]
-        : [];
-    });
-  } catch {
-    return [];
-  }
+/**
+ * Stored flags in the same teacher-facing wording as the review queue.
+ * describeFlag never echoes text injected into the paper.
+ */
+function displayFlags(json: string, criteria: FlagCriterion[]): SubmissionFlag[] {
+  return parseFlags(json).map((flag) => {
+    const { criterionLabel, message } = describeFlag(flag, criteria);
+    return { code: flag.code, message: criterionLabel ? `${criterionLabel}: ${message}` : message };
+  });
 }
 
 // Students may resubmit or be graded, but a published grade is final.
@@ -70,6 +65,7 @@ export default async function AssignmentPage({ params }: { params: Params }) {
         content: true,
         fileName: true,
         submittedAt: true,
+        updatedAt: true,
         student: { select: { id: true, name: true } },
         aiGrade: { select: { confidence: true, grader: true, flags: true } },
         publishedGrade: { select: { totalScore: true, maxScore: true } },
@@ -83,27 +79,36 @@ export default async function AssignmentPage({ params }: { params: Params }) {
   ]);
 
   const now = new Date();
+  const flagCriteria: FlagCriterion[] = assignment.criteria.map(({ id, title, maxPoints }) => ({ id, title, maxPoints }));
   const rows: SubmissionRowData[] = submissions
-    .map((submission) => ({
-      id: submission.id,
-      student: submission.student,
-      status: submission.status,
-      submittedLabel: formatRelative(submission.submittedAt, now),
-      submittedTitle: formatDateTime(submission.submittedAt),
-      fileName: submission.fileName,
-      wordCount: wordCount(submission.content),
-      ai:
-        submission.aiGrade && isConfidence(submission.aiGrade.confidence)
-          ? {
-              confidence: submission.aiGrade.confidence,
-              grader: submission.aiGrade.grader === "claude" ? ("claude" as const) : ("demo" as const),
-              flags: parseFlags(submission.aiGrade.flags),
-            }
+    .map((submission) => {
+      // Shown as a failed run so it gets Retry and joins the batch; the grade
+      // route takes over the stale claim.
+      const interrupted =
+        submission.status === "GRADING" && now.getTime() - submission.updatedAt.getTime() > STALE_GRADING_CLAIM_MS;
+      return {
+        id: submission.id,
+        student: submission.student,
+        status: interrupted ? "GRADING_FAILED" : submission.status,
+        interrupted,
+        submittedAt: submission.submittedAt.toISOString(),
+        submittedLabel: formatRelative(submission.submittedAt, now),
+        submittedTitle: formatDateTime(submission.submittedAt),
+        fileName: submission.fileName,
+        wordCount: wordCount(submission.content),
+        ai:
+          submission.aiGrade && isConfidence(submission.aiGrade.confidence)
+            ? {
+                confidence: submission.aiGrade.confidence,
+                grader: parseGraderKind(submission.aiGrade.grader),
+                flags: displayFlags(submission.aiGrade.flags, flagCriteria),
+              }
+            : null,
+        published: submission.publishedGrade
+          ? { total: submission.publishedGrade.totalScore, max: submission.publishedGrade.maxScore }
           : null,
-      published: submission.publishedGrade
-        ? { total: submission.publishedGrade.totalScore, max: submission.publishedGrade.maxScore }
-        : null,
-    }))
+      };
+    })
     .sort((a, b) => a.student.name.localeCompare(b.student.name));
 
   const statusByStudent = new Map(submissions.map((submission) => [submission.student.id, submission.status]));

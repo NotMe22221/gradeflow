@@ -12,9 +12,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import type { DraftSummary } from "@/components/review/review-model";
-import type { ReviewItem } from "@/components/review/types";
 import { firstName, formatPoints, formatScore } from "@/lib/format";
+import type { DraftSummary } from "@/lib/review/model";
+import type { ReviewItem } from "@/lib/review/types";
 
 /**
  * The deliberate approval step. Only this dialog's confirm button publishes;

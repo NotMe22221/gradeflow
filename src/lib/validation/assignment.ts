@@ -1,8 +1,10 @@
 // Assignment + rubric validation shared by the rubric builder (client) and the
 // createAssignment server action, so both enforce exactly the same rules.
-// Pure: no server-only imports.
+// Pure: safe for client components, server code, and unit tests.
 
 import { z } from "zod";
+
+import type { FieldErrors } from "@/lib/validation/form";
 
 export const RUBRIC_LIMITS = {
   minCriteria: 1,
@@ -76,19 +78,5 @@ export const assignmentInputSchema = z.object({
     .min(RUBRIC_LIMITS.minCriteria, "Add at least one criterion.")
     .max(RUBRIC_LIMITS.maxCriteria, `Use ${RUBRIC_LIMITS.maxCriteria} criteria or fewer.`),
 });
-
-export type AssignmentInput = z.input<typeof assignmentInputSchema>;
-
-/** Field errors keyed by path: "title", "criteria", "criteria.2.maxPoints". */
-export type FieldErrors = Record<string, string>;
-
-export function fieldErrorsFromIssues(issues: readonly z.core.$ZodIssue[]): FieldErrors {
-  const errors: FieldErrors = {};
-  for (const issue of issues) {
-    const key = issue.path.map(String).join(".") || "form";
-    if (!(key in errors)) errors[key] = issue.message;
-  }
-  return errors;
-}
 
 export type CreateAssignmentResult = { ok: false; error: string; fieldErrors?: FieldErrors };

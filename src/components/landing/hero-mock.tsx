@@ -52,7 +52,7 @@ function WindowBar() {
         </span>
       </div>
       <div className="ml-auto flex shrink-0 items-center gap-3">
-        <span className="tabular hidden text-xs text-muted-foreground lg:inline">2 of 6</span>
+        <span className="tabular hidden text-xs text-muted-foreground lg:inline">1 of 3</span>
         <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-xs font-medium text-success-soft-foreground">
           <span className="size-1.5 rounded-full bg-success" />
           High confidence
@@ -171,7 +171,8 @@ function MockCriterion({
 function ActionBar() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 sm:px-6">
-      <p className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
+      {/* From lg up the floating QueueCard sits over this corner; start the copy to its right. */}
+      <p className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex lg:pl-56 xl:pl-48">
         <ShieldCheck className="size-3.5 text-success" />
         Nothing publishes until you approve it.
       </p>
@@ -208,7 +209,7 @@ const QUEUE = [
 
 function QueueCard() {
   return (
-    <div className="absolute -bottom-10 -left-8 hidden w-64 rounded-xl border border-border bg-card p-2 shadow-raised lg:block xl:-left-14">
+    <div className="absolute -bottom-14 -left-8 hidden w-64 rounded-xl border border-border bg-card p-2 shadow-raised lg:block xl:-left-14">
       <p className="px-2 pt-1 pb-2 text-xs font-medium text-muted-foreground">3 papers waiting for review</p>
       <ul className="space-y-0.5">
         {QUEUE.map((item) => (

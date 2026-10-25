@@ -15,7 +15,8 @@ export function AutosaveStatus({
   onRetry: () => void;
   className?: string;
 }) {
-  const base = "inline-flex min-w-0 items-center gap-1.5 text-xs";
+  // max-w-full lets the text truncate instead of overflowing a narrow footer.
+  const base = "inline-flex max-w-full min-w-0 items-center gap-1.5 text-xs";
   let content: React.ReactNode;
 
   switch (state.status) {
@@ -24,7 +25,7 @@ export function AutosaveStatus({
       content = (
         <span className={cn(base, "text-muted-foreground")}>
           <LoaderCircle className="size-3.5 shrink-0 animate-spin" aria-hidden />
-          Saving…
+          <span className="truncate">Saving…</span>
         </span>
       );
       break;
@@ -32,7 +33,7 @@ export function AutosaveStatus({
       content = (
         <span className={cn(base, "text-muted-foreground")}>
           <CloudCheck className="size-3.5 shrink-0 text-success" aria-hidden />
-          Draft saved
+          <span className="truncate">Draft saved</span>
         </span>
       );
       break;

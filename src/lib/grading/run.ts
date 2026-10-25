@@ -1,7 +1,13 @@
 import "server-only";
 
 import { getOwnedSubmission } from "@/lib/access";
-import type { Confidence, GraderKind, SubmissionStatus } from "@/lib/constants";
+import {
+  AI_RERUNNABLE_STATUSES,
+  STALE_GRADING_CLAIM_MS,
+  type Confidence,
+  type GraderKind,
+  type SubmissionStatus,
+} from "@/lib/constants";
 import { db } from "@/lib/db";
 import { getGrader } from "@/lib/grading";
 import type { GradingInput, ValidatedGrading } from "@/lib/grading/types";
@@ -12,10 +18,12 @@ export { GradingError } from "@/lib/grading/validate";
 /**
  * The AI first pass for one submission.
  *
- * This module writes only AiGrade, CriterionScore, and Submission.status
- * (GRADING, NEEDS_REVIEW, or GRADING_FAILED). It never touches the published
- * gradebook: publishing happens only through an explicit teacher approval in
- * lib/grades/publish.ts.
+ * This module writes only AiGrade, CriterionScore, Submission.status
+ * (GRADING, NEEDS_REVIEW, or GRADING_FAILED), and Submission.teacherFeedback,
+ * which a finished run resets to null: a re-run replaces the previous
+ * suggestion together with the teacher's draft edits, including the draft
+ * overall note. It never touches the published gradebook: publishing happens
+ * only through an explicit teacher approval in lib/grades/publish.ts.
  */
 
 export type RunResult = {
@@ -35,10 +43,6 @@ export class GradingConflictError extends Error {
   }
 }
 
-const GRADABLE_STATUSES: SubmissionStatus[] = ["SUBMITTED", "GRADING_FAILED", "NEEDS_REVIEW"];
-/** A GRADING claim older than this is treated as abandoned (crashed request). */
-const STALE_CLAIM_MS = 3 * 60 * 1000;
-
 function conflictMessage(status: string): string {
   switch (status) {
     case "GRADING":
@@ -56,7 +60,7 @@ function conflictMessage(status: string): string {
 /** Atomically move the submission to GRADING so two runs never overlap. */
 async function claimSubmission(submissionId: string): Promise<void> {
   const claimed = await db.submission.updateMany({
-    where: { id: submissionId, status: { in: GRADABLE_STATUSES } },
+    where: { id: submissionId, status: { in: AI_RERUNNABLE_STATUSES } },
     data: { status: "GRADING", updatedAt: new Date() },
   });
   if (claimed.count === 1) return;
@@ -64,7 +68,7 @@ async function claimSubmission(submissionId: string): Promise<void> {
   // Recover a claim left behind by a request that died mid-grade. The
   // updatedAt condition makes the takeover itself atomic.
   const recovered = await db.submission.updateMany({
-    where: { id: submissionId, status: "GRADING", updatedAt: { lt: new Date(Date.now() - STALE_CLAIM_MS) } },
+    where: { id: submissionId, status: "GRADING", updatedAt: { lt: new Date(Date.now() - STALE_GRADING_CLAIM_MS) } },
     data: { status: "GRADING", updatedAt: new Date() },
   });
   if (recovered.count === 1) return;
@@ -104,6 +108,7 @@ async function saveGrading(
 ): Promise<void> {
   await db.$transaction(async (tx) => {
     // Only finish a run that still holds the claim; anything else rolls back.
+    // Clearing teacherFeedback drops the draft overall note from a previous run.
     const finished = await tx.submission.updateMany({
       where: { id: submissionId, status: "GRADING" },
       data: { status: "NEEDS_REVIEW", teacherFeedback: null },

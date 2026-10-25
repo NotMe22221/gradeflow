@@ -2,12 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { ArrowLeft, CalendarDays } from "lucide-react";
+import { ArrowLeft, CalendarDays, ChevronRight } from "lucide-react";
 
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { AssignmentRubric } from "@/components/student/assignment-rubric";
 import { GradeCard } from "@/components/student/grade-card";
-import { parsePublishedBreakdown } from "@/components/student/published-breakdown";
 import { ReturnedNotice } from "@/components/student/returned-notice";
 import { StudentStateBadge } from "@/components/student/student-state-badge";
 import { isPastDue, studentStateFor } from "@/components/student/student-status";
@@ -18,7 +17,8 @@ import { getEnrolledAssignment } from "@/lib/access";
 import { AuthError, requireStudentPage } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { formatDate, formatScore, pluralize } from "@/lib/format";
-import { MAX_PAPER_CHARS, MIN_PAPER_CHARS } from "@/lib/submissions";
+import { parseBreakdown } from "@/lib/grades/breakdown";
+import { cn } from "@/lib/utils";
 
 type PageProps = { params: Promise<{ assignmentId: string }> };
 
@@ -77,6 +77,54 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
   const totalPoints = assignment.criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0);
   const pastDue = state === "not_submitted" && isPastDue(assignment.dueDate, new Date());
   const classLabel = [assignment.class.name, assignment.class.section].filter(Boolean).join(" · ");
+  // Once a paper is in, its state (grade, progress, or send-back note) is what
+  // the student came for: it goes first, and the instructions fold away below.
+  const submitted = state !== "not_submitted";
+
+  const instructionsText = (
+    <div className="max-w-prose text-[15px] leading-7 break-words whitespace-pre-line text-foreground/90">
+      {assignment.instructions}
+    </div>
+  );
+
+  const instructions = (
+    <section
+      aria-labelledby="instructions-heading"
+      className={cn("min-w-0 lg:col-start-1", submitted ? "lg:row-start-2" : "lg:row-start-1")}
+    >
+      {submitted ? (
+        <Card className="overflow-hidden">
+          {/* Open while revising after a send-back; folded once the paper is with the teacher. */}
+          <details className="group" open={state === "returned"}>
+            <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-4 transition-colors outline-none select-none hover:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset sm:px-6 [&::-webkit-details-marker]:hidden">
+              <ChevronRight
+                className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
+                aria-hidden
+              />
+              <h2 id="instructions-heading" className="text-base font-semibold tracking-tight text-foreground">
+                Instructions
+              </h2>
+            </summary>
+            <div className="px-5 pb-6 sm:px-6">{instructionsText}</div>
+          </details>
+        </Card>
+      ) : (
+        <Card className="p-5 sm:p-6">
+          <h2 id="instructions-heading" className="text-base font-semibold tracking-tight text-foreground">
+            Instructions
+          </h2>
+          <div className="mt-3">{instructionsText}</div>
+        </Card>
+      )}
+    </section>
+  );
+
+  const rubric = (
+    <AssignmentRubric
+      criteria={assignment.criteria}
+      className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1"
+    />
+  );
 
   return (
     <PageContainer>
@@ -115,28 +163,18 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
       />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <section aria-labelledby="instructions-heading" className="min-w-0 lg:col-start-1 lg:row-start-1">
-          <Card className="p-5 sm:p-6">
-            <h2 id="instructions-heading" className="text-base font-semibold tracking-tight text-foreground">
-              Instructions
-            </h2>
-            <div className="mt-3 max-w-prose text-[15px] leading-7 break-words whitespace-pre-line text-foreground/90">
-              {assignment.instructions}
-            </div>
-          </Card>
-        </section>
+        {submitted ? null : instructions}
+        {submitted ? null : rubric}
 
-        <AssignmentRubric
-          criteria={assignment.criteria}
-          className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1"
-        />
-
-        <section aria-label="Your paper" className="min-w-0 space-y-6 lg:col-start-1 lg:row-start-2">
+        <section
+          aria-label="Your paper"
+          className={cn("min-w-0 space-y-6 lg:col-start-1", submitted ? "lg:row-start-1" : "lg:row-start-2")}
+        >
           {state === "graded" && published && submission ? (
             <GradeCard
               totalScore={published.totalScore}
               maxScore={published.maxScore}
-              breakdown={parsePublishedBreakdown(published.breakdown)}
+              breakdown={parseBreakdown(published.breakdown)}
               feedback={published.feedback}
               approvedByName={published.approvedBy.name}
               approvedAt={published.approvedAt}
@@ -166,13 +204,7 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
                     Your previous text is filled in below. Edit it, or upload a new .txt file.
                   </p>
                 </div>
-                <SubmitPaperForm
-                  assignmentId={assignment.id}
-                  defaultText={submission.content}
-                  resubmit
-                  maxChars={MAX_PAPER_CHARS}
-                  minChars={MIN_PAPER_CHARS}
-                />
+                <SubmitPaperForm assignmentId={assignment.id} defaultText={submission.content} resubmit />
               </Card>
             </>
           ) : (
@@ -184,14 +216,13 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
                   back if it needs changes.
                 </p>
               </div>
-              <SubmitPaperForm
-                assignmentId={assignment.id}
-                maxChars={MAX_PAPER_CHARS}
-                minChars={MIN_PAPER_CHARS}
-              />
+              <SubmitPaperForm assignmentId={assignment.id} />
             </Card>
           )}
         </section>
+
+        {submitted ? instructions : null}
+        {submitted ? rubric : null}
       </div>
     </PageContainer>
   );

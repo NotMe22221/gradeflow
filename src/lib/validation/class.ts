@@ -1,12 +1,9 @@
 // Class and roster validation shared by the dialogs (client) and the server
-// actions. Pure: no server-only imports.
+// actions. Pure: safe for client components, server code, and unit tests.
 
 import { z } from "zod";
 
-import { fieldErrorsFromIssues, type FieldErrors } from "@/components/assignments/rubric-schema";
-
-export { fieldErrorsFromIssues };
-export type { FieldErrors };
+import type { FieldErrors } from "@/lib/validation/form";
 
 export const NAME_MAX = 40;
 

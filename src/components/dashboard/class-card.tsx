@@ -25,11 +25,16 @@ function Metric({ label, value }: { label: string; value: number }) {
 /**
  * One class on the dashboard. The whole card links to the class page via a
  * stretched title link; footer actions sit above it.
+ *
+ * Long names, meta, and due titles wrap (clamped to two lines) instead of
+ * truncating, and the review badge only takes space next to the title when
+ * there is something to review.
  */
-export function ClassCard({ summary, className }: { summary: ClassSummary; className?: string }) {
+export function DashboardClassCard({ summary, className }: { summary: ClassSummary; className?: string }) {
   const href = `/classes/${encodeURIComponent(summary.id)}`;
-  const meta = [summary.section, summary.subject].filter(Boolean).join(" · ");
+  const meta = [summary.section, summary.subject].filter(Boolean).join(" · ") || "No section or subject";
   const hasPending = summary.pendingReview > 0;
+  const nextDue = summary.nextDue;
 
   return (
     <Card
@@ -39,9 +44,9 @@ export function ClassCard({ summary, className }: { summary: ClassSummary; class
       )}
     >
       <div className="flex flex-1 flex-col gap-6 p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h3 className="truncate text-base font-semibold tracking-tight text-foreground">
+        <div className="min-w-0">
+          <div className="flex items-start justify-between gap-4">
+            <h3 className="line-clamp-2 min-w-0 text-base font-semibold tracking-tight break-words text-pretty text-foreground">
               <Link
                 href={href}
                 className="rounded-sm outline-none after:absolute after:inset-0 after:rounded-xl after:content-[''] focus-visible:after:ring-[3px] focus-visible:after:ring-ring"
@@ -49,18 +54,15 @@ export function ClassCard({ summary, className }: { summary: ClassSummary; class
                 {summary.name}
               </Link>
             </h3>
-            <p className="mt-0.5 truncate text-sm text-muted-foreground">{meta || "No section or subject"}</p>
+            {hasPending ? (
+              // -my-0.5 keeps the 28px badge inside the 24px title line, so cards with and
+              // without a badge line up row for row.
+              <Badge variant="warning" className="tabular -my-0.5 h-7 shrink-0 px-2.5 text-[13px] font-semibold">
+                {summary.pendingReview} to review
+              </Badge>
+            ) : null}
           </div>
-          {hasPending ? (
-            <Badge className="tabular h-7 shrink-0 px-2.5 text-[13px] font-semibold">
-              {summary.pendingReview} to review
-            </Badge>
-          ) : (
-            <span className="inline-flex h-7 shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <CheckCircle2 className="size-3.5" aria-hidden />
-              Nothing to review
-            </span>
-          )}
+          <p className="mt-0.5 line-clamp-2 text-sm break-words text-muted-foreground">{meta}</p>
         </div>
 
         <dl className="grid grid-cols-3 gap-4">
@@ -70,29 +72,35 @@ export function ClassCard({ summary, className }: { summary: ClassSummary; class
         </dl>
 
         <ul className="mt-auto space-y-2 text-sm text-muted-foreground">
+          {hasPending ? null : (
+            <li className="flex items-center gap-2">
+              <CheckCircle2 className="size-4 shrink-0" aria-hidden />
+              <span className="min-w-0">Nothing to review</span>
+            </li>
+          )}
           {summary.readyForAi > 0 ? (
             <li className="flex items-center gap-2">
               <Sparkles className="size-4 shrink-0" aria-hidden />
-              <span className="tabular truncate">{summary.readyForAi} ready for AI pass</span>
+              <span className="tabular min-w-0">{summary.readyForAi} ready for AI pass</span>
             </li>
           ) : null}
-          <li className="flex min-w-0 items-center gap-2">
-            <CalendarClock className="size-4 shrink-0" aria-hidden />
-            {summary.nextDue ? (
-              <span className="min-w-0 truncate">
-                Next due:{" "}
-                <span className="font-medium text-foreground">{summary.nextDue.title}</span>
+          <li className="flex items-start gap-2">
+            <CalendarClock className="mt-0.5 size-4 shrink-0" aria-hidden />
+            {nextDue ? (
+              // Date first, so a long title can never clamp it away.
+              <span className="line-clamp-2 min-w-0 break-words">
+                Next due <time dateTime={nextDue.dueDate.toISOString()}>{formatDate(nextDue.dueDate)}</time>
                 {" · "}
-                {formatDate(summary.nextDue.dueDate)}
+                <span className="font-medium text-foreground">{nextDue.title}</span>
               </span>
             ) : (
-              <span className="truncate">No upcoming due dates</span>
+              <span className="min-w-0">No upcoming due dates</span>
             )}
           </li>
         </ul>
       </div>
 
-      <CardFooter className="relative z-10 justify-between gap-2 px-4 py-3">
+      <CardFooter className="relative z-10 flex-wrap justify-between gap-2 px-4 py-3">
         <Button asChild variant="ghost" size="sm">
           <Link href={href}>Open class</Link>
         </Button>

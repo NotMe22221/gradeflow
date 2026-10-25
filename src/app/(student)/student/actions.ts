@@ -12,14 +12,9 @@ import {
   STUDENT_REPLACEABLE_STATUSES,
   upsertSubmission,
 } from "@/lib/submissions";
+import { idSchema } from "@/lib/validation/id";
 
 export type SubmitPaperResult = { ok: true } | { ok: false; error: string };
-
-const IdSchema = z
-  .string()
-  .min(1)
-  .max(64)
-  .regex(/^[A-Za-z0-9_-]+$/);
 
 const ModeSchema = z.enum(["paste", "upload"]);
 
@@ -40,7 +35,7 @@ export async function submitPaper(assignmentId: string, formData: FormData): Pro
   try {
     const student = await requireStudent();
 
-    const id = IdSchema.safeParse(assignmentId);
+    const id = idSchema.safeParse(assignmentId);
     if (!id.success) return { ok: false, error: "Assignment not found." };
     const assignment = await getEnrolledAssignment(student.id, id.data);
 

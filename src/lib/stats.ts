@@ -1,19 +1,17 @@
 import "server-only";
 
-import { ILLUSTRATIVE_MINUTES_SAVED_PER_PAPER, type SubmissionStatus } from "@/lib/constants";
+import { ILLUSTRATIVE_MINUTES_SAVED_PER_PAPER, READY_FOR_AI_STATUSES } from "@/lib/constants";
 import { db } from "@/lib/db";
 
 /*
  * Teacher dashboard numbers. "Graded" figures and scores come only from
  * PublishedGrade (teacher-approved). Workflow counts (pending review, ready
- * for AI) come from Submission.status. Every query is scoped to the teacher's
- * own classes.
+ * for AI) come from Submission.status, using the shared groupings in
+ * constants.ts (READY_FOR_AI_STATUSES: never run, or a failed run to retry).
+ * Every query is scoped to the teacher's own classes.
  */
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** Papers waiting on an AI first pass: never run, or a failed run to retry. */
-const READY_FOR_AI_STATUSES: SubmissionStatus[] = ["SUBMITTED", "GRADING_FAILED"];
 
 export type DashboardStats = {
   /** Grades published in the last 7 days. */

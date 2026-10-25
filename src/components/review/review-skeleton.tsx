@@ -6,22 +6,22 @@ const PAPER_LINES = ["w-full", "w-11/12", "w-full", "w-4/5", "w-full", "w-10/12"
 export function ReviewSkeleton() {
   return (
     <div
-      className="flex min-h-[calc(100dvh-3.5rem)] flex-col lg:h-[calc(100dvh-3.5rem)] lg:min-h-0"
+      className="relative flex min-h-[calc(100dvh-3.5rem)] flex-col lg:h-[calc(100dvh-3.5rem)] lg:min-h-0 lg:overflow-hidden"
       aria-busy
       aria-label="Loading the review queue"
     >
       <div className="border-b border-border bg-card px-4 py-3 sm:px-6">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-          <div className="mr-auto space-y-2">
-            <Skeleton className="h-6 w-36" />
+          <div className="min-w-0 flex-1 basis-40 space-y-2">
+            <Skeleton className="h-6 w-36 max-w-full" />
             <Skeleton className="h-4 w-56 max-w-full" />
           </div>
-          <div className="order-last flex w-full flex-wrap items-center gap-2 lg:order-none lg:w-auto">
-            <Skeleton className="h-9 flex-1 sm:w-52 sm:flex-none" />
-            <Skeleton className="h-9 flex-1 sm:w-48 sm:flex-none" />
-            <Skeleton className="hidden h-8 w-44 lg:block" />
+          <div className="order-last flex w-full items-center gap-2 lg:order-none lg:w-auto">
+            <Skeleton className="h-9 min-w-0 flex-1 sm:w-64 sm:flex-none" />
+            <Skeleton className="h-9 w-40 shrink-0 sm:w-52" />
+            <Skeleton className="hidden h-8 w-16 shrink-0 lg:block 2xl:w-44" />
           </div>
-          <Skeleton className="ml-auto h-8 w-32" />
+          <Skeleton className="ml-auto h-8 w-32 shrink-0" />
         </div>
       </div>
 

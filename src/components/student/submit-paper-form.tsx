@@ -20,6 +20,14 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { pluralize, wordCount } from "@/lib/format";
+import {
+  formatBytes,
+  MAX_PAPER_CHARS,
+  MAX_PAPER_FILE_BYTES,
+  normalizePaperText,
+  txtFileProblem,
+  validatePaperText,
+} from "@/lib/paper";
 import { cn } from "@/lib/utils";
 
 type Mode = "paste" | "upload";
@@ -30,16 +38,6 @@ type SelectedFile = {
 };
 
 const PREVIEW_LINES = 8;
-
-/** Same cleanup the server applies, so counts here match what gets stored. */
-function normalizeForCount(text: string): string {
-  return text.replace(/^﻿/, "").replace(/\r\n?/g, "\n").trim();
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} KB`;
-}
 
 function previewOf(text: string): string {
   return text
@@ -53,15 +51,11 @@ export function SubmitPaperForm({
   assignmentId,
   defaultText = "",
   resubmit = false,
-  maxChars,
-  minChars,
 }: {
   assignmentId: string;
   /** Prefilled paste text, used when resubmitting after a send-back. */
   defaultText?: string;
   resubmit?: boolean;
-  maxChars: number;
-  minChars: number;
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("paste");
@@ -79,12 +73,14 @@ export function SubmitPaperForm({
   const fileHelpId = useId();
   const errorId = useId();
 
-  const pasted = normalizeForCount(text);
+  // The same normalization the server applies, so counts and limits here match
+  // what gets stored.
+  const pasted = normalizePaperText(text);
   const pastedWords = wordCount(pasted);
-  const nearLimit = pasted.length > maxChars * 0.9;
-  const overLimit = pasted.length > maxChars;
+  const nearLimit = pasted.length > MAX_PAPER_CHARS * 0.9;
+  const overLimit = pasted.length > MAX_PAPER_CHARS;
 
-  const uploaded = selected ? normalizeForCount(selected.text) : "";
+  const uploaded = selected ? normalizePaperText(selected.text) : "";
   const uploadedWords = wordCount(uploaded);
 
   const canSubmit = mode === "paste" ? pasted.length > 0 : selected !== null && !fileError;
@@ -99,12 +95,9 @@ export function SubmitPaperForm({
   async function chooseFile(file: File | null | undefined) {
     setError(null);
     if (!file) return;
-    if (!file.name.toLowerCase().endsWith(".txt") || (file.type && file.type !== "text/plain")) {
-      rejectFile("Choose a plain-text .txt file. Save Word or Google Docs files as .txt first.");
-      return;
-    }
-    if (file.size > maxChars * 4) {
-      rejectFile("That file is too large for one paper.");
+    const problem = txtFileProblem(file);
+    if (problem) {
+      rejectFile(problem);
       return;
     }
     let contents: string;
@@ -114,15 +107,8 @@ export function SubmitPaperForm({
       rejectFile("That file could not be read. Try saving it again as .txt.");
       return;
     }
-    const cleaned = normalizeForCount(contents);
     setSelected({ file, text: contents });
-    if (cleaned.length < minChars) {
-      setFileError("That file looks empty. Check that it contains your paper.");
-    } else if (cleaned.length > maxChars) {
-      setFileError(`Papers are limited to ${maxChars.toLocaleString()} characters.`);
-    } else {
-      setFileError(null);
-    }
+    setFileError(validatePaperText(normalizePaperText(contents)));
   }
 
   function clearFile() {
@@ -138,12 +124,9 @@ export function SubmitPaperForm({
     const formData = new FormData();
     formData.set("mode", mode);
     if (mode === "paste") {
-      if (pasted.length < minChars) {
-        setError("That paper looks empty. Paste the full text or upload a .txt file.");
-        return;
-      }
-      if (overLimit) {
-        setError(`Papers are limited to ${maxChars.toLocaleString()} characters.`);
+      const problem = validatePaperText(pasted);
+      if (problem) {
+        setError(problem);
         return;
       }
       formData.set("content", text);
@@ -226,7 +209,7 @@ export function SubmitPaperForm({
             >
               {pluralize(pastedWords, "word")}
               {nearLimit
-                ? ` · ${pasted.length.toLocaleString()} / ${maxChars.toLocaleString()} characters`
+                ? ` · ${pasted.length.toLocaleString("en-US")} / ${MAX_PAPER_CHARS.toLocaleString("en-US")} characters`
                 : ""}
             </span>
           </div>
@@ -315,12 +298,12 @@ export function SubmitPaperForm({
               </span>
             </label>
           )}
-          <p
-            id={fileHelpId}
-            className={cn("text-xs", fileError ? "text-danger-soft-foreground" : "text-muted-foreground")}
-          >
-            {fileError ??
-              "Plain-text .txt files only. In Word or Google Docs, use File, then Download or Save as, then Plain text."}
+          <p id={fileHelpId} className="text-xs text-muted-foreground">
+            {fileError ? (
+              <span className="mb-1 block font-medium text-danger-soft-foreground">{fileError}</span>
+            ) : null}
+            Plain-text .txt files only, up to {formatBytes(MAX_PAPER_FILE_BYTES)}. In Word or Google Docs, use
+            File, then Download or Save as, then Plain text.
           </p>
         </TabsContent>
       </Tabs>

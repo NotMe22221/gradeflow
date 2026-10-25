@@ -1,5 +1,6 @@
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PromptText } from "@/components/assignments/prompt-text";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { pluralize } from "@/lib/format";
 
 export type RubricCardCriterion = { id: string; title: string; description: string; maxPoints: number };
@@ -60,9 +61,7 @@ export function PromptCard({ instructions }: { instructions: string }) {
         <CardDescription>What students see when they submit.</CardDescription>
       </CardHeader>
       <CardContent className="border-t border-border pt-4">
-        <div className="max-h-96 overflow-y-auto text-sm leading-relaxed break-words whitespace-pre-line text-foreground">
-          {instructions}
-        </div>
+        <PromptText text={instructions} />
       </CardContent>
     </Card>
   );

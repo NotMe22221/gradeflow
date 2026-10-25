@@ -76,7 +76,10 @@ function AssignmentRowLink({ row }: { row: StudentAssignmentRow }) {
       </span>
 
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium text-foreground">{row.title}</span>
+        {/* Two lines, not one: similar titles ("Persuasive Essay: ...") must stay distinguishable on phones. */}
+        <span className="line-clamp-2 text-sm font-medium break-words text-pretty text-foreground">
+          {row.title}
+        </span>
         <span className="mt-0.5 block text-[13px] text-muted-foreground">
           {row.dueDate ? <span className="tabular">Due {formatDate(row.dueDate)}</span> : "No due date"}
           {row.pastDue && row.state === "not_submitted" ? (
@@ -120,7 +123,8 @@ function RowDetail({ row }: { row: StudentAssignmentRow }) {
     );
   }
   return (
-    <span className="text-xs text-muted-foreground sm:min-w-16 sm:text-right">
+    // The badge already names the state; on phones the hint would squeeze the title.
+    <span className="text-xs text-muted-foreground max-sm:hidden sm:min-w-16 sm:text-right">
       {STUDENT_STATE_DISPLAY[row.state].hint}
     </span>
   );

@@ -1,16 +1,16 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 
+import { AuthError } from "@/lib/auth/session";
+import { PublishError } from "@/lib/grades/publish";
+import * as review from "@/lib/grades/review";
 import type {
   ActionFailure,
   ApproveResult,
   SaveDraftResult,
   SendBackResult,
-} from "@/components/review/types";
-import { AuthError } from "@/lib/auth/session";
-import { PublishError } from "@/lib/grades/publish";
-import * as review from "@/lib/grades/review";
+} from "@/lib/review/types";
 
 // Thin wrappers over src/lib/grades/review.ts. Role, ownership, status, and
 // input checks all happen there; these map failures to { ok: false, error }.
@@ -23,7 +23,10 @@ function failure(error: unknown, fallback: string): ActionFailure {
   ) {
     return { ok: false, error: error.message };
   }
-  console.error("[review]", fallback, error instanceof Error ? error.message : error);
+  // Log the error type only: messages can carry teacher comments about a student.
+  console.error("[gradeflow] Review action failed", {
+    type: error instanceof Error ? error.name : typeof error,
+  });
   return { ok: false, error: fallback };
 }
 
@@ -33,8 +36,11 @@ export async function saveReviewDraft(
 ): Promise<SaveDraftResult> {
   try {
     const result = await review.saveReviewDraft(submissionId, payload);
-    // No revalidatePath here: a draft changes nothing outside this screen, and
-    // re-rendering the layout on every autosave would be wasted work.
+    // Refresh this page's client cache. Without it, Back/Forward to /review
+    // replays the payload from the first visit, and the workspace would
+    // rebuild its drafts from stale scores. The open workspace keeps its
+    // in-memory drafts, which win over the refreshed props.
+    refresh();
     return { ok: true, savedAt: result.savedAt.toISOString() };
   } catch (error) {
     return failure(error, "Couldn't save the draft. Try again in a moment.");

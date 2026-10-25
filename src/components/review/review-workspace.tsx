@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FileText, ListChecks } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,27 +16,32 @@ import {
   FilteredEmptyState,
   QueueEmptyState,
 } from "@/components/review/review-empty-state";
-import { ReviewHeader, SORT_LABELS } from "@/components/review/review-header";
+import { ReviewHeader, SORT_DESCRIPTIONS } from "@/components/review/review-header";
+import { RubricPane } from "@/components/review/rubric-pane";
+import { SendBackDialog } from "@/components/review/send-back-dialog";
+import { ShortcutsDialog } from "@/components/review/shortcuts-dialog";
+import { useReviewDrafts } from "@/components/review/use-review-drafts";
+import { useReviewShortcuts } from "@/components/review/use-review-shortcuts";
+import { viewAsStudent } from "@/lib/auth/actions";
+import { firstName, formatScore } from "@/lib/format";
 import {
+  assignmentLabels,
   blockingReason,
+  flaggedDomId,
+  flaggedSnippets,
   layoutEvidence,
   markDomId,
   scoreInputId,
   selectionAfterRemoval,
   sortQueue,
   summarizeDraft,
-} from "@/components/review/review-model";
-import { RubricPane } from "@/components/review/rubric-pane";
-import { SendBackDialog } from "@/components/review/send-back-dialog";
-import { ShortcutsDialog } from "@/components/review/shortcuts-dialog";
-import type { QueueSort, ReviewFilterOption, ReviewItem } from "@/components/review/types";
-import { useReviewDrafts } from "@/components/review/use-review-drafts";
-import { useReviewShortcuts } from "@/components/review/use-review-shortcuts";
-import { viewAsStudent } from "@/lib/auth/actions";
-import { firstName, formatScore } from "@/lib/format";
+} from "@/lib/review/model";
+import type { QueueSort, ReviewFilterOption, ReviewItem } from "@/lib/review/types";
 
 type PaneTab = "paper" | "rubric";
 type AssignmentFilter = { id: string; title: string | null } | null;
+/** The review query parameters: ?assignment and ?s. */
+type UrlSelection = { assignment: string | null; s: string | null };
 
 function buildFilterOptions(items: ReviewItem[]): ReviewFilterOption[] {
   const options = new Map<string, ReviewFilterOption>();
@@ -59,10 +64,14 @@ function afterLayout(run: () => void) {
   requestAnimationFrame(() => requestAnimationFrame(run));
 }
 
-/** Scroll a highlighted quote into view and flash it. */
-function flashElement(element: HTMLElement) {
+/** Scroll a passage of the paper into view; flash evidence, focus flagged text. */
+function revealElement(element: HTMLElement, { flash }: { flash: boolean }) {
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   element.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+  if (!flash) {
+    element.focus({ preventScroll: true });
+    return;
+  }
   element.classList.remove("animate-flash");
   void element.offsetWidth; // restart the animation if it is already running
   element.classList.add("animate-flash");
@@ -84,6 +93,7 @@ export function ReviewWorkspace({
   filterTitle: string | null;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const drafts = useReviewDrafts(items);
 
   const [filter, setFilter] = useState<AssignmentFilter>(
@@ -105,6 +115,7 @@ export function ReviewWorkspace({
 
   const liveItems = useMemo(() => items.filter((item) => !removedIds.has(item.id)), [items, removedIds]);
   const filterOptions = useMemo(() => buildFilterOptions(liveItems), [liveItems]);
+  const labels = useMemo(() => assignmentLabels(liveItems.map((item) => item.assignment)), [liveItems]);
   const queue = useMemo(
     () =>
       sortQueue(filter ? liveItems.filter((item) => item.assignment.id === filter.id) : liveItems, sort),
@@ -117,7 +128,7 @@ export function ReviewWorkspace({
   const summary = current && draft ? summarizeDraft(current, draft) : null;
   const blockedReason = summary ? blockingReason(summary) : null;
   const layout = useMemo(
-    () => (current ? layoutEvidence(current.content, current.criteria) : null),
+    () => (current ? layoutEvidence(current.content, current.criteria, flaggedSnippets(current)) : null),
     [current]
   );
 
@@ -130,7 +141,9 @@ export function ReviewWorkspace({
   // the same paper. replaceState avoids a server round trip.
   const currentId = current?.id ?? null;
   const filterId = filter?.id ?? null;
+  const writtenUrlRef = useRef<UrlSelection | null>(null);
   useEffect(() => {
+    writtenUrlRef.current = { assignment: filterId, s: currentId };
     const url = new URL(window.location.href);
     if (filterId) url.searchParams.set("assignment", filterId);
     else url.searchParams.delete("assignment");
@@ -138,6 +151,32 @@ export function ReviewWorkspace({
     else url.searchParams.delete("s");
     if (url.href !== window.location.href) window.history.replaceState(null, "", url);
   }, [filterId, currentId]);
+
+  // A navigation this component did not make (the sidebar's "Review Queue"
+  // link while a filter is on, for example) changes the query without
+  // remounting the workspace. Follow the new URL. Our own replaceState calls
+  // are recognised and ignored, and so are refreshes, which keep the URL.
+  const urlAssignment = searchParams.get("assignment");
+  const urlSubmission = searchParams.get("s");
+  const seenUrlRef = useRef<UrlSelection>({ assignment: urlAssignment, s: urlSubmission });
+  useEffect(() => {
+    const seen = seenUrlRef.current;
+    if (seen.assignment === urlAssignment && seen.s === urlSubmission) return;
+    seenUrlRef.current = { assignment: urlAssignment, s: urlSubmission };
+    const written = writtenUrlRef.current;
+    if (written && written.assignment === urlAssignment && written.s === urlSubmission) return;
+    setFilter(
+      urlAssignment
+        ? {
+            id: urlAssignment,
+            title:
+              filterOptions.find((option) => option.id === urlAssignment)?.title ??
+              (urlAssignment === initialAssignmentId ? filterTitle : null),
+          }
+        : null
+    );
+    setSelectedId(urlSubmission);
+  }, [urlAssignment, urlSubmission, filterOptions, initialAssignmentId, filterTitle]);
 
   // On phones the whole page scrolls: start each paper at the top.
   const previousIdRef = useRef(currentId);
@@ -277,11 +316,21 @@ export function ReviewWorkspace({
       const id = markDomId(current.id, markIndex);
       afterLayout(() => {
         const mark = document.getElementById(id);
-        if (mark) flashElement(mark);
+        if (mark) revealElement(mark, { flash: true });
       });
     },
     [current, layout]
   );
+
+  const showFlagged = useCallback(() => {
+    if (!current || !layout || layout.flaggedCount === 0) return;
+    setTab("paper");
+    const id = flaggedDomId(current.id, 0);
+    afterLayout(() => {
+      const passage = document.getElementById(id);
+      if (passage) revealElement(passage, { flash: false });
+    });
+  }, [current, layout]);
 
   const overlayOpen = approveItem !== null || sendBackItem !== null || shortcutsOpen || queueOpen;
 
@@ -330,13 +379,14 @@ export function ReviewWorkspace({
         >
           <div className="flex items-baseline justify-between gap-2 border-b border-border px-4 py-3">
             <h2 className="text-sm font-semibold text-foreground">Queue</h2>
-            <span className="text-xs text-muted-foreground">{SORT_LABELS[sort]}</span>
+            <span className="truncate text-xs text-muted-foreground">{SORT_DESCRIPTIONS[sort]}</span>
           </div>
           <QueueList
             items={queue}
+            labels={labels}
             currentId={current.id}
             onSelect={setSelectedId}
-            className="min-h-0 flex-1 overflow-y-auto p-2"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2"
           />
         </aside>
 
@@ -371,7 +421,7 @@ export function ReviewWorkspace({
                 key={current.id}
                 item={current}
                 layout={layout}
-                className="flex-1 lg:min-h-0 lg:overflow-y-auto"
+                className="flex-1 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
               />
             </TabsContent>
             <TabsContent
@@ -387,6 +437,7 @@ export function ReviewWorkspace({
                 layout={layout}
                 onDraftChange={(update) => drafts.updateDraft(current, update)}
                 onShowEvidence={showEvidence}
+                onShowFlagged={showFlagged}
                 footer={<DesktopActionBar {...actionProps} />}
                 className="flex-1"
               />
@@ -400,13 +451,18 @@ export function ReviewWorkspace({
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-col lg:h-[calc(100dvh-3.5rem)] lg:min-h-0">
+    // Desktop: exactly the viewport below the 56px top bar. Only the paper,
+    // the rubric, and the 2xl queue rail scroll; `relative` plus
+    // overflow-hidden keeps any absolutely positioned descendant (sr-only
+    // text) from stretching the page. Phones scroll the whole page instead.
+    <div className="relative flex min-h-[calc(100dvh-3.5rem)] flex-col lg:h-[calc(100dvh-3.5rem)] lg:min-h-0 lg:overflow-hidden">
       <ReviewHeader
         totalCount={liveItems.length}
         visibleCount={queue.length}
         filter={filter?.id ?? null}
         filterOptions={filterOptions}
         filterTitle={filter?.title ?? null}
+        labels={labels}
         onFilterChange={(id) => {
           setFilter(id ? { id, title: filterOptions.find((option) => option.id === id)?.title ?? null } : null);
           // Stay on the current paper if it is still in the filtered queue.

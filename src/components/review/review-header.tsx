@@ -8,15 +8,26 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { QueueList } from "@/components/review/queue-list";
-import type { QueueSort, ReviewFilterOption, ReviewItem } from "@/components/review/types";
 import { pluralize } from "@/lib/format";
+import type { QueueSort, ReviewFilterOption, ReviewItem } from "@/lib/review/types";
 
 const ALL = "all";
 
+/** Short labels for the sort trigger, so they fit without clipping. */
 export const SORT_LABELS: Record<QueueSort, string> = {
+  confidence: "Lowest confidence",
+  oldest: "Oldest first",
+};
+
+/** Full wording for the sort menu and the queue list headings. */
+export const SORT_DESCRIPTIONS: Record<QueueSort, string> = {
   confidence: "Lowest confidence first",
   oldest: "Oldest first",
 };
+
+// Select values are flex rows (see SelectTrigger). Growing the value keeps
+// short labels next to their icon, and the inner span gets the ellipsis.
+const SELECT_VALUE_CLASS = "min-w-0 flex-1 text-left";
 
 export function ReviewHeader({
   totalCount,
@@ -24,6 +35,7 @@ export function ReviewHeader({
   filter,
   filterOptions,
   filterTitle,
+  labels,
   onFilterChange,
   sort,
   onSortChange,
@@ -42,6 +54,8 @@ export function ReviewHeader({
   filter: string | null;
   filterOptions: ReviewFilterOption[];
   filterTitle: string | null;
+  /** Short, distinguishable assignment labels by assignment id. */
+  labels: Map<string, string>;
   onFilterChange: (assignmentId: string | null) => void;
   sort: QueueSort;
   onSortChange: (sort: QueueSort) => void;
@@ -60,8 +74,9 @@ export function ReviewHeader({
   for (const option of filterOptions) titleCounts.set(option.title, (titleCounts.get(option.title) ?? 0) + 1);
   const selectedOption = filterOptions.find((option) => option.id === filter);
   const filterMissing = filter !== null && !selectedOption;
-  const filterLabel =
+  const fullFilterTitle =
     filter === null ? "All assignments" : (selectedOption?.title ?? filterTitle ?? "Selected assignment");
+  const filterLabel = (filter !== null ? labels.get(filter) : undefined) ?? fullFilterTitle;
 
   const countLine =
     totalCount === 0
@@ -72,22 +87,33 @@ export function ReviewHeader({
 
   return (
     <div className="border-b border-border bg-card px-4 py-3 sm:px-6">
+      {/*
+        One row from 1280px up: title (shrinks, subtitle truncates), filter,
+        sort, shortcuts, pager. Below lg the controls take their own row and
+        the pager stays next to the title.
+      */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-        <div className="mr-auto min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">Review queue</h1>
-          <p className="tabular text-sm text-muted-foreground" aria-live="polite">
+        <div className="min-w-0 flex-1 basis-40">
+          <h1 className="truncate text-xl font-semibold tracking-tight text-foreground">Review queue</h1>
+          <p className="tabular text-sm text-muted-foreground lg:truncate" aria-live="polite" title={countLine}>
             {countLine}
           </p>
         </div>
 
-        <div className="order-last flex w-full flex-wrap items-center gap-2 lg:order-none lg:w-auto">
+        <div className="order-last flex w-full min-w-0 items-center gap-2 lg:order-none lg:w-auto">
           {filterOptions.length > 0 || filter !== null ? (
             <Select value={filter ?? ALL} onValueChange={(value) => onFilterChange(value === ALL ? null : value)}>
-              <SelectTrigger className="min-w-0 flex-1 sm:w-52 sm:flex-none" aria-label="Filter by assignment">
-                <ListFilter className="text-muted-foreground" aria-hidden />
-                <SelectValue placeholder="All assignments">{filterLabel}</SelectValue>
+              <SelectTrigger
+                className="min-w-0 flex-1 sm:w-64 sm:flex-none"
+                aria-label={`Filter by assignment: ${fullFilterTitle}`}
+                title={fullFilterTitle}
+              >
+                <ListFilter className="text-muted-foreground max-sm:hidden" aria-hidden />
+                <SelectValue placeholder="All assignments" className={SELECT_VALUE_CLASS}>
+                  <span className="truncate">{filterLabel}</span>
+                </SelectValue>
               </SelectTrigger>
-              <SelectContent align="end">
+              <SelectContent align="end" className="max-w-[min(32rem,calc(100vw-2rem))]">
                 <SelectItem value={ALL}>
                   All assignments <span className="tabular text-muted-foreground">{totalCount}</span>
                 </SelectItem>
@@ -111,29 +137,36 @@ export function ReviewHeader({
 
           {totalCount > 0 ? (
             <Select value={sort} onValueChange={(value) => onSortChange(value as QueueSort)}>
-              <SelectTrigger className="min-w-0 flex-1 sm:w-48 sm:flex-none" aria-label="Sort the queue">
-                <ArrowUpDown className="text-muted-foreground" aria-hidden />
-                <SelectValue>{SORT_LABELS[sort]}</SelectValue>
+              <SelectTrigger className="shrink-0 sm:w-52" aria-label="Sort the queue">
+                <ArrowUpDown className="text-muted-foreground max-sm:hidden" aria-hidden />
+                <SelectValue className={SELECT_VALUE_CLASS}>
+                  <span className="truncate">{SORT_LABELS[sort]}</span>
+                </SelectValue>
               </SelectTrigger>
               <SelectContent align="end">
-                <SelectItem value="confidence">{SORT_LABELS.confidence}</SelectItem>
-                <SelectItem value="oldest">{SORT_LABELS.oldest}</SelectItem>
+                <SelectItem value="confidence">{SORT_DESCRIPTIONS.confidence}</SelectItem>
+                <SelectItem value="oldest">{SORT_DESCRIPTIONS.oldest}</SelectItem>
               </SelectContent>
             </Select>
           ) : null}
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onShowShortcuts}
-            className="hidden lg:inline-flex"
-            aria-label="Keyboard shortcuts"
-          >
-            <Keyboard aria-hidden />
-            <span className="hidden xl:inline">Keyboard shortcuts</span>
-            <Kbd aria-hidden>?</Kbd>
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onShowShortcuts}
+                className="hidden shrink-0 lg:inline-flex"
+                aria-label="Keyboard shortcuts"
+              >
+                <Keyboard aria-hidden />
+                <span className="hidden 2xl:inline">Keyboard shortcuts</span>
+                <Kbd aria-hidden>?</Kbd>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent className="2xl:hidden">Keyboard shortcuts</TooltipContent>
+          </Tooltip>
         </div>
 
         {queue.length > 0 ? (
@@ -170,19 +203,20 @@ export function ReviewHeader({
                   <ChevronsUpDown className="size-3.5 text-muted-foreground" aria-hidden />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-80 p-0">
+              <PopoverContent align="end" className="w-[min(24rem,calc(100vw-2rem))] p-0">
                 <div className="flex items-baseline justify-between gap-2 border-b border-border px-4 py-3">
                   <p className="text-sm font-semibold text-foreground">Queue</p>
-                  <p className="text-xs text-muted-foreground">{SORT_LABELS[sort]}</p>
+                  <p className="truncate text-xs text-muted-foreground">{SORT_DESCRIPTIONS[sort]}</p>
                 </div>
                 <QueueList
                   items={queue}
+                  labels={labels}
                   currentId={currentId}
                   onSelect={(id) => {
                     onSelect(id);
                     onQueueOpenChange(false);
                   }}
-                  className="max-h-[min(60dvh,26rem)] overflow-y-auto p-2"
+                  className="max-h-[min(60dvh,26rem)] overflow-y-auto overscroll-contain p-2"
                 />
               </PopoverContent>
             </Popover>

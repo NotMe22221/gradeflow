@@ -1,7 +1,7 @@
 // CSV gradebook export. Pure (no "server-only", no database) so it is unit
 // tested directly; the route handler feeds it GradebookData.
 
-import type { ExportOptions, GradebookExporter } from "@/lib/export/types";
+import type { ExportOptions, ExportResult, GradebookExporter } from "@/lib/export/types";
 import type { GradebookData } from "@/lib/gradebook/types";
 
 /** Leading characters that spreadsheet apps may treat as a formula. */
@@ -92,15 +92,17 @@ export function gradebookToCsv(data: GradebookData): string {
   return UTF8_BOM + [header, ...rows].map(toCsvRow).join(CRLF) + CRLF;
 }
 
-export const csvExporter: GradebookExporter = {
+/** Synchronous: `satisfies` keeps its precise return type for direct callers. */
+export const csvExporter = {
   id: "csv",
   label: "CSV",
+  description: "CSV is the stand-in for an LMS sync.",
   contentType: "text/csv; charset=utf-8",
   fileExtension: "csv",
-  export(data: GradebookData, options?: ExportOptions) {
+  export(data: GradebookData, options?: ExportOptions): ExportResult {
     return {
       filename: gradebookFilename(data, "csv", options?.now ?? new Date()),
       body: gradebookToCsv(data),
     };
   },
-};
+} satisfies GradebookExporter;

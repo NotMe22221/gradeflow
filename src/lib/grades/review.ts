@@ -2,20 +2,18 @@ import "server-only";
 
 import { z } from "zod";
 
-import type { ReviewItem, ReviewPayload } from "@/components/review/types";
-import {
-  MAX_COMMENT_CHARS,
-  MAX_FEEDBACK_CHARS,
-  MAX_RETURN_NOTE_CHARS,
-  parseFlags,
-} from "@/components/review/review-model";
 import type { Prisma } from "@/generated/prisma/client";
 import { getOwnedAssignment, getOwnedSubmission } from "@/lib/access";
 import { AuthError, requireTeacher } from "@/lib/auth/session";
-import { isConfidence } from "@/lib/constants";
+import { isConfidence, parseGraderKind } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { wordCount } from "@/lib/format";
 import { publishApprovedGrade } from "@/lib/grades/publish";
+import { parseFlags } from "@/lib/grading/flags";
+import { MAX_COMMENT_CHARS, MAX_FEEDBACK_CHARS, MAX_RETURN_NOTE_CHARS } from "@/lib/review/model";
+import { isOnScoreStep } from "@/lib/review/scores";
+import type { ReviewItem, ReviewPayload } from "@/lib/review/types";
+import { idSchema } from "@/lib/validation/id";
 
 /**
  * Teacher review logic: draft edits, approve + publish, and send back.
@@ -34,14 +32,16 @@ export class ReviewError extends Error {
   }
 }
 
-const submissionIdSchema = z.string().trim().min(1).max(64);
+const HALF_POINTS_MESSAGE = "Scores must be whole or half points, like 7 or 7.5.";
 
 const payloadSchema = z.object({
   scores: z
     .array(
       z.object({
         criterionId: z.string().min(1).max(64),
-        score: z.number().nullable(),
+        // Half-point steps keep every published score exactly what the
+        // teacher saw (the app shows one decimal, the CSV keeps two).
+        score: z.number().refine(isOnScoreStep, HALF_POINTS_MESSAGE).nullable(),
         comment: z.string().max(MAX_COMMENT_CHARS),
       })
     )
@@ -56,7 +56,7 @@ const noteSchema = z
   .max(MAX_RETURN_NOTE_CHARS, `Keep the note under ${MAX_RETURN_NOTE_CHARS.toLocaleString()} characters.`);
 
 function parseSubmissionId(value: unknown): string {
-  const parsed = submissionIdSchema.safeParse(value);
+  const parsed = idSchema.safeParse(value);
   if (!parsed.success) throw new AuthError("Submission not found.", 404);
   return parsed.data;
 }
@@ -64,7 +64,8 @@ function parseSubmissionId(value: unknown): string {
 function parsePayload(value: unknown): ReviewPayload {
   const parsed = payloadSchema.safeParse(value);
   if (parsed.success) return parsed.data;
-  const path = parsed.error.issues[0]?.path ?? [];
+  const issue = parsed.error.issues[0];
+  const path = issue?.path ?? [];
   if (path[0] === "feedback") {
     throw new ReviewError(
       `The overall note is limited to ${MAX_FEEDBACK_CHARS.toLocaleString()} characters.`
@@ -75,7 +76,9 @@ function parsePayload(value: unknown): ReviewPayload {
       `Feedback for each criterion is limited to ${MAX_COMMENT_CHARS.toLocaleString()} characters.`
     );
   }
-  if (path.includes("score")) throw new ReviewError("Scores must be numbers.");
+  if (path.includes("score")) {
+    throw new ReviewError(issue?.code === "custom" ? HALF_POINTS_MESSAGE : "Scores must be numbers.");
+  }
   throw new ReviewError("Those review changes could not be read. Reload the page and try again.");
 }
 
@@ -207,9 +210,9 @@ export async function getReviewQueue(teacherId: string): Promise<ReviewItem[]> {
       },
       ai: row.aiGrade
         ? {
-            // Anything not explicitly Claude is labelled as the demo grader,
-            // so placeholder output is never presented as real AI.
-            grader: row.aiGrade.grader === "claude" ? "claude" : "demo",
+            // Unknown values are labelled as the demo grader, so placeholder
+            // output is never presented as real AI.
+            grader: parseGraderKind(row.aiGrade.grader),
             model: row.aiGrade.model,
             confidence: isConfidence(row.aiGrade.confidence) ? row.aiGrade.confidence : "low",
             overallComment: row.aiGrade.overallComment,

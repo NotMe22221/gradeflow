@@ -165,16 +165,18 @@ export function validateGrading(raw: RawGradingResult, input: GradingInput): Val
         criterionId: criterion.id,
         message: `The AI did not score "${criterion.title}". Enter a score yourself.`,
       });
+      // No placeholder text: the justification pre-fills the student-facing
+      // comment, and the MISSING_CRITERION flag already explains the gap.
       return {
         criterionId: criterion.id,
         aiScore: null,
-        justification: "No justification provided.",
+        justification: "",
         evidence: null,
         evidenceFound: false,
       };
     }
     const aiScore = validateScore(result.score, criterion, criterionFlags);
-    const justification = capText(asString(result.justification), MAX_JUSTIFICATION_CHARS) || "No justification provided.";
+    const justification = capText(asString(result.justification), MAX_JUSTIFICATION_CHARS);
     const { evidence, evidenceFound } = validateEvidence(result.evidence, criterion, input.paper, criterionFlags);
     return { criterionId: criterion.id, aiScore, justification, evidence, evidenceFound };
   });

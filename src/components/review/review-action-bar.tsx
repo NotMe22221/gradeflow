@@ -90,9 +90,11 @@ export function DesktopActionBar({
   busy,
 }: ActionBarProps) {
   return (
+    // From xl (1280px) the save status takes only the room the buttons leave
+    // and truncates, so the footer stays one row. Narrower, it wraps above.
     <div className="hidden shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-t border-border bg-card px-4 py-3 lg:flex xl:px-6">
-      <AutosaveStatus state={saveState} onRetry={onRetrySave} className="min-w-0 flex-1 basis-40" />
-      <div className="ml-auto flex items-center gap-2">
+      <AutosaveStatus state={saveState} onRetry={onRetrySave} className="min-w-0 flex-1 basis-32 xl:basis-0" />
+      <div className="ml-auto flex shrink-0 items-center gap-2">
         <Button type="button" variant="outline" onClick={onSendBack} disabled={busy}>
           <CornerUpLeft aria-hidden />
           Send back

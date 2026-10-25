@@ -10,11 +10,12 @@ export type RosterEntry = { id: string; name: string; email: string };
 
 export function RosterCard({
   classId,
-  className,
+  classTitle,
   students,
 }: {
   classId: string;
-  className: string;
+  /** The school class's display name (not a CSS class). */
+  classTitle: string;
   students: RosterEntry[];
 }) {
   return (
@@ -29,7 +30,7 @@ export function RosterCard({
           </CardDescription>
         </div>
         <CardAction>
-          <AddStudentDialog classId={classId} className={className} />
+          <AddStudentDialog classId={classId} classTitle={classTitle} />
         </CardAction>
       </CardHeader>
       {students.length === 0 ? (

@@ -6,7 +6,6 @@ import { toast } from "sonner";
 
 import { addStudent } from "@/app/(teacher)/classes/actions";
 import { FieldError, FormAlert } from "@/components/classes/form-feedback";
-import { NAME_MAX, studentInputSchema, type FieldErrors, fieldErrorsFromIssues } from "@/components/classes/schemas";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,17 +18,20 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NAME_MAX, studentInputSchema } from "@/lib/validation/class";
+import { fieldErrorsFromIssues, type FieldErrors } from "@/lib/validation/form";
 
 const EMPTY = { firstName: "", lastName: "" };
 
 export function AddStudentDialog({
   classId,
-  className,
+  classTitle,
   size = "sm",
   variant = "outline",
 }: {
   classId: string;
-  className: string;
+  /** The school class's display name (not a CSS class). */
+  classTitle: string;
   size?: "sm" | "default";
   variant?: "outline" | "default";
 }) {
@@ -78,7 +80,7 @@ export function AddStudentDialog({
         setFormError(result.fieldErrors ? null : result.error);
         return;
       }
-      toast.success(`${result.student.name} joined ${className}`, { description: result.student.email });
+      toast.success(`${result.student.name} joined ${classTitle}`, { description: result.student.email });
       setOpen(false);
       reset();
     });
@@ -96,7 +98,7 @@ export function AddStudentDialog({
         <DialogHeader>
           <DialogTitle>Add a student</DialogTitle>
           <DialogDescription>
-            They join {className} with a demo email so you can preview their view.
+            They join {classTitle} with a demo email so you can preview their view.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-6" noValidate>

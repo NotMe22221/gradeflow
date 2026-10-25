@@ -4,7 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 
-import { DEFAULT_CLAUDE_MODEL } from "@/lib/grading/config";
+import { claudeModel } from "@/lib/grading/config";
 import { buildGradingSystemPrompt, buildGradingUserMessage } from "@/lib/grading/prompt";
 import type { Grader, GradingInput, RawGradingResult } from "@/lib/grading/types";
 import { GradingError } from "@/lib/grading/validate";
@@ -106,7 +106,8 @@ export class ClaudeGrader implements Grader {
   private readonly effort: Effort;
 
   constructor() {
-    this.model = process.env.ANTHROPIC_MODEL || DEFAULT_CLAUDE_MODEL;
+    // The same resolution getGraderInfo() shows in the UI.
+    this.model = claudeModel();
     this.effort = resolveEffort();
   }
 

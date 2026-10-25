@@ -1,6 +1,8 @@
 import "server-only";
 
 import type { Prisma } from "@/generated/prisma/client";
+import { serializeBreakdown, type BreakdownItem } from "@/lib/grades/breakdown";
+import { isOnScoreStep } from "@/lib/review/scores";
 
 /*
  * THE APPROVAL GATE.
@@ -23,15 +25,6 @@ export class PublishError extends Error {
   }
 }
 
-/** One entry of PublishedGrade.breakdown, in rubric order. */
-export type PublishedBreakdownItem = {
-  criterionId: string;
-  title: string;
-  maxPoints: number;
-  score: number;
-  comment: string;
-};
-
 export type PublishResult = {
   publishedGradeId: string;
   totalScore: number;
@@ -42,8 +35,15 @@ function roundPoints(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-function isScoreInRange(value: number | null | undefined, maxPoints: number): value is number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= maxPoints;
+/** In range and on the half-point step the review screen enforces. */
+function isPublishableScore(value: number | null | undefined, maxPoints: number): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= 0 &&
+    value <= maxPoints &&
+    isOnScoreStep(value)
+  );
 }
 
 export async function publishApprovedGrade(
@@ -90,11 +90,11 @@ export async function publishApprovedGrade(
 
   const scoreByCriterion = new Map(submission.scores.map((score) => [score.criterionId, score]));
 
-  const breakdown: PublishedBreakdownItem[] = criteria.map((criterion) => {
+  const breakdown: BreakdownItem[] = criteria.map((criterion) => {
     const row = scoreByCriterion.get(criterion.id);
-    if (!row || !isScoreInRange(row.finalScore, criterion.maxPoints)) {
+    if (!row || !isPublishableScore(row.finalScore, criterion.maxPoints)) {
       throw new PublishError(
-        `"${criterion.title}" needs a score from 0 to ${criterion.maxPoints} before publishing.`
+        `"${criterion.title}" needs a score from 0 to ${criterion.maxPoints}, in whole or half points, before publishing.`
       );
     }
     return {
@@ -121,7 +121,7 @@ export async function publishApprovedGrade(
       submissionId: submission.id,
       totalScore,
       maxScore,
-      breakdown: JSON.stringify(breakdown),
+      breakdown: serializeBreakdown(breakdown),
       feedback,
       aiTotalScore,
       approvedById: teacherId,

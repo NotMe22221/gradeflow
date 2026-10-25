@@ -2,16 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { AuthError, requireTeacher } from "@/lib/auth/session";
-import { DEFAULT_EXPORT_FORMAT, getExporter } from "@/lib/export";
+import { DEFAULT_EXPORT_FORMAT, getExporter, listExporters } from "@/lib/export";
 import { getGradebook } from "@/lib/gradebook/query";
+import { idSchema } from "@/lib/validation/id";
 
 export const dynamic = "force-dynamic";
-
-const ClassIdSchema = z
-  .string()
-  .min(1)
-  .max(64)
-  .regex(/^[A-Za-z0-9_-]+$/);
 
 const FormatSchema = z
   .string()
@@ -36,16 +31,22 @@ export async function GET(request: Request, { params }: { params: Promise<{ clas
   try {
     const teacher = await requireTeacher();
 
-    const classId = ClassIdSchema.safeParse((await params).classId);
+    const classId = idSchema.safeParse((await params).classId);
     if (!classId.success) return errorResponse("Class not found.", 404);
 
     const requestedFormat = new URL(request.url).searchParams.get("format");
     const format = FormatSchema.safeParse(requestedFormat ?? DEFAULT_EXPORT_FORMAT);
     const exporter = format.success ? getExporter(format.data) : null;
-    if (!exporter) return errorResponse("That export format is not supported. Use format=csv.", 400);
+    if (!exporter) {
+      const supported = listExporters()
+        .map((candidate) => candidate.id)
+        .join(", ");
+      return errorResponse(`That export format is not supported. Supported formats: ${supported}.`, 400);
+    }
 
     const gradebook = await getGradebook(teacher.id, classId.data);
-    const { filename, body } = exporter.export(gradebook);
+    // Exporters may be async (an LMS push); a plain CSV build resolves at once.
+    const { filename, body } = await exporter.export(gradebook);
 
     return new Response(body, {
       status: 200,

@@ -11,9 +11,19 @@ import { cn } from "@/lib/utils";
  * The table uses the separate border model so the sticky first column keeps
  * its borders while the rest scrolls horizontally underneath it. Sticky cells
  * carry solid backgrounds (card / background) that match their row's state.
+ *
+ * Widths are sized so the Student column, three to four assignment columns,
+ * and Average fit a 1280-1440px laptop without scrolling: assignment titles
+ * wrap to two lines in a 160px column (wide enough that "Persuasive Essay:
+ * Should" fits the first line, so titles sharing a prefix still differ on the
+ * second) and the full title is in the tooltip. With more columns the table
+ * scrolls, and from lg up the Average column stays pinned to the right edge.
  */
 const stickyCell =
   "sticky left-0 after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border after:content-['']";
+
+const stickyEndCell =
+  "lg:sticky lg:right-0 lg:z-10 lg:before:pointer-events-none lg:before:absolute lg:before:inset-y-0 lg:before:left-0 lg:before:w-px lg:before:bg-border lg:before:content-['']";
 
 export function GradebookTable({ data }: { data: GradebookData }) {
   return (
@@ -27,11 +37,11 @@ export function GradebookTable({ data }: { data: GradebookData }) {
             Student
           </TableHead>
           {data.assignments.map((assignment) => (
-            <TableHead key={assignment.id} scope="col" className="h-auto min-w-36 border-b py-3 align-bottom">
+            <TableHead key={assignment.id} scope="col" className="h-auto min-w-46 border-b px-3 py-3 align-bottom">
               <Link
                 href={`/assignments/${encodeURIComponent(assignment.id)}`}
                 title={assignment.dueDate ? `${assignment.title} · due ${formatDate(assignment.dueDate)}` : assignment.title}
-                className="block max-w-44 truncate rounded-sm font-medium text-foreground outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring"
+                className="line-clamp-2 max-w-40 rounded-sm font-medium break-words whitespace-normal text-foreground outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring"
               >
                 {assignment.title}
               </Link>
@@ -41,7 +51,10 @@ export function GradebookTable({ data }: { data: GradebookData }) {
               </span>
             </TableHead>
           ))}
-          <TableHead scope="col" className="h-auto min-w-24 border-b py-3 pr-6 text-right align-bottom">
+          <TableHead
+            scope="col"
+            className={cn(stickyEndCell, "h-auto min-w-24 border-b bg-card py-3 pr-6 text-right align-bottom")}
+          >
             <span className="font-medium text-foreground">Average</span>
             <span className="mt-0.5 block font-normal text-muted-foreground">Published</span>
           </TableHead>
@@ -61,17 +74,17 @@ export function GradebookTable({ data }: { data: GradebookData }) {
               <div className="flex min-w-0 items-center gap-3">
                 <Avatar name={row.student.name} className="hidden size-7 text-[11px] sm:inline-flex" />
                 <div className="min-w-0">
-                  <div className="max-w-36 truncate text-sm font-medium sm:max-w-48" title={row.student.name}>
+                  <div className="max-w-36 truncate text-sm font-medium" title={row.student.name}>
                     {row.student.name}
                   </div>
-                  <div className="hidden max-w-48 truncate text-xs font-normal text-muted-foreground sm:block">
+                  <div className="hidden max-w-36 truncate text-xs font-normal text-muted-foreground sm:block" title={row.student.email}>
                     {row.student.email}
                   </div>
                 </div>
               </div>
             </TableHead>
             {row.cells.map((cell, index) => (
-              <TableCell key={cell.assignmentId} className="border-b">
+              <TableCell key={cell.assignmentId} className="border-b px-3">
                 <GradebookCellView
                   cell={cell}
                   studentName={row.student.name}
@@ -79,7 +92,12 @@ export function GradebookTable({ data }: { data: GradebookData }) {
                 />
               </TableCell>
             ))}
-            <TableCell className="tabular border-b pr-6 text-right font-semibold text-foreground">
+            <TableCell
+              className={cn(
+                stickyEndCell,
+                "tabular border-b bg-card pr-6 text-right font-semibold text-foreground group-hover:bg-background"
+              )}
+            >
               {formatAverage(row.averagePercent)}
             </TableCell>
           </TableRow>
@@ -95,11 +113,13 @@ export function GradebookTable({ data }: { data: GradebookData }) {
             Class average
           </th>
           {data.assignments.map((assignment) => (
-            <td key={assignment.id} className="tabular px-4 py-3 text-sm font-medium text-foreground">
+            <td key={assignment.id} className="tabular px-3 py-3 text-sm font-medium text-foreground">
               {formatAverage(data.assignmentAverages[assignment.id] ?? null)}
             </td>
           ))}
-          <td className="tabular py-3 pr-6 pl-4 text-right text-sm font-semibold text-foreground">
+          <td
+            className={cn(stickyEndCell, "tabular bg-background py-3 pr-6 pl-4 text-right text-sm font-semibold text-foreground")}
+          >
             {formatAverage(data.classAverage)}
           </td>
         </tr>

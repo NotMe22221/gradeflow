@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import type { SubmissionRowData } from "@/components/assignments/types";
-import { isConfidence, type Confidence, type GraderKind } from "@/lib/constants";
+import {
+  isConfidence,
+  parseGraderKind,
+  READY_FOR_AI_STATUSES,
+  type Confidence,
+  type GraderKind,
+} from "@/lib/constants";
 import { pluralize } from "@/lib/format";
 import type { GraderInfo } from "@/lib/grading/config";
 
@@ -21,6 +27,9 @@ export type LiveRowState =
   | { phase: "grading" }
   | { phase: "done"; confidence: Confidence | null; flagCount: number; grader: GraderKind }
   | { phase: "failed"; error: string };
+
+/** Live state tagged with the version (submittedAt) of the paper it belongs to. */
+type LiveEntry = LiveRowState & { submittedAt: string };
 
 export type BatchRun = {
   total: number;
@@ -39,10 +48,11 @@ type BatchGradingContextValue = {
   assignmentId: string;
   graderInfo: GraderInfo;
   rows: SubmissionRowData[];
-  live: Record<string, LiveRowState>;
+  /** What the batch knows about a row right now, if it still applies (see liveStateFor). */
+  liveFor: (row: SubmissionRowData) => LiveRowState | undefined;
   run: BatchRun | null;
   isRunning: boolean;
-  /** Papers the AI pass can run on now (SUBMITTED or GRADING_FAILED). */
+  /** Papers the AI pass can run on now (READY_FOR_AI_STATUSES, not already queued or graded). */
   gradableIds: string[];
   /** Papers waiting in the review queue, including ones graded moments ago. */
   reviewCount: number;
@@ -53,7 +63,23 @@ type BatchGradingContextValue = {
 
 const BatchGradingContext = createContext<BatchGradingContextValue | null>(null);
 
-export const GRADABLE_STATUSES = ["SUBMITTED", "GRADING_FAILED"];
+/** Waiting for an AI first pass (never run, or a failed run to retry). */
+export function isReadyForAi(status: string): boolean {
+  return (READY_FOR_AI_STATUSES as readonly string[]).includes(status);
+}
+
+/**
+ * The live state that still describes a row. Queued and grading always win.
+ * A finished run speaks only for the paper it graded (same submittedAt) and
+ * only until the server row catches up: once router.refresh brings the new
+ * status, or the paper is replaced, the server data takes over again.
+ */
+function liveStateFor(row: SubmissionRowData, entry: LiveEntry | undefined): LiveRowState | undefined {
+  if (!entry) return undefined;
+  if (entry.phase === "queued" || entry.phase === "grading") return entry;
+  if (entry.submittedAt !== row.submittedAt) return undefined;
+  return isReadyForAi(row.status) || row.status === "GRADING" ? entry : undefined;
+}
 
 export function useBatchGrading(): BatchGradingContextValue {
   const value = useContext(BatchGradingContext);
@@ -87,7 +113,7 @@ async function requestGrade(submissionId: string): Promise<GradeOutcome> {
       ok: true,
       confidence: typeof submission.confidence === "string" && isConfidence(submission.confidence) ? submission.confidence : null,
       flagCount: typeof submission.flagCount === "number" ? submission.flagCount : 0,
-      grader: submission.grader === "claude" ? "claude" : "demo",
+      grader: parseGraderKind(typeof submission.grader === "string" ? submission.grader : null),
     };
   }
   if (response.status === 401) return { ok: false, error: "Your session ended. Sign in again to keep grading." };
@@ -106,7 +132,7 @@ export function BatchGradingProvider({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [live, setLive] = useState<Record<string, LiveRowState>>({});
+  const [live, setLive] = useState<Record<string, LiveEntry>>({});
   const [run, setRun] = useState<BatchRun | null>(null);
   const [, startRefresh] = useTransition();
   const runningRef = useRef(false);
@@ -115,31 +141,32 @@ export function BatchGradingProvider({
 
   const isRunning = run?.status === "running" || run?.status === "stopping";
 
+  const liveFor = useCallback((row: SubmissionRowData) => liveStateFor(row, live[row.id]), [live]);
+
   const gradableIds = useMemo(
     () =>
       rows
-        .filter((row) => GRADABLE_STATUSES.includes(row.status))
+        .filter((row) => isReadyForAi(row.status))
         .filter((row) => {
-          const phase = live[row.id]?.phase;
+          const phase = liveFor(row)?.phase;
           return phase !== "done" && phase !== "queued" && phase !== "grading";
         })
         .map((row) => row.id),
-    [rows, live]
+    [rows, liveFor]
   );
 
   const reviewCount = useMemo(
-    () =>
-      rows.filter(
-        (row) => row.status === "NEEDS_REVIEW" || (live[row.id]?.phase === "done" && row.status !== "NEEDS_REVIEW")
-      ).length,
-    [rows, live]
+    () => rows.filter((row) => row.status === "NEEDS_REVIEW" || liveFor(row)?.phase === "done").length,
+    [rows, liveFor]
   );
 
-  // Keep the latest list for start() without re-creating it on every render.
+  // Keep the latest lists for start() without re-creating it on every render.
   const gradableRef = useRef(gradableIds);
+  const rowsRef = useRef(rows);
   useEffect(() => {
     gradableRef.current = gradableIds;
-  }, [gradableIds]);
+    rowsRef.current = rows;
+  }, [gradableIds, rows]);
 
   // Leaving the page stops the batch after the paper in flight.
   useEffect(() => {
@@ -169,9 +196,13 @@ export function BatchGradingProvider({
       runningRef.current = true;
       stopRef.current = false;
 
+      // Results belong to the paper as it was when the run started.
+      const versions = new Map(rowsRef.current.map((row) => [row.id, row.submittedAt]));
+      const version = (id: string) => versions.get(id) ?? "";
+
       setLive((current) => {
         const next = { ...current };
-        for (const id of ids) next[id] = { phase: "queued" };
+        for (const id of ids) next[id] = { phase: "queued", submittedAt: version(id) };
         return next;
       });
       setRun({ total: ids.length, processed: 0, succeeded: 0, failed: 0, status: "running" });
@@ -183,18 +214,27 @@ export function BatchGradingProvider({
 
         for (const id of ids) {
           if (stopRef.current) break;
-          setLive((current) => ({ ...current, [id]: { phase: "grading" } }));
+          setLive((current) => ({ ...current, [id]: { phase: "grading", submittedAt: version(id) } }));
           const outcome = await requestGrade(id);
           processed++;
           if (outcome.ok) {
             succeeded++;
             setLive((current) => ({
               ...current,
-              [id]: { phase: "done", confidence: outcome.confidence, flagCount: outcome.flagCount, grader: outcome.grader },
+              [id]: {
+                phase: "done",
+                confidence: outcome.confidence,
+                flagCount: outcome.flagCount,
+                grader: outcome.grader,
+                submittedAt: version(id),
+              },
             }));
           } else {
             failed++;
-            setLive((current) => ({ ...current, [id]: { phase: "failed", error: outcome.error } }));
+            setLive((current) => ({
+              ...current,
+              [id]: { phase: "failed", error: outcome.error, submittedAt: version(id) },
+            }));
           }
           setRun((current) => (current ? { ...current, processed, succeeded, failed } : current));
         }
@@ -252,7 +292,7 @@ export function BatchGradingProvider({
       assignmentId,
       graderInfo,
       rows,
-      live,
+      liveFor,
       run,
       isRunning,
       gradableIds,
@@ -261,7 +301,7 @@ export function BatchGradingProvider({
       stop,
       dismiss,
     }),
-    [assignmentId, graderInfo, rows, live, run, isRunning, gradableIds, reviewCount, start, stop, dismiss]
+    [assignmentId, graderInfo, rows, liveFor, run, isRunning, gradableIds, reviewCount, start, stop, dismiss]
   );
 
   return <BatchGradingContext.Provider value={value}>{children}</BatchGradingContext.Provider>;

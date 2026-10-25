@@ -25,14 +25,14 @@ export default function AssignmentLoading() {
           <div className="border-t border-border">
             {Array.from({ length: 5 }, (_, index) => (
               <div key={index} className="flex items-center gap-6 border-b border-border px-6 py-3 last:border-0">
-                <div className="flex w-48 items-center gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-3 xl:w-48 xl:flex-none">
                   <Skeleton className="size-8 shrink-0 rounded-full" />
                   <Skeleton className="h-4 w-28" />
                 </div>
-                <Skeleton className="h-5 w-24 rounded-full" />
-                <Skeleton className="hidden h-4 w-16 sm:block" />
-                <Skeleton className="hidden h-5 w-16 rounded-full md:block" />
-                <Skeleton className="ml-auto h-8 w-20" />
+                <Skeleton className="h-5 w-24 shrink-0 rounded-full" />
+                <Skeleton className="hidden h-4 w-16 xl:block" />
+                <Skeleton className="hidden h-5 w-16 rounded-full xl:block" />
+                <Skeleton className="ml-auto hidden h-8 w-20 sm:block" />
               </div>
             ))}
           </div>

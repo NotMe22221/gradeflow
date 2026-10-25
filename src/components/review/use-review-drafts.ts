@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { saveReviewDraft } from "@/app/(teacher)/review/actions";
-import { createDraft, summarizeDraft, type ItemDraft } from "@/components/review/review-model";
-import type { ReviewItem } from "@/components/review/types";
+import { createDraft, summarizeDraft, type ItemDraft } from "@/lib/review/model";
+import type { ReviewItem } from "@/lib/review/types";
 
 const AUTOSAVE_DELAY_MS = 800;
 

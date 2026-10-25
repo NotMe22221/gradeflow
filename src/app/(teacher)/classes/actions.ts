@@ -3,29 +3,14 @@
 import { randomInt } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 
-import {
-  assignmentInputSchema,
-  fieldErrorsFromIssues,
-  parseDateOnly,
-  type CreateAssignmentResult,
-} from "@/components/assignments/rubric-schema";
-import {
-  classInputSchema,
-  studentInputSchema,
-  type AddStudentResult,
-  type FormFailure,
-} from "@/components/classes/schemas";
 import { getOwnedClass } from "@/lib/access";
 import { AuthError, requireTeacher } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-
-const IdSchema = z
-  .string()
-  .min(1)
-  .max(64)
-  .regex(/^[A-Za-z0-9_-]+$/);
+import { assignmentInputSchema, parseDateOnly, type CreateAssignmentResult } from "@/lib/validation/assignment";
+import { classInputSchema, studentInputSchema, type AddStudentResult, type FormFailure } from "@/lib/validation/class";
+import { fieldErrorsFromIssues } from "@/lib/validation/form";
+import { idSchema } from "@/lib/validation/id";
 
 const STUDENT_EMAIL_DOMAIN = "students.gradeflow.example";
 
@@ -94,7 +79,7 @@ function isUniqueViolation(error: unknown): boolean {
 export async function addStudent(classId: string, formData: FormData): Promise<AddStudentResult> {
   try {
     const teacher = await requireTeacher();
-    const id = IdSchema.safeParse(classId);
+    const id = idSchema.safeParse(classId);
     if (!id.success) return { ok: false, error: "Class not found." };
     const klass = await getOwnedClass(teacher.id, id.data);
 
@@ -140,7 +125,7 @@ export async function createAssignment(classId: string, input: unknown): Promise
   let assignmentId: string;
   try {
     const teacher = await requireTeacher();
-    const id = IdSchema.safeParse(classId);
+    const id = idSchema.safeParse(classId);
     if (!id.success) return { ok: false, error: "Class not found." };
     const klass = await getOwnedClass(teacher.id, id.data);
 

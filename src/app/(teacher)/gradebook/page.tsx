@@ -4,13 +4,14 @@ import { ArrowRight, BookOpen, FilePlus2, UserPlus } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
 import { ClassSwitcher } from "@/components/gradebook/class-switcher";
-import { ExportCsvButton } from "@/components/gradebook/export-button";
+import { ExportButtons, type ExportFormatOption } from "@/components/gradebook/export-button";
 import { GradebookLegend } from "@/components/gradebook/gradebook-legend";
 import { GradebookTable } from "@/components/gradebook/gradebook-table";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { requireTeacherPage } from "@/lib/auth/session";
+import { listExporters } from "@/lib/export";
 import { pluralize } from "@/lib/format";
 import { getGradebook, listGradebookClasses } from "@/lib/gradebook/query";
 import type { GradebookData } from "@/lib/gradebook/types";
@@ -19,6 +20,11 @@ export const metadata: Metadata = { title: "Gradebook" };
 
 const TITLE = "Gradebook";
 const DESCRIPTION = "Only teacher-approved grades appear here.";
+
+/** One export button per registered exporter (CSV today, an LMS exporter later). */
+function exportFormats(): ExportFormatOption[] {
+  return listExporters().map(({ id, label, description }) => ({ id, label, description }));
+}
 
 function single(value: string | string[] | undefined): string | null {
   const first = Array.isArray(value) ? value[0] : value;
@@ -121,7 +127,7 @@ export default async function GradebookPage({
       <PageHeader
         title={TITLE}
         description={DESCRIPTION}
-        actions={<ExportCsvButton classId={data.class.id} classTitle={classTitle} />}
+        actions={<ExportButtons classId={data.class.id} classTitle={classTitle} formats={exportFormats()} />}
       />
 
       <ClassSwitcher classes={classes} selectedId={selected.id} className="mb-6" />

@@ -23,30 +23,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { firstName, pluralize, wordCount } from "@/lib/format";
+import {
+  formatBytes,
+  MAX_PAPER_CHARS,
+  MAX_PAPER_FILE_BYTES,
+  normalizePaperText,
+  txtFileProblem,
+  validatePaperText,
+} from "@/lib/paper";
 import { cn } from "@/lib/utils";
 
-// Mirrors src/lib/submissions.ts (server-only), which enforces the real limits.
-const MIN_PAPER_CHARS = 20;
-const MAX_PAPER_CHARS = 40_000;
-const MAX_FILE_BYTES = MAX_PAPER_CHARS * 4;
 const PREVIEW_CHARS = 2_000;
+const FILE_HINT = `Plain text only, up to ${formatBytes(MAX_PAPER_FILE_BYTES)}`;
 
 type Mode = "paste" | "upload";
 type FormError = { message: string; field?: "studentId" | "content" | "file" };
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} KB`;
-}
-
-function txtFileProblem(file: File): string | null {
-  if (!file.name.toLowerCase().endsWith(".txt") || (file.type && file.type !== "text/plain")) {
-    return "Upload a plain-text .txt file.";
-  }
-  if (file.size > MAX_FILE_BYTES) return "That file is too large for one paper.";
-  if (file.size === 0) return "That file is empty.";
-  return null;
-}
 
 export function AddSubmissionDialog({
   assignmentId,
@@ -109,6 +100,13 @@ export function AddSubmissionDialog({
     try {
       // Read locally for the preview; the file itself is sent with the form.
       const content = await candidate.text();
+      // Same rules the server applies after normalizing the upload.
+      const textProblem = validatePaperText(normalizePaperText(content));
+      if (textProblem) {
+        clearFile();
+        setError({ message: textProblem, field: "file" });
+        return;
+      }
       setFile(candidate);
       setPreview(content);
       setError(null);
@@ -123,16 +121,9 @@ export function AddSubmissionDialog({
     if (pending) return;
     if (!studentId) return setError({ message: "Choose a student.", field: "studentId" });
     if (mode === "paste") {
-      const trimmed = text.trim();
-      if (trimmed.length < MIN_PAPER_CHARS) {
-        return setError({ message: "That paper looks empty. Paste the full text or upload a .txt file.", field: "content" });
-      }
-      if (trimmed.length > MAX_PAPER_CHARS) {
-        return setError({
-          message: `Papers are limited to ${MAX_PAPER_CHARS.toLocaleString("en-US")} characters.`,
-          field: "content",
-        });
-      }
+      // Same normalization and limits the server applies.
+      const problem = validatePaperText(normalizePaperText(text));
+      if (problem) return setError({ message: problem, field: "content" });
     } else if (!file) {
       return setError({ message: "Choose a .txt file to upload.", field: "file" });
     }
@@ -293,7 +284,7 @@ export function AddSubmissionDialog({
                     {file ? file.name : "Choose a .txt file or drop it here"}
                   </span>
                   <span className="tabular text-[13px] text-muted-foreground">
-                    {file ? `${formatBytes(file.size)} · ${pluralize(words, "word")}` : "Plain text only, up to 160 KB"}
+                    {file ? `${formatBytes(file.size)} · ${pluralize(words, "word")}` : FILE_HINT}
                   </span>
                   <input
                     ref={fileInputRef}

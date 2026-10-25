@@ -1,9 +1,15 @@
 import { BadgeCheck, MessageSquareText } from "lucide-react";
 
-import { scoreShare, type StudentBreakdownItem } from "@/components/student/published-breakdown";
 import { SubmissionText } from "@/components/student/submission-text";
 import { Card } from "@/components/ui/card";
 import { formatDate, formatPercent, formatPoints } from "@/lib/format";
+import type { BreakdownItem } from "@/lib/grades/breakdown";
+
+/** Share of a criterion earned, clamped to 0..100 for a progress bar. */
+function scoreShare(score: number, max: number): number {
+  if (!(max > 0)) return 0;
+  return Math.max(0, Math.min(100, (score / max) * 100));
+}
 
 /**
  * The published grade, read-only. Everything here comes from the
@@ -21,7 +27,7 @@ export function GradeCard({
 }: {
   totalScore: number;
   maxScore: number;
-  breakdown: StudentBreakdownItem[];
+  breakdown: BreakdownItem[];
   feedback: string | null;
   approvedByName: string;
   approvedAt: Date;

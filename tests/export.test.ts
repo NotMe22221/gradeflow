@@ -9,7 +9,7 @@ import {
   slugify,
   toCsvCell,
 } from "@/lib/export/csv";
-import { getExporter } from "@/lib/export";
+import { getExporter, listExporters, type GradebookExporter } from "@/lib/export";
 import { buildGradebook, cellStateFor, type GradebookSource } from "@/lib/gradebook/types";
 
 // --- Synthetic fixture (all names are fictional) ----------------------------
@@ -173,6 +173,15 @@ describe("csvExporter", () => {
     assert.equal(avaLine, "Ava Quillon,ava@students.example,21,,84");
   });
 
+  it("works through the registry's async-capable contract", async () => {
+    const exporter = getExporter("csv");
+    assert.ok(exporter);
+    // The route awaits every exporter; a synchronous CSV build must still work.
+    const result = await exporter.export(buildGradebook(source()), { now: new Date(2026, 9, 25, 12, 0, 0) });
+    assert.equal(result.filename, "english-10-period-2-gradebook-2026-10-25.csv");
+    assert.equal(result.body, gradebookToCsv(buildGradebook(source())));
+  });
+
   it("names the file after the class and the date", () => {
     const { filename } = csvExporter.export(buildGradebook(source()), {
       now: new Date(2026, 9, 25, 12, 0, 0),
@@ -184,5 +193,43 @@ describe("csvExporter", () => {
     assert.equal(slugify("Biologie: Période 3 / Lab"), "biologie-periode-3-lab");
     assert.equal(slugify('"; rm -rf /'), "rm-rf");
     assert.equal(slugify("***"), "class");
+  });
+});
+
+// --- Exporter registry (the LMS extension point) ------------------------------
+
+describe("listExporters", () => {
+  it("lists CSV first, as the default format", () => {
+    const exporters = listExporters();
+    assert.ok(exporters.length >= 1);
+    assert.equal(exporters[0], csvExporter);
+  });
+
+  it("gives every exporter a unique, route-safe id that getExporter resolves", () => {
+    const ids = listExporters().map((exporter) => exporter.id);
+    assert.equal(new Set(ids).size, ids.length);
+    for (const exporter of listExporters()) {
+      // Must pass the route's ?format= check and its case-insensitive lookup.
+      assert.match(exporter.id, /^[a-z0-9_-]{1,32}$/);
+      assert.equal(getExporter(exporter.id), exporter);
+      assert.ok(exporter.label.trim().length > 0);
+    }
+  });
+
+  it("accepts an async exporter, the shape a real LMS push would take", async () => {
+    // A stand-in only: no network calls. It returns a summary of what it would push.
+    const asyncExporter: GradebookExporter = {
+      id: "lms-preview",
+      label: "LMS preview",
+      contentType: "text/plain; charset=utf-8",
+      fileExtension: "txt",
+      async export(data) {
+        await Promise.resolve();
+        const published = data.rows.flatMap((row) => row.cells).filter((cell) => cell.state === "published");
+        return { filename: "summary.txt", body: `${published.length} published grades` };
+      },
+    };
+    const result = await asyncExporter.export(buildGradebook(source()));
+    assert.deepEqual(result, { filename: "summary.txt", body: "2 published grades" });
   });
 });

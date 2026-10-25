@@ -112,7 +112,7 @@ export default async function ClassPage({ params }: { params: Params }) {
           <AssignmentList classId={klass.id} items={items} />
         </div>
         <div className="min-w-0">
-          <RosterCard classId={klass.id} className={klass.name} students={students} />
+          <RosterCard classId={klass.id} classTitle={klass.name} students={students} />
         </div>
       </div>
     </PageContainer>

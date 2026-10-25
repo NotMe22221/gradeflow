@@ -3,12 +3,21 @@
 
 import type { Confidence, GraderKind } from "@/lib/constants";
 
+/** A validation flag with its teacher-facing wording (see describeFlag). */
 export type SubmissionFlag = { code: string; message: string };
 
 export type SubmissionRowData = {
   id: string;
   student: { id: string; name: string };
+  /**
+   * Submission status. A GRADING claim abandoned by a crashed request is sent
+   * as GRADING_FAILED (with `interrupted`) so the teacher can retry it.
+   */
   status: string;
+  /** True when the AI pass stopped responding mid-grade (stale GRADING claim). */
+  interrupted: boolean;
+  /** ISO timestamp. Changes when the paper is replaced, so stale live batch state can be ignored. */
+  submittedAt: string;
   /** Formatted on the server so the client never re-renders a different time. */
   submittedLabel: string;
   submittedTitle: string;

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, BookOpen, Inbox, Table2 } from "lucide-react";
 
-import { ClassCard } from "@/components/dashboard/class-card";
+import { DashboardClassCard } from "@/components/dashboard/class-card";
 import { ReadyForAiCallout } from "@/components/dashboard/ready-for-ai-callout";
 import { RecentlyPublished } from "@/components/dashboard/recently-published";
 import { SectionHeader } from "@/components/dashboard/section-header";
@@ -67,8 +67,9 @@ export default async function DashboardPage() {
 
       <StatRow stats={stats} />
 
-      <div className="mt-12 grid gap-8 lg:grid-cols-3">
-        <section aria-labelledby="classes-heading" className="lg:col-span-2">
+      {/* grid-cols-1 (minmax(0, 1fr)) keeps long card text from widening the column past a phone screen. */}
+      <div className="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <section aria-labelledby="classes-heading" className="min-w-0 lg:col-span-2">
           <SectionHeader
             id="classes-heading"
             title="Your classes"
@@ -90,17 +91,17 @@ export default async function DashboardPage() {
               }
             />
           ) : (
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
               {classes.map((summary) => (
                 <li key={summary.id} className="min-w-0">
-                  <ClassCard summary={summary} />
+                  <DashboardClassCard summary={summary} />
                 </li>
               ))}
             </ul>
           )}
         </section>
 
-        <RecentlyPublished items={recent} now={now} />
+        <RecentlyPublished items={recent} now={now} className="min-w-0" />
       </div>
     </PageContainer>
   );

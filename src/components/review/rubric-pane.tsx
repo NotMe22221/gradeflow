@@ -9,17 +9,17 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CriterionCard } from "@/components/review/criterion-card";
+import { firstName, formatPoints, pluralize } from "@/lib/format";
+import { describeFlag } from "@/lib/grading/flags";
 import {
   MAX_FEEDBACK_CHARS,
   createDraft,
-  describeFlag,
   scoreToInput,
   type DraftSummary,
   type EvidenceLayout,
   type ItemDraft,
-} from "@/components/review/review-model";
-import type { ReviewItem } from "@/components/review/types";
-import { firstName, formatPoints, pluralize } from "@/lib/format";
+} from "@/lib/review/model";
+import type { ReviewItem } from "@/lib/review/types";
 import { cn } from "@/lib/utils";
 
 export function RubricPane({
@@ -29,6 +29,7 @@ export function RubricPane({
   layout,
   onDraftChange,
   onShowEvidence,
+  onShowFlagged,
   footer,
   className,
 }: {
@@ -38,6 +39,8 @@ export function RubricPane({
   layout: EvidenceLayout;
   onDraftChange: (update: (draft: ItemDraft) => ItemDraft) => void;
   onShowEvidence: (criterionId: string) => void;
+  /** Scroll the paper to the first passage addressed to the grader. */
+  onShowFlagged: () => void;
   /** Desktop action footer, pinned below the scrolling rubric. */
   footer?: React.ReactNode;
   className?: string;
@@ -61,7 +64,8 @@ export function RubricPane({
 
   return (
     <div className={cn("flex min-h-0 flex-col bg-background", className)}>
-      <div className="min-h-0 flex-1 lg:overflow-y-auto">
+      {/* `relative` keeps sr-only text inside this scroller on desktop. */}
+      <div className="relative min-h-0 flex-1 lg:overflow-y-auto lg:overscroll-contain">
         {/* Running total: pinned while the rubric scrolls on desktop. */}
         <div className="z-10 border-b border-border bg-card/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-card/85 sm:px-6 lg:sticky lg:top-0">
           <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
@@ -123,7 +127,7 @@ export function RubricPane({
           ) : null}
 
           {ai?.overallComment ? (
-            <p className="text-[13px] leading-relaxed text-muted-foreground">
+            <p className="text-[13px] leading-relaxed break-words text-muted-foreground">
               <span className="font-medium text-foreground">{source} summary</span>
               <span aria-hidden> · </span>
               <span className="sr-only">: </span>
@@ -131,7 +135,9 @@ export function RubricPane({
             </p>
           ) : null}
 
-          {ai && ai.flags.length > 0 ? <FlagsBanner item={item} /> : null}
+          {ai && ai.flags.length > 0 ? (
+            <FlagsBanner item={item} onShowFlagged={layout.flaggedCount > 0 ? onShowFlagged : null} />
+          ) : null}
 
           <section aria-label="Rubric" className="space-y-4">
             {item.criteria.map((criterion, index) => {
@@ -180,11 +186,21 @@ export function RubricPane({
   );
 }
 
-function FlagsBanner({ item }: { item: ReviewItem }) {
+function FlagsBanner({
+  item,
+  onShowFlagged,
+}: {
+  item: ReviewItem;
+  /** Present when the flagged text is marked in the paper. */
+  onShowFlagged: (() => void) | null;
+}) {
   const flags = item.ai?.flags ?? [];
   const seen = new Set<string>();
   const lines = flags
-    .map((flag) => describeFlag(flag, item.criteria))
+    .map((flag) => ({
+      ...describeFlag(flag, item.criteria),
+      injection: flag.code === "POSSIBLE_PROMPT_INJECTION",
+    }))
     .filter((line) => {
       const key = `${line.criterionLabel ?? ""}|${line.message}`;
       if (seen.has(key)) return false;
@@ -198,11 +214,23 @@ function FlagsBanner({ item }: { item: ReviewItem }) {
         <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning-soft-foreground" aria-hidden />
         <div className="min-w-0 space-y-2">
           <p className="text-sm font-medium text-warning-soft-foreground">Check before you publish</p>
-          <ul className="list-disc space-y-1.5 pl-4 text-[13px] leading-relaxed text-warning-soft-foreground marker:text-warning">
+          <ul className="list-disc space-y-1.5 pl-4 text-[13px] leading-relaxed break-words text-warning-soft-foreground marker:text-warning">
             {lines.map((line, index) => (
               <li key={index}>
                 {line.criterionLabel ? <span className="font-medium">{line.criterionLabel}: </span> : null}
                 {line.message}
+                {line.injection && onShowFlagged ? (
+                  <>
+                    {" "}
+                    <button
+                      type="button"
+                      onClick={onShowFlagged}
+                      className="rounded font-medium whitespace-nowrap underline underline-offset-2 outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
+                    >
+                      Show in paper
+                    </button>
+                  </>
+                ) : null}
               </li>
             ))}
           </ul>

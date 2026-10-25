@@ -9,8 +9,9 @@ export type { ExportOptions, ExportResult, GradebookExporter } from "@/lib/expor
  *
  * To add a real LMS integration, implement GradebookExporter (see
  * ./types.ts), e.g. a `canvasExporter` in ./canvas.ts, and register it here.
- * The route's teacher check, ownership check, and published-only data apply
- * to it automatically.
+ * The gradebook page renders one export button per registered exporter
+ * (from listExporters()), and the route's teacher check, ownership check,
+ * and published-only data apply to it automatically.
  */
 const EXPORTERS: readonly GradebookExporter[] = [csvExporter];
 
@@ -22,6 +23,7 @@ export function getExporter(id: string): GradebookExporter | null {
   return BY_ID.get(id.trim().toLowerCase()) ?? null;
 }
 
+/** Every registered exporter, default first. Drives the export UI and route errors. */
 export function listExporters(): readonly GradebookExporter[] {
   return EXPORTERS;
 }

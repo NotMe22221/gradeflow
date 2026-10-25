@@ -17,6 +17,14 @@ export type SubmissionStatus = (typeof SUBMISSION_STATUSES)[number];
 /** Papers waiting for an AI first pass (what the batch "Run AI first pass" grades). */
 export const READY_FOR_AI_STATUSES: SubmissionStatus[] = ["SUBMITTED", "GRADING_FAILED"];
 
+/**
+ * A GRADING claim older than this was abandoned by a request that died
+ * mid-grade (e.g. a server restart): the server lets a new run take it over
+ * and the assignment page offers "Retry AI pass". Longer than the Claude
+ * grader's worst case (120s timeout x 3 attempts).
+ */
+export const STALE_GRADING_CLAIM_MS = 7 * 60 * 1000;
+
 /** Papers the server lets the AI pass (re-)run on. Re-running NEEDS_REVIEW replaces the suggestion. */
 export const AI_RERUNNABLE_STATUSES: SubmissionStatus[] = [...READY_FOR_AI_STATUSES, "NEEDS_REVIEW"];
 
