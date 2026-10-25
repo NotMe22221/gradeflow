@@ -145,9 +145,10 @@ src/components/
   flags; an invalid score is stored as `null` so the teacher must enter it.
 - **Roles**: enforced server-side in every page, action, and route. Only a
   teacher who owns the class can grade, approve, publish, send back, or export.
-- **Sessions**: HMAC-signed cookie (httpOnly, sameSite=lax, Secure over HTTPS;
-  `SESSION_COOKIE_SECURE` overrides). Production refuses to start signing
-  without `SESSION_SECRET` once demo sign-in is off.
+- **Sessions**: HMAC-signed cookie (httpOnly, sameSite=lax; Secure except plain
+  HTTP to localhost or a private LAN address; `SESSION_COOKIE_SECURE`
+  overrides). Production refuses to sign cookies without `SESSION_SECRET` once
+  demo sign-in is off.
 - **Confidence** is the model's uncalibrated self-report, shown as a sorting
   signal, never as a probability of correctness.
 - **Time saved** is labelled as an illustrative estimate with its assumption.
@@ -166,8 +167,9 @@ src/components/
 - **Real LMS export**: implement `GradebookExporter` (`src/lib/export/types.ts`)
   for Canvas or Google Classroom and register it in `src/lib/export/index.ts`
   next to the CSV exporter. `export()` may be async, and every registered
-  exporter automatically gets an "Export <label>" button on the gradebook.
+  exporter automatically gets an `Export <label>` button on the gradebook.
 - **Another grader**: implement `Grader` (`src/lib/grading/types.ts`), add its
-  kind to `GRADERS` and `GRADER_LABELS` in `src/lib/constants.ts`, and return it
+  kind to `GRADERS`, `GRADER_LABELS`, and `GRADER_DESCRIPTIONS` in
+  `src/lib/constants.ts`, and return it
   from `getGrader()` (`src/lib/grading/index.ts`). Validation and the approval
   gate apply automatically.

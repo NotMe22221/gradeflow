@@ -37,7 +37,7 @@ No configuration is required. To change the optional settings below, copy
 | `ANTHROPIC_EFFORT` | `medium` | `low` / `medium` / `high` / `xhigh` / `max`. |
 | `DATABASE_URL` | `file:./prisma/dev.db` | Local SQLite file. |
 | `SESSION_SECRET` | built-in demo secret | Signs the session cookie. Set a long random string anywhere but a local demo. Required in production once demo sign-in is off. |
-| `SESSION_COOKIE_SECURE` | follows the request protocol | Set `false` to demo a production build (`npm run build && npm start`) over plain HTTP from another device. |
+| `SESSION_COOKIE_SECURE` | Secure except plain HTTP on localhost or a private LAN address | Force `true` or `false`. Behind a TLS proxy, make sure it sends `X-Forwarded-Proto`. |
 | `GRADEFLOW_DEMO_LOGIN` | on | Set to `off` to hide the one-click demo sign-in. |
 
 `npm run seed` resets the demo data at any time. Re-seeding signs everyone out.
@@ -84,18 +84,20 @@ The exact click path for judges. Times are a guide.
      paper content only.
    - Click **Show in paper** on a quote to jump to it.
    - Change one score. **Draft saved** appears.
-   - Type in a field and press `A`: nothing happens. Click outside, press `A`,
-     and a confirmation opens. Click **Approve & publish**.
+   - Click a score box and press `A`: no dialog opens, because shortcuts pause
+     while you type. Click the paper text, press `A`, and a confirmation opens.
+     Click **Approve & publish**.
    - A toast confirms the grade is published. Use `→` / `←` to move between
      papers and `?` to list the shortcuts.
 6. **Gradebook (2:25 to 2:40).** Open **Gradebook**. The approved grade is there,
    and only approved grades are. Click **Export CSV**, the stand-in for an LMS
    sync.
 7. **Student view (2:40 to 3:00).** Click **View as student** in the publish
-   toast, or use the account menu → *Demo: view as a student*. The student sees
-   the published grade and the rubric feedback, and never the AI suggestion or
-   its confidence. *Demo: back to teacher view* in the account menu returns you
-   to the teacher.
+   toast. It opens that student's assignment page. Or open the account menu,
+   pick the student you just approved under *Demo: view as a student*, and open
+   the assignment. The student sees the published grade and rubric feedback,
+   never the AI suggestion or its confidence. To go back, choose *Demo: back to
+   teacher view* in the account menu.
 
 ---
 
@@ -187,14 +189,18 @@ status machine, the API contract, and the extension points.
 
 ## Extending after the hackathon
 
-- **Rename it.** GradeFlow is a placeholder name. Change it in
-  `src/components/brand/logo.tsx`, `src/app/layout.tsx` (metadata), and this README.
+- **Rename it.** GradeFlow is a placeholder name. It appears in
+  `src/components/brand/logo.tsx`, `src/app/layout.tsx` (metadata),
+  `src/app/not-found.tsx`, `src/components/landing/*.tsx`, the grader prompt in
+  `src/lib/grading/prompt.ts` and `src/lib/grading/claude.ts`, and this README
+  (`grep -rn GradeFlow src README.md` finds them all).
 - **Real LMS sync.** Implement `GradebookExporter` (`src/lib/export/types.ts`)
   for Canvas or Google Classroom and register it in `src/lib/export/index.ts`.
-  The CSV exporter is the reference implementation, and the export menu picks
-  up registered exporters.
+  The CSV exporter is the reference implementation, and the gradebook shows an
+  `Export <label>` button for each registered exporter.
 - **Another grader.** Implement `Grader` (`src/lib/grading/types.ts`), add its
-  kind and label in `src/lib/constants.ts`, and return it from `getGrader()`.
+  kind, label, and tooltip description in `src/lib/constants.ts` (`GRADERS`,
+  `GRADER_LABELS`, `GRADER_DESCRIPTIONS`), and return it from `getGrader()`.
   Validation and the approval gate apply automatically.
 - **Real auth.** Replace the demo sign-in in `src/lib/auth/` with your identity
   provider and set `GRADEFLOW_DEMO_LOGIN=off` and `SESSION_SECRET`. Role and

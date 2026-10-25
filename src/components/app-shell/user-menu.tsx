@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, GraduationCap, LogOut, UserRound } from "lucide-react";
+import { toast } from "sonner";
 
 import { Avatar } from "@/components/ui/avatar";
 import {
@@ -14,6 +15,12 @@ import {
 import { signInAsDemoTeacher, signOut, viewAsStudent } from "@/lib/auth/actions";
 
 export type SwitchableStudent = { id: string; name: string };
+
+/** Toasts belong to the account that triggered them; clear them on a switch. */
+function switchAccount(action: () => Promise<unknown>) {
+  toast.dismiss();
+  void action();
+}
 
 export function UserMenu({
   user,
@@ -49,9 +56,9 @@ export function UserMenu({
         {demoLogin && user.role === "TEACHER" && students.length > 0 ? (
           <>
             <DropdownMenuLabel>Demo: view as a student</DropdownMenuLabel>
-            <div className="max-h-[min(60vh,22rem)] overflow-y-auto">
+            <div className="max-h-[min(60vh,21rem)] overflow-y-auto">
               {students.map((student) => (
-                <DropdownMenuItem key={student.id} onSelect={() => viewAsStudent(student.id)}>
+                <DropdownMenuItem key={student.id} onSelect={() => switchAccount(() => viewAsStudent(student.id))}>
                   <UserRound aria-hidden />
                   {student.name}
                 </DropdownMenuItem>
@@ -62,14 +69,14 @@ export function UserMenu({
         ) : null}
         {demoLogin && user.role === "STUDENT" ? (
           <>
-            <DropdownMenuItem onSelect={() => signInAsDemoTeacher()}>
+            <DropdownMenuItem onSelect={() => switchAccount(signInAsDemoTeacher)}>
               <GraduationCap aria-hidden />
               Demo: back to teacher view
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
         ) : null}
-        <DropdownMenuItem onSelect={() => signOut()}>
+        <DropdownMenuItem onSelect={() => switchAccount(signOut)}>
           <LogOut aria-hidden />
           Sign out
         </DropdownMenuItem>
