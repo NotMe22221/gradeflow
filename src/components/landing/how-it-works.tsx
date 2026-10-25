@@ -51,7 +51,7 @@ export function HowItWorks() {
           id="how-it-works-heading"
           eyebrow="How it works"
           title="From a stack of papers to published grades in three steps."
-          description="GradeFlow does the slow first read. You keep every decision."
+          description="GradeSmart AI does the slow first read. You keep every decision."
         />
         <ol className="mt-12 grid gap-6 md:grid-cols-3">
           {STEPS.map((step, index) => (

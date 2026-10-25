@@ -24,7 +24,7 @@ function failure(error: unknown, fallback: string): ActionFailure {
     return { ok: false, error: error.message };
   }
   // Log the error type only: messages can carry teacher comments about a student.
-  console.error("[gradeflow] Review action failed", {
+  console.error("[gradesmart] Review action failed", {
     type: error instanceof Error ? error.name : typeof error,
   });
   return { ok: false, error: fallback };

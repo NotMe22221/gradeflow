@@ -53,7 +53,7 @@ function logFailure(error: unknown) {
   const name = error instanceof Error ? error.name : typeof error;
   const status = error instanceof Anthropic.APIError ? error.status : undefined;
   const requestId = error instanceof Anthropic.APIError ? error.requestID : undefined;
-  console.error("[gradeflow] Claude grading request failed", { type: name, status, requestId });
+  console.error("[gradesmart] Claude grading request failed", { type: name, status, requestId });
 }
 
 function toGradingError(error: unknown): GradingError {
@@ -94,7 +94,7 @@ function toGradingError(error: unknown): GradingError {
   }
   // The SDK raises a plain AnthropicError when structured output fails to parse.
   if (error instanceof Anthropic.AnthropicError) {
-    return new GradingError("Claude returned a response GradeFlow could not read. Try again.");
+    return new GradingError("Claude returned a response GradeSmart AI could not read. Try again.");
   }
   return new GradingError("Claude grading failed. Try again.");
 }
@@ -124,16 +124,16 @@ export class ClaudeGrader implements Grader {
       });
 
       if (response.stop_reason === "refusal") {
-        console.warn("[gradeflow] Claude declined to grade a paper", { category: response.stop_details?.category ?? null });
+        console.warn("[gradesmart] Claude declined to grade a paper", { category: response.stop_details?.category ?? null });
         throw new GradingError("The model declined to grade this paper.");
       }
       const parsed = response.parsed_output;
       if (!parsed) {
-        console.warn("[gradeflow] Claude returned no structured output", { stopReason: response.stop_reason });
+        console.warn("[gradesmart] Claude returned no structured output", { stopReason: response.stop_reason });
         throw new GradingError(
           response.stop_reason === "max_tokens"
             ? "Claude's response was cut off before it finished. Try again."
-            : "Claude returned a response GradeFlow could not read. Try again."
+            : "Claude returned a response GradeSmart AI could not read. Try again."
         );
       }
       if (response.model) this.model = response.model;

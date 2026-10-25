@@ -8,7 +8,7 @@ export function SiteFooter() {
         <p className="flex items-center gap-2.5">
           <LogoMark className="size-6" />
           <span>
-            <span className="font-medium text-foreground">GradeFlow</span>
+            <span className="font-medium text-foreground">GradeSmart AI</span>
             <span aria-hidden> · </span>
             <span className="sr-only">, </span>
             Hackathon demo

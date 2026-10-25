@@ -7,7 +7,7 @@ import { DEMO_STUDENT_EMAIL, DEMO_TEACHER_EMAIL, demoLoginEnabled } from "@/lib/
 import { clearSessionCookie, requireTeacher, setSessionCookie } from "@/lib/auth/session";
 
 /**
- * Demo sign-in. GradeFlow ships with synthetic demo accounts only, so these
+ * Demo sign-in. GradeSmart AI ships with synthetic demo accounts only, so these
  * actions are the whole auth story for the hackathon. Roles are still
  * enforced server-side on every page, action, and route.
  */

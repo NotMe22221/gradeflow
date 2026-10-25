@@ -85,7 +85,7 @@ export async function submitPaper(assignmentId: string, formData: FormData): Pro
   } catch (error) {
     if (error instanceof AuthError) return { ok: false, error: error.message };
     // Never log the paper itself: it is student data.
-    console.error("[gradeflow] Student submission failed", {
+    console.error("[gradesmart] Student submission failed", {
       type: error instanceof Error ? error.name : typeof error,
     });
     return { ok: false, error: "Your paper could not be submitted. Try again." };

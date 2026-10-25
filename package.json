@@ -1,5 +1,5 @@
 {
-  "name": "gradeflow",
+  "name": "gradesmart-ai",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -25,6 +25,7 @@
     "dotenv": "^18.0.9",
     "lucide-react": "^1.61.0",
     "next": "^16.4.3",
+    "openai": "^7.43.0",
     "radix-ui": "^1.8.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

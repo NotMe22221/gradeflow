@@ -36,7 +36,7 @@ export function Logo({ href = "/", className }: { href?: string; className?: str
       className={cn("flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring", className)}
     >
       <LogoMark />
-      <span className="text-[15px] font-semibold tracking-tight text-foreground">GradeFlow</span>
+      <span className="text-[15px] font-semibold tracking-tight text-foreground">GradeSmart AI</span>
     </Link>
   );
 }

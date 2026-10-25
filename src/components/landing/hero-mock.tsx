@@ -16,7 +16,7 @@ export function HeroMock({ className }: { className?: string }) {
   return (
     <figure
       role="img"
-      aria-label="Preview of the GradeFlow review screen: a student paper with a highlighted evidence quote beside rubric scores the AI suggested, a high confidence badge, and an Approve and publish button the teacher must press."
+      aria-label="Preview of the GradeSmart AI review screen: a student paper with a highlighted evidence quote beside rubric scores the AI suggested, a high confidence badge, and an Approve and publish button the teacher must press."
       className={cn("relative mx-auto w-full max-w-5xl", className)}
     >
       <div aria-hidden className="pointer-events-none select-none">

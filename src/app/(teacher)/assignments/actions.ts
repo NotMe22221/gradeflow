@@ -28,7 +28,7 @@ const SAMPLE_BATCH_SIZE = 4;
 
 function failure(error: unknown, fallback: string): { ok: false; error: string } {
   if (error instanceof AuthError) return { ok: false, error: error.message };
-  console.error("[gradeflow] Assignment action failed", { type: error instanceof Error ? error.name : typeof error });
+  console.error("[gradesmart] Assignment action failed", { type: error instanceof Error ? error.name : typeof error });
   return { ok: false, error: fallback };
 }
 

@@ -13,7 +13,7 @@ import { demoLoginEnabled, isRole, type Role } from "@/lib/constants";
  * database, so a tampered or stale cookie can never grant teacher rights.
  */
 
-const COOKIE_NAME = "gf_session";
+const COOKIE_NAME = "gs_session";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 let warnedAboutSecret = false;
 
@@ -29,10 +29,10 @@ function secret(): string {
     }
     if (!warnedAboutSecret) {
       warnedAboutSecret = true;
-      console.warn("[gradeflow] SESSION_SECRET is not set; using the built-in demo secret.");
+      console.warn("[gradesmart] SESSION_SECRET is not set; using the built-in demo secret.");
     }
   }
-  return "gradeflow-local-demo-secret-not-for-production";
+  return "gradesmart-local-demo-secret-not-for-production";
 }
 
 /**

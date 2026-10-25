@@ -12,7 +12,7 @@ export function FinalCta({ demoLogin }: { demoLogin: boolean }) {
             id="final-cta-heading"
             className="mx-auto max-w-2xl text-3xl font-semibold tracking-tight text-balance text-foreground sm:text-4xl sm:leading-[1.15]"
           >
-            Grade one paper the GradeFlow way.
+            Grade one paper the GradeSmart AI way.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-pretty text-muted-foreground">
             Open the demo class, run the AI first pass, edit a suggestion, and approve it. Then watch the

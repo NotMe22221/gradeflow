@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * GradeFlow design tokens.
+ * GradeSmart AI design tokens.
  * One accent (--primary, an ink indigo) for primary actions only.
  * Neutral grays for everything else. Semantic colors (success / warning /
  * danger) are reserved for status: confidence badges, flags, published state.

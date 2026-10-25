@@ -5,7 +5,7 @@ import { HeroMock } from "@/components/landing/hero-mock";
 import { LandingContainer } from "@/components/landing/section-intro";
 
 const PITCH =
-  "GradeFlow takes student papers from submission to published grades: AI suggests rubric scores with quoted evidence, and nothing publishes until you approve it.";
+  "GradeSmart AI takes student papers from submission to published grades: AI suggests rubric scores with quoted evidence, and nothing publishes until you approve it.";
 
 export function Hero({ demoLogin }: { demoLogin: boolean }) {
   return (

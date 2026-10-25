@@ -46,7 +46,7 @@ const SAFEGUARDS: Safeguard[] = [
   {
     icon: Gauge,
     title: "Confidence is a hint, not a promise",
-    body: "Confidence is the model's own uncalibrated self-report. GradeFlow uses it only to sort your queue, never as the chance that a grade is right.",
+    body: "Confidence is the model's own uncalibrated self-report. GradeSmart AI uses it only to sort your queue, never as the chance that a grade is right.",
     example: <ConfidenceExample />,
   },
 ];
@@ -67,7 +67,7 @@ export function ApprovalGate() {
         />
 
         <ol
-          aria-label="How a grade moves through GradeFlow"
+          aria-label="How a grade moves through GradeSmart AI"
           className="mt-12 flex flex-col items-stretch gap-2 rounded-2xl border border-border bg-card p-3 shadow-card lg:flex-row lg:items-stretch lg:gap-0 lg:p-4"
         >
           {FLOW.map((node, index) => (

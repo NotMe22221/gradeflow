@@ -18,7 +18,7 @@ export default function NotFound() {
           description="The link may be out of date, or the demo data was reset."
           action={
             <Button asChild>
-              <Link href="/">Back to GradeFlow</Link>
+              <Link href="/">Back to GradeSmart AI</Link>
             </Button>
           }
           className="w-full max-w-md"

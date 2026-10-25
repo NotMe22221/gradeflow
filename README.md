@@ -38,7 +38,7 @@ No configuration is required. To change the optional settings below, copy
 | `DATABASE_URL` | `file:./prisma/dev.db` | Local SQLite file. |
 | `SESSION_SECRET` | built-in demo secret | Signs the session cookie. Set a long random string anywhere but a local demo. Required in production once demo sign-in is off. |
 | `SESSION_COOKIE_SECURE` | Secure except plain HTTP on localhost or a private LAN address | Force `true` or `false`. Behind a TLS proxy, make sure it sends `X-Forwarded-Proto`. |
-| `GRADEFLOW_DEMO_LOGIN` | on | Set to `off` to hide the one-click demo sign-in. |
+| `GRADESMART_DEMO_LOGIN` | on | Set to `off` to hide the one-click demo sign-in. |
 
 `npm run seed` resets the demo data at any time. Re-seeding signs everyone out.
 
@@ -203,5 +203,5 @@ status machine, the API contract, and the extension points.
   `GRADER_LABELS`, `GRADER_DESCRIPTIONS`), and return it from `getGrader()`.
   Validation and the approval gate apply automatically.
 - **Real auth.** Replace the demo sign-in in `src/lib/auth/` with your identity
-  provider and set `GRADEFLOW_DEMO_LOGIN=off` and `SESSION_SECRET`. Role and
+  provider and set `GRADESMART_DEMO_LOGIN=off` and `SESSION_SECRET`. Role and
   ownership checks already run on the server.

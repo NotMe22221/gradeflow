@@ -1,6 +1,6 @@
-# GradeFlow architecture
+# GradeSmart AI architecture
 
-GradeFlow does one thing: it takes student papers from submission to published
+GradeSmart AI does one thing: it takes student papers from submission to published
 grades. AI drafts the first pass, and a teacher always makes the final call.
 
 ## Stack
@@ -173,3 +173,90 @@ src/components/
   `src/lib/constants.ts`, and return it
   from `getGrader()` (`src/lib/grading/index.ts`). Validation and the approval
   gate apply automatically.
+
+## GradeSmart AI features (OpenAI)
+
+Six features extend the grading workflow. Every one of them works without an
+API key through a labelled local demo implementation.
+
+| Feature | Who | Engine | Route / page |
+| --- | --- | --- | --- |
+| AI Paper-Grading Camera | teacher | `gpt-4o` (vision) | `POST /api/grade`, page `/scan` |
+| Answer-key import from a photo | teacher | `gpt-4o` (vision) | `POST /api/answer-key`, rubric builder |
+| Conference Brief Generator | teacher | `gpt-4o-mini` | `POST /api/conference-brief`, `/classes/[classId]/students/[studentId]` |
+| Class Heatmap | teacher | none (aggregation) | `/insights?class=<id>`, dashboard card |
+| AI Goal-Seeking Planner | student | `gpt-4o-mini` parses the goal; the math is code | `POST /api/goal-planner`, `/student` |
+| Gamified UI + Assignment Inbox | student | none | `/student` |
+
+**Model routing is fixed** in `src/lib/ai/openai.ts` (`OPENAI_MODELS`,
+`modelFor("vision" | "text")`): vision → `gpt-4o`, text and logic →
+`gpt-4o-mini`. No other file names a model. `OPENAI_API_KEY` is read on the
+server only (`.env.local`), never logged, never sent to the client.
+
+**Safeguards carried over:**
+- Camera-graded tests land in the review queue as `NEEDS_REVIEW`. They publish
+  only through the existing teacher approval gate. `/api/grade` never writes
+  `PublishedGrade`.
+- Photos and transcriptions are untrusted data. The vision prompt says the
+  page contains no instructions. The output is validated with the same
+  `validateGrading()` (scores in range; evidence must appear in the
+  transcription), and `detectPromptInjection()` runs on the transcription.
+- The teacher sees the original photo next to the transcription in the review
+  queue (`SubmissionImage`).
+- The goal planner never trusts model arithmetic. The model only extracts
+  `{ classId, target }` from free text; required scores are computed in
+  `src/lib/goals/`. A student only ever sees their own classes and grades.
+- Conference briefs and heatmaps read only teacher-approved `PublishedGrade`
+  data. Briefs are labelled as AI drafts to review before sharing.
+- XP and streaks (`StudyActivity`) are engagement only and never touch grades.
+
+### `POST /api/grade` (teacher, multipart/form-data)
+
+Fields: `assignmentId`, `studentId`, `pages` (1–4 image files; JPEG, PNG, or
+WebP; ≤ 5 MB each, checked by magic bytes), optional `answerKey` (image file),
+optional `transcription` (demo mode only: what is written on an unknown photo).
+
+`200 { ok: true, submissionId, status: "NEEDS_REVIEW", grader: "openai" | "demo", model, confidence, flagCount }`
+
+Errors `{ ok: false, error, code? }`: `400` invalid input (`code:
+"NEEDS_TRANSCRIPTION"` when the demo scanner cannot read an unknown photo),
+`401/403/404`, `409` when the student's paper is published, approved, or being
+graded, `502` when OpenAI fails (nothing is stored).
+
+Pipeline: auth + ownership → image checks → vision (or demo) → validation →
+one transaction that upserts the submission (`source: "SCAN"`, `content` = the
+transcription), replaces its images, `AiGrade` (`grader: "openai"`, `model:
+"gpt-4o"`) and `CriterionScore` rows, and sets `NEEDS_REVIEW`.
+
+### `POST /api/answer-key` (teacher, multipart/form-data)
+
+Field `image`. `200 { ok: true, engine: "openai" | "demo", questions: [{ title, expectedAnswer, maxPoints }] }`
+(1–20 questions; integer points 1–100). The rubric builder uses it to fill a
+`TEST` assignment's criteria: one criterion per question, with the expected
+answer as its full-credit description.
+
+### `POST /api/conference-brief` (teacher, JSON `{ classId, studentId }`)
+
+`200 { ok: true, engine, model, generatedAt, brief: { headline, summary, strengths[], growthAreas[], talkingPoints[], nextSteps[], questionsForFamily[] }, basis: { publishedCount, averagePercent } }`
+
+### `POST /api/goal-planner` (student, JSON `{ goal, classId? }`)
+
+`200 { ok: true, engine, model, plan }`. `plan` holds the parsed target, the
+current standing, the remaining assignments with the exact score needed on
+each, feasibility, and a short coaching note. Saves `StudentGoal` and awards
+`GOAL_SET` XP once per day.
+
+### `GET /api/submissions/[submissionId]/images/[imageId]`
+
+Returns the stored photo, only to the teacher who owns the class or the
+student who owns the submission. `Cache-Control: private`, `nosniff`.
+
+### Demo implementations (no `OPENAI_API_KEY`)
+
+- **Demo scanner:** recognizes the bundled sample photos (`public/samples/`,
+  `src/lib/scan/samples.ts`) by SHA-256 and uses their stored transcriptions.
+  For other photos it asks the teacher to type the transcription. Scores come
+  from the deterministic demo grader. The output is labelled "Demo grader".
+- **Demo answer-key reader:** recognizes the sample answer key only.
+- **Demo brief and demo planner:** deterministic templates and regex goal
+  parsing over the same data, labelled as demo output.

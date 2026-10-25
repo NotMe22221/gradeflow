@@ -7,7 +7,7 @@ export function paper(...paragraphs: string[]): string {
   return paragraphs.map((paragraph) => paragraph.trim()).join("\n\n");
 }
 
-/** "Ava Quillon" -> "ava.quillon@students.gradeflow.example" */
+/** "Ava Quillon" -> "ava.quillon@students.gradesmart.example" */
 export function studentEmail(name: string): string {
   const local = name
     .trim()
@@ -15,7 +15,7 @@ export function studentEmail(name: string): string {
     .split(/\s+/)
     .map((part) => part.replace(/[^a-z]/g, ""))
     .join(".");
-  return `${local}@students.gradeflow.example`;
+  return `${local}@students.gradesmart.example`;
 }
 
 /** A local clock time some whole number of days before the seed runs. */

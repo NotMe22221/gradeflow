@@ -1,4 +1,4 @@
-// GradeFlow data model.
+// GradeSmart AI data model.
 //
 // The grading pipeline is deliberately split into three layers so that the
 // "AI never publishes" rule is structural, not just a convention:
@@ -31,6 +31,8 @@ model User {
   enrollments    Enrollment[]
   submissions    Submission[]
   approvals      PublishedGrade[] @relation("ApprovedBy")
+  activities     StudyActivity[]
+  goals          StudentGoal[]
 }
 
 model Class {
@@ -44,6 +46,7 @@ model Class {
   teacher     User         @relation("TeacherClasses", fields: [teacherId], references: [id], onDelete: Cascade)
   enrollments Enrollment[]
   assignments Assignment[]
+  goals       StudentGoal[]
 
   @@index([teacherId])
 }
@@ -65,6 +68,9 @@ model Assignment {
   classId      String
   title        String
   instructions String
+  // "ESSAY" (typed papers, rubric criteria) | "TEST" (handwritten tests:
+  // each criterion is one question and its description holds the answer key).
+  kind         String    @default("ESSAY")
   dueDate      DateTime?
   createdAt    DateTime  @default(now())
 
@@ -94,9 +100,12 @@ model Submission {
   id           String   @id @default(cuid())
   assignmentId String
   studentId    String
-  // Untrusted student text. Never interpreted as instructions.
+  // Untrusted student text. Never interpreted as instructions. For scanned
+  // handwritten tests this is the AI transcription of the photos.
   content      String
   fileName     String?
+  // "TEXT" (pasted or .txt upload) | "SCAN" (photos graded by the camera grader)
+  source       String   @default("TEXT")
   submittedAt  DateTime @default(now())
 
   // SUBMITTED -> GRADING -> NEEDS_REVIEW -> APPROVED -> PUBLISHED
@@ -117,9 +126,25 @@ model Submission {
   aiGrade        AiGrade?
   scores         CriterionScore[]
   publishedGrade PublishedGrade?
+  images         SubmissionImage[]
 
   @@unique([assignmentId, studentId])
   @@index([status])
+}
+
+// Photos of a handwritten test, kept so the teacher can check the AI
+// transcription against the original page. Untrusted data.
+model SubmissionImage {
+  id           String   @id @default(cuid())
+  submissionId String
+  position     Int
+  mimeType     String
+  data         Bytes
+  createdAt    DateTime @default(now())
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
 }
 
 // The AI's first pass. One per submission (re-running replaces it).
@@ -181,4 +206,39 @@ model PublishedGrade {
 
   submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   approvedBy User       @relation("ApprovedBy", fields: [approvedById], references: [id])
+}
+
+// Student engagement for the gamified dashboard: every row is one action
+// that earned XP. Study streaks are computed from the activity dates.
+model StudyActivity {
+  id        String   @id @default(cuid())
+  studentId String
+  // "SUBMIT" | "ON_TIME" | "RESUBMIT" | "GRADE_PUBLISHED" | "STUDY_SESSION" | "GOAL_SET"
+  kind      String
+  xp        Int
+  // Optional related record (submission or assignment id).
+  refId     String?
+  createdAt DateTime @default(now())
+
+  student User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, createdAt])
+}
+
+// The student's latest grade goal per class, from the goal-seeking planner.
+model StudentGoal {
+  id            String   @id @default(cuid())
+  studentId     String
+  classId       String
+  // What the student typed. Untrusted text.
+  rawText       String
+  targetPercent Float
+  targetLabel   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  student User  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, classId])
 }

@@ -1,4 +1,4 @@
-// GradeFlow demo seed: `npm run seed` (prisma db push, then this script).
+// GradeSmart AI demo seed: `npm run seed` (prisma db push, then this script).
 //
 // Idempotent and self-resetting. It deletes every row, children first, and
 // inserts the fully synthetic demo dataset in one transaction, so running it
@@ -341,7 +341,7 @@ async function seed() {
   console.log(
     [
       "",
-      "GradeFlow demo data is ready.",
+      "GradeSmart AI demo data is ready.",
       `  ${teachers} teacher: ${DEMO_TEACHER.name} <${DEMO_TEACHER_EMAIL}>`,
       `  ${students} students in ${classCount} classes (demo student: ${DEMO_STUDENT_EMAIL})`,
       `  ${assignments} assignments with ${criteria} rubric criteria`,

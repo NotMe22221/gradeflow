@@ -46,7 +46,8 @@ export type ValidationFlagCode =
   | "UNKNOWN_CRITERION" // grader returned a criterion id not in the rubric
   | "POSSIBLE_PROMPT_INJECTION" // paper contains text addressed to the grader
   | "INVALID_OUTPUT" // grader output was malformed / refused
-  | "SHORT_PAPER"; // paper is too short to grade meaningfully
+  | "SHORT_PAPER" // paper is too short to grade meaningfully
+  | "LOW_LEGIBILITY"; // camera grader: handwriting partly or wholly unreadable
 
 export type ValidationFlag = {
   code: ValidationFlagCode;

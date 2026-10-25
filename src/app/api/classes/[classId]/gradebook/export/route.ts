@@ -59,7 +59,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ clas
     });
   } catch (error) {
     if (error instanceof AuthError) return errorResponse(error.message, error.status);
-    console.error("[gradeflow] Gradebook export failed", {
+    console.error("[gradesmart] Gradebook export failed", {
       type: error instanceof Error ? error.name : typeof error,
     });
     return errorResponse("The export failed. Try again.", 500);

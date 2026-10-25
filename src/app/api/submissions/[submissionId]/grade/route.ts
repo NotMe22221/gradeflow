@@ -31,7 +31,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ su
     // The submission may now be GRADING_FAILED, so refresh the sidebar counts.
     revalidatePath("/", "layout");
     if (error instanceof GradingError) return errorResponse(error.message, error.status);
-    console.error("[gradeflow] Grade route failed", { type: error instanceof Error ? error.name : typeof error });
+    console.error("[gradesmart] Grade route failed", { type: error instanceof Error ? error.name : typeof error });
     return errorResponse("Grading failed. Try again.", 500);
   }
 }

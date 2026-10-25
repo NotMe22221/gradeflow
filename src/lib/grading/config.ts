@@ -9,7 +9,10 @@ export const DEFAULT_CLAUDE_MODEL = "claude-opus-5-5";
  * (index.ts) and getGraderInfo() both read it, so the UI label always matches
  * the engine that actually grades.
  */
-export function activeGraderKind(): GraderKind {
+/** Engines that grade typed essays. Handwritten tests use the camera grader (src/lib/scan). */
+export type EssayGraderKind = Extract<GraderKind, "claude" | "demo">;
+
+export function activeGraderKind(): EssayGraderKind {
   return process.env.ANTHROPIC_API_KEY ? "claude" : "demo";
 }
 

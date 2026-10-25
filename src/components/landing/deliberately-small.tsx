@@ -21,12 +21,12 @@ export function DeliberatelySmall() {
           id="small-heading"
           eyebrow="Deliberately small"
           title="Easier than an LMS because it does less."
-          description="GradeFlow covers the stretch from submitted paper to published grade, and leaves everything else to the tools your school already uses."
+          description="GradeSmart AI covers the stretch from submitted paper to published grade, and leaves everything else to the tools your school already uses."
         />
 
         <div className="mt-12 grid gap-6 md:grid-cols-2">
           <div className="rounded-xl border border-border bg-card p-6 shadow-card sm:p-8">
-            <h3 className="text-base font-semibold tracking-tight text-foreground">What GradeFlow does</h3>
+            <h3 className="text-base font-semibold tracking-tight text-foreground">What GradeSmart AI does</h3>
             <ul className="mt-6 space-y-4">
               {DOES.map((item) => (
                 <li key={item} className="flex items-start gap-3 text-sm text-foreground">

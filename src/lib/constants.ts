@@ -40,12 +40,19 @@ export const AI_RERUNNABLE_STATUSES: SubmissionStatus[] = [...READY_FOR_AI_STATU
 export const CONFIDENCE_LEVELS = ["high", "medium", "low"] as const;
 export type Confidence = (typeof CONFIDENCE_LEVELS)[number];
 
-export const GRADERS = ["claude", "demo"] as const;
+/**
+ * Engines that can produce an AI suggestion:
+ * - "claude": essay first pass via the Claude API (ANTHROPIC_API_KEY)
+ * - "openai": camera grader for handwritten tests via GPT-4o vision (OPENAI_API_KEY)
+ * - "demo":   local deterministic stand-in when the relevant key is not set
+ */
+export const GRADERS = ["claude", "openai", "demo"] as const;
 export type GraderKind = (typeof GRADERS)[number];
 
 /** UI label per grader. Add an entry here when adding a grader to GRADERS. */
 export const GRADER_LABELS: Record<GraderKind, string> = {
   claude: "Claude",
+  openai: "GPT-4o",
   demo: "Demo grader",
 };
 
@@ -56,8 +63,10 @@ export const GRADER_LABELS: Record<GraderKind, string> = {
 export const GRADER_DESCRIPTIONS: Record<GraderKind, (model: string | null) => string> = {
   claude: (model) =>
     `First pass by the Claude API${model ? ` (${model})` : ""}. A suggestion only: nothing publishes until you approve it.`,
+  openai: (model) =>
+    `Handwriting read and graded by the OpenAI API${model ? ` (${model})` : ""}. Check the transcription against the photo: nothing publishes until you approve it.`,
   demo: () =>
-    "Local, deterministic heuristic used when no ANTHROPIC_API_KEY is set. Its scores and quotes are placeholders, not real AI output.",
+    "Local, deterministic stand-in used when no API key is set. Its scores, quotes, and transcriptions are placeholders, not real AI output.",
 };
 
 /** Coerce a stored AiGrade.grader value. Unknown values are treated as the demo grader. */
@@ -65,7 +74,20 @@ export function parseGraderKind(value: string | null | undefined): GraderKind {
   return (GRADERS as readonly string[]).includes(value ?? "") ? (value as GraderKind) : "demo";
 }
 
-export const DEMO_TEACHER_EMAIL = "morgan.hale@gradeflow.example";
+/** "ESSAY": typed papers graded against rubric criteria. "TEST": handwritten
+ * tests where each criterion is a question and its description is the answer key. */
+export const ASSIGNMENT_KINDS = ["ESSAY", "TEST"] as const;
+export type AssignmentKind = (typeof ASSIGNMENT_KINDS)[number];
+
+export function parseAssignmentKind(value: string | null | undefined): AssignmentKind {
+  return value === "TEST" ? "TEST" : "ESSAY";
+}
+
+/** "TEXT": pasted or .txt upload. "SCAN": photos read by the camera grader. */
+export const SUBMISSION_SOURCES = ["TEXT", "SCAN"] as const;
+export type SubmissionSource = (typeof SUBMISSION_SOURCES)[number];
+
+export const DEMO_TEACHER_EMAIL = "morgan.hale@gradesmart.example";
 
 /** Illustrative assumption for the time-saved estimate. Not a measurement. */
 export const ILLUSTRATIVE_MINUTES_SAVED_PER_PAPER = 6;
@@ -79,12 +101,12 @@ export function isConfidence(value: string): value is Confidence {
 }
 
 /** The student the "View as a student" landing link signs in as. */
-export const DEMO_STUDENT_EMAIL = "ava.quillon@students.gradeflow.example";
+export const DEMO_STUDENT_EMAIL = "ava.quillon@students.gradesmart.example";
 
 /**
  * One-click demo sign-in (landing page buttons and the account switcher).
- * On by default for the hackathon demo; set GRADEFLOW_DEMO_LOGIN=off to hide it.
+ * On by default for the hackathon demo; set GRADESMART_DEMO_LOGIN=off to hide it.
  */
 export function demoLoginEnabled(): boolean {
-  return process.env.GRADEFLOW_DEMO_LOGIN !== "off";
+  return process.env.GRADESMART_DEMO_LOGIN !== "off";
 }
