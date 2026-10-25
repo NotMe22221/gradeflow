@@ -1,0 +1,45 @@
+// String "enums" for SQLite. Keep in sync with prisma/schema.prisma comments.
+
+export const ROLES = ["TEACHER", "STUDENT"] as const;
+export type Role = (typeof ROLES)[number];
+
+export const SUBMISSION_STATUSES = [
+  "SUBMITTED", // received, AI first pass not run yet
+  "GRADING", // AI first pass in progress
+  "GRADING_FAILED", // AI first pass errored; teacher can retry
+  "NEEDS_REVIEW", // AI suggestion ready, waiting in the teacher's review queue
+  "APPROVED", // teacher approved; transient state inside the publish transaction
+  "RETURNED", // teacher sent it back to the student with a note
+  "PUBLISHED", // grade published to the gradebook and student view
+] as const;
+export type SubmissionStatus = (typeof SUBMISSION_STATUSES)[number];
+
+export const CONFIDENCE_LEVELS = ["high", "medium", "low"] as const;
+export type Confidence = (typeof CONFIDENCE_LEVELS)[number];
+
+export const GRADERS = ["claude", "demo"] as const;
+export type GraderKind = (typeof GRADERS)[number];
+
+export const DEMO_TEACHER_EMAIL = "morgan.hale@gradeflow.example";
+
+/** Illustrative assumption for the time-saved estimate. Not a measurement. */
+export const ILLUSTRATIVE_MINUTES_SAVED_PER_PAPER = 6;
+
+export function isRole(value: string): value is Role {
+  return (ROLES as readonly string[]).includes(value);
+}
+
+export function isConfidence(value: string): value is Confidence {
+  return (CONFIDENCE_LEVELS as readonly string[]).includes(value);
+}
+
+/** The student the "View as a student" landing link signs in as. */
+export const DEMO_STUDENT_EMAIL = "ava.quillon@students.gradeflow.example";
+
+/**
+ * One-click demo sign-in (landing page buttons and the account switcher).
+ * On by default for the hackathon demo; set GRADEFLOW_DEMO_LOGIN=off to hide it.
+ */
+export function demoLoginEnabled(): boolean {
+  return process.env.GRADEFLOW_DEMO_LOGIN !== "off";
+}

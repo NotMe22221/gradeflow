@@ -1,0 +1,183 @@
+// GradeFlow data model.
+//
+// The grading pipeline is deliberately split into three layers so that the
+// "AI never publishes" rule is structural, not just a convention:
+//
+//   Submission         the student's paper (untrusted text)
+//   AiGrade / scores   the AI's suggestion; written only by lib/grading
+//   PublishedGrade     the gradebook record; written only by lib/grades/publish
+//                      after a teacher approval, never by the grader
+//
+// SQLite has no native enums, so string "enums" are validated in
+// src/lib/constants.ts.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      String // "TEACHER" | "STUDENT"
+  createdAt DateTime @default(now())
+
+  classesTaught  Class[]          @relation("TeacherClasses")
+  enrollments    Enrollment[]
+  submissions    Submission[]
+  approvals      PublishedGrade[] @relation("ApprovedBy")
+}
+
+model Class {
+  id        String   @id @default(cuid())
+  name      String
+  section   String?
+  subject   String?
+  teacherId String
+  createdAt DateTime @default(now())
+
+  teacher     User         @relation("TeacherClasses", fields: [teacherId], references: [id], onDelete: Cascade)
+  enrollments Enrollment[]
+  assignments Assignment[]
+
+  @@index([teacherId])
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  classId   String
+  studentId String
+  createdAt DateTime @default(now())
+
+  class   Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student User  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, studentId])
+}
+
+model Assignment {
+  id           String    @id @default(cuid())
+  classId      String
+  title        String
+  instructions String
+  dueDate      DateTime?
+  createdAt    DateTime  @default(now())
+
+  class       Class             @relation(fields: [classId], references: [id], onDelete: Cascade)
+  criteria    RubricCriterion[]
+  submissions Submission[]
+
+  @@index([classId])
+}
+
+model RubricCriterion {
+  id           String @id @default(cuid())
+  assignmentId String
+  title        String
+  // What full credit looks like, written by the teacher.
+  description  String
+  maxPoints    Int
+  position     Int
+
+  assignment Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  scores     CriterionScore[]
+
+  @@index([assignmentId])
+}
+
+model Submission {
+  id           String   @id @default(cuid())
+  assignmentId String
+  studentId    String
+  // Untrusted student text. Never interpreted as instructions.
+  content      String
+  fileName     String?
+  submittedAt  DateTime @default(now())
+
+  // SUBMITTED -> GRADING -> NEEDS_REVIEW -> APPROVED -> PUBLISHED
+  //                     \-> GRADING_FAILED      \-> RETURNED (sent back with a note)
+  status       String   @default("SUBMITTED")
+
+  // Teacher review state (draft edits live on CriterionScore).
+  teacherFeedback String?
+  returnNote      String?
+  returnedAt      DateTime?
+  approvedAt      DateTime?
+  approvedById    String?
+
+  updatedAt DateTime @updatedAt
+
+  assignment     Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student        User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  aiGrade        AiGrade?
+  scores         CriterionScore[]
+  publishedGrade PublishedGrade?
+
+  @@unique([assignmentId, studentId])
+  @@index([status])
+}
+
+// The AI's first pass. One per submission (re-running replaces it).
+model AiGrade {
+  id             String   @id @default(cuid())
+  submissionId   String   @unique
+  // "claude" | "demo"
+  grader         String
+  model          String?
+  // "high" | "medium" | "low" - the model's uncalibrated self-report.
+  confidence     String
+  overallComment String?
+  // JSON array of { code, message, criterionId? } produced by validation.
+  flags          String   @default("[]")
+  createdAt      DateTime @default(now())
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+}
+
+// Per-criterion AI suggestion plus the teacher's working (draft) values.
+model CriterionScore {
+  id             String  @id @default(cuid())
+  submissionId   String
+  criterionId    String
+
+  // AI suggestion. aiScore is null when the AI output failed validation.
+  aiScore        Float?
+  aiJustification String?
+  aiEvidence     String?
+  evidenceFound  Boolean @default(false)
+
+  // Teacher edits. null means "not edited yet - use the AI value".
+  finalScore     Float?
+  finalComment   String?
+
+  submission Submission      @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  criterion  RubricCriterion @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, criterionId])
+}
+
+// The only table the gradebook and student view read scores from.
+// Rows are created exclusively by publishApprovedGrade() after a teacher
+// approval and are an immutable snapshot of what was approved.
+model PublishedGrade {
+  id           String   @id @default(cuid())
+  submissionId String   @unique
+  totalScore   Float
+  maxScore     Float
+  // JSON array of { criterionId, title, maxPoints, score, comment }
+  breakdown    String
+  feedback     String?
+  // Snapshot of the AI total at approval time, for the AI-vs-final stat.
+  aiTotalScore Float?
+  approvedById String
+  approvedAt   DateTime
+  publishedAt  DateTime @default(now())
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  approvedBy User       @relation("ApprovedBy", fields: [approvedById], references: [id])
+}
