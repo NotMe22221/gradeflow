@@ -8,12 +8,13 @@ import { ReadyForAiCallout } from "@/components/dashboard/ready-for-ai-callout";
 import { RecentlyPublished } from "@/components/dashboard/recently-published";
 import { SectionHeader } from "@/components/dashboard/section-header";
 import { StatRow } from "@/components/dashboard/stat-row";
+import { TeachingTools } from "@/components/dashboard/teaching-tools";
 import { EmptyState } from "@/components/empty-state";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireTeacherPage } from "@/lib/auth/session";
 import { firstName, pluralize } from "@/lib/format";
-import { getMostMissedForTeacher } from "@/lib/insights/query";
+import { getMostMissedForTeacher, listBriefStudents } from "@/lib/insights/query";
 import {
   getClassSummaries,
   getDashboardStats,
@@ -29,12 +30,13 @@ export default async function DashboardPage() {
   const teacher = await requireTeacherPage();
   const now = new Date();
 
-  const [stats, classes, recent, readyAssignments, mostMissed] = await Promise.all([
+  const [stats, classes, recent, readyAssignments, mostMissed, briefClasses] = await Promise.all([
     getDashboardStats(teacher.id, now),
     getClassSummaries(teacher.id, now),
     getRecentlyPublished(teacher.id, 5),
     getReadyForAiAssignments(teacher.id),
     getMostMissedForTeacher(teacher.id, 3),
+    listBriefStudents(teacher.id),
   ]);
 
   const pending = stats.pendingReview;
@@ -69,6 +71,9 @@ export default async function DashboardPage() {
       <ReadyForAiCallout count={stats.readyForAi} assignments={readyAssignments} className="mb-8" />
 
       <StatRow stats={stats} />
+
+      {/* The Paper Scanner, class heatmap, and conference briefs, one click from the dashboard. */}
+      <TeachingTools briefClasses={briefClasses} className="mt-12" />
 
       {/* grid-cols-1 (minmax(0, 1fr)) keeps long card text from widening the column past a phone screen. */}
       <div className="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-3">

@@ -1,5 +1,13 @@
 // XP, levels, and study streaks for the student dashboard.
 // Pure: safe for client components, server code, and unit tests.
+//
+// Calendar days: every engagement day boundary (the streak, "active today",
+// and the once-per-day XP limit) uses the server process's local time zone,
+// through dayKey() and startOfDay() below. Nothing else defines a day, so the
+// three always agree. A deployment sets TZ to the school's zone (for example
+// TZ=America/New_York); with the default UTC the day turns over in the US
+// evening. This only affects XP and streaks: due dates and grades never
+// depend on it (due dates are calendar dates, see isPastDue).
 
 export const ACTIVITY_KINDS = [
   "SUBMIT", // submitted a paper
@@ -21,6 +29,23 @@ export const XP_RULES = {
 
 /** Kinds that can be earned at most once per calendar day. */
 export const ONCE_PER_DAY: ActivityKind[] = ["STUDY_SESSION", "GOAL_SET"];
+
+/**
+ * Kinds that are not the student's own action. A grade published by the
+ * teacher still earns XP, but it is not study: it never starts, extends, or
+ * marks "active today" on a study streak.
+ */
+export const STREAK_EXCLUDED_KINDS: ReadonlySet<string> = new Set<ActivityKind>(["GRADE_PUBLISHED"]);
+
+/** Whether an activity row counts as a study day for the streak. */
+export function countsTowardStreak(kind: string): boolean {
+  return !STREAK_EXCLUDED_KINDS.has(kind);
+}
+
+/** The timestamps the streak is built from: the student's own actions only. */
+export function streakDates(rows: readonly { kind: string; createdAt: Date }[]): Date[] {
+  return rows.filter((row) => countsTowardStreak(row.kind)).map((row) => row.createdAt);
+}
 
 /** XP for a published grade: half a point per percentage point, so 0 to 50. */
 export function xpForPublishedGrade(totalScore: number, maxScore: number): number {
@@ -49,12 +74,19 @@ export function levelFor(totalXp: number): LevelProgress {
   return { level, xp, intoLevel, levelSize: XP_PER_LEVEL, percent: Math.round((intoLevel / XP_PER_LEVEL) * 100) };
 }
 
-/** Local calendar day key, e.g. "2026-10-25". */
+/** Calendar day key in the server's time zone, e.g. "2026-10-25" (see the note at the top). */
 export function dayKey(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+/** Midnight at the start of `date`'s calendar day, in the same time zone as dayKey(). */
+export function startOfDay(date: Date): Date {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  return start;
 }
 
 export type StreakInfo = {
@@ -68,6 +100,8 @@ export type StreakInfo = {
 /**
  * Study streak from activity timestamps. A streak stays alive through today
  * if the student was active yesterday, so it only breaks after a full missed day.
+ * Pass only the student's own actions (streakDates()), never GRADE_PUBLISHED.
+ * Days are dayKey() days in the server's time zone.
  */
 export function computeStreak(activityDates: Date[], now: Date = new Date()): StreakInfo {
   const days = new Set(activityDates.map(dayKey));

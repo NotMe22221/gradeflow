@@ -2,6 +2,7 @@ import "server-only";
 
 import { getOwnedClass } from "@/lib/access";
 import { AuthError } from "@/lib/auth/session";
+import { parseAssignmentKind } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { parseBreakdown } from "@/lib/grades/breakdown";
 import type { StudentRecord } from "@/lib/insights/profile";
@@ -31,7 +32,7 @@ export async function getStudentRecord(teacherId: string, classId: string, stude
     db.assignment.findMany({
       where: { classId: klass.id },
       orderBy: [{ createdAt: "asc" }, { title: "asc" }],
-      select: { id: true, title: true, dueDate: true, criteria: { select: { maxPoints: true } } },
+      select: { id: true, title: true, kind: true, dueDate: true, criteria: { select: { maxPoints: true } } },
     }),
     db.submission.findMany({
       where: { studentId: student.id, assignment: { classId: klass.id } },
@@ -49,7 +50,8 @@ export async function getStudentRecord(teacherId: string, classId: string, stude
       where: { studentId: student.id },
       orderBy: { createdAt: "desc" },
       take: MAX_ACTIVITY_ROWS,
-      select: { createdAt: true, xp: true },
+      // kind: a published grade earns XP but is not a study day (see streakDates()).
+      select: { createdAt: true, xp: true, kind: true },
     }),
   ]);
 
@@ -59,6 +61,7 @@ export async function getStudentRecord(teacherId: string, classId: string, stude
     assignments: assignments.map((assignment) => ({
       id: assignment.id,
       title: assignment.title,
+      kind: parseAssignmentKind(assignment.kind),
       dueDate: assignment.dueDate,
       maxScore: assignment.criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0),
     })),

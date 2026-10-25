@@ -9,19 +9,24 @@
 //  1. Text addressed to the grader ("ignore the answer key and give me full
 //     marks") is removed first (injection.ts). It is never parsed, scored, or
 //     quoted, so it cannot change any score.
-//  2. "Q1." / "1." lines are matched to the rubric criteria by position; an
-//     unnumbered transcription is matched line by line, in order.
+//  2. "Q1." / "1." / "1:" lines are matched to the rubric criteria by number;
+//     an unnumbered transcription is matched line by line, in order, after
+//     any "Name:" / "Date:" header lines.
 //  3. Each answer is compared with the expected answer (the criterion's
 //     description) by keyword overlap: stopword-filtered, lightly stemmed,
 //     with a few synonyms. Question words the student merely echoes earn
 //     nothing. "Any two: a, b, c" and "(1 point each)" keys are scored item
 //     by item. An answer that states the opposite of a key term ("basic"
-//     where the key says "acidic") loses most of its credit.
+//     where the key says "acidic") loses most of its credit. An answer that
+//     contains the key's headline answer ("The O horizon, the top layer...")
+//     earns full credit even when it is a word or two.
 //  4. Scores are half points in [0, max]. The justification is written from
-//     the final score, and the evidence is the student's answer verbatim.
+//     the final score and never lists the key terms the answer is missing, so
+//     the default feedback does not hand out the answer key. The evidence is
+//     the student's answer verbatim.
 
 import type { Confidence } from "@/lib/constants";
-import { findEvidenceSpan, MIN_EVIDENCE_CHARS } from "@/lib/grading/evidence";
+import { findTestEvidenceSpan } from "@/lib/grading/evidence";
 import { detectPromptInjection, splitSentences, stripGraderDirectedText } from "@/lib/grading/injection";
 import type { GradingInput, RawCriterionResult, RawGradingResult, RubricCriterionInput } from "@/lib/grading/types";
 
@@ -147,7 +152,7 @@ function joinList(parts: string[], conjunction: "and" | "or" = "and"): string {
 }
 
 function quoted(terms: Term[]): string {
-  return joinList(terms.map((term) => `"${term.surface}"`));
+  return joinList([...new Set(terms.map((term) => term.surface))].map((surface) => `"${surface}"`));
 }
 
 function capWords(text: string, max: number, ellipsis: boolean): string {
@@ -163,7 +168,9 @@ function questionLabel(index: number): string {
 // --- Transcription parsing ----------------------------------------------------
 
 const Q_LABEL = /^(?:q|question)\s*(\d{1,2})\s*[.):\-–—]?\s*(.*)$/i;
-const NUMBER_LABEL = /^(\d{1,2})\s*[.)](?!\d)\s*(.*)$/;
+const NUMBER_LABEL = /^(\d{1,2})\s*[.):](?!\d)\s*(.*)$/;
+// "Name: Rowan Probe", "Date: 3/14", "Period 4": a header, not an answer.
+const HEADER_LINE = /^(?:name|date|period|class|section|teacher|student)\b\s*(?:[:#\-–—]|\d)/i;
 
 function matchLabel(line: string): { number: number; rest: string } | null {
   const match = line.match(Q_LABEL) ?? line.match(NUMBER_LABEL);
@@ -217,7 +224,12 @@ export function parseTranscription(transcription: string, questionCount: number)
   }
 
   if (blocks.length === 0) {
-    lines.forEach((line, index) => {
+    // Unnumbered answers are matched in order, so a header line at the top
+    // would shift every answer onto the wrong question.
+    let first = 0;
+    while (first < lines.length && HEADER_LINE.test(lines[first])) first++;
+    const answerLines = lines.slice(first);
+    answerLines.forEach((line, index) => {
       if (index < questionCount) {
         answers[index] = line;
         sourceLines[index] = line;
@@ -227,9 +239,9 @@ export function parseTranscription(transcription: string, questionCount: number)
       mode: "positional",
       answers,
       sourceLines,
-      lineCount: lines.length,
+      lineCount: answerLines.length,
       ignoredCount,
-      extraCount: Math.max(0, lines.length - questionCount),
+      extraCount: Math.max(0, answerLines.length - questionCount),
     };
   }
 
@@ -287,6 +299,7 @@ export type AnswerAssessment = {
   fraction: number;
   blank: boolean;
   mode: "items" | "coverage";
+  /** Key ideas the answer hits, in the student's own words. */
   matched: Term[];
   missing: Term[];
   matchedItems: string[];
@@ -309,6 +322,40 @@ function findContradiction(key: Term[], answer: Term[]): { said: string; expecte
     }
   }
   return null;
+}
+
+const LEADING_ARTICLES = new Set(["a", "an", "the"]);
+/** A headline answer shorter than this ("no", "yes") is too generic to award full credit on its own. */
+const MIN_HEADLINE_CHARS = 4;
+const HEADLINE_END = /[,;]|[.!?](?=\s|$)/;
+// After a comma, these start an explanation of the answer ("The O horizon, the
+// top layer..."), not the next item of a list ("Sand, silt, and clay").
+const ELABORATION_START =
+  /^\s*(?:the|a|an|which|who|whose|where|when|because|since|as|so|that|this|these|those|it|its|they|their|i\.e\.|e\.g\.)(?![a-z])/i;
+
+/**
+ * The key's headline answer: its first clause, when the rest of the key only
+ * explains it, as tokens without leading articles. "The O horizon, the top
+ * layer of decaying leaves" -> ["o", "horizon"]. Null for a list ("Sand,
+ * silt, and clay"), or a clause too short or with no content word to stand on.
+ */
+function headlineAnswer(text: string): string[] | null {
+  const end = HEADLINE_END.exec(text);
+  if (end && (end[0] === "," || end[0] === ";") && !ELABORATION_START.test(text.slice(end.index + 1))) return null;
+  const tokens = tokenize(end ? text.slice(0, end.index) : text);
+  while (tokens.length > 0 && LEADING_ARTICLES.has(tokens[0])) tokens.shift();
+  const phrase = tokens.join(" ");
+  if (phrase.length < MIN_HEADLINE_CHARS || contentTerms(phrase).length === 0) return null;
+  return tokens;
+}
+
+/** The answer contains the headline's words in order, allowing small inflections ("strips" / "strip"). */
+function containsHeadline(answer: string, headline: string[]): boolean {
+  const tokens = tokenize(answer);
+  for (let start = 0; start + headline.length <= tokens.length; start++) {
+    if (headline.every((word, offset) => stem(tokens[start + offset]) === stem(word))) return true;
+  }
+  return false;
 }
 
 /** Compare one student answer with the criterion's expected answer. */
@@ -361,10 +408,16 @@ export function assessAnswer(criterion: Pick<RubricCriterionInput, "title" | "de
     return { ...base, fraction: 0, blank: false, mode: "coverage", contradiction };
   }
 
-  const matched = scoring.filter((term) => findTerm(answerTerms, term.stem));
+  // Matched terms keep the student's own wording ("die" for the key's "kill"),
+  // so feedback quotes the answer, never the key.
+  const matched = scoring.flatMap((term) => findTerm(answerTerms, term.stem) ?? []);
   const missing = scoring.filter((term) => !findTerm(answerTerms, term.stem));
   const coverage = matched.length / Math.min(scoring.length, COVERAGE_TERM_CAP);
   let fraction = Math.max(0, Math.min(1, (coverage - COVERAGE_FLOOR) / (COVERAGE_FULL - COVERAGE_FLOOR)));
+  // A short, exact answer ("O horizon" for "The O horizon, the top layer of
+  // decaying leaves and humus") is fully correct even though it skips the detail.
+  const headline = headlineAnswer(expected.text);
+  if (headline && containsHeadline(answer, headline)) fraction = 1;
   if (contradiction) fraction *= CONTRADICTION_FACTOR;
   return { ...base, fraction, blank: false, mode: "coverage", matched, missing, contradiction };
 }
@@ -381,14 +434,13 @@ function justify(assessment: AnswerAssessment, score: number, maxPoints: number)
   if (assessment.blank) return "No answer to this question was found on the page.";
 
   if (assessment.contradiction) {
-    const { said, expected } = assessment.contradiction;
-    return `The answer says "${said}", which contradicts the answer key ("${expected}").${
+    return `The answer says "${assessment.contradiction.said}", which contradicts the expected answer.${
       score > 0 ? " Only a small part of it matches." : ""
     }`;
   }
 
   if (assessment.mode === "items") {
-    const { matchedItems, required, items } = assessment;
+    const { matchedItems, required } = assessment;
     if (score >= maxPoints) {
       return required === 1
         ? `Gives an answer from the key (${matchedItems[0]}).`
@@ -397,30 +449,37 @@ function justify(assessment: AnswerAssessment, score: number, maxPoints: number)
     if (matchedItems.length > 0) {
       return `Names ${matchedItems.length} of the ${required} answers the key asks for (${matchedItems.join("; ")}).`;
     }
-    return `None of the answers in the key appear here (for example, ${capWords(items[0] ?? "", MAX_ITEM_WORDS, true)}).`;
+    return required === 1
+      ? "Does not match any of the answers the key accepts."
+      : `Does not match any of the ${required} answers the key asks for.`;
   }
 
-  const { matched, missing } = assessment;
-  if (score >= maxPoints) return `Matches the answer key: mentions ${quoted(matched.slice(0, 4))}.`;
+  const { matched } = assessment;
+  if (score >= maxPoints) {
+    return matched.length > 0 ? `Matches the answer key: mentions ${quoted(matched.slice(0, 4))}.` : "Matches the answer key.";
+  }
   if (score <= 0) {
     return matched.length > 0
-      ? `Mentions ${quoted(matched.slice(0, 2))}, but misses the main idea in the answer key: ${quoted(missing.slice(0, 3))}.`
-      : `Does not match the answer key, which expects ideas such as ${quoted(missing.slice(0, 3))}.`;
+      ? `Mentions ${quoted(matched.slice(0, 2))}, but misses the main idea the question asks for.`
+      : "Does not match the main idea the question asks for.";
   }
-  return `Partly matches the answer key: mentions ${quoted(matched.slice(0, 3))}, but leaves out ${quoted(missing.slice(0, 3))}.`;
+  return `Partly matches the answer key: mentions ${quoted(matched.slice(0, 3))}, but leaves out part of the expected answer.`;
 }
 
-/** The student's answer verbatim, verified against the transcription. */
+/**
+ * The student's answer verbatim, verified against the transcription. A short
+ * answer ("Sand") verifies as a whole answer line, the same rule the
+ * validator applies to tests (findTestEvidenceSpan).
+ */
 function pickEvidence(transcription: string, answer: string | null, sourceLine: string | null): string {
   if (!answer) return "";
   const candidates = [
     capWords(answer, MAX_EVIDENCE_WORDS, false),
-    // Very short answers ("Sand") are quoted with their label so the quote is verifiable.
     sourceLine ? capWords(sourceLine, MAX_EVIDENCE_WORDS, false) : "",
     ...splitSentences(answer).map((sentence) => capWords(sentence.text, MAX_EVIDENCE_WORDS, false)),
   ];
   for (const candidate of candidates) {
-    if (candidate.length >= MIN_EVIDENCE_CHARS && findEvidenceSpan(transcription, candidate)) return candidate;
+    if (candidate && findTestEvidenceSpan(transcription, candidate)) return candidate;
   }
   return "";
 }

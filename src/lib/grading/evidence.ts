@@ -65,6 +65,9 @@ export function cleanEvidence(quote: string): string {
     .trim();
 }
 
+/** A function that finds a quote in a paper, like findEvidenceSpan. */
+export type EvidenceLocator = (paper: string, quote: string) => EvidenceSpan | null;
+
 /** Find where `quote` appears in `paper`, or null if it does not. */
 export function findEvidenceSpan(paper: string, quote: string | null | undefined): EvidenceSpan | null {
   if (!quote) return null;
@@ -92,4 +95,51 @@ export function findEvidenceSpan(paper: string, quote: string | null | undefined
     start: haystack.map[index],
     end: haystack.map[index + needle.length - 1] + 1,
   };
+}
+
+// A question label at the start of a transcription line: "Q1.", "Q2)",
+// "Question 3:", "4.", "5)", "6:". Mirrors the labels the demo scanner reads.
+const ANSWER_LINE = /^(\s*(?:(?:q|question)\s*\d{1,2}\s*[.):\-–—]?|\d{1,2}\s*[.):](?!\d))\s*)(.*?)\s*$/i;
+const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
+
+function lineSpan(line: string, lineStart: number, needle: string): EvidenceSpan | null {
+  const { normalized, map } = normalizeWithMap(line);
+  const text = normalized.replace(TRAILING_PUNCTUATION, "");
+  if (!text || text !== needle) return null;
+  return { start: lineStart + map[0], end: lineStart + map[text.length - 1] + 1 };
+}
+
+/**
+ * Find a short answer that is the whole answer on one line of a test
+ * transcription: "O horizon" on the line "Q2. O horizon", or the whole line
+ * itself ("Q4. Roots", or "Roots" on an unnumbered line). Quotes under
+ * MIN_EVIDENCE_CHARS are too generic to find anywhere in a paper, but an
+ * exact match with a complete answer is still evidence that is in the paper.
+ * Case, whitespace, quote style, and trailing punctuation are ignored; the
+ * words must match the whole answer, so "horizon" never matches "O horizon".
+ */
+export function findAnswerLineSpan(paper: string, quote: string | null | undefined): EvidenceSpan | null {
+  if (!quote) return null;
+  const needle = normalizeWithMap(cleanEvidence(quote)).normalized.replace(TRAILING_PUNCTUATION, "");
+  if (!needle) return null;
+
+  let lineStart = 0;
+  for (const line of paper.split("\n")) {
+    const label = line.match(ANSWER_LINE);
+    let span: EvidenceSpan | null = null;
+    if (!label) span = lineSpan(line, lineStart, needle);
+    // A bare label ("Q3.") is a blank answer: there is nothing to quote.
+    else if (label[2]) span = lineSpan(label[2], lineStart + label[1].length, needle) ?? lineSpan(line, lineStart, needle);
+    if (span) return span;
+    lineStart += line.length + 1;
+  }
+  return null;
+}
+
+/**
+ * Evidence on a test, where answers are often a word or two: a verbatim quote
+ * (findEvidenceSpan), or else a whole answer line (findAnswerLineSpan).
+ */
+export function findTestEvidenceSpan(paper: string, quote: string | null | undefined): EvidenceSpan | null {
+  return findEvidenceSpan(paper, quote) ?? findAnswerLineSpan(paper, quote);
 }

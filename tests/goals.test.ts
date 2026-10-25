@@ -8,7 +8,25 @@ import {
   resolveModelTarget,
   weakestCriteria,
 } from "@/lib/goals/coaching";
-import { classMentionScore, matchClass, parseGoal, parseTarget, type GoalClassOption } from "@/lib/goals/parse";
+import {
+  defaultInboxTab,
+  dueLabel,
+  inboxCounts,
+  inboxSummary,
+  rowsForTab,
+  statusSummary,
+  tabFor,
+  type InboxAssignment,
+} from "@/components/student/inbox-model";
+import { isAwaitingScan, isOverdue, studentStateDisplay } from "@/components/student/student-status";
+import {
+  classMentionScore,
+  matchClass,
+  mentionsGpa,
+  parseGoal,
+  parseTarget,
+  type GoalClassOption,
+} from "@/lib/goals/parse";
 import {
   ceilToHalf,
   clampPercent,
@@ -24,7 +42,7 @@ import {
   type CompletedTask,
   type RemainingTask,
 } from "@/lib/goals/plan";
-import { buildGoalUserPrompt, GoalExtractionSchema, neutralizeGoalDelimiters } from "@/lib/goals/prompt";
+import { buildGoalUserPrompt, GOAL_LETTER_VALUES, GoalExtractionSchema, neutralizeGoalDelimiters } from "@/lib/goals/prompt";
 import { buildGoalClass, buildPlanView, type GoalClassSource } from "@/lib/goals/view";
 
 // --- Synthetic fixtures (all names and content are fictional) ---------------
@@ -304,6 +322,19 @@ describe("planGoal", () => {
     assert.equal(plan.perTask[0].pastDue, true);
     assert.equal(plan.perTask[0].submitted, false);
     assert.equal(plan.perTask[1].submitted, true);
+    assert.equal(plan.perTask[0].paperTest, false);
+    assert.equal(plan.perTask[0].awaitingScan, false);
+  });
+
+  it("passes paper-test flags through to each task", () => {
+    const plan = planGoal({
+      targetPercent: 80,
+      completed: [],
+      remaining: [todo("quiz", 20, { paperTest: true, awaitingScan: true })],
+    });
+    assert.equal(plan.perTask[0].paperTest, true);
+    assert.equal(plan.perTask[0].awaitingScan, true);
+    assert.equal(plan.perTask[0].pastDue, false);
   });
 
   it("has a label and tone for every status", () => {
@@ -382,6 +413,61 @@ describe("parseTarget", () => {
 
   it("does not read class numbers as targets", () => {
     assert.equal(parseTarget("Help with English 10"), null);
+  });
+
+  it("reads the target, not the current grade, when a goal names both", () => {
+    const cases: [string, number, string][] = [
+      ["I have a B and want an A", 90, "A"],
+      ["I have a B but I want an A in English", 90, "A"],
+      ["I'm at 82% and need 90%", 90, "90%"],
+      ["currently a C, need a B in science", 80, "B"],
+      ["Help me get from a C to a B", 80, "B"],
+      ["I need at least a B+ but I currently have a C-", 87, "B+"],
+      ["I'm getting a C but need a B", 80, "B"],
+      ["I'm a B student and want an A", 90, "A"],
+      ["I got a C last time. A this time", 90, "A"],
+      ["I'm at a C. Need a B.", 80, "B"],
+      ["I need help, my grade is a C and I want a B", 80, "B"],
+      ["The target is 90% but my average is 84%", 90, "90%"],
+    ];
+    for (const [text, percent, label] of cases) {
+      assert.deepEqual(parseTarget(text), { targetPercent: percent, targetLabel: label }, text);
+    }
+  });
+
+  it("keeps goal phrases that contain a current-standing word", () => {
+    assert.deepEqual(parseTarget("I want to have an A"), { targetPercent: 90, targetLabel: "A" });
+    assert.deepEqual(parseTarget("I want to be at 90%"), { targetPercent: 90, targetLabel: "90%" });
+    assert.deepEqual(parseTarget("My goal is an A"), { targetPercent: 90, targetLabel: "A" });
+    assert.deepEqual(parseTarget("raise my grade to an A"), { targetPercent: 90, targetLabel: "A" });
+  });
+
+  it("returns null when a goal only states the current grade", () => {
+    assert.equal(parseTarget("I have a B"), null);
+    assert.equal(parseTarget("I'm at 82%"), null);
+    assert.equal(parseTarget("I need help, my grade is a C"), null);
+  });
+
+  it("reads a bare score or letter as the whole goal", () => {
+    assert.deepEqual(parseTarget("93"), { targetPercent: 93, targetLabel: "93%" });
+    assert.deepEqual(parseTarget("85."), { targetPercent: 85, targetLabel: "85%" });
+    assert.deepEqual(parseTarget("b+"), { targetPercent: 87, targetLabel: "B+" });
+    assert.deepEqual(parseTarget("A"), { targetPercent: 90, targetLabel: "A" });
+    assert.equal(parseTarget("101"), null);
+  });
+
+  it("never reads a GPA as a tiny percent", () => {
+    for (const text of ["I need a 4.0", "3.5 GPA", "4", "I want a 3"]) {
+      assert.equal(parseTarget(text), null, text);
+    }
+    assert.equal(mentionsGpa("I need a 4.0"), true);
+    assert.equal(mentionsGpa("3.5 GPA"), true);
+    assert.equal(mentionsGpa("I want 92.5 percent"), false);
+    assert.equal(mentionsGpa("at least 85%"), false);
+    // A GPA next to a real target: the letter is the target.
+    assert.deepEqual(parseTarget("I need a 3.8 GPA and an A in English"), { targetPercent: 90, targetLabel: "A" });
+    // An explicit percent is taken as written.
+    assert.deepEqual(parseTarget("at least 4%"), { targetPercent: 4, targetLabel: "4%" });
   });
 });
 
@@ -507,10 +593,20 @@ describe("demoCoachingTip", () => {
     const weakest = [{ title: "Textual evidence", percent: 50 }];
     for (const status of ["secured", "on_track", "stretch", "not_possible", "no_remaining"] as const) {
       const tip = demoCoachingTip(weakest, status);
-      assert.match(tip, /textual evidence/);
+      assert.match(tip, /“Textual evidence”/);
       assert.doesNotMatch(tip, /\d/);
     }
     assert.doesNotMatch(demoCoachingTip([], "on_track"), /\d/);
+  });
+
+  it("keeps a test question's own casing and gives question-specific advice", () => {
+    const tip = demoCoachingTip([{ title: 'Q7. Use "ambivalent" in an original sentence.', percent: 20 }], "on_track");
+    assert.equal(
+      tip,
+      "You're in a good spot. Your biggest gains are in “Q7. Use ‘ambivalent’ in an original sentence”, so go over your teacher's feedback on that question, then practice two more like it."
+    );
+    assert.doesNotMatch(tip, /q7\. use/);
+    assert.doesNotMatch(tip, /full-credit description/);
   });
 });
 
@@ -541,6 +637,17 @@ describe("goal prompt", () => {
       clarifying_question: null,
     });
     assert.equal(ok.success, true);
+  });
+
+  it("limits target_letter to the planner's letters, PASS, or null", () => {
+    const base = { class_id: null, target_percent: 0.85, interpretation: "", coaching_tip: "", clarifying_question: null };
+    for (const letter of ["Z", "A/A+", "an A", "E"]) {
+      assert.equal(GoalExtractionSchema.safeParse({ ...base, target_letter: letter }).success, false, letter);
+    }
+    for (const letter of [...GOAL_LETTER_VALUES, null]) {
+      assert.equal(GoalExtractionSchema.safeParse({ ...base, target_letter: letter }).success, true, String(letter));
+    }
+    assert.ok(GOAL_LETTER_VALUES.every((letter) => letter === "PASS" || resolveModelTarget({ target_letter: letter, target_percent: null })));
   });
 });
 
@@ -629,5 +736,171 @@ describe("buildGoalClass + buildPlanView", () => {
     );
     assert.equal(view.tasks[0].dueDate, "2026-10-20T12:00:00.000Z");
     assert.equal(view.savedAt, now.toISOString());
+  });
+});
+
+// --- Paper tests (never overdue for the student) ---------------------------------
+
+describe("paper tests in the goal planner", () => {
+  const now = new Date("2026-10-25T15:00:00Z");
+  const quiz = (id: string, dueDate: Date | null, submission: GoalClassSource["assignments"][number]["submission"]) => ({
+    id,
+    title: `Quiz ${id}`,
+    kind: "TEST",
+    dueDate,
+    criteria: [{ maxPoints: 10 }],
+    submission,
+  });
+
+  it("never marks an unscanned test overdue, and says it is waiting for a scan", () => {
+    const goalClass = buildGoalClass(
+      {
+        id: "cls_envsci",
+        name: "Environmental Science",
+        section: null,
+        subject: "Science",
+        assignments: [
+          quiz("taken", new Date("2026-10-24T12:00:00Z"), null),
+          quiz("upcoming", new Date("2026-10-30T12:00:00Z"), null),
+          quiz("sentBack", new Date("2026-10-20T12:00:00Z"), { status: "RETURNED", published: null }),
+          quiz("scanned", new Date("2026-10-20T12:00:00Z"), { status: "NEEDS_REVIEW", published: null }),
+          { id: "essay", title: "Lab report", kind: "ESSAY", dueDate: new Date("2026-10-24T12:00:00Z"), criteria: [{ maxPoints: 10 }], submission: null },
+        ],
+      },
+      now
+    );
+    assert.deepEqual(
+      goalClass.remaining.map((task) => [task.assignmentId, task.pastDue, task.paperTest, task.awaitingScan, task.submitted]),
+      [
+        ["taken", false, true, true, false],
+        ["upcoming", false, true, false, false],
+        ["sentBack", false, true, true, false],
+        ["scanned", false, true, false, true],
+        ["essay", true, false, false, false],
+      ]
+    );
+  });
+
+  it("treats a missing kind as an essay", () => {
+    const goalClass = buildGoalClass(
+      {
+        id: "c",
+        name: "C",
+        section: null,
+        subject: null,
+        assignments: [{ id: "a", title: "A", dueDate: new Date("2026-10-20T12:00:00Z"), criteria: [{ maxPoints: 5 }], submission: null }],
+      },
+      now
+    );
+    assert.equal(goalClass.remaining[0].pastDue, true);
+    assert.equal(goalClass.remaining[0].paperTest, false);
+  });
+});
+
+// --- Student inbox (pure model) ----------------------------------------------------
+
+function inboxRow(id: string, extra: Partial<InboxAssignment> = {}): InboxAssignment {
+  return {
+    id,
+    title: `Assignment ${id}`,
+    classId: "cls_envsci",
+    className: "Environmental Science",
+    kind: "ESSAY",
+    dueDate: "2026-10-28T12:00:00.000Z",
+    submittedAt: null,
+    publishedAt: null,
+    pastDue: false,
+    awaitingScan: false,
+    state: "not_submitted",
+    score: null,
+    totalPoints: 10,
+    criteria: [],
+    ...extra,
+  };
+}
+
+describe("student inbox and paper tests", () => {
+  const now = new Date("2026-10-25T15:00:00Z");
+  const past = new Date("2026-10-24T12:00:00Z");
+  const future = new Date("2026-10-30T12:00:00Z");
+
+  it("never calls a paper test overdue", () => {
+    assert.equal(isOverdue("TEST", "not_submitted", past, now), false);
+    assert.equal(isOverdue("TEST", "returned", past, now), false);
+    assert.equal(isOverdue("ESSAY", "not_submitted", past, now), true);
+    assert.equal(isOverdue("ESSAY", "returned", past, now), true);
+    assert.equal(isOverdue("ESSAY", "submitted", past, now), false);
+    assert.equal(isOverdue("ESSAY", "not_submitted", future, now), false);
+  });
+
+  it("marks a paper test as waiting for a scan only after its test day", () => {
+    assert.equal(isAwaitingScan("TEST", "not_submitted", past, now), true);
+    assert.equal(isAwaitingScan("TEST", "not_submitted", future, now), false);
+    assert.equal(isAwaitingScan("TEST", "not_submitted", null, now), false);
+    assert.equal(isAwaitingScan("TEST", "submitted", past, now), false);
+    assert.equal(isAwaitingScan("ESSAY", "not_submitted", past, now), false);
+  });
+
+  it("words paper-test badges for what the student can do", () => {
+    assert.equal(studentStateDisplay("not_submitted", { paperTest: true }).label, "Paper test");
+    assert.equal(studentStateDisplay("not_submitted", { paperTest: true, awaitingScan: true }).label, "Waiting for scan");
+    assert.equal(studentStateDisplay("returned", { paperTest: true }).label, "Sent back");
+    assert.equal(studentStateDisplay("submitted", { paperTest: true }).label, "Submitted");
+    assert.equal(studentStateDisplay("not_submitted").label, "Not submitted");
+    assert.equal(studentStateDisplay("returned").label, "Revise and resubmit");
+  });
+
+  it("files a scanned-later test under Submitted, not To do", () => {
+    const taken = inboxRow("taken", { kind: "TEST", dueDate: past.toISOString(), awaitingScan: true });
+    const upcoming = inboxRow("upcoming", { kind: "TEST", dueDate: future.toISOString() });
+    const submitted = inboxRow("submitted", { state: "submitted", submittedAt: "2026-10-22T12:00:00.000Z" });
+    assert.equal(tabFor(taken), "submitted");
+    assert.equal(tabFor(upcoming), "todo");
+    const rows = [taken, upcoming, submitted];
+    assert.deepEqual(inboxCounts(rows), { todo: 1, submitted: 2, graded: 0 });
+    // Newest first: the test day (Oct 24) is after the essay's submission (Oct 22).
+    assert.deepEqual(rowsForTab(rows, "submitted").map((row) => row.id), ["taken", "submitted"]);
+    assert.equal(defaultInboxTab([taken]), "submitted");
+  });
+
+  it("labels a paper test's date as its test day", () => {
+    assert.equal(dueLabel(inboxRow("q", { kind: "TEST", dueDate: past.toISOString() })), "Test day Oct 24");
+    assert.equal(dueLabel(inboxRow("q", { kind: "TEST", dueDate: null })), "No test date");
+    assert.equal(dueLabel(inboxRow("e", { dueDate: past.toISOString() })), "Due Oct 24");
+  });
+
+  it("never tells a student to submit or revise a paper test", () => {
+    const taken = statusSummary(inboxRow("t", { kind: "TEST", dueDate: past.toISOString(), awaitingScan: true }));
+    const upcoming = statusSummary(inboxRow("u", { kind: "TEST" }));
+    const sentBack = statusSummary(inboxRow("r", { kind: "TEST", state: "returned" }));
+    for (const text of [taken, upcoming, sentBack]) {
+      assert.doesNotMatch(text, /overdue|resubmit|submit it/i, text);
+    }
+    assert.match(taken, /The test was on Oct 24/);
+    assert.match(sentBack, /rescan/);
+    assert.match(statusSummary(inboxRow("e", { state: "returned" })), /Revise it and resubmit/);
+  });
+
+  it("summarizes exactly what is in the To do tab", () => {
+    const rows = [
+      inboxRow("essay"),
+      inboxRow("revise", { state: "returned" }),
+      inboxRow("upcomingQuiz", { kind: "TEST" }),
+      inboxRow("takenQuiz", { kind: "TEST", awaitingScan: true }),
+      inboxRow("sentBackQuiz", { kind: "TEST", state: "returned" }),
+    ];
+    assert.equal(
+      inboxSummary(rows),
+      "You have 1 assignment to submit, 1 paper to revise, 1 test your teacher sent back, and 1 paper test coming up."
+    );
+    assert.equal(inboxCounts(rows).todo, 4);
+  });
+
+  it("says a student with only scans pending is caught up", () => {
+    const rows = [inboxRow("takenQuiz", { kind: "TEST", awaitingScan: true }), inboxRow("g", { state: "graded" })];
+    assert.equal(inboxSummary(rows), "You're all caught up. Grades appear here once your teacher approves them.");
+    assert.equal(inboxCounts(rows).todo, 0);
+    assert.equal(inboxSummary([inboxRow("g", { state: "graded" })]), "You're all caught up.");
+    assert.equal(inboxSummary([inboxRow("a"), inboxRow("b")]), "You have 2 assignments to submit.");
   });
 });

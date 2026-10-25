@@ -127,6 +127,8 @@ export function acceptCoachingTip(tip: string | null | undefined): string | null
 }
 
 const CRITERION_ADVICE: [RegExp, string][] = [
+  // A paper-test question ("Q7. Use ..."): its full-credit description is the answer key, which students never see.
+  [/^\s*(?:q|question)\s*\d+\b/i, "go over your teacher's feedback on that question, then practice two more like it"],
   [/evidence|quot|citation|source|support/i, "pick one strong quotation per paragraph and explain in your own words what it proves"],
   [/counter|rebuttal|opposing/i, "name the strongest argument against your position, then answer it with a reason of your own"],
   [/organi[sz]|structure|style|writing|clarity|flow/i, "outline your paragraphs before drafting and give each one a clear topic sentence"],
@@ -145,22 +147,37 @@ function adviceFor(title: string): string {
   return "reread the full-credit description in the rubric and check your draft against it line by line";
 }
 
+/**
+ * A criterion title as it reads inside a tip: quoted, with its own casing
+ * ("Q7. Use ..." must not become "q7. use ..."), and without trailing
+ * punctuation that would clash with the sentence around it.
+ */
+function quotedTitle(title: string): string {
+  const clean = title
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/[\s.,;:!?]+$/, "")
+    // Quotes inside the title become single quotes so they nest cleanly.
+    .replace(/"([^"]+)"/g, "‘$1’");
+  return `“${clean}”`;
+}
+
 /** The demo planner's study tip: template text keyed to the weakest criterion and the status. */
 export function demoCoachingTip(weakest: readonly WeakCriterion[], status: GoalStatus): string {
   const focus = weakest[0];
   if (status === "secured") {
     return focus
-      ? `You've got this goal covered. To keep growing, spend your next session on ${focus.title.toLowerCase()}: ${adviceFor(focus.title)}.`
+      ? `You've got this goal covered. To keep growing, spend your next session on ${quotedTitle(focus.title)}: ${adviceFor(focus.title)}.`
       : "You've got this goal covered. Keep turning work in on time and read your teacher's feedback on each grade.";
   }
   if (status === "no_remaining") {
     return focus
-      ? `For next time, put extra practice into ${focus.title.toLowerCase()}: ${adviceFor(focus.title)}.`
+      ? `For next time, put extra practice into ${quotedTitle(focus.title)}: ${adviceFor(focus.title)}.`
       : "Read through your teacher's feedback on each grade and note one thing to carry into your next class.";
   }
   if (!focus) {
     return "Start each assignment early, check your draft against every rubric criterion, and read your teacher's feedback as soon as a grade comes back.";
   }
   const opener = status === "not_possible" ? "Every point still counts." : status === "stretch" ? "This goal is within reach with focus." : "You're in a good spot.";
-  return `${opener} Your biggest gains are in ${focus.title.toLowerCase()}, so ${adviceFor(focus.title)}.`;
+  return `${opener} Your biggest gains are in ${quotedTitle(focus.title)}, so ${adviceFor(focus.title)}.`;
 }

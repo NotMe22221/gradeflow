@@ -2,6 +2,7 @@
 // server code, and unit tests.
 
 import { isPastDue } from "@/components/student/student-status";
+import { parseAssignmentKind } from "@/lib/constants";
 import { parseBreakdown, type BreakdownItem } from "@/lib/grades/breakdown";
 import { weakestCriteria } from "@/lib/goals/coaching";
 import {
@@ -24,6 +25,8 @@ export type GoalClassSource = {
   assignments: {
     id: string;
     title: string;
+    /** "ESSAY" or "TEST" (a paper test the teacher scans). Missing means an essay. */
+    kind?: string | null;
     dueDate: Date | null;
     criteria: { maxPoints: number }[];
     /** This student's submission, if any. */
@@ -37,7 +40,9 @@ export type GoalClassSource = {
 /**
  * Split a class into completed work (teacher-approved grades) and remaining
  * work (rubric points, no approved grade yet), and find the weakest criteria.
- * Assignments without rubric points don't count toward the grade yet.
+ * Assignments without rubric points don't count toward the grade yet. A
+ * paper test is never overdue (the student can't submit one): once its test
+ * day has passed, or the teacher sent it back, it is waiting for a scan.
  */
 export function buildGoalClass(source: GoalClassSource, now: Date): GoalClass {
   const completed: CompletedTask[] = [];
@@ -64,13 +69,17 @@ export function buildGoalClass(source: GoalClassSource, now: Date): GoalClass {
     if (!(maxScore > 0)) continue;
     const status = assignment.submission?.status ?? null;
     const needsWork = status === null || status === "RETURNED";
+    const paperTest = parseAssignmentKind(assignment.kind) === "TEST";
+    const dueDayEnded = isPastDue(assignment.dueDate, now);
     remaining.push({
       assignmentId: assignment.id,
       title: assignment.title,
       maxScore,
       dueDate: assignment.dueDate,
-      pastDue: needsWork && isPastDue(assignment.dueDate, now),
+      pastDue: needsWork && !paperTest && dueDayEnded,
       submitted: !needsWork,
+      paperTest,
+      awaitingScan: paperTest && needsWork && (status === "RETURNED" || dueDayEnded),
     });
   }
 
@@ -137,6 +146,8 @@ export function buildPlanView(input: {
       dueDate: isoDate(task.dueDate),
       pastDue: task.pastDue,
       submitted: task.submitted,
+      paperTest: task.paperTest,
+      awaitingScan: task.awaitingScan,
     })),
     coachingTip: input.coachingTip,
     tipSource: input.tipSource,

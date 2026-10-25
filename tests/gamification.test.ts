@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   ACTIVITY_KINDS,
   computeStreak,
+  countsTowardStreak,
   dayKey,
   describeActivity,
   isActivityKind,
@@ -11,6 +12,9 @@ import {
   levelSummary,
   ONCE_PER_DAY,
   shortTitle,
+  startOfDay,
+  STREAK_EXCLUDED_KINDS,
+  streakDates,
   streakSummary,
   submissionXpAwards,
   totalXp,
@@ -94,6 +98,47 @@ describe("streaks", () => {
 
   it("uses local calendar day keys", () => {
     assert.equal(dayKey(new Date(2026, 0, 5, 23, 59)), "2026-01-05");
+  });
+
+  it("starts the day where dayKey does, so once-per-day XP and the streak agree", () => {
+    const late = new Date(2026, 0, 5, 23, 59, 59);
+    const start = startOfDay(late);
+    assert.equal(dayKey(start), dayKey(late));
+    assert.equal(dayKey(new Date(start.getTime() - 1)), "2026-01-04");
+  });
+});
+
+describe("streaks count only the student's own actions", () => {
+  const now = day(0);
+  const row = (kind: string, offset: number, xp = 10) => ({ kind, createdAt: day(offset), xp });
+
+  it("leaves GRADE_PUBLISHED, a teacher action, out of the streak", () => {
+    assert.equal(countsTowardStreak("GRADE_PUBLISHED"), false);
+    assert.deepEqual([...STREAK_EXCLUDED_KINDS], ["GRADE_PUBLISHED"]);
+    for (const kind of ACTIVITY_KINDS.filter((kind) => kind !== "GRADE_PUBLISHED")) {
+      assert.equal(countsTowardStreak(kind), true, kind);
+    }
+  });
+
+  it("does not mark a student active today because a grade was published", () => {
+    const rows = [row("GRADE_PUBLISHED", 0, 41)];
+    assert.deepEqual(computeStreak(streakDates(rows), now), { current: 0, activeToday: false, longest: 0 });
+    // The XP still counts.
+    assert.equal(totalXp(rows), 41);
+  });
+
+  it("does not keep a broken streak alive with a published grade", () => {
+    const rows = [row("STUDY_SESSION", -3), row("SUBMIT", -2), row("GRADE_PUBLISHED", -1), row("GRADE_PUBLISHED", 0)];
+    const streak = computeStreak(streakDates(rows), now);
+    assert.equal(streak.current, 0);
+    assert.equal(streak.activeToday, false);
+    assert.equal(streak.longest, 2);
+    assert.equal(totalXp(rows), 40);
+  });
+
+  it("still counts every study day around a published grade", () => {
+    const rows = [row("STUDY_SESSION", -1), row("GOAL_SET", 0), row("GRADE_PUBLISHED", 0)];
+    assert.deepEqual(computeStreak(streakDates(rows), now), { current: 2, activeToday: true, longest: 2 });
   });
 });
 

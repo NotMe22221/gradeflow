@@ -160,9 +160,8 @@ export function ScanWorkspace({
 
   /** Select the seeded assignment and student a sample photo belongs to, when they exist. */
   function applySample(sample: SampleTestPhoto) {
-    const match =
-      assignments.find((option) => option.title === sample.assignmentTitle && option.kind === "TEST") ??
-      assignments.find((option) => option.title === sample.assignmentTitle);
+    // The picker lists handwritten tests only.
+    const match = assignments.find((option) => option.title === sample.assignmentTitle);
     if (!match) return;
     const matchStudent = classes
       .find((option) => option.id === match.classId)
@@ -507,8 +506,8 @@ export function ScanWorkspace({
                 </p>
                 <p className="text-[13px] text-pretty text-muted-foreground">
                   {visionEnabled
-                    ? "Otherwise the assignment's answer key is used."
-                    : "Otherwise the assignment's answer key is used. The demo scanner always uses the assignment's answer key."}
+                    ? "GPT-4o reads the expected answers from it. Without one, it uses the assignment's answer key."
+                    : "The demo scanner always grades against the assignment's answer key."}
                 </p>
               </div>
               {!answerKey ? (
@@ -584,7 +583,7 @@ export function ScanWorkspace({
               <CardDescription>Choose where the draft goes. It lands in your review queue.</CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={submit} noValidate className="grid gap-5">
+              <form onSubmit={submit} noValidate className="grid grid-cols-[minmax(0,1fr)] gap-5">
                 {matchNotice ? (
                   <p
                     className="flex items-start gap-2 rounded-lg bg-primary-soft px-3 py-2 text-[13px] text-pretty text-primary-soft-foreground"
@@ -595,7 +594,8 @@ export function ScanWorkspace({
                   </p>
                 ) : null}
 
-                <div className="grid gap-2">
+                {/* min-w-0: a long title truncates in its select instead of widening the card. */}
+                <div className="grid min-w-0 gap-2">
                   <Label htmlFor="scan-assignment">Assignment</Label>
                   <AssignmentPicker
                     id="scan-assignment"
@@ -616,7 +616,7 @@ export function ScanWorkspace({
                   <FieldError id="scan-assignment-error" message={fieldMessage(error, "assignment")} />
                 </div>
 
-                <div className="grid gap-2">
+                <div className="grid min-w-0 gap-2">
                   <Label htmlFor="scan-student">Student</Label>
                   <StudentPicker
                     id="scan-student"
@@ -645,7 +645,7 @@ export function ScanWorkspace({
                 </div>
 
                 {showTranscription ? (
-                  <div className="grid gap-2">
+                  <div className="grid min-w-0 gap-2">
                     <Label htmlFor="scan-transcription">Transcription (demo mode)</Label>
                     <Textarea
                       ref={transcriptionRef}

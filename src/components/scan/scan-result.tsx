@@ -59,22 +59,23 @@ export function ScanResult({ result, onScanAnother }: { result: ScanGradeSuccess
           )}
         </div>
 
+        {/* Values sit on one baseline even when a label wraps on a narrow screen. */}
         <dl className="grid grid-cols-3 divide-x divide-border rounded-lg border border-border">
-          <div className="min-w-0 px-3 py-2.5">
+          <div className="flex min-w-0 flex-col justify-between gap-0.5 px-3 py-2.5">
             <dt className="text-xs text-muted-foreground">AI draft</dt>
-            <dd className="tabular mt-0.5 truncate text-sm font-semibold text-foreground">
+            <dd className="tabular truncate text-sm font-semibold text-foreground">
               {result.draftScore === null
                 ? "No score"
                 : `${formatPoints(result.draftScore)} / ${formatPoints(result.maxScore)}`}
             </dd>
           </div>
-          <div className="min-w-0 px-3 py-2.5">
+          <div className="flex min-w-0 flex-col justify-between gap-0.5 px-3 py-2.5">
             <dt className="text-xs text-muted-foreground">Pages</dt>
-            <dd className="tabular mt-0.5 text-sm font-semibold text-foreground">{result.pageCount}</dd>
+            <dd className="tabular text-sm font-semibold text-foreground">{result.pageCount}</dd>
           </div>
-          <div className="min-w-0 px-3 py-2.5">
-            <dt className="text-xs text-muted-foreground">To score</dt>
-            <dd className="tabular mt-0.5 text-sm font-semibold text-foreground">
+          <div className="flex min-w-0 flex-col justify-between gap-0.5 px-3 py-2.5">
+            <dt className="text-xs text-muted-foreground">Needs your score</dt>
+            <dd className="tabular text-sm font-semibold text-foreground">
               {result.unscoredCount === 0 ? "None" : pluralize(result.unscoredCount, "question")}
             </dd>
           </div>

@@ -162,7 +162,7 @@ export function ReviewWorkspace({
   const currentIndex = current ? queue.indexOf(current) : -1;
   const draft = current ? drafts.getDraft(current) : null;
   const summary = current && draft ? summarizeDraft(current, draft) : null;
-  const blockedReason = summary ? blockingReason(summary) : null;
+  const blockedReason = current && summary ? blockingReason(summary, current.assignment.kind) : null;
   const layout = useMemo(
     () => (current ? layoutEvidence(current.content, current.criteria, flaggedSnippets(current)) : null),
     [current]
@@ -264,7 +264,9 @@ export function ReviewWorkspace({
     (openedWith: ReturnFocus["openedWith"]) => {
       if (!current || !summary || busyRef.current) return;
       if (!summary.ready) {
-        toast.error("Not ready to publish yet", { description: blockingReason(summary) ?? undefined });
+        toast.error("Not ready to publish yet", {
+          description: blockingReason(summary, current.assignment.kind) ?? undefined,
+        });
         const firstProblem = summary.invalidIds[0] ?? summary.missingIds[0];
         if (firstProblem) focusCriterion(current.id, firstProblem);
         return;
@@ -311,7 +313,9 @@ export function ReviewWorkspace({
       await drafts.flush(item.id);
       const latest = summarizeDraft(item, drafts.readDraft(item));
       if (!latest.ready) {
-        toast.error("Not ready to publish yet", { description: blockingReason(latest) ?? undefined });
+        toast.error("Not ready to publish yet", {
+          description: blockingReason(latest, item.assignment.kind) ?? undefined,
+        });
         setApproveTargetId(null);
         return;
       }

@@ -2,7 +2,7 @@ import "server-only";
 
 import { zodResponseFormat } from "openai/helpers/zod";
 
-import { describeOpenAiError, getOpenAI, modelFor, openAiConfigured } from "@/lib/ai/openai";
+import { describeOpenAiError, getOpenAI, modelFor, openAiConfigured, openAiRequestOptions } from "@/lib/ai/openai";
 import { db } from "@/lib/db";
 import { awardXp } from "@/lib/gamification/award";
 import { XP_RULES } from "@/lib/gamification/rules";
@@ -13,8 +13,8 @@ import {
   MAX_QUESTION_CHARS,
   resolveModelTarget,
 } from "@/lib/goals/coaching";
-import { parseGoal, type ParsedTarget } from "@/lib/goals/parse";
-import { planGoal } from "@/lib/goals/plan";
+import { GPA_GOAL_MESSAGE, mentionsGpa, parseGoal, type ParsedTarget } from "@/lib/goals/parse";
+import { isLetterTarget, PASS_LABEL, planGoal } from "@/lib/goals/plan";
 import { buildGoalUserPrompt, GOAL_SYSTEM_PROMPT, GoalExtractionSchema } from "@/lib/goals/prompt";
 import { loadGoalClasses } from "@/lib/goals/query";
 import type { GoalClass, GoalEngine, GoalPlannerErrorCode, GoalPlannerSuccess } from "@/lib/goals/types";
@@ -58,16 +58,19 @@ type Extraction = {
 async function extractWithOpenAI(goal: string, classes: GoalClass[]): Promise<Extraction> {
   let completion;
   try {
-    completion = await getOpenAI().chat.completions.parse({
-      model: modelFor("text"),
-      temperature: 0.2,
-      max_completion_tokens: 400,
-      messages: [
-        { role: "system", content: GOAL_SYSTEM_PROMPT },
-        { role: "user", content: buildGoalUserPrompt(goal, classes) },
-      ],
-      response_format: zodResponseFormat(GoalExtractionSchema, "goal_extraction"),
-    });
+    completion = await getOpenAI().chat.completions.parse(
+      {
+        model: modelFor("text"),
+        temperature: 0.2,
+        max_completion_tokens: 400,
+        messages: [
+          { role: "system", content: GOAL_SYSTEM_PROMPT },
+          { role: "user", content: buildGoalUserPrompt(goal, classes) },
+        ],
+        response_format: zodResponseFormat(GoalExtractionSchema, "goal_extraction"),
+      },
+      openAiRequestOptions("text")
+    );
   } catch (error) {
     // Logs the error class and status only; never the key or the goal text.
     throw new GoalPlannerError(describeOpenAiError(error, "Goal planner"), 502);
@@ -95,6 +98,15 @@ function extractWithDemo(goal: string, classes: GoalClass[]): Extraction {
     tip: null,
     clarifyingQuestion: null,
   };
+}
+
+/** Plain percents at or below this are a GPA misread ("I need a 4.0"), never a real target. */
+const GPA_LIKE_PERCENT = 4;
+
+/** A percent target that only exists because the goal named a GPA. */
+function isGpaMisread(target: ParsedTarget, goal: string): boolean {
+  const isPercent = !isLetterTarget(target.targetLabel) && target.targetLabel !== PASS_LABEL;
+  return isPercent && target.targetPercent <= GPA_LIKE_PERCENT && mentionsGpa(goal);
 }
 
 /**
@@ -127,8 +139,9 @@ export async function planStudentGoal(input: {
   const extraction =
     engine.engine === "openai" ? await extractWithOpenAI(input.goal, classes) : extractWithDemo(input.goal, classes);
 
-  if (!extraction.target) {
-    throw new GoalPlannerError(extraction.clarifyingQuestion ?? UNCLEAR_GOAL_MESSAGE, 400, "UNCLEAR_GOAL");
+  if (!extraction.target || isGpaMisread(extraction.target, input.goal)) {
+    const message = mentionsGpa(input.goal) ? GPA_GOAL_MESSAGE : (extraction.clarifyingQuestion ?? UNCLEAR_GOAL_MESSAGE);
+    throw new GoalPlannerError(message, 400, "UNCLEAR_GOAL");
   }
 
   const mentioned = classes.find((klass) => klass.id === extraction.classId);

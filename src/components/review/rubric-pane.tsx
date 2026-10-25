@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CriterionCard } from "@/components/review/criterion-card";
 import { firstName, formatPoints, pluralize } from "@/lib/format";
 import { describeFlag } from "@/lib/grading/flags";
-import { isScanned } from "@/lib/review/media";
+import { isScanned, paperNounFor } from "@/lib/review/media";
 import {
   MAX_FEEDBACK_CHARS,
   createDraft,
@@ -55,6 +55,9 @@ export function RubricPane({
   const unscored = summary.missingIds.length + summary.invalidIds.length;
   const kind = item.assignment.kind;
   const scanned = isScanned(item);
+  const paperNoun = paperNounFor(item);
+  // A handwritten test is scored by question, an essay by rubric criterion.
+  const unit = kind === "TEST" ? { one: "question", many: "questions" } : { one: "criterion", many: "criteria" };
 
   const updateCriterion = (criterionId: string, patch: Partial<ItemDraft["scores"][string]>) =>
     onDraftChange((current) => ({
@@ -93,8 +96,8 @@ export function RubricPane({
                 ) : null}
                 {unscored > 0 ? (
                   <span className="text-warning-soft-foreground">
-                    {pluralize(unscored, "criterion", "criteria")} still {unscored === 1 ? "needs" : "need"} a
-                    valid score
+                    {pluralize(unscored, unit.one, unit.many)} still {unscored === 1 ? "needs" : "need"} a valid
+                    score
                   </span>
                 ) : null}
               </p>
@@ -125,7 +128,7 @@ export function RubricPane({
           {!ai ? (
             <div className="flex gap-3 rounded-xl border border-border bg-muted/50 p-4 text-[13px] leading-relaxed text-muted-foreground">
               <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-              <p>There is no AI suggestion on file for this paper. Score each criterion yourself.</p>
+              <p>There is no AI suggestion on file for this paper. Score each {unit.one} yourself.</p>
             </div>
           ) : null}
 
@@ -139,7 +142,11 @@ export function RubricPane({
           ) : null}
 
           {ai && ai.flags.length > 0 ? (
-            <FlagsBanner item={item} onShowFlagged={layout.flaggedCount > 0 ? onShowFlagged : null} />
+            <FlagsBanner
+              item={item}
+              paperNoun={paperNoun}
+              onShowFlagged={layout.flaggedCount > 0 ? onShowFlagged : null}
+            />
           ) : null}
 
           <section aria-label={kind === "TEST" ? "Questions" : "Rubric"} className="space-y-4">
@@ -193,9 +200,12 @@ export function RubricPane({
 
 function FlagsBanner({
   item,
+  paperNoun,
   onShowFlagged,
 }: {
   item: ReviewItem;
+  /** "transcription" on a scanned test, matching the criterion cards. */
+  paperNoun: "paper" | "transcription";
   /** Present when the flagged text is marked in the paper. */
   onShowFlagged: (() => void) | null;
 }) {
@@ -232,7 +242,7 @@ function FlagsBanner({
                       onClick={onShowFlagged}
                       className="rounded font-medium whitespace-nowrap underline underline-offset-2 outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
                     >
-                      Show in paper
+                      Show in {paperNoun}
                     </button>
                   </>
                 ) : null}

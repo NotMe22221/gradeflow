@@ -76,7 +76,8 @@ export function AssignmentRubric({
         )}
         {questions && criteria.length > 0 ? (
           <p className="border-t border-border px-5 py-3 text-xs text-muted-foreground">
-            The answer key stays with your teacher.
+            Your teacher keeps the answer key. Feedback on a graded test may point to what each question was
+            looking for.
           </p>
         ) : null}
       </Card>

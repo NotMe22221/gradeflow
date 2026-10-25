@@ -50,12 +50,10 @@ function GroupLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** The /scan picker lists handwritten tests only: the scanner grades against an answer key. */
 export function assignmentHint(assignment: ScanAssignmentOption): string {
   if (assignment.questionCount === 0) return "No answer key yet";
-  const points = pluralize(assignment.totalPoints, "pt", "pts");
-  return assignment.kind === "TEST"
-    ? `Handwritten test · ${pluralize(assignment.questionCount, "question")} · ${points}`
-    : `Essay rubric · ${pluralize(assignment.questionCount, "criterion", "criteria")} · ${points}`;
+  return `Handwritten test · ${pluralize(assignment.questionCount, "question")} · ${pluralize(assignment.totalPoints, "pt", "pts")}`;
 }
 
 type FieldA11y = { id: string; invalid?: boolean; describedBy?: string; disabled?: boolean };
@@ -71,7 +69,7 @@ export function AssignmentPicker({
   disabled,
 }: FieldA11y & {
   classes: ScanClassOption[];
-  /** Already ordered: handwritten tests first within each class. */
+  /** Handwritten tests, newest first within each class. */
   assignments: ScanAssignmentOption[];
   value: string;
   onChange: (value: string) => void;
@@ -84,7 +82,7 @@ export function AssignmentPicker({
     <Select value={value} onValueChange={onChange} disabled={disabled}>
       <SelectTrigger
         id={id}
-        className="w-full"
+        className="w-full min-w-0"
         aria-invalid={invalid ? true : undefined}
         aria-describedby={describedBy}
       >
@@ -136,7 +134,7 @@ export function StudentPicker({
     <Select value={value} onValueChange={onChange} disabled={disabled || !assignmentId || students.length === 0}>
       <SelectTrigger
         id={id}
-        className="w-full"
+        className="w-full min-w-0"
         aria-invalid={invalid ? true : undefined}
         aria-describedby={describedBy}
       >

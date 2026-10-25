@@ -276,7 +276,10 @@ function InboxRow({
   onActivate: () => void;
   buttonRef: (element: HTMLButtonElement | null) => void;
 }) {
-  const Icon = row.kind === "TEST" ? ClipboardList : FileText;
+  const paperTest = row.kind === "TEST";
+  const Icon = paperTest ? ClipboardList : FileText;
+  // On phones the due date matters more than a "Not submitted" badge every To do row would share.
+  const hideBadgeOnPhone = row.state === "not_submitted" && !paperTest;
   return (
     <button
       ref={buttonRef}
@@ -307,7 +310,7 @@ function InboxRow({
         >
           {row.title}
         </span>
-        <span className="mt-0.5 block truncate text-[13px] text-muted-foreground">
+        <span className="mt-0.5 line-clamp-2 text-[13px] break-words text-muted-foreground">
           {row.className}
           <span aria-hidden> · </span>
           <span className={cn("tabular", row.pastDue && "font-medium text-danger-soft-foreground")}>
@@ -315,8 +318,8 @@ function InboxRow({
           </span>
         </span>
       </span>
-      <span className="flex shrink-0 flex-col items-end gap-1 pt-0.5">
-        <StudentStateBadge state={row.state} />
+      <span className={cn("flex shrink-0 flex-col items-end gap-1 pt-0.5", hideBadgeOnPhone && "max-sm:hidden")}>
+        <StudentStateBadge state={row.state} paperTest={paperTest} awaitingScan={row.awaitingScan} />
         {row.state === "graded" && row.score ? (
           <span className="tabular text-xs font-semibold text-foreground">
             <span className="sr-only">Score: </span>

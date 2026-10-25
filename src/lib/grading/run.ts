@@ -3,6 +3,7 @@ import "server-only";
 import { getOwnedSubmission } from "@/lib/access";
 import {
   AI_RERUNNABLE_STATUSES,
+  parseAssignmentKind,
   STALE_GRADING_CLAIM_MS,
   type Confidence,
   type GraderKind,
@@ -10,8 +11,9 @@ import {
 } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { getGrader } from "@/lib/grading";
-import type { GradingInput, ValidatedGrading } from "@/lib/grading/types";
+import type { Grader, GradingInput, ValidatedGrading } from "@/lib/grading/types";
 import { GradingError, validateGrading } from "@/lib/grading/validate";
+import { gradeTestAnswers } from "@/lib/scan/finalize";
 
 export { GradingError } from "@/lib/grading/validate";
 
@@ -24,6 +26,11 @@ export { GradingError } from "@/lib/grading/validate";
  * suggestion together with the teacher's draft edits, including the draft
  * overall note. It never touches the published gradebook: publishing happens
  * only through an explicit teacher approval in lib/grades/publish.ts.
+ *
+ * The grading path follows the assignment kind, not the entry point: typed
+ * essays get the essay grader, and typed answers on a handwritten test (TEST)
+ * get the test path (answer-key matching in demo mode, validated like a
+ * scanned test), so a correct short answer is never judged as a short essay.
  */
 
 export type RunResult = {
@@ -101,6 +108,12 @@ function demoPause(paper: string): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Grade and validate one paper on the path its assignment kind needs. */
+async function gradeForKind(test: boolean, grader: Grader, input: GradingInput): Promise<ValidatedGrading> {
+  if (test) return gradeTestAnswers(grader, input);
+  return validateGrading(await grader.grade(input), input);
+}
+
 async function saveGrading(
   submissionId: string,
   grader: { kind: GraderKind; model: string | null },
@@ -176,11 +189,11 @@ export async function runAiFirstPass(teacherId: string, submissionId: string): P
       paper: current.content,
     };
 
-    const [raw] = await Promise.all([
-      grader.grade(input),
+    const test = parseAssignmentKind(assignment.kind) === "TEST";
+    [result] = await Promise.all([
+      gradeForKind(test, grader, input),
       grader.kind === "demo" ? demoPause(input.paper) : Promise.resolve(),
     ]);
-    result = validateGrading(raw, input);
     await saveGrading(submission.id, grader, result);
   } catch (error) {
     if (error instanceof GradingConflictError) throw error;

@@ -6,7 +6,7 @@ import { PhotoPages } from "@/components/review/photo-pages";
 import { Avatar } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDate, formatDateTime, formatRelative, pluralize } from "@/lib/format";
-import { hasPagePhotos, isScanned, transcriptionCaption } from "@/lib/review/media";
+import { hasPagePhotos, isScanned, paperNounFor, transcriptionCaption } from "@/lib/review/media";
 import {
   flaggedDomId,
   markDomId,
@@ -51,8 +51,8 @@ export function PaperPane({
   const previousReturn = item.previousReturn;
   const scanned = isScanned(item);
   const photos = hasPagePhotos(item);
-  const paperNoun = scanned ? "transcription" : "paper";
-  const caption = scanned ? transcriptionCaption(item.ai?.grader) : null;
+  const paperNoun = paperNounFor(item);
+  const caption = scanned ? transcriptionCaption(item) : null;
 
   const renderInline = (segment: InlineSegment, key: number) =>
     segment.kind === "text" ? (
@@ -95,8 +95,10 @@ export function PaperPane({
         >
           {caption.tone === "demo" ? (
             <FlaskConical className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-          ) : (
+          ) : caption.tone === "ai" ? (
             <Sparkles className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+          ) : (
+            <ScrollText className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           )}
           {caption.text}
         </p>

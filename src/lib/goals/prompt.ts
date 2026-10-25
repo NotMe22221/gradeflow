@@ -25,10 +25,18 @@ export const GOAL_SYSTEM_PROMPT = [
   "Use plain, friendly language. No markdown.",
 ].join("\n");
 
-/** Structured output. Every field is required (nullable instead of optional) for strict mode. */
+/** What target_letter may be: one of the planner's letters, PASS, or null. */
+export const GOAL_LETTER_VALUES = [...LETTER_TARGETS, "PASS"] as const;
+
+/**
+ * Structured output. Every field is required (nullable instead of optional)
+ * for strict mode. target_letter is an enum, so strict mode can only return
+ * a letter the planner's scale knows, PASS, or null: never a variant like
+ * "A/A+" that would be silently dropped.
+ */
 export const GoalExtractionSchema = z.object({
   class_id: z.string().nullable(),
-  target_letter: z.string().nullable(),
+  target_letter: z.enum(GOAL_LETTER_VALUES).nullable(),
   target_percent: z.number().nullable(),
   interpretation: z.string(),
   coaching_tip: z.string(),

@@ -2,7 +2,7 @@ import "server-only";
 
 import { zodResponseFormat } from "openai/helpers/zod";
 
-import { getOpenAI, modelFor, openAiConfigured } from "@/lib/ai/openai";
+import { getOpenAI, modelFor, openAiConfigured, openAiRequestOptions } from "@/lib/ai/openai";
 import { buildDemoBrief } from "@/lib/briefs/demo";
 import { BRIEF_SYSTEM_PROMPT, buildBriefUserPrompt } from "@/lib/briefs/prompt";
 import type { BriefEngine, BriefInput, ConferenceBrief } from "@/lib/briefs/types";
@@ -39,7 +39,7 @@ async function draftWithOpenAI(input: BriefInput): Promise<GeneratedBrief> {
       { role: "user", content: buildBriefUserPrompt(input) },
     ],
     response_format: zodResponseFormat(BriefOutputSchema, "conference_brief"),
-  });
+  }, openAiRequestOptions("text"));
 
   const message = completion.choices[0]?.message;
   if (message?.refusal) throw new BriefError("OpenAI declined to draft this brief. Try again.", 502);

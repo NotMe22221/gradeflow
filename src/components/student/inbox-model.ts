@@ -2,7 +2,7 @@
 // client components and unit tests. Only published scores ever appear here.
 
 import type { AssignmentKind } from "@/lib/constants";
-import { formatDate, formatPercent, formatScore } from "@/lib/format";
+import { formatDate, formatPercent, formatScore, pluralize } from "@/lib/format";
 import type { StudentAssignmentState } from "@/components/student/student-status";
 
 export type InboxTab = "todo" | "submitted" | "graded";
@@ -25,8 +25,10 @@ export type InboxAssignment = {
   dueDate: string | null;
   submittedAt: string | null;
   publishedAt: string | null;
-  /** Not turned in (or sent back) and the due day has ended. */
+  /** Not turned in (or sent back), the due day has ended, and the student can still submit it. Never a paper test. */
   pastDue: boolean;
+  /** A paper test whose test day has ended and that the teacher hasn't scanned yet: waiting on the teacher. */
+  awaitingScan: boolean;
   state: StudentAssignmentState;
   /** Only present once a grade is published. */
   score: { total: number; max: number } | null;
@@ -35,15 +37,20 @@ export type InboxAssignment = {
   criteria: InboxCriterion[];
 };
 
-export function tabFor(state: StudentAssignmentState): InboxTab {
-  if (state === "graded") return "graded";
-  if (state === "submitted") return "submitted";
+/**
+ * Which tab a row belongs to. A paper test the teacher hasn't scanned yet
+ * sits with "Submitted" once its test day has passed: the student handed it
+ * in on paper, and it's waiting on the teacher, not on them.
+ */
+export function tabFor(row: Pick<InboxAssignment, "state" | "awaitingScan">): InboxTab {
+  if (row.state === "graded") return "graded";
+  if (row.state === "submitted" || row.awaitingScan) return "submitted";
   return "todo";
 }
 
 export function inboxCounts(rows: readonly InboxAssignment[]): Record<InboxTab, number> {
   const counts: Record<InboxTab, number> = { todo: 0, submitted: 0, graded: 0 };
-  for (const row of rows) counts[tabFor(row.state)]++;
+  for (const row of rows) counts[tabFor(row)]++;
   return counts;
 }
 
@@ -55,11 +62,12 @@ function time(value: string | null, fallback: number): number {
 
 /**
  * Rows for one tab, most useful first. To do: papers sent back, then by due
- * date (overdue first, no due date last). Submitted: newest submission first.
- * Graded: newest grade first.
+ * date (overdue first, no due date last). Submitted: newest submission (or
+ * test day, for a paper test waiting for its scan) first. Graded: newest
+ * grade first.
  */
 export function rowsForTab(rows: readonly InboxAssignment[], tab: InboxTab): InboxAssignment[] {
-  const inTab = rows.filter((row) => tabFor(row.state) === tab);
+  const inTab = rows.filter((row) => tabFor(row) === tab);
   const byTitle = (a: InboxAssignment, b: InboxAssignment) => a.title.localeCompare(b.title);
   if (tab === "todo") {
     return inTab.sort(
@@ -70,7 +78,8 @@ export function rowsForTab(rows: readonly InboxAssignment[], tab: InboxTab): Inb
     );
   }
   if (tab === "submitted") {
-    return inTab.sort((a, b) => time(b.submittedAt, 0) - time(a.submittedAt, 0) || byTitle(a, b));
+    const handedIn = (row: InboxAssignment) => time(row.submittedAt ?? (row.awaitingScan ? row.dueDate : null), 0);
+    return inTab.sort((a, b) => handedIn(b) - handedIn(a) || byTitle(a, b));
   }
   return inTab.sort((a, b) => time(b.publishedAt, 0) - time(a.publishedAt, 0) || byTitle(a, b));
 }
@@ -81,7 +90,9 @@ export function defaultInboxTab(rows: readonly InboxAssignment[]): InboxTab {
   return INBOX_TABS.find((tab) => counts[tab.value] > 0)?.value ?? "todo";
 }
 
-export function dueLabel(row: Pick<InboxAssignment, "dueDate">): string {
+/** "Due Oct 24". A paper test has a test day instead: "Test day Oct 24". */
+export function dueLabel(row: Pick<InboxAssignment, "dueDate" | "kind">): string {
+  if (row.kind === "TEST") return row.dueDate ? `Test day ${formatDate(row.dueDate)}` : "No test date";
   return row.dueDate ? `Due ${formatDate(row.dueDate)}` : "No due date";
 }
 
@@ -93,14 +104,58 @@ export function statusSummary(row: InboxAssignment): string {
         ? `Graded ${formatScore(row.score.total, row.score.max)} (${formatPercent(row.score.total, row.score.max)}). Your teacher's feedback is ready.`
         : "Graded. Your teacher's feedback is ready.";
     case "submitted":
+      // A paper test reaches "submitted" when the teacher scans (or types in) the student's paper.
+      if (row.kind === "TEST") {
+        return row.submittedAt
+          ? `Your teacher added your test on ${formatDate(row.submittedAt)} and is reviewing it.`
+          : "Your teacher added your test and is reviewing it.";
+      }
       return row.submittedAt
         ? `Submitted ${formatDate(row.submittedAt)}. Your teacher is reviewing it.`
         : "Submitted. Your teacher is reviewing it.";
     case "returned":
+      if (row.kind === "TEST") return "Your teacher sent this back with a note and will rescan it.";
       return "Your teacher sent this back with a note. Revise it and resubmit.";
     case "not_submitted":
-      if (row.kind === "TEST") return "A paper test. Your teacher scans it after class, so there's nothing to upload.";
+      if (row.kind === "TEST") {
+        return row.awaitingScan
+          ? `The test was on ${formatDate(row.dueDate)}. Your teacher scans the papers, and your grade appears here once it's approved.`
+          : "A paper test. You take it in class and your teacher scans it, so there's nothing to upload.";
+      }
       if (row.pastDue) return `Overdue since ${formatDate(row.dueDate)}. Submit it as soon as you can.`;
       return row.dueDate ? `Not submitted yet. Due ${formatDate(row.dueDate)}.` : "Not submitted yet.";
   }
+}
+
+/** "a", "a and b", "a, b, and c". */
+function joinList(parts: string[]): string {
+  if (parts.length <= 2) return parts.join(" and ");
+  return `${parts.slice(0, -1).join(", ")}, and ${parts[parts.length - 1]}`;
+}
+
+/**
+ * The dashboard's one-line summary. It names everything in the To do tab,
+ * so the summary and the tab count always agree. Paper tests are counted on
+ * their own: the student never submits or revises one.
+ */
+export function inboxSummary(rows: readonly InboxAssignment[]): string {
+  const count = (keep: (row: InboxAssignment) => boolean) => rows.filter(keep).length;
+  const isTest = (row: InboxAssignment) => row.kind === "TEST";
+  const toSubmit = count((row) => row.state === "not_submitted" && !isTest(row));
+  const toRevise = count((row) => row.state === "returned" && !isTest(row));
+  const testsSentBack = count((row) => row.state === "returned" && isTest(row));
+  const upcomingTests = count((row) => row.state === "not_submitted" && isTest(row) && !row.awaitingScan);
+  // Papers with the teacher, including paper tests taken in class and not scanned yet.
+  const waiting = count((row) => tabFor(row) === "submitted");
+
+  const todo = [
+    toSubmit > 0 ? `${pluralize(toSubmit, "assignment")} to submit` : null,
+    toRevise > 0 ? `${pluralize(toRevise, "paper")} to revise` : null,
+    testsSentBack > 0 ? `${pluralize(testsSentBack, "test")} your teacher sent back` : null,
+    upcomingTests > 0 ? `${pluralize(upcomingTests, "paper test")} coming up` : null,
+  ].filter((part): part is string => part !== null);
+
+  if (todo.length > 0) return `You have ${joinList(todo)}.`;
+  if (waiting > 0) return "You're all caught up. Grades appear here once your teacher approves them.";
+  return "You're all caught up.";
 }

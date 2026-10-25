@@ -7,28 +7,38 @@ import { cn } from "@/lib/utils";
 
 type Step = { label: string; detail?: string; state: "done" | "current" | "upcoming" };
 
+type SubmittedCardProps =
+  | {
+      /** A paper the student typed or uploaded: they can reread it while they wait. */
+      variant?: "typed";
+      submittedAt: Date;
+      /** Set when this is a resubmission after a send-back. */
+      returnedAt?: Date | null;
+      content: string;
+      fileName?: string | null;
+    }
+  | {
+      /**
+       * A paper the teacher scanned. Its transcription is an unreviewed AI
+       * reading, so it is not shown until the grade is approved.
+       */
+      variant: "scanned";
+      /** When the teacher scanned it. */
+      submittedAt: Date;
+    };
+
 /**
  * Shown for every in-progress status. The student sees one calm "your teacher
  * is reviewing it" state; whether the AI pass has run is not their concern.
  */
-export function SubmittedCard({
-  submittedAt,
-  returnedAt,
-  content,
-  fileName,
-  contentLabel,
-}: {
-  submittedAt: Date;
-  /** Set when this is a resubmission after a send-back. */
-  returnedAt?: Date | null;
-  content: string;
-  fileName?: string | null;
-  /** Label for the paper disclosure, e.g. for a transcribed paper test. */
-  contentLabel?: string;
-}) {
-  const resubmitted = !!returnedAt && submittedAt.getTime() > returnedAt.getTime();
+export function SubmittedCard(props: SubmittedCardProps) {
+  const { submittedAt } = props;
+  const scanned = props.variant === "scanned";
+  const resubmitted =
+    !scanned && !!props.returnedAt && submittedAt.getTime() > props.returnedAt.getTime();
+  const doneLabel = scanned ? "Scanned" : resubmitted ? "Resubmitted" : "Submitted";
   const steps: Step[] = [
-    { label: resubmitted ? "Resubmitted" : "Submitted", detail: formatDate(submittedAt), state: "done" },
+    { label: doneLabel, detail: formatDate(submittedAt), state: "done" },
     { label: "Teacher review", detail: "In progress", state: "current" },
     { label: "Grade published", state: "upcoming" },
   ];
@@ -38,10 +48,12 @@ export function SubmittedCard({
       <div className="space-y-6 p-6">
         <div className="space-y-1.5">
           <h2 className="text-base font-semibold tracking-tight text-foreground">
-            {resubmitted ? "Resubmitted" : "Submitted"} {formatDate(submittedAt)}
+            {doneLabel} {formatDate(submittedAt)}
           </h2>
           <p className="max-w-prose text-sm text-pretty text-muted-foreground">
-            Your teacher is reviewing it. Your grade will appear here once your teacher approves it.
+            {scanned
+              ? "Your teacher scanned your paper and is reviewing it. You'll see your paper here with your grade once it's approved."
+              : "Your teacher is reviewing it. Your grade will appear here once your teacher approves it."}
           </p>
         </div>
 
@@ -98,7 +110,7 @@ export function SubmittedCard({
           ))}
         </ol>
       </div>
-      <SubmissionText content={content} fileName={fileName} label={contentLabel} />
+      {props.variant === "scanned" ? null : <SubmissionText content={props.content} fileName={props.fileName} />}
     </Card>
   );
 }

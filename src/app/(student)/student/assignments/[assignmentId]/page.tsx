@@ -9,7 +9,7 @@ import { AssignmentRubric } from "@/components/student/assignment-rubric";
 import { GradeCard } from "@/components/student/grade-card";
 import { ReturnedNotice } from "@/components/student/returned-notice";
 import { StudentStateBadge } from "@/components/student/student-state-badge";
-import { isPastDue, studentStateFor } from "@/components/student/student-status";
+import { isAwaitingScan, isPastDue, studentStateFor } from "@/components/student/student-status";
 import { SubmitPaperForm } from "@/components/student/submit-paper-form";
 import { SubmittedCard } from "@/components/student/submitted-card";
 import { Card } from "@/components/ui/card";
@@ -76,12 +76,16 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
 
   const published = submission?.publishedGrade ?? null;
   const state = studentStateFor(submission?.status, published !== null);
+  const now = new Date();
   // A paper test is taken in class and scanned by the teacher: there is no
-  // upload, and its criteria descriptions are the answer key (never shown).
+  // upload, it is never past due, and its criteria descriptions are the
+  // answer key (never shown).
   const isTest = parseAssignmentKind(assignment.kind) === "TEST";
-  const contentLabel = submission?.source === "SCAN" ? "Transcription of your paper" : undefined;
+  const scanned = submission?.source === "SCAN";
+  const contentLabel = scanned ? "Transcription of your paper" : undefined;
   const totalPoints = assignment.criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0);
-  const pastDue = state === "not_submitted" && isPastDue(assignment.dueDate, new Date());
+  const pastDue = !isTest && state === "not_submitted" && isPastDue(assignment.dueDate, now);
+  const awaitingScan = isAwaitingScan(assignment.kind, state, assignment.dueDate, now);
   const classLabel = [assignment.class.name, assignment.class.section].filter(Boolean).join(" · ");
   // Once a paper is in, its state (grade, progress, or send-back note) is what
   // the student came for: it goes first, and the instructions fold away below.
@@ -150,7 +154,13 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
           <>
             <span className="tabular inline-flex items-center gap-1.5">
               <CalendarDays className="size-3.5" aria-hidden />
-              {assignment.dueDate ? `Due ${formatDate(assignment.dueDate)}` : "No due date"}
+              {isTest
+                ? assignment.dueDate
+                  ? `Test day ${formatDate(assignment.dueDate)}`
+                  : "No test date"
+                : assignment.dueDate
+                  ? `Due ${formatDate(assignment.dueDate)}`
+                  : "No due date"}
             </span>
             {pastDue ? <span className="font-medium text-danger-soft-foreground"> · Past due</span> : null}
             {totalPoints > 0 ? <span className="tabular"> · {pluralize(totalPoints, "point")}</span> : null}
@@ -158,7 +168,7 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
         }
         actions={
           <div className="flex items-center gap-2">
-            <StudentStateBadge state={state} />
+            <StudentStateBadge state={state} paperTest={isTest} awaitingScan={awaitingScan} />
             {published ? (
               <span className="tabular text-sm font-semibold text-foreground">
                 <span className="sr-only">Score: </span>
@@ -188,14 +198,18 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
               content={submission.content}
               fileName={submission.fileName}
               contentLabel={contentLabel}
+              kind={isTest ? "TEST" : "ESSAY"}
             />
+          ) : state === "submitted" && submission && scanned ? (
+            // A scan's transcription is an unreviewed AI reading: the student
+            // sees it only with the approved grade.
+            <SubmittedCard variant="scanned" submittedAt={submission.submittedAt} />
           ) : state === "submitted" && submission ? (
             <SubmittedCard
               submittedAt={submission.submittedAt}
               returnedAt={submission.returnedAt}
               content={submission.content}
               fileName={submission.fileName}
-              contentLabel={contentLabel}
             />
           ) : state === "returned" && submission && isTest ? (
             <>
@@ -227,7 +241,11 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
               </Card>
             </>
           ) : isTest ? (
-            <PaperTestCard teacherName={teacher?.name ?? null} />
+            <PaperTestCard
+              teacherName={teacher?.name ?? null}
+              testDay={assignment.dueDate}
+              awaitingScan={awaitingScan}
+            />
           ) : (
             <Card className="p-5 sm:p-6">
               <div className="mb-6 space-y-1.5">
@@ -249,8 +267,21 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
   );
 }
 
-/** Paper tests are taken in class; the teacher scans them, so there is nothing to upload. */
-function PaperTestCard({ teacherName }: { teacherName: string | null }) {
+/**
+ * Paper tests are taken in class; the teacher scans them, so there is nothing
+ * to upload. Once the test day has passed without a scan, it's waiting on the
+ * teacher, never overdue.
+ */
+function PaperTestCard({
+  teacherName,
+  testDay = null,
+  awaitingScan = false,
+}: {
+  teacherName: string | null;
+  testDay?: Date | null;
+  awaitingScan?: boolean;
+}) {
+  const teacher = teacherName ?? "Your teacher";
   return (
     <Card className="p-5 sm:p-6">
       <div className="flex gap-4">
@@ -258,10 +289,21 @@ function PaperTestCard({ teacherName }: { teacherName: string | null }) {
           <ClipboardList className="size-4" aria-hidden />
         </span>
         <div className="min-w-0 space-y-1.5">
-          <h2 className="text-base font-semibold tracking-tight text-foreground">This is a paper test</h2>
+          <h2 className="text-base font-semibold tracking-tight text-foreground">
+            {awaitingScan ? "Waiting for your teacher to scan it" : "This is a paper test"}
+          </h2>
           <p className="max-w-prose text-sm text-pretty text-muted-foreground">
-            You take it in class on paper. {teacherName ?? "Your teacher"} scans it afterward, and your grade appears
-            here once it&apos;s approved. There&apos;s nothing to upload.
+            {awaitingScan ? (
+              <>
+                The test was on <span className="tabular">{formatDate(testDay)}</span>. {teacher} scans the papers,
+                and your grade appears here once it&apos;s approved. There&apos;s nothing to upload.
+              </>
+            ) : (
+              <>
+                You take it in class on paper. {teacher} scans it afterward, and your grade appears here once
+                it&apos;s approved. There&apos;s nothing to upload.
+              </>
+            )}
           </p>
         </div>
       </div>

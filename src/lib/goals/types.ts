@@ -33,6 +33,10 @@ export type GoalPlanTaskView = {
   pastDue: boolean;
   /** Turned in, waiting on the teacher. */
   submitted: boolean;
+  /** A paper test (it has a test day, not a due date). */
+  paperTest: boolean;
+  /** A paper test waiting for the teacher to scan it. */
+  awaitingScan: boolean;
 };
 
 /** The plan as the UI renders it. Every number here was computed in code. */

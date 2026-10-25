@@ -26,11 +26,14 @@ export const BRIEF_SYSTEM_PROMPT = [
 
 /**
  * The data as JSON. "<" and ">" are escaped (still valid JSON), so nothing in
- * a teacher comment or title can close the <student_data> block early.
+ * a teacher comment or title can close the <student_data> block early. Only
+ * the student's first name is sent; no email or full name leaves the server.
  */
 export function serializeBriefData(input: BriefInput): string {
   const data = {
-    student: input.student.name,
+    // First name only: the brief needs nothing more, and the full name stays on
+    // the server (the brief header gets it from the page, never from the model).
+    student: input.student.firstName || "the student",
     class: [input.class.name, input.class.section].filter(Boolean).join(" · "),
     subject: input.class.subject,
     approved_grades: input.grades.map((grade) => ({

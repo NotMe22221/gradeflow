@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getOwnedAssignment } from "@/lib/access";
 import { modelFor, openAiConfigured } from "@/lib/ai/openai";
 import { AuthError } from "@/lib/auth/session";
-import type { SubmissionStatus } from "@/lib/constants";
+import { parseAssignmentKind, type SubmissionStatus } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { describeFlag, serializeFlags, type FlagCriterion } from "@/lib/grading/flags";
 import type { GradingInput, RawGradingResult, ValidatedGrading } from "@/lib/grading/types";
@@ -17,6 +17,7 @@ import type { CheckedImage } from "@/lib/scan/form";
 import { findSampleTestByHash } from "@/lib/scan/samples";
 import {
   NEEDS_TRANSCRIPTION_MESSAGE,
+  NOT_A_TEST_MESSAGE,
   TRANSCRIPTION_PREVIEW_LINES,
   type ScanErrorCode,
   type ScanGrader,
@@ -26,6 +27,7 @@ import {
 import { gradeWithVision, VisionGradingError } from "@/lib/scan/vision";
 import type { Legibility, MappedVisionOutput } from "@/lib/scan/vision-prompt";
 import { TEACHER_REPLACEABLE_STATUSES } from "@/lib/submissions";
+import { demoScanModel } from "@/lib/review/media";
 
 /**
  * The camera grader pipeline behind POST /api/grade:
@@ -148,7 +150,8 @@ async function readWithDemo(input: Omit<GradingInput, "paper">, request: ScanReq
   }
   const raw = gradeScanWithDemo({ ...input, paper: transcription });
   await demoPause(transcription);
-  return { raw, transcription, legibility: "clear", grader: "demo", model: null, source };
+  // Stored as AiGrade.model so the review queue can say where the text came from.
+  return { raw, transcription, legibility: "clear", grader: "demo", model: demoScanModel(source), source };
 }
 
 async function saveScan(args: {
@@ -237,6 +240,11 @@ async function saveScan(args: {
 export async function gradeScannedTest(teacherId: string, request: ScanRequest): Promise<ScanGradeSuccess> {
   // Ownership first: a teacher can only scan into their own classes.
   const assignment = await getOwnedAssignment(teacherId, request.assignmentId);
+  // The scanner grades answers against an answer key. Essays need the essay
+  // grader, so they are added as typed papers on the assignment page.
+  if (parseAssignmentKind(assignment.kind) !== "TEST") {
+    throw new ScanError(NOT_A_TEST_MESSAGE, 422);
+  }
   if (assignment.criteria.length === 0) {
     throw new ScanError("Add the answer key questions to this assignment before scanning tests.", 422);
   }
@@ -305,7 +313,8 @@ export async function gradeScannedTest(teacherId: string, request: ScanRequest):
     submissionId,
     status: "NEEDS_REVIEW",
     grader: read.grader,
-    model: read.model,
+    // The API contract reports no model for demo output.
+    model: read.grader === "demo" ? null : read.model,
     confidence: result.confidence,
     flagCount: result.flags.length,
     assignmentId: assignment.id,

@@ -184,7 +184,7 @@ API key through a labelled local demo implementation.
 | AI Paper-Grading Camera | teacher | `gpt-4o` (vision) | `POST /api/grade`, page `/scan` |
 | Answer-key import from a photo | teacher | `gpt-4o` (vision) | `POST /api/answer-key`, rubric builder |
 | Conference Brief Generator | teacher | `gpt-4o-mini` | `POST /api/conference-brief`, `/classes/[classId]/students/[studentId]` |
-| Class Heatmap | teacher | none (aggregation) | `/insights?class=<id>`, dashboard card |
+| Class Heatmap | teacher | none (aggregation) | `/insights?class=<id>`, dashboard "Teaching tools" and "Most missed" cards |
 | AI Goal-Seeking Planner | student | `gpt-4o-mini` parses the goal; the math is code | `POST /api/goal-planner`, `/student` |
 | Gamified UI + Assignment Inbox | student | none | `/student` |
 
@@ -209,6 +209,15 @@ server only (`.env.local`), never logged, never sent to the client.
 - Conference briefs and heatmaps read only teacher-approved `PublishedGrade`
   data. Briefs are labelled as AI drafts to review before sharing.
 - XP and streaks (`StudyActivity`) are engagement only and never touch grades.
+  Streaks count only the student's own actions (`streakDates()`): a teacher
+  publishing a grade earns XP but does not keep a streak alive. Calendar days
+  use the server's time zone.
+- Every request body is read with a hard byte limit (`src/lib/http/body.ts`),
+  and live OpenAI calls are rate-limited per user (`src/lib/http/rate-limit.ts`)
+  with bounded timeouts (`OPENAI_BUDGETS`). The routes' `maxDuration` is
+  longer than those deadlines.
+- Paper tests that the teacher has not scanned yet are never shown as overdue
+  to students or as missing on the teacher's student profile.
 
 ### `POST /api/grade` (teacher, multipart/form-data)
 
@@ -221,7 +230,16 @@ optional `transcription` (demo mode only: what is written on an unknown photo).
 Errors `{ ok: false, error, code? }`: `400` invalid input (`code:
 "NEEDS_TRANSCRIPTION"` when the demo scanner cannot read an unknown photo),
 `401/403/404`, `409` when the student's paper is published, approved, or being
-graded, `502` when OpenAI fails (nothing is stored).
+graded, `413` request too large, `422` when the assignment is not a
+handwritten test or has no questions (or no handwriting was found), `429` when
+the per-user AI budget is used up (live mode only, with `Retry-After`), `502`
+when OpenAI fails (nothing is stored).
+
+The scanner only accepts `TEST` assignments. Typed answers added to a `TEST`
+assignment are graded on the same test path (answer-key matching), not as an
+essay. Demo scans store `AiGrade.model` as `demo-sample` or `demo-typed` so the
+review queue can say where the transcription came from; the API reports
+`model: null` for demo output.
 
 Pipeline: auth + ownership → image checks → vision (or demo) → validation →
 one transaction that upserts the submission (`source: "SCAN"`, `content` = the
@@ -248,8 +266,10 @@ each, feasibility, and a short coaching note. Saves `StudentGoal` and awards
 
 ### `GET /api/submissions/[submissionId]/images/[imageId]`
 
-Returns the stored photo, only to the teacher who owns the class or the
-student who owns the submission. `Cache-Control: private`, `nosniff`.
+Returns the stored photo to the teacher who owns the class, or to the student
+who owns the submission once its grade is published. Before publish, students
+see neither the photo nor the AI transcription. `Cache-Control: private`,
+`nosniff`.
 
 ### Demo implementations (no `OPENAI_API_KEY`)
 

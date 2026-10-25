@@ -99,9 +99,14 @@ export type RemainingTask = {
   /** Rubric points available. */
   maxScore: number;
   dueDate: Date | string | null;
+  /** The student can still turn it in and its due day has ended (never a paper test). */
   pastDue: boolean;
   /** Turned in and waiting on the teacher (no approved grade yet). */
   submitted?: boolean;
+  /** A paper test, taken in class and scanned by the teacher. */
+  paperTest?: boolean;
+  /** A paper test waiting for the teacher to scan it. */
+  awaitingScan?: boolean;
 };
 
 export type GoalStatus = "secured" | "on_track" | "stretch" | "not_possible" | "no_remaining";
@@ -117,6 +122,8 @@ export type PlannedTask = {
   dueDate: Date | string | null;
   pastDue: boolean;
   submitted: boolean;
+  paperTest: boolean;
+  awaitingScan: boolean;
 };
 
 export type GoalPlan = {
@@ -219,6 +226,8 @@ export function planGoal(input: {
             dueDate: task.dueDate,
             pastDue: task.pastDue,
             submitted: task.submitted ?? false,
+            paperTest: task.paperTest ?? false,
+            awaitingScan: task.awaitingScan ?? false,
           };
         });
 

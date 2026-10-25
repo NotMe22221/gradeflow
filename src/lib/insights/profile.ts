@@ -6,7 +6,9 @@
 // record type has no place for AI suggestions or draft edits. Submission
 // status is used for workflow counts only (in review, missing).
 
-import { computeStreak, levelFor, type LevelProgress, type StreakInfo } from "@/lib/gamification/rules";
+import { isPastDue } from "@/components/student/student-status";
+import type { AssignmentKind } from "@/lib/constants";
+import { computeStreak, levelFor, streakDates, type LevelProgress, type StreakInfo } from "@/lib/gamification/rules";
 import { cellStateFor, type GradebookCellState } from "@/lib/gradebook/types";
 import type { BreakdownItem } from "@/lib/grades/breakdown";
 import { mean, percentOf } from "@/lib/insights/heatmap";
@@ -14,8 +16,8 @@ import { mean, percentOf } from "@/lib/insights/heatmap";
 export type StudentRecord = {
   class: { id: string; name: string; section: string | null; subject: string | null };
   student: { id: string; name: string; email: string };
-  /** The class's assignments, oldest first. */
-  assignments: { id: string; title: string; dueDate: Date | null; maxScore: number }[];
+  /** The class's assignments, oldest first. A TEST is a paper test the teacher scans; students never submit it. */
+  assignments: { id: string; title: string; kind: AssignmentKind; dueDate: Date | null; maxScore: number }[];
   /** This student's submissions in this class. */
   submissions: {
     id: string;
@@ -31,7 +33,7 @@ export type StudentRecord = {
     } | null;
   }[];
   /** StudyActivity rows (engagement only; never part of a grade). */
-  activity: { createdAt: Date; xp: number }[];
+  activity: { createdAt: Date; xp: number; kind: string }[];
 };
 
 export type PublishedGradeSummary = {
@@ -46,7 +48,24 @@ export type PublishedGradeSummary = {
   breakdown: BreakdownItem[];
 };
 
-export type OpenWorkState = "in_review" | "returned" | "missing" | "upcoming" | "not_submitted";
+/**
+ * Where an unpublished assignment stands for this student.
+ * - in_review: an AI draft waiting in the review queue (or being graded).
+ * - ready: submitted, no AI first pass yet (or it failed and can be retried).
+ * - returned: sent back with a note.
+ * - missing: past the end of its due day with no submission (typed papers only).
+ * - awaiting_scan: a paper test with no scan yet. The student can't submit it, so it is never missing.
+ * - upcoming: not submitted, due date still ahead (or today).
+ * - not_submitted: not submitted, no due date.
+ */
+export type OpenWorkState =
+  | "in_review"
+  | "ready"
+  | "returned"
+  | "missing"
+  | "awaiting_scan"
+  | "upcoming"
+  | "not_submitted";
 
 export type OpenWorkItem = {
   assignmentId: string;
@@ -70,9 +89,11 @@ export type StudentProfile = {
     /** Mean percent of approved totals (each assignment weighted equally). */
     averagePercent: number | null;
     publishedCount: number;
-    /** Submitted and waiting on the teacher (AI pass, review, or approval). */
+    /** AI drafts waiting in the review queue for the teacher's approval. */
     inReviewCount: number;
-    /** No submission and the due date has passed. */
+    /** Submitted, waiting on an AI first pass (matches "Ready for AI pass" elsewhere). */
+    readyCount: number;
+    /** No submission and the due day has ended. Never counts a paper test the teacher has not scanned. */
     missingCount: number;
     returnedCount: number;
   };
@@ -145,21 +166,37 @@ const OPEN_WORK_ORDER: Record<OpenWorkState, number> = {
   missing: 0,
   returned: 1,
   in_review: 2,
-  upcoming: 3,
-  not_submitted: 4,
+  ready: 3,
+  awaiting_scan: 4,
+  upcoming: 5,
+  not_submitted: 6,
 };
 
-function openStateFor(state: GradebookCellState, dueDate: Date | null, now: Date): OpenWorkState | null {
+/**
+ * Due dates are calendar dates (stored at noon UTC), so work is missing only
+ * after the whole due day has passed: the same isPastDue() rule the student
+ * views use. A paper test has nothing to submit: until the teacher scans it,
+ * it waits on the teacher, not the student.
+ */
+export function openStateFor(
+  state: GradebookCellState,
+  dueDate: Date | null,
+  now: Date,
+  kind: AssignmentKind = "ESSAY"
+): OpenWorkState | null {
   switch (state) {
     case "published":
       return null;
     case "returned":
       return "returned";
     case "missing":
-      if (!dueDate) return "not_submitted";
-      return dueDate.getTime() < now.getTime() ? "missing" : "upcoming";
+      if (dueDate && !isPastDue(dueDate, now)) return "upcoming";
+      if (kind === "TEST") return "awaiting_scan";
+      return dueDate ? "missing" : "not_submitted";
+    case "ready":
+      return "ready";
     default:
-      // in_review, ready (no AI pass yet), grading: submitted, waiting on the teacher.
+      // in_review and grading: an AI draft is waiting for (or about to reach) the review queue.
       return "in_review";
   }
 }
@@ -188,7 +225,7 @@ export function buildStudentProfile(record: StudentRecord, now: Date = new Date(
       continue;
     }
     const state = cellStateFor(submission?.status ?? null, false, submission?.updatedAt, now.getTime());
-    const open = openStateFor(state, assignment.dueDate, now);
+    const open = openStateFor(state, assignment.dueDate, now, assignment.kind);
     if (open) {
       openWork.push({
         assignmentId: assignment.id,
@@ -218,6 +255,7 @@ export function buildStudentProfile(record: StudentRecord, now: Date = new Date(
       averagePercent: mean(percents),
       publishedCount: grades.length,
       inReviewCount: openWork.filter((item) => item.state === "in_review").length,
+      readyCount: openWork.filter((item) => item.state === "ready").length,
       missingCount: openWork.filter((item) => item.state === "missing").length,
       returnedCount: openWork.filter((item) => item.state === "returned").length,
     },
@@ -226,10 +264,8 @@ export function buildStudentProfile(record: StudentRecord, now: Date = new Date(
     strengths,
     growthAreas,
     engagement: {
-      streak: computeStreak(
-        record.activity.map((row) => row.createdAt),
-        now
-      ),
+      // The student's own actions only: a grade the teacher publishes is not a study day.
+      streak: computeStreak(streakDates(record.activity), now),
       level: levelFor(totalXp),
     },
   };

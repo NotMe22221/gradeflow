@@ -5,7 +5,7 @@
 
 import { isConfidence, type Confidence } from "@/lib/constants";
 import { formatPoints, pluralize, wordCount } from "@/lib/format";
-import { cleanEvidence, findEvidenceSpan } from "@/lib/grading/evidence";
+import { cleanEvidence, findEvidenceSpan, type EvidenceLocator } from "@/lib/grading/evidence";
 import { detectPromptInjection } from "@/lib/grading/injection";
 import type {
   GradingInput,
@@ -95,7 +95,8 @@ function validateEvidence(
   value: unknown,
   criterion: RubricCriterionInput,
   paper: string,
-  flags: ValidationFlag[]
+  flags: ValidationFlag[],
+  locate: EvidenceLocator
 ): { evidence: string | null; evidenceFound: boolean } {
   const cleaned = capQuote(cleanEvidence(asString(value)), MAX_EVIDENCE_CHARS);
   if (!cleaned) {
@@ -106,7 +107,7 @@ function validateEvidence(
     });
     return { evidence: null, evidenceFound: false };
   }
-  const evidenceFound = findEvidenceSpan(paper, cleaned) !== null;
+  const evidenceFound = locate(paper, cleaned) !== null;
   if (!evidenceFound) {
     // Keep the text so the teacher can see what was claimed.
     flags.push({
@@ -118,7 +119,16 @@ function validateEvidence(
   return { evidence: cleaned, evidenceFound };
 }
 
-export function validateGrading(raw: RawGradingResult, input: GradingInput): ValidatedGrading {
+/**
+ * Validate raw grader output against the rubric and the paper. `locate`
+ * decides whether a quote appears in the paper: verbatim by default; tests
+ * also accept a short answer that is a whole answer line (findTestEvidenceSpan).
+ */
+export function validateGrading(
+  raw: RawGradingResult,
+  input: GradingInput,
+  locate: EvidenceLocator = findEvidenceSpan
+): ValidatedGrading {
   const paperFlags: ValidationFlag[] = [];
   const criterionFlags: ValidationFlag[] = [];
   const trailingFlags: ValidationFlag[] = [];
@@ -182,7 +192,7 @@ export function validateGrading(raw: RawGradingResult, input: GradingInput): Val
     }
     const aiScore = validateScore(result.score, criterion, criterionFlags);
     const justification = capText(asString(result.justification), MAX_JUSTIFICATION_CHARS);
-    const { evidence, evidenceFound } = validateEvidence(result.evidence, criterion, input.paper, criterionFlags);
+    const { evidence, evidenceFound } = validateEvidence(result.evidence, criterion, input.paper, criterionFlags, locate);
     return { criterionId: criterion.id, aiScore, justification, evidence, evidenceFound };
   });
 

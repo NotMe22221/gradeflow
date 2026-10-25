@@ -13,9 +13,11 @@ function notFound() {
 }
 
 /**
- * A stored photo of a scanned test. Only the teacher who owns the class, or
- * the student who owns the submission, can see it. Anything else is a 404,
- * so the response never confirms that a photo exists.
+ * A stored photo of a scanned test. The teacher who owns the class can always
+ * see it. The student who owns the submission sees it only once the teacher
+ * has published the grade, together with the rest of the graded paper, so a
+ * scan filed under the wrong student never reaches anyone before review.
+ * Anything else is a 404, so the response never confirms that a photo exists.
  */
 export async function GET(
   _request: Request,
@@ -35,7 +37,7 @@ export async function GET(
       await getOwnedSubmission(user.id, submissionId.data);
     } else {
       const own = await db.submission.findFirst({
-        where: { id: submissionId.data, studentId: user.id },
+        where: { id: submissionId.data, studentId: user.id, publishedGrade: { isNot: null } },
         select: { id: true },
       });
       if (!own) return notFound();

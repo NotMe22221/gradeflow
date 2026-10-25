@@ -325,3 +325,26 @@ export function heatCellLabel(studentName: string, criterionTitle: string, perce
   const value = percent === null ? "no approved grade" : formatHeatPercent(percent);
   return `${studentName}, ${criterionTitle}: ${value}`;
 }
+
+export type AverageBandCount = { key: Exclude<HeatBand, "empty">; label: string; count: number };
+
+/**
+ * How many students' averages fall in each heat band (low to high, every band
+ * listed even when empty), plus how many students have no approved grade yet.
+ * Uses heatBand(), so a student whose average reads "80%" counts as 80–89%.
+ */
+export function averageDistribution(rows: readonly Pick<HeatmapRow, "average">[]): {
+  bands: AverageBandCount[];
+  graded: number;
+  ungraded: number;
+} {
+  const counts = new Map<HeatBand, number>();
+  let ungraded = 0;
+  for (const row of rows) {
+    const band = heatBand(row.average);
+    if (band === "empty") ungraded++;
+    else counts.set(band, (counts.get(band) ?? 0) + 1);
+  }
+  const bands = HEAT_BANDS.map((band) => ({ key: band.key, label: band.label, count: counts.get(band.key) ?? 0 }));
+  return { bands, graded: rows.length - ungraded, ungraded };
+}

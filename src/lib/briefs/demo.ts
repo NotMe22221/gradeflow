@@ -15,6 +15,21 @@ function formatDay(day: string): string {
   return Number.isNaN(date.getTime()) ? day : dayFormatter.format(date);
 }
 
+/**
+ * A criterion or question title in curly quotes. Question titles carry their
+ * own punctuation ("Q2. What powers evaporation?"), so the template never
+ * appends a period or colon straight after one.
+ */
+function quoted(title: string): string {
+  return `“${title.trim()}”`;
+}
+
+/** Ends a sentence with a period, unless it already ends in . ? ! or … (also inside a closing quote or bracket). */
+function sentence(text: string): string {
+  const trimmed = text.trim();
+  return /[.?!…][”"’')]*$/.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
 function listTitles(titles: readonly string[]): string {
   if (titles.length <= 1) return titles[0] ?? "";
   if (titles.length === 2) return `${titles[0]} and ${titles[1]}`;
@@ -93,36 +108,45 @@ export function buildDemoBrief(input: BriefInput): ConferenceBrief {
       : `${first} has ${pluralize(count, "approved grade")} in ${className}, averaging ${average}%.`,
   ];
   if (latest) {
+    // The assignment title goes last: titles can end in "?" ("…Adopt a Four-Day Week?").
     summaryParts.push(
-      `The most recent is ${latest.assignment}: ${formatPoints(latest.score)}/${formatPoints(latest.maxScore)}` +
-        `${latest.percent === null ? "" : ` (${latest.percent}%)`}, published ${formatDay(latest.publishedOn)}.`
+      sentence(
+        `The most recent grade, published ${formatDay(latest.publishedOn)}, is ` +
+          `${formatPoints(latest.score)}/${formatPoints(latest.maxScore)}` +
+          `${latest.percent === null ? "" : ` (${latest.percent}%)`} on ${latest.assignment}`
+      )
     );
   }
   if (topStrength && topGrowth) {
-    summaryParts.push(`The strongest area is ${topStrength.title}, and the main area to grow is ${topGrowth.title}.`);
+    summaryParts.push(
+      sentence(`The strongest area is ${quoted(topStrength.title)}, and the main area to grow is ${quoted(topGrowth.title)}`)
+    );
   } else if (topStrength) {
-    summaryParts.push(`The strongest area is ${topStrength.title}.`);
+    summaryParts.push(sentence(`The strongest area is ${quoted(topStrength.title)}`));
   } else if (topGrowth) {
-    summaryParts.push(`The main area to grow is ${topGrowth.title}.`);
+    summaryParts.push(sentence(`The main area to grow is ${quoted(topGrowth.title)}`));
   }
 
-  const strengths = input.strengths.map(
-    (skill) => `${skill.title}: ${skill.percent}% on ${listTitles(skill.assignments)}.`
+  const strengths = input.strengths.map((skill) =>
+    sentence(`${quoted(skill.title)}: ${skill.percent}% on ${listTitles(skill.assignments)}`)
   );
   // Fallbacks never name a criterion that is also listed as a growth area.
   const growthTitles = new Set(input.growthAreas.map((skill) => skill.title.trim().toLowerCase()));
   if (strengths.length === 0 && strongest && !growthTitles.has(strongest.title.trim().toLowerCase())) {
     strengths.push(
-      `${strongest.title}: ${formatPoints(strongest.score)}/${formatPoints(strongest.maxPoints)} on ${strongest.assignment}, the highest criterion score so far.`
+      sentence(
+        `${quoted(strongest.title)} has the highest criterion score so far: ` +
+          `${formatPoints(strongest.score)}/${formatPoints(strongest.maxPoints)} on ${strongest.assignment}`
+      )
     );
   }
   const bestGrade = [...input.grades]
     .filter((grade) => grade.percent !== null)
     .sort((a, b) => (b.percent as number) - (a.percent as number))[0];
   if (strengths.length === 0 && bestGrade) {
+    const earned = `${formatPoints(bestGrade.score)}/${formatPoints(bestGrade.maxScore)} (${bestGrade.percent}%) on ${bestGrade.assignment}`;
     strengths.push(
-      `Earned ${formatPoints(bestGrade.score)}/${formatPoints(bestGrade.maxScore)} (${bestGrade.percent}%) on ${bestGrade.assignment}` +
-        `${input.grades.length > 1 ? ", the highest approved score so far" : ""}.`
+      sentence(input.grades.length > 1 ? `The highest approved score so far is ${earned}` : `Earned ${earned}`)
     );
   }
   if (strengths.length === 0) {
@@ -131,12 +155,13 @@ export function buildDemoBrief(input: BriefInput): ConferenceBrief {
 
   const growthAreas = input.growthAreas.map((skill) => {
     const comment = latestComment(input.grades, skill.title);
-    const base = `${skill.title}: ${skill.percent}% on ${listTitles(skill.assignments)}.`;
+    const base = sentence(`${quoted(skill.title)}: ${skill.percent}% on ${listTitles(skill.assignments)}`);
     return comment ? `${base} Your note: “${clipBriefText(comment, 200)}”` : base;
   });
   if (growthAreas.length === 0 && weakest && weakest.percent < 100) {
     growthAreas.push(
-      `${weakest.title} is the lowest area so far at ${weakest.percent}% on ${weakest.assignment}. Every criterion averages 80% or above, so this is about stretching further.`
+      `${sentence(`${quoted(weakest.title)} is the lowest area so far at ${weakest.percent}% on ${weakest.assignment}`)} ` +
+        "Every criterion averages 80% or above, so this is about stretching further."
     );
   }
   if (growthAreas.length === 0) {
@@ -152,27 +177,31 @@ export function buildDemoBrief(input: BriefInput): ConferenceBrief {
     talkingPoints.push(`${first} averages ${average}% across ${pluralize(count, "approved grade")} in ${className}.`);
   }
   if (latest?.teacherFeedback) {
-    talkingPoints.push(`From your feedback on ${latest.assignment}: “${clipBriefText(latest.teacherFeedback, 220)}”`);
+    talkingPoints.push(`From your feedback (${latest.assignment}): “${clipBriefText(latest.teacherFeedback, 220)}”`);
   }
-  if (topStrength) talkingPoints.push(`Open with a strength: ${topStrength.title} (${topStrength.percent}%).`);
+  if (topStrength) talkingPoints.push(`Open with a strength: ${quoted(topStrength.title)} (${topStrength.percent}%).`);
   if (topGrowth) {
     talkingPoints.push(
-      `Name one focus: ${topGrowth.title} (${topGrowth.percent}%), with an example from ${topGrowth.assignments[0] ?? "a recent assignment"}.`
+      sentence(
+        `Name one focus: ${quoted(topGrowth.title)} (${topGrowth.percent}%), with an example from ` +
+          `${topGrowth.assignments[0] ?? "a recent assignment"}`
+      )
     );
   }
   talkingPoints.push(
     streak > 0
-      ? `${first} is on a ${pluralize(streak, "day")} study streak in GradeSmart AI. This is engagement only, not part of the grade.`
+      ? `${first} is on a ${streak}-day study streak in GradeSmart AI. This is engagement only, not part of the grade.`
       : `${first} has no active study streak in GradeSmart AI right now. This is engagement only, not part of the grade.`
   );
 
   const nextSteps: string[] = [];
   if (topGrowth) {
     const source = topGrowth.assignments[0] ?? "the latest assignment";
+    const focus = sentence(`Focus area: ${quoted(topGrowth.title)}`);
     nextSteps.push(
       nextUp
-        ? `Focus area: ${topGrowth.title}. Before ${nextUp.assignment}${dueSuffix(nextUp.dueOn)}, revisit the rubric comments on ${source}.`
-        : `Focus area: ${topGrowth.title}. Revisit the rubric comments on ${source} and try one improvement on the next assignment.`
+        ? `${focus} ${sentence(`Revisit the rubric comments on ${source} before ${nextUp.assignment}${dueSuffix(nextUp.dueOn)}`)}`
+        : `${focus} Revisit the rubric comments on ${source} and try one improvement on the next assignment.`
     );
   } else if (nextUp) {
     nextSteps.push(`Plan time for ${nextUp.assignment}${dueSuffix(nextUp.dueOn)} and keep the same level of care.`);
@@ -189,7 +218,7 @@ export function buildDemoBrief(input: BriefInput): ConferenceBrief {
     `What does ${first} say about ${className} at home?`,
     `When and where does ${first} usually study or do homework?`,
     topGrowth
-      ? `What would help ${first} practice the skill behind “${topGrowth.title}” at home?`
+      ? `What would help ${first} practice the skill behind ${quoted(topGrowth.title)} at home?`
       : `What kind of challenge would keep ${first} motivated?`,
     `Is there anything you would like me to know about how ${first} is doing this term?`,
   ];

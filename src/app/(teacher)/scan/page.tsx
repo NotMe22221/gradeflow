@@ -57,7 +57,10 @@ export default async function ScanPage({
           orderBy: { student: { name: "asc" } },
           select: { student: { select: { id: true, name: true } } },
         },
+        // The scanner grades against an answer key: handwritten tests only.
+        // Essays are added as typed papers on the assignment page.
         assignments: {
+          where: { kind: "TEST" },
           orderBy: { createdAt: "desc" },
           select: { id: true, title: true, kind: true, criteria: { select: { maxPoints: true } } },
         },
@@ -75,7 +78,7 @@ export default async function ScanPage({
     students: klass.enrollments.map((enrollment) => enrollment.student),
   }));
 
-  // Handwritten tests first within each class, then the newest assignments.
+  // Newest tests first within each class.
   const assignments: ScanAssignmentOption[] = classRows.flatMap((klass) =>
     klass.assignments
       .map((assignment) => ({
@@ -86,7 +89,6 @@ export default async function ScanPage({
         questionCount: assignment.criteria.length,
         totalPoints: assignment.criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0),
       }))
-      .sort((a, b) => Number(b.kind === "TEST") - Number(a.kind === "TEST"))
   );
 
   const papers: Record<string, ScanPaperState> = {};
@@ -113,7 +115,11 @@ export default async function ScanPage({
     <PageContainer>
       <PageHeader
         title="Paper Scanner"
-        description="Photograph a handwritten test. GPT-4o reads it and drafts scores against your answer key. Nothing publishes until you approve it."
+        description={
+          visionEnabled
+            ? "Photograph a handwritten test. GPT-4o reads it and drafts scores against your answer key. Nothing publishes until you approve it."
+            : "Photograph a handwritten test. The demo scanner uses the sample photos' stored transcriptions, or answers you type, and drafts scores against your answer key. Nothing publishes until you approve it."
+        }
         actions={<ScanEngineBadge visionEnabled={visionEnabled} />}
       />
       {assignments.length === 0 ? (

@@ -69,13 +69,12 @@ export function StudyHeader({
               <Trophy className="size-5" aria-hidden />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="flex items-baseline justify-between gap-2">
-                <span className="tabular text-base font-semibold text-foreground">Level {level.level}</span>
-                <span className="tabular truncate text-xs text-muted-foreground">
-                  {level.intoLevel} / {level.levelSize} XP to Level {level.level + 1}
-                </span>
-              </p>
+              {/* Level, bar, then XP on its own line: side by side they don't fit the half-width card on laptops. */}
+              <p className="tabular text-base font-semibold whitespace-nowrap text-foreground">Level {level.level}</p>
               <XpBar level={level} className="mt-2" />
+              <p className="tabular mt-1.5 text-xs text-muted-foreground">
+                {level.intoLevel} / {level.levelSize} XP to Level {level.level + 1}
+              </p>
             </div>
           </section>
         </div>

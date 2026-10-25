@@ -5,6 +5,7 @@
 import { findEvidenceSpan } from "../../src/lib/grading/evidence";
 import {
   computeStreak,
+  streakDates,
   dayKey,
   levelFor,
   ONCE_PER_DAY,
@@ -63,10 +64,8 @@ export function engagementFor(activities: SeedActivity[], studentKey: StudentKey
   return {
     xp,
     level: levelFor(xp).level,
-    streak: computeStreak(
-      rows.map((row) => row.at),
-      now
-    ),
+    // Same rule as the app: only the student's own actions count toward a streak.
+    streak: computeStreak(streakDates(rows.map((row) => ({ kind: row.kind, createdAt: row.at }))), now),
     lastActive: rows.length > 0 ? rows[rows.length - 1].at : null,
   };
 }

@@ -2,6 +2,7 @@ import "server-only";
 
 import { getOwnedClass } from "@/lib/access";
 import { db } from "@/lib/db";
+import { buildBriefPicker, type BriefPickerClass } from "@/lib/insights/brief-picker";
 import {
   buildHeatmap,
   MOST_MISSED_MIN_SAMPLE,
@@ -124,4 +125,43 @@ export async function getMostMissedForTeacher(teacherId: string, limit = 3): Pro
   });
 
   return rankMostMissed(columns, { minSample: MOST_MISSED_MIN_SAMPLE, limit });
+}
+
+/**
+ * Students the teacher can draft a conference brief for (at least one
+ * approved grade), grouped by class, for the dashboard's brief picker.
+ */
+export async function listBriefStudents(teacherId: string): Promise<BriefPickerClass[]> {
+  const [classes, published] = await Promise.all([
+    db.class.findMany({
+      where: { teacherId },
+      orderBy: [{ createdAt: "asc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        section: true,
+        enrollments: { select: { student: { select: { id: true, name: true, role: true } } } },
+      },
+    }),
+    db.publishedGrade.findMany({
+      where: { submission: { assignment: { class: { teacherId } } } },
+      select: { submission: { select: { studentId: true, assignment: { select: { classId: true } } } } },
+    }),
+  ]);
+
+  return buildBriefPicker({
+    classes: classes.map((klass) => ({
+      id: klass.id,
+      name: klass.name,
+      section: klass.section,
+      students: klass.enrollments
+        .map((enrollment) => enrollment.student)
+        .filter((student) => student.role === "STUDENT")
+        .map((student) => ({ id: student.id, name: student.name })),
+    })),
+    published: published.map((grade) => ({
+      classId: grade.submission.assignment.classId,
+      studentId: grade.submission.studentId,
+    })),
+  });
 }

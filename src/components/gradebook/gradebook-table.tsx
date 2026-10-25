@@ -82,7 +82,7 @@ export function GradebookTable({ data }: { data: GradebookData }) {
                   <div className="min-w-0">
                     <Link
                       href={studentProfileHref(data.class.id, row.student.id)}
-                      title={`${row.student.name}: open profile`}
+                      title={`${row.student.name}: profile and conference brief`}
                       className="block max-w-[16rem] truncate rounded-sm text-sm font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring"
                     >
                       {row.student.name}

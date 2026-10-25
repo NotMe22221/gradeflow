@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 
+import { openAiConfigured } from "@/lib/ai/openai";
 import { AuthError, requireTeacher } from "@/lib/auth/session";
+import { readFormDataWithLimit } from "@/lib/http/body";
+import { AI_RATE_LIMITS, checkRateLimit, rateLimitMessage } from "@/lib/http/rate-limit";
 import {
   ANSWER_KEY_LABEL,
   MAX_SCAN_REQUEST_BYTES,
   pageLabel,
-  readFormDataWithLimit,
   readScanForm,
   readScanImage,
   type CheckedImage,
@@ -14,12 +16,14 @@ import { gradeScannedTest, ScanError } from "@/lib/scan/grade";
 import type { ScanErrorCode, ScanGradeFailure, ScanGradeSuccess } from "@/lib/scan/types";
 
 export const dynamic = "force-dynamic";
-// GPT-4o vision can take 10-30 seconds per test.
+// GPT-4o vision usually takes 10-30 seconds per test. The OpenAI call is
+// capped at 110 seconds, retries included (OPENAI_BUDGETS.vision), so the
+// route always answers with JSON before this limit.
 export const maxDuration = 120;
 
-function errorResponse(error: string, status: number, code?: ScanErrorCode) {
+function errorResponse(error: string, status: number, code?: ScanErrorCode, headers?: HeadersInit) {
   const body: ScanGradeFailure = code ? { ok: false, error, code } : { ok: false, error };
-  return NextResponse.json(body, { status });
+  return NextResponse.json(body, { status, headers });
 }
 
 /**
@@ -33,6 +37,16 @@ function errorResponse(error: string, status: number, code?: ScanErrorCode) {
 export async function POST(request: Request) {
   try {
     const user = await requireTeacher();
+
+    // Live GPT-4o calls cost money: cap them per teacher. The demo scanner is free.
+    if (openAiConfigured()) {
+      const limited = checkRateLimit(`${user.id}:vision`, AI_RATE_LIMITS.vision);
+      if (!limited.ok) {
+        return errorResponse(rateLimitMessage(limited.retryAfterSeconds), 429, undefined, {
+          "Retry-After": String(limited.retryAfterSeconds),
+        });
+      }
+    }
 
     let form: FormData | null;
     try {

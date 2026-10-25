@@ -72,7 +72,7 @@ export function StudentHomeSkeleton() {
           <Skeleton className="h-5 w-36" />
           <Skeleton className="h-4 w-96 max-w-full" />
         </div>
-        <div className="grid gap-3 px-5 py-5 sm:grid-cols-[13rem_minmax(0,1fr)_auto] sm:items-end sm:px-6">
+        <div className="grid gap-3 px-5 py-5 sm:grid-cols-[15rem_minmax(0,1fr)_auto] sm:items-end sm:px-6">
           <Skeleton className="h-9 w-full" />
           <Skeleton className="h-9 w-full" />
           <Skeleton className="h-9 w-full sm:w-24" />

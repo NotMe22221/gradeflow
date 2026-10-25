@@ -174,7 +174,7 @@ export function GoalPlanner({
         </div>
 
         <form onSubmit={plan} noValidate className="space-y-3 px-5 py-5 sm:px-6" aria-describedby={error ? errorId : undefined}>
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,13rem)_minmax(0,1fr)_auto] sm:items-end">
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)_auto] sm:items-end">
             <div className="min-w-0 space-y-1.5">
               <Label htmlFor={classSelectId}>Class</Label>
               <Select
@@ -186,7 +186,8 @@ export function GoalPlanner({
                 }}
               >
                 <SelectTrigger ref={selectRef} id={classSelectId} className="w-full">
-                  <SelectValue placeholder="Pick a class" />
+                  {/* The class name alone, so it fits; the list shows the section too. */}
+                  <SelectValue placeholder="Pick a class">{selectedClass?.name}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {classes.map((klass) => (
@@ -208,7 +209,7 @@ export function GoalPlanner({
                   setGoal(event.target.value);
                   if (error) setError(null);
                 }}
-                placeholder="I need an A in English 10"
+                placeholder={`I need an A in ${selectedClass?.name ?? "this class"}`}
                 maxLength={MAX_GOAL_CHARS}
                 autoComplete="off"
                 enterKeyHint="go"
@@ -279,9 +280,9 @@ function PlanSkeleton() {
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-6 w-64 max-w-full" />
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
         {[0, 1, 2].map((tile) => (
-          <Skeleton key={tile} className="h-20 rounded-lg" />
+          <Skeleton key={tile} className="h-16 rounded-lg sm:h-24" />
         ))}
       </div>
       <div className="space-y-2">

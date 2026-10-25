@@ -2,7 +2,7 @@
 // transcription caption, and test-specific wording. Pure: safe for client
 // components, server code, and unit tests.
 
-import { type AssignmentKind, type GraderKind, type SubmissionSource } from "@/lib/constants";
+import { GRADER_LABELS, type AssignmentKind } from "@/lib/constants";
 import type { ReviewImage, ReviewItem } from "@/lib/review/types";
 
 export { parseSubmissionSource } from "@/lib/constants";
@@ -33,18 +33,61 @@ export function isScanned(item: Pick<ReviewItem, "source" | "images">): boolean 
   return item.source === "SCAN" || item.images.length > 0;
 }
 
-export type TranscriptionCaption = { tone: "ai" | "demo"; text: string };
+export type TranscriptionCaption = { tone: "ai" | "demo" | "neutral"; text: string };
 
 /**
- * The caption above a scanned test's transcription. Demo output is never
- * described as AI, so a placeholder transcription is not mistaken for a real read.
+ * AiGrade.model markers for demo scans. The demo scanner reads no
+ * handwriting: it uses a bundled sample photo's stored transcription or the
+ * text the teacher typed in the scanner. Storing which one lets the review
+ * queue describe the transcription truthfully. Demo scans saved without a
+ * marker (model null) get wording that covers both.
  */
-export function transcriptionCaption(grader: GraderKind | null | undefined): TranscriptionCaption {
-  if (grader === "openai") return { tone: "ai", text: "Transcribed by GPT-4o. Check it against the photo." };
-  if (grader === "demo") {
-    return { tone: "demo", text: "Demo transcription: stored with the sample photo, not read by AI. Check it against the photo." };
+export const DEMO_SCAN_MODELS = { sample: "demo-sample", typed: "demo-typed" } as const;
+
+export type DemoTranscriptionSource = keyof typeof DEMO_SCAN_MODELS;
+
+/** The AiGrade.model value to store for a demo scan. */
+export function demoScanModel(source: DemoTranscriptionSource): string {
+  return DEMO_SCAN_MODELS[source];
+}
+
+function photoCheck(photoCount: number): string {
+  if (photoCount === 0) return "The page photos are not on file.";
+  return photoCount === 1 ? "Check it against the photo." : "Check it against the photos.";
+}
+
+/**
+ * The caption above a scanned test's transcription, derived from what is
+ * stored: the grader, the model marker, and the page photos. Demo output is
+ * never described as AI, and the caption never claims a source the data
+ * cannot back up.
+ */
+export function transcriptionCaption(item: Pick<ReviewItem, "ai" | "images">): TranscriptionCaption {
+  const check = photoCheck(item.images.length);
+  const grader = item.ai?.grader;
+  if (grader === "openai") {
+    return { tone: "ai", text: `Transcribed by ${GRADER_LABELS.openai}. ${check}` };
   }
-  return { tone: "ai", text: "Transcribed from the photo. Check it against the photo." };
+  if (grader === "demo") {
+    const model = item.ai?.model;
+    if (model === DEMO_SCAN_MODELS.typed) {
+      return { tone: "demo", text: `Demo transcription: typed in the scanner, not read by AI. ${check}` };
+    }
+    if (model === DEMO_SCAN_MODELS.sample) {
+      return { tone: "demo", text: `Demo transcription: stored with the sample photo, not read by AI. ${check}` };
+    }
+    return {
+      tone: "demo",
+      text: `Demo transcription, not read by AI: a sample photo's stored text or what was typed in the scanner. ${check}`,
+    };
+  }
+  // No vision record to go on: say only what is certain.
+  return { tone: "neutral", text: `Transcription of the scanned test. ${check}` };
+}
+
+/** "transcription" for a scanned test, "paper" for a typed one. */
+export function paperNounFor(item: Pick<ReviewItem, "source" | "images">): "paper" | "transcription" {
+  return isScanned(item) ? "transcription" : "paper";
 }
 
 /** The heading over a criterion's full-credit description in the rubric pane. */

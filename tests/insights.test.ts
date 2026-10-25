@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { serializeBreakdown, type BreakdownItem } from "@/lib/grades/breakdown";
+import { buildBriefPicker } from "@/lib/insights/brief-picker";
 import {
+  averageDistribution,
   buildHeatmap,
   formatHeatPercent,
   heatBand,
@@ -10,7 +12,8 @@ import {
   rankMostMissed,
   type HeatmapSource,
 } from "@/lib/insights/heatmap";
-import { buildStudentProfile, computeSkills, type StudentRecord } from "@/lib/insights/profile";
+import { buildStudentProfile, computeSkills, openStateFor, type StudentRecord } from "@/lib/insights/profile";
+import { scrollStateOf } from "@/lib/insights/scroll";
 
 function item(criterionId: string, title: string, score: number, maxPoints: number, comment = ""): BreakdownItem {
   return { criterionId, title, score, maxPoints, comment };
@@ -198,11 +201,14 @@ function record(): StudentRecord {
     class: { id: "c1", name: "English 10", section: null, subject: "English" },
     student: { id: "s-ava", name: "Ava Quillon", email: "ava@example.test" },
     assignments: [
-      { id: "a1", title: "Persuasive Essay", dueDate: daysAgo(20), maxScore: 15 },
-      { id: "a2", title: "Literary Analysis", dueDate: daysAgo(10), maxScore: 15 },
-      { id: "a3", title: "Lab Report", dueDate: daysAgo(3), maxScore: 10 },
-      { id: "a4", title: "Unit 3 Quiz", dueDate: daysAgo(2), maxScore: 6 },
-      { id: "a5", title: "Research Proposal", dueDate: daysAgo(-5), maxScore: 10 },
+      { id: "a1", title: "Persuasive Essay", kind: "ESSAY", dueDate: daysAgo(20), maxScore: 15 },
+      { id: "a2", title: "Literary Analysis", kind: "ESSAY", dueDate: daysAgo(10), maxScore: 15 },
+      { id: "a3", title: "Lab Report", kind: "ESSAY", dueDate: daysAgo(3), maxScore: 10 },
+      // A paper test nobody has scanned yet: the student can't submit it, so it is never missing.
+      { id: "a4", title: "Unit 3 Quiz", kind: "TEST", dueDate: daysAgo(2), maxScore: 6 },
+      { id: "a5", title: "Research Proposal", kind: "ESSAY", dueDate: daysAgo(-5), maxScore: 10 },
+      { id: "a6", title: "Reading Log", kind: "ESSAY", dueDate: daysAgo(4), maxScore: 5 },
+      { id: "a7", title: "Four-Day Week Essay", kind: "ESSAY", dueDate: daysAgo(-2), maxScore: 10 },
     ],
     submissions: [
       {
@@ -233,21 +239,26 @@ function record(): StudentRecord {
       },
       // An AI draft waiting for review: workflow count only, never a score.
       { id: "sub3", assignmentId: "a3", status: "NEEDS_REVIEW", updatedAt: daysAgo(1), published: null },
+      // Submitted, no AI pass yet: not in the review queue.
+      { id: "sub7", assignmentId: "a7", status: "SUBMITTED", updatedAt: daysAgo(1), published: null },
     ],
     activity: [
-      { createdAt: daysAgo(0), xp: 50 },
-      { createdAt: daysAgo(1), xp: 200 },
-      { createdAt: daysAgo(2), xp: 25 },
-      { createdAt: daysAgo(6), xp: 15 },
+      { createdAt: daysAgo(0), xp: 50, kind: "SUBMIT" },
+      { createdAt: daysAgo(1), xp: 15, kind: "STUDY_SESSION" },
+      { createdAt: daysAgo(2), xp: 25, kind: "ON_TIME" },
+      // The teacher published a grade: XP, but not a study day.
+      { createdAt: daysAgo(3), xp: 200, kind: "GRADE_PUBLISHED" },
+      { createdAt: daysAgo(6), xp: 10, kind: "GOAL_SET" },
     ],
   };
 }
 
 describe("student profile", () => {
-  it("counts published, in review, missing, and upcoming work", () => {
+  it("counts published, in review, ready, missing, and upcoming work", () => {
     const profile = buildStudentProfile(record(), NOW);
     assert.equal(profile.stats.publishedCount, 2);
     assert.equal(profile.stats.inReviewCount, 1);
+    assert.equal(profile.stats.readyCount, 1);
     assert.equal(profile.stats.missingCount, 1);
     assert.equal(Math.round(profile.stats.averagePercent ?? 0), Math.round(((12 / 15 + 13 / 15) / 2) * 100));
     assert.deepEqual(
@@ -257,11 +268,51 @@ describe("student profile", () => {
     assert.deepEqual(
       profile.openWork.map((work) => [work.title, work.state]),
       [
-        ["Unit 3 Quiz", "missing"],
+        ["Reading Log", "missing"],
         ["Lab Report", "in_review"],
+        ["Four-Day Week Essay", "ready"],
+        ["Unit 3 Quiz", "awaiting_scan"],
         ["Research Proposal", "upcoming"],
       ]
     );
+  });
+
+  it("never marks a paper test missing before the teacher scans it", () => {
+    const testRecord = record();
+    testRecord.assignments = [
+      { id: "t1", title: "Past quiz", kind: "TEST", dueDate: daysAgo(2), maxScore: 6 },
+      { id: "t2", title: "Next quiz", kind: "TEST", dueDate: daysAgo(-3), maxScore: 6 },
+      { id: "t3", title: "Undated quiz", kind: "TEST", dueDate: null, maxScore: 6 },
+    ];
+    testRecord.submissions = [];
+    const profile = buildStudentProfile(testRecord, NOW);
+    assert.equal(profile.stats.missingCount, 0);
+    assert.deepEqual(
+      profile.openWork.map((work) => [work.title, work.state]),
+      [
+        ["Past quiz", "awaiting_scan"],
+        ["Undated quiz", "awaiting_scan"],
+        ["Next quiz", "upcoming"],
+      ]
+    );
+  });
+
+  it("treats work as missing only after its whole due day, like the student views", () => {
+    // Due dates are calendar dates stored at noon UTC.
+    const due = new Date(Date.UTC(2026, 9, 25, 12, 0, 0));
+    const sameEvening = new Date(Date.UTC(2026, 9, 25, 21, 56, 0));
+    const lastMoment = new Date(Date.UTC(2026, 9, 25, 23, 59, 59));
+    const nextMorning = new Date(Date.UTC(2026, 9, 26, 0, 30, 0));
+    assert.equal(openStateFor("missing", due, sameEvening), "upcoming");
+    assert.equal(openStateFor("missing", due, lastMoment), "upcoming");
+    assert.equal(openStateFor("missing", due, nextMorning), "missing");
+    assert.equal(openStateFor("missing", null, nextMorning), "not_submitted");
+    assert.equal(openStateFor("missing", due, nextMorning, "TEST"), "awaiting_scan");
+    assert.equal(openStateFor("ready", due, nextMorning), "ready");
+    assert.equal(openStateFor("grading", due, nextMorning), "in_review");
+    assert.equal(openStateFor("in_review", due, nextMorning), "in_review");
+    assert.equal(openStateFor("returned", due, nextMorning), "returned");
+    assert.equal(openStateFor("published", due, nextMorning), null);
   });
 
   it("derives strengths and growth areas from per-criterion percentages, merged by title", () => {
@@ -294,9 +345,106 @@ describe("student profile", () => {
 
   it("reports engagement from study activity, separate from grades", () => {
     const profile = buildStudentProfile(record(), NOW);
+    // Days 0-2 are the student's own actions. Day 3 is only a published grade, so the streak stops at 3.
     assert.equal(profile.engagement.streak.current, 3);
+    assert.equal(profile.engagement.streak.longest, 3);
     assert.equal(profile.engagement.streak.activeToday, true);
-    assert.equal(profile.engagement.level.xp, 290);
+    // A published grade still earns XP.
+    assert.equal(profile.engagement.level.xp, 300);
     assert.equal(profile.engagement.level.level, 2);
+  });
+
+  it("never starts a streak from a grade the teacher published", () => {
+    const quiet = record();
+    quiet.activity = [{ createdAt: daysAgo(0), xp: 40, kind: "GRADE_PUBLISHED" }];
+    const profile = buildStudentProfile(quiet, NOW);
+    assert.equal(profile.engagement.streak.current, 0);
+    assert.equal(profile.engagement.streak.activeToday, false);
+    assert.equal(profile.engagement.level.xp, 40);
+  });
+});
+
+describe("class snapshot distribution", () => {
+  it("counts students per heat band of their average, low to high, plus ungraded students", () => {
+    const result = averageDistribution([
+      { average: 95 },
+      { average: 79.6 }, // reads "80%", so it counts as 80-89%
+      { average: 64.4 },
+      { average: 30 },
+      { average: 90 },
+      { average: null },
+    ]);
+    assert.deepEqual(
+      result.bands.map((band) => [band.key, band.count]),
+      [
+        ["lowest", 1],
+        ["low", 1],
+        ["mid", 0],
+        ["high", 1],
+        ["highest", 2],
+      ]
+    );
+    assert.equal(result.graded, 5);
+    assert.equal(result.ungraded, 1);
+  });
+
+  it("matches the heatmap's own student averages", () => {
+    const heatmap = buildHeatmap(source());
+    const result = averageDistribution(heatmap.rows);
+    assert.equal(result.graded + result.ungraded, heatmap.rows.length);
+    assert.equal(result.ungraded, 1); // Cyrus has no approved grade
+  });
+});
+
+describe("heatmap scroll state", () => {
+  it("reports overflow and which sides have hidden columns", () => {
+    assert.deepEqual(scrollStateOf(0, 1000, 1000), { overflowing: false, moreLeft: false, moreRight: false });
+    // Sub-pixel rounding is not overflow.
+    assert.deepEqual(scrollStateOf(0, 1000.5, 1000), { overflowing: false, moreLeft: false, moreRight: false });
+    assert.deepEqual(scrollStateOf(0, 1109, 974), { overflowing: true, moreLeft: false, moreRight: true });
+    assert.deepEqual(scrollStateOf(60, 1109, 974), { overflowing: true, moreLeft: true, moreRight: true });
+    assert.deepEqual(scrollStateOf(135, 1109, 974), { overflowing: true, moreLeft: true, moreRight: false });
+  });
+});
+
+describe("conference brief picker", () => {
+  it("lists students with an approved grade, grouped by class, sorted by name", () => {
+    const classes = buildBriefPicker({
+      classes: [
+        {
+          id: "c1",
+          name: "English 10",
+          section: "Period 2",
+          students: [
+            { id: "s-theo", name: "Theo Marchwood" },
+            { id: "s-ava", name: "Ava Quillon" },
+            { id: "s-new", name: "Bea New" },
+          ],
+        },
+        { id: "c2", name: "Environmental Science", section: null, students: [{ id: "s-iris", name: "Iris Thistledown" }] },
+        { id: "c3", name: "Empty Class", section: null, students: [{ id: "s-zed", name: "Zed Nograde" }] },
+      ],
+      published: [
+        { classId: "c1", studentId: "s-theo" },
+        { classId: "c1", studentId: "s-ava" },
+        { classId: "c1", studentId: "s-ava" },
+        { classId: "c2", studentId: "s-iris" },
+        // A student who left the class is never listed.
+        { classId: "c1", studentId: "s-gone" },
+        // A grade from another class doesn't count here.
+        { classId: "c2", studentId: "s-zed" },
+      ],
+    });
+    assert.deepEqual(classes, [
+      {
+        id: "c1",
+        label: "English 10 · Period 2",
+        students: [
+          { id: "s-ava", name: "Ava Quillon", publishedCount: 2 },
+          { id: "s-theo", name: "Theo Marchwood", publishedCount: 1 },
+        ],
+      },
+      { id: "c2", label: "Environmental Science", students: [{ id: "s-iris", name: "Iris Thistledown", publishedCount: 1 }] },
+    ]);
   });
 });

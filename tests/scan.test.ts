@@ -6,18 +6,15 @@ import { describe, it } from "node:test";
 
 import { zodResponseFormat } from "openai/helpers/zod";
 
-import { findEvidenceSpan } from "@/lib/grading/evidence";
-import type { GradingInput, RubricCriterionInput } from "@/lib/grading/types";
+import { findAnswerLineSpan, findEvidenceSpan, findTestEvidenceSpan } from "@/lib/grading/evidence";
+import { DemoGrader } from "@/lib/grading/mock";
+import type { Grader, GradingInput, RawGradingResult, RubricCriterionInput } from "@/lib/grading/types";
+import { validateGrading } from "@/lib/grading/validate";
+import { readFormDataWithLimit } from "@/lib/http/body";
 import { MAX_PAPER_CHARS } from "@/lib/paper";
 import { assessAnswer, gradeScanWithDemo, parseTranscription } from "@/lib/scan/demo-grader";
-import { LOW_LEGIBILITY_MESSAGES, validateScanGrading } from "@/lib/scan/finalize";
-import {
-  checkScanImage,
-  MAX_SCAN_REQUEST_BYTES,
-  readFormDataWithLimit,
-  readScanForm,
-  readScanImage,
-} from "@/lib/scan/form";
+import { gradeTestAnswers, LOW_LEGIBILITY_MESSAGES, validateScanGrading } from "@/lib/scan/finalize";
+import { checkScanImage, MAX_SCAN_REQUEST_BYTES, readScanForm, readScanImage } from "@/lib/scan/form";
 import {
   MAX_SCAN_EDGE_PX,
   MAX_SCAN_IMAGE_BYTES,
@@ -32,7 +29,7 @@ import {
   SAMPLE_TEST_PHOTOS,
   UNIT3_QUIZ_CRITERIA,
 } from "@/lib/scan/samples";
-import { NEEDS_TRANSCRIPTION_MESSAGE } from "@/lib/scan/types";
+import { NEEDS_TRANSCRIPTION_MESSAGE, NOT_A_TEST_MESSAGE } from "@/lib/scan/types";
 import {
   buildVisionClosingText,
   buildVisionRubricText,
@@ -59,6 +56,26 @@ function unit3Input(paper: string): GradingInput {
     paper,
   };
 }
+
+// The bundled sample answer key, as the rubric builder imports it.
+const UNIT4_KEY = SAMPLE_ANSWER_KEY_PHOTOS[0];
+const UNIT4_CRITERIA: RubricCriterionInput[] = UNIT4_KEY.questions.map((question, index) => ({
+  id: `u4q${index + 1}`,
+  title: question.title,
+  description: question.expectedAnswer,
+  maxPoints: question.maxPoints,
+}));
+
+function unit4Input(paper: string): GradingInput {
+  return { assignmentTitle: UNIT4_KEY.title, instructions: "Answer each question.", criteria: UNIT4_CRITERIA, paper };
+}
+
+const UNIT4_PERFECT = [
+  "Q1. sand, silt, and clay",
+  "Q2. O horizon",
+  "Q3. contour plowing, cover crops",
+  "Q4. Roots hold soil in place, and leaves slow rain and wind.",
+].join("\n");
 
 const IRIS = SAMPLE_TEST_PHOTOS.find((sample) => sample.id === "unit3-iris")!;
 const RAFAEL = SAMPLE_TEST_PHOTOS.find((sample) => sample.id === "unit3-rafael")!;
@@ -321,6 +338,22 @@ describe("parseTranscription", () => {
     assert.equal(numbered.answers[0], "a");
   });
 
+  it("reads '1:' labels like '1.' and '1)'", () => {
+    const parsed = parseTranscription("Name: Rowan Probe\n1: sand\n2: O horizon\n3) terracing\n4. erosion\n10:30 is not a label", 4);
+    assert.equal(parsed.mode, "numbered");
+    assert.deepEqual(parsed.answers, ["sand", "O horizon", "terracing", "erosion 10:30 is not a label"]);
+  });
+
+  it("skips header lines before unnumbered answers, so they don't shift every answer", () => {
+    const parsed = parseTranscription("Name: Rowan Probe\nDate: 3/14\nPeriod 4\nsand\nO horizon\nterracing\nerosion", 4);
+    assert.equal(parsed.mode, "positional");
+    assert.deepEqual(parsed.answers, ["sand", "O horizon", "terracing", "erosion"]);
+    assert.equal(parsed.lineCount, 4);
+    assert.equal(parsed.extraCount, 0);
+    // An answer that merely starts with a header word is still an answer.
+    assert.equal(parseTranscription("Class discussion helps\nsecond", 2).answers[0], "Class discussion helps");
+  });
+
   it("never treats text addressed to the grader as an answer", () => {
     const parsed = parseTranscription(RAFAEL.transcription, 5);
     assert.equal(parsed.ignoredCount, 1);
@@ -363,7 +396,7 @@ describe("demo scanner grader", () => {
       const input = unit3Input(sample.transcription);
       const raw = gradeScanWithDemo(input);
       for (const criterion of raw.criteria) {
-        assert.ok(findEvidenceSpan(sample.transcription, criterion.evidence), `unverifiable: ${criterion.evidence}`);
+        assert.ok(findTestEvidenceSpan(sample.transcription, criterion.evidence), `unverifiable: ${criterion.evidence}`);
       }
       const validated = validateScanGrading(raw, input, "clear");
       assert.ok(validated.criteria.every((criterion) => criterion.evidenceFound));
@@ -431,6 +464,58 @@ describe("demo scanner grader", () => {
     assert.match(positional.overallComment, /in order/);
   });
 
+  it("grades typical typed transcriptions of the sample Unit 4 key correctly", () => {
+    const perfect = [3, 2, 4, 4];
+    assert.deepEqual(scores(unit4Input(UNIT4_PERFECT)), perfect);
+    const colons = "Name: Rowan Probe\n1: sand, silt and clay\n2: O horizon\n3: contour plowing, cover crops\n4: roots hold the soil in place and leaves slow the rain and wind";
+    assert.deepEqual(scores(unit4Input(colons)), perfect);
+    const unnumbered = "Name: Rowan Probe\nsand, silt and clay\nThe O horizon\ncontour plowing, cover crops\nroots hold the soil in place and leaves slow the rain and wind";
+    assert.deepEqual(scores(unit4Input(unnumbered)), perfect);
+  });
+
+  it("gives full credit for the key's headline answer, but not for a near miss or one item of a list", () => {
+    const horizon = UNIT4_CRITERIA[1]; // "The O horizon, the top layer of decaying leaves and humus."
+    assert.equal(assessAnswer(horizon, "O horizon").fraction, 1);
+    assert.equal(assessAnswer(horizon, "The O horizon").fraction, 1);
+    assert.equal(assessAnswer(horizon, "the o horizon, on top").fraction, 1);
+    assert.equal(assessAnswer(horizon, "The horizon").fraction, 0);
+    assert.equal(assessAnswer(horizon, "The A horizon").fraction, 0);
+
+    // A plain list key: naming its first item is not the whole answer.
+    const list = { title: "Q1. Three main soil particle sizes", description: "Sand, silt, and clay." };
+    assert.ok(assessAnswer(list, "sand").fraction < 1);
+    assert.equal(assessAnswer(list, "sand, silt, and clay").fraction, 1);
+    // A headline too short to stand on its own earns nothing extra.
+    const yesNo = { title: "Q1. Is the stream polluted?", description: "No, because the readings are normal." };
+    assert.ok(assessAnswer(yesNo, "No idea").fraction < 1);
+  });
+
+  it("quotes one-word answers so they verify, with no 'did not quote any evidence' flags", () => {
+    const input = unit4Input("1. sand\n2. O horizon\n3. terracing, no-till\n4. erosion");
+    const raw = gradeScanWithDemo(input);
+    assert.deepEqual(
+      raw.criteria.map((criterion) => criterion.evidence),
+      ["sand", "O horizon", "terracing, no-till", "erosion"]
+    );
+    const validated = validateScanGrading(raw, input, "clear");
+    assert.ok(validated.criteria.every((criterion) => criterion.evidenceFound));
+    assert.ok(!validated.flags.some((flag) => flag.code === "EVIDENCE_NOT_FOUND"));
+  });
+
+  it("never lists answer-key terms the student left out in the default feedback", () => {
+    const papers = [RAFAEL.transcription, "Q1. x\nQ2. x\nQ3. x\nQ4. x\nQ5. x", IRIS.transcription];
+    for (const paper of papers) {
+      const parsed = parseTranscription(paper, UNIT3_CRITERIA.length);
+      gradeScanWithDemo(unit3Input(paper)).criteria.forEach((criterion, index) => {
+        const answer = (parsed.answers[index] ?? "").toLowerCase();
+        for (const [, term] of criterion.justification.matchAll(/"([^"]+)"/g)) {
+          assert.ok(answer.includes(term.toLowerCase()), `Q${index + 1} feedback quotes "${term}", which the answer lacks`);
+        }
+        assert.doesNotMatch(criterion.justification, /expects ideas such as|for example,/);
+      });
+    }
+  });
+
   it("scores 'any two' and 'each' answer keys item by item", () => {
     const anyTwo = UNIT3_CRITERIA[1];
     const one = assessAnswer(anyTwo, "Fertilizer runoff from farms.");
@@ -484,6 +569,117 @@ describe("validateScanGrading", () => {
   it("drops SHORT_PAPER: short written answers are normal on a test", () => {
     const validated = validateScanGrading(raw, unit3Input(RAFAEL.transcription), "clear");
     assert.ok(!validated.flags.some((flag) => flag.code === "SHORT_PAPER"));
+  });
+
+  it("accepts a short quote that is a whole answer line, and nothing shorter", () => {
+    // GPT-4o quoting one- and two-word answers exactly, as the vision prompt asks.
+    const transcription = "Q1. Sand, silt\nQ2. O horizon\nQ3. Terracing\nQ4. Roots\nQ5. Rain gardens";
+    const answers = ["Sand, silt", "O horizon", "Terracing", "Roots", "Rain gardens"];
+    const mapped = mapVisionOutput({
+      transcription,
+      answers: answers.map((answer, index) => ({
+        criterion_id: UNIT3_CRITERIA[index].id,
+        student_answer: answer,
+        score: 1,
+        justification: "Checked against the key.",
+        evidence: answer,
+      })),
+      confidence: "medium",
+      legibility: "clear",
+      overall_comment: "Short answers throughout.",
+    });
+    const input = unit3Input(mapped.transcription);
+    const validated = validateScanGrading(mapped.raw, input, "clear");
+    assert.ok(!validated.flags.some((flag) => flag.code === "EVIDENCE_NOT_FOUND"));
+    assert.ok(validated.criteria.every((criterion) => criterion.evidenceFound));
+
+    // A fragment of an answer is still not evidence.
+    const fragment = {
+      ...mapped.raw,
+      criteria: mapped.raw.criteria.map((criterion, index) => (index === 1 ? { ...criterion, evidence: "horizon" } : criterion)),
+    };
+    const flagged = validateScanGrading(fragment, input, "clear");
+    assert.equal(flagged.criteria[1].evidenceFound, false);
+    assert.equal(flagged.flags.filter((flag) => flag.code === "EVIDENCE_NOT_FOUND").length, 1);
+
+    // Essays keep the verbatim rule: a short quote is too generic to verify.
+    const essay = validateGrading(mapped.raw, input);
+    assert.equal(essay.criteria[1].evidenceFound, false);
+  });
+});
+
+describe("findAnswerLineSpan", () => {
+  const paper = "Name: Rowan\nQ1. Sand, silt.\nQuestion 2: O horizon\n3) Terracing\nQ4.\nRoots";
+
+  it("finds a whole answer after its label, or a whole line, and returns its offsets", () => {
+    const span = findAnswerLineSpan(paper, "o  HORIZON");
+    assert.ok(span);
+    assert.equal(paper.slice(span.start, span.end), "O horizon");
+    const withPunctuation = findAnswerLineSpan(paper, "Sand, silt");
+    assert.ok(withPunctuation);
+    assert.equal(paper.slice(withPunctuation.start, withPunctuation.end), "Sand, silt");
+    assert.ok(findAnswerLineSpan(paper, "3) Terracing"), "the whole line, label included");
+    assert.ok(findAnswerLineSpan(paper, "Roots"), "an unnumbered line");
+  });
+
+  it("rejects fragments, blank answers, and text that is not in the paper", () => {
+    assert.equal(findAnswerLineSpan(paper, "horizon"), null);
+    assert.equal(findAnswerLineSpan(paper, "Sand"), null);
+    assert.equal(findAnswerLineSpan(paper, "Q4."), null, "a bare label is a blank answer");
+    assert.equal(findAnswerLineSpan(paper, "Clay"), null);
+    assert.equal(findAnswerLineSpan(paper, ""), null);
+    assert.equal(findAnswerLineSpan(paper, null), null);
+  });
+
+  it("is the fallback of findTestEvidenceSpan, which still finds long quotes anywhere", () => {
+    assert.ok(findTestEvidenceSpan(IRIS.transcription, "drains into the same river or lake"));
+    assert.equal(findEvidenceSpan(paper, "O horizon"), null);
+    assert.ok(findTestEvidenceSpan(paper, "O horizon"));
+  });
+});
+
+// --- Typed answers on a handwritten test ------------------------------------------------
+
+describe("gradeTestAnswers", () => {
+  it("grades typed answers with the answer-key matcher in demo mode, not the essay heuristics", async () => {
+    const input = unit4Input(UNIT4_PERFECT);
+    const test = await gradeTestAnswers(new DemoGrader(), input);
+    assert.deepEqual(test.criteria.map((criterion) => criterion.aiScore), [3, 2, 4, 4]);
+    assert.ok(!test.flags.some((flag) => flag.code === "SHORT_PAPER"));
+    assert.ok(test.criteria.every((criterion) => criterion.evidenceFound));
+    assert.ok(test.criteria.every((criterion) => !/words/.test(criterion.justification)));
+
+    // The essay path would judge the same answers as a too-short essay.
+    const essay = validateGrading(await new DemoGrader().grade(input), input);
+    assert.ok(essay.flags.some((flag) => flag.code === "SHORT_PAPER"));
+  });
+
+  it("sends typed answers to a real grader and validates them like a scanned test", async () => {
+    const calls: GradingInput[] = [];
+    const claude: Pick<Grader, "kind" | "grade"> = {
+      kind: "claude",
+      async grade(input): Promise<RawGradingResult> {
+        calls.push(input);
+        return {
+          criteria: UNIT4_CRITERIA.map((criterion, index) => ({
+            criterionId: criterion.id,
+            score: index === 3 ? 99 : criterion.maxPoints,
+            justification: "Matches the key.",
+            evidence: index === 1 ? "O horizon" : "not in the paper at all",
+          })),
+          confidence: "high",
+          overallComment: "Strong answers.",
+        };
+      },
+    };
+    const input = unit4Input(UNIT4_PERFECT);
+    const result = await gradeTestAnswers(claude, input);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].paper, UNIT4_PERFECT);
+    assert.equal(result.criteria[1].evidenceFound, true, "a whole short answer verifies");
+    assert.equal(result.criteria[0].evidenceFound, false, "invented quotes are still caught");
+    assert.equal(result.criteria[3].aiScore, null, "out-of-range scores are still discarded");
+    assert.ok(!result.flags.some((flag) => flag.code === "SHORT_PAPER"));
   });
 });
 
@@ -617,5 +813,54 @@ describe("vision output mapping", () => {
   it("explains demo mode's limits in one plain sentence", () => {
     assert.match(NEEDS_TRANSCRIPTION_MESSAGE, /^Demo mode can't read handwriting\./);
     assert.match(NEEDS_TRANSCRIPTION_MESSAGE, /OPENAI_API_KEY/);
+  });
+
+  it("tells the teacher plainly that the scanner is for tests", () => {
+    assert.match(NOT_A_TEST_MESSAGE, /^The scanner grades handwritten tests only\./);
+  });
+});
+
+// --- Route guards (source checks: route handlers need a server to run) -----------------
+
+describe("scan routes", () => {
+  const read = (...parts: string[]) => readFileSync(join(ROOT, "src", ...parts), "utf8");
+
+  it("refuses essays in the scanner and lists only tests on /scan", () => {
+    assert.match(read("lib", "scan", "grade.ts"), /parseAssignmentKind\(assignment\.kind\) !== "TEST"[\s\S]{0,120}NOT_A_TEST_MESSAGE, 422/);
+    assert.match(read("app", "(teacher)", "scan", "page.tsx"), /where: \{ kind: "TEST" \}/);
+  });
+
+  it("routes typed answers on a test through the test grader", () => {
+    const run = read("lib", "grading", "run.ts");
+    assert.match(run, /parseAssignmentKind\(assignment\.kind\) === "TEST"/);
+    assert.match(run, /gradeTestAnswers\(grader, input\)/);
+  });
+
+  it("keeps every OpenAI vision call inside the route's time limit", () => {
+    const openai = read("lib", "ai", "openai.ts");
+    const deadline = Number(openai.match(/vision: \{ timeout: [\d_]+, maxRetries: \d, deadlineMs: ([\d_]+) \}/)?.[1].replace(/_/g, ""));
+    assert.ok(deadline > 0);
+    assert.match(read("lib", "scan", "vision.ts"), /openAiRequestOptions\("vision"\)/);
+    assert.match(read("app", "api", "answer-key", "read.ts"), /openAiRequestOptions\("vision"\)/);
+    for (const route of [["grade"], ["answer-key"]]) {
+      const source = read("app", "api", ...route, "route.ts");
+      const maxDuration = Number(source.match(/export const maxDuration = (\d+);/)?.[1]);
+      assert.ok(maxDuration * 1000 > deadline, `${route} maxDuration must outlast the vision deadline`);
+    }
+  });
+
+  it("bounds request bodies and rate-limits live AI calls", () => {
+    for (const route of [["grade"], ["answer-key"]]) {
+      const source = read("app", "api", ...route, "route.ts");
+      assert.ok(!source.includes("request.formData()"), `${route} must not buffer an unbounded body`);
+      assert.match(source, /readFormDataWithLimit\(request,/);
+      assert.match(source, /if \(openAiConfigured\(\)\) \{\s+const limited = checkRateLimit\(`\$\{user\.id\}:vision`/);
+      assert.match(source, /"Retry-After"/);
+    }
+  });
+
+  it("shows a scanned photo to its student only after the grade is published", () => {
+    const source = read("app", "api", "submissions", "[submissionId]", "images", "[imageId]", "route.ts");
+    assert.match(source, /studentId: user\.id, publishedGrade: \{ isNot: null \}/);
   });
 });

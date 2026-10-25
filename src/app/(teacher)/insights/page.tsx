@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/empty-state";
 import { ClassSwitcher } from "@/components/gradebook/class-switcher";
 import { HeatmapGrid } from "@/components/insights/heatmap-grid";
 import { HeatmapLegend } from "@/components/insights/heatmap-legend";
+import { HeatmapScrollHint, HeatmapScrollProvider } from "@/components/insights/heatmap-scroll";
 import { InsightsSnapshot } from "@/components/insights/insights-snapshot";
 import { MostMissedList } from "@/components/insights/most-missed-list";
 import { PageContainer, PageHeader } from "@/components/page-header";
@@ -20,7 +21,8 @@ import { getClassHeatmap } from "@/lib/insights/query";
 export const metadata: Metadata = { title: "Insights" };
 
 const TITLE = "Insights";
-const DESCRIPTION = "Where your class is losing points, from teacher-approved grades only.";
+const DESCRIPTION =
+  "Where your class is losing points, from teacher-approved grades only. Open a student for their profile and a one-click conference brief.";
 
 function single(value: string | string[] | undefined): string | null {
   const first = Array.isArray(value) ? value[0] : value;
@@ -114,13 +116,18 @@ function HeatmapBody({ heatmap }: { heatmap: ClassHeatmap }) {
       </div>
 
       <Card className="overflow-hidden">
-        <div className="flex flex-col gap-1 border-b border-border px-4 py-4 sm:px-6">
-          <h2 className="text-base font-semibold tracking-tight text-foreground">Class heatmap</h2>
-          <p className="tabular text-sm text-muted-foreground">
-            {classTitle} · {summarize(heatmap)}
-          </p>
-        </div>
-        <HeatmapGrid heatmap={heatmap} />
+        <HeatmapScrollProvider>
+          <div className="flex flex-col gap-3 border-b border-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6">
+            <div className="min-w-0 space-y-1">
+              <h2 className="text-base font-semibold tracking-tight text-foreground">Class heatmap</h2>
+              <p className="tabular text-sm text-pretty text-muted-foreground">
+                {classTitle} · {summarize(heatmap)}
+              </p>
+            </div>
+            <HeatmapScrollHint />
+          </div>
+          <HeatmapGrid heatmap={heatmap} />
+        </HeatmapScrollProvider>
         <div className="border-t border-border px-4 py-4 sm:px-6">
           <HeatmapLegend />
         </div>

@@ -21,6 +21,7 @@ export function goalClassSelect(studentId: string) {
       select: {
         id: true,
         title: true,
+        kind: true,
         dueDate: true,
         criteria: { select: { maxPoints: true } },
         submissions: {
@@ -49,6 +50,7 @@ export function toGoalClassSource(row: GoalClassRow): GoalClassSource {
       return {
         id: assignment.id,
         title: assignment.title,
+        kind: assignment.kind,
         dueDate: assignment.dueDate,
         criteria: assignment.criteria,
         submission: submission ? { status: submission.status, published: submission.publishedGrade } : null,

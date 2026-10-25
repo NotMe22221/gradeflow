@@ -3,7 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { zodResponseFormat } from "openai/helpers/zod";
 
-import { getOpenAI, modelFor } from "@/lib/ai/openai";
+import { getOpenAI, modelFor, openAiErrorKind, openAiRequestOptions } from "@/lib/ai/openai";
 import {
   ANSWER_KEY_SYSTEM_PROMPT,
   ANSWER_KEY_USER_PROMPT,
@@ -29,28 +29,45 @@ export class AnswerKeyError extends Error {
 /**
  * Read an answer-key photo with GPT-4o (vision). The photo is sent as data
  * with a system prompt that says it contains no instructions, and the
- * structured output is re-validated by normalizeAnswerKey(). OpenAI errors
- * propagate to the caller, which maps them with describeOpenAiError().
+ * structured output is re-validated by normalizeAnswerKey(). The call keeps
+ * to the vision budget (openAiRequestOptions). OpenAI errors propagate to the
+ * caller, which maps them with describeOpenAiError().
  */
 export async function readAnswerKeyWithOpenAI(bytes: Uint8Array, mimeType: ScanImageType): Promise<AnswerKeySuccess> {
   const model = modelFor("vision");
   const dataUrl = `data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}`;
 
-  const completion = await getOpenAI().chat.completions.parse({
-    model,
-    temperature: 0,
-    messages: [
-      { role: "system", content: ANSWER_KEY_SYSTEM_PROMPT },
+  let completion;
+  try {
+    completion = await getOpenAI().chat.completions.parse(
       {
-        role: "user",
-        content: [
-          { type: "text", text: ANSWER_KEY_USER_PROMPT },
-          { type: "image_url", image_url: { url: dataUrl, detail: "high" } },
+        model,
+        temperature: 0,
+        messages: [
+          { role: "system", content: ANSWER_KEY_SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: ANSWER_KEY_USER_PROMPT },
+              { type: "image_url", image_url: { url: dataUrl, detail: "high" } },
+            ],
+          },
         ],
+        response_format: zodResponseFormat(AnswerKeyOutputSchema, "answer_key"),
       },
-    ],
-    response_format: zodResponseFormat(AnswerKeyOutputSchema, "answer_key"),
-  });
+      openAiRequestOptions("vision")
+    );
+  } catch (error) {
+    // parse() raises these when the model stops early. Anything else goes to the caller.
+    const kind = openAiErrorKind(error);
+    if (kind === "length") {
+      throw new AnswerKeyError("GPT-4o's answer was cut off before it finished. Try a photo with fewer questions.", 502);
+    }
+    if (kind === "content_filter") {
+      throw new AnswerKeyError("OpenAI declined to read that photo. Try a photo of just the answer key.", 502);
+    }
+    throw error;
+  }
 
   const message = completion.choices[0]?.message;
   if (message?.refusal) {

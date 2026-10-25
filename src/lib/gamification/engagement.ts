@@ -6,6 +6,7 @@ import {
   dayKey,
   describeActivity,
   levelFor,
+  streakDates,
   totalXp,
   type LevelProgress,
   type StreakInfo,
@@ -36,6 +37,10 @@ export type StudentEngagement = {
  * StudyActivity rows. Engagement only: none of this ever touches a grade.
  * Related titles are resolved only from this student's own submissions and
  * the classes they are enrolled in.
+ *
+ * Every row counts toward XP, but the streak only counts the student's own
+ * actions: a grade the teacher publishes is not a study day. Days are the
+ * server's calendar days (see rules.ts).
  */
 export async function getStudentEngagement(
   studentId: string,
@@ -76,10 +81,7 @@ export async function getStudentEngagement(
 
   const today = dayKey(now);
   return {
-    streak: computeStreak(
-      rows.map((row) => row.createdAt),
-      now
-    ),
+    streak: computeStreak(streakDates(rows), now),
     level: levelFor(totalXp(rows)),
     totalXp: totalXp(rows),
     recent: recentRows.map((row) => ({

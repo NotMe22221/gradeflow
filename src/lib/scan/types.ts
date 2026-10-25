@@ -14,6 +14,10 @@ export type ScanErrorCode = "NEEDS_TRANSCRIPTION";
 export const NEEDS_TRANSCRIPTION_MESSAGE =
   "Demo mode can't read handwriting. Type what's on the page, or set OPENAI_API_KEY to read photos with GPT-4o.";
 
+/** POST /api/grade answers 422 with this for an essay: the scanner grades against an answer key. */
+export const NOT_A_TEST_MESSAGE =
+  "The scanner grades handwritten tests only. Add essays as typed papers on the assignment page.";
+
 export type ScanGradeSuccess = {
   ok: true;
   submissionId: string;

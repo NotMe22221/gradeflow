@@ -28,6 +28,28 @@ export function DashboardSkeleton() {
         ))}
       </div>
 
+      {/* Teaching tools */}
+      <div className="mt-12">
+        <div className="mb-4 flex h-8 items-center">
+          <Skeleton className="h-5 w-32" />
+        </div>
+        <Card className="grid grid-cols-1 divide-y divide-border md:grid-cols-3 md:divide-x md:divide-y-0">
+          {[0, 1, 2].map((index) => (
+            <div key={index} className="flex flex-col gap-4 p-5">
+              <div className="flex items-start gap-3">
+                <Skeleton className="size-9 shrink-0 rounded-lg" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+                </div>
+              </div>
+              <Skeleton className="h-8 w-32" />
+            </div>
+          ))}
+        </Card>
+      </div>
+
       <div className="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="min-w-0 lg:col-span-2">
           <div className="mb-4 flex h-8 items-center justify-between">
@@ -98,10 +120,10 @@ export function DashboardSkeleton() {
               <div className="divide-y divide-border">
                 {[0, 1, 2].map((row) => (
                   <div key={row} className="flex items-center gap-4 px-5 py-3">
-                    <Skeleton className="size-6 shrink-0 rounded-full" />
                     <div className="flex-1 space-y-1.5">
-                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-4 w-36 max-w-full" />
                       <Skeleton className="h-3 w-40 max-w-full" />
+                      <Skeleton className="h-3 w-24" />
                       <Skeleton className="h-1.5 w-full rounded-full" />
                     </div>
                     <div className="space-y-1.5">

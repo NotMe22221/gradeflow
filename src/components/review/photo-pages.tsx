@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, ExternalLink, ImageOff, ZoomIn } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, ImageOff, ZoomIn, ZoomOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -9,10 +9,19 @@ import { pageImageAlt, submissionImageUrl } from "@/lib/review/media";
 import type { ReviewImage } from "@/lib/review/types";
 import { cn } from "@/lib/utils";
 
+/** Below Tailwind's `sm` breakpoint the dialog is too narrow to read handwriting at fit width. */
+function isPhoneViewport(): boolean {
+  return typeof window !== "undefined" && window.matchMedia("(max-width: 639.98px)").matches;
+}
+
 /**
  * The original photos of a scanned test, in page order, so the teacher can
  * check the transcription against the handwriting. Click a page to zoom.
  * Photos are untrusted data and are only ever shown as images.
+ *
+ * The zoom dialog has two sizes: fit to width, and magnified to twice the
+ * width, panned by scrolling or dragging inside the frame. On a phone it
+ * opens magnified, since the fit-width page is smaller than the inline photo.
  */
 export function PhotoPages({
   submissionId,
@@ -24,11 +33,16 @@ export function PhotoPages({
   images: ReviewImage[];
 }) {
   const [zoomIndex, setZoomIndex] = useState<number | null>(null);
+  const [magnified, setMagnified] = useState(false);
   const [failed, setFailed] = useState<ReadonlySet<string>>(() => new Set());
   const total = images.length;
   const zoomed = zoomIndex === null ? null : images[zoomIndex] ?? null;
 
   const markFailed = (id: string) => setFailed((current) => new Set(current).add(id));
+  const openZoom = (index: number) => {
+    setMagnified(isPhoneViewport());
+    setZoomIndex(index);
+  };
   const step = (offset: number) =>
     setZoomIndex((index) => (index === null ? index : Math.min(total - 1, Math.max(0, index + offset))));
 
@@ -50,7 +64,7 @@ export function PhotoPages({
                 ) : (
                   <button
                     type="button"
-                    onClick={() => setZoomIndex(index)}
+                    onClick={() => openZoom(index)}
                     className="group relative block w-full overflow-hidden rounded-xl border border-border bg-card shadow-card outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
                     aria-label={`Zoom in on page ${pageNumber}`}
                   >
@@ -95,16 +109,30 @@ export function PhotoPages({
                 {studentName}&apos;s test. Compare the handwriting with the transcription before you publish.
               </DialogDescription>
             </DialogHeader>
-            <div className="max-h-[calc(100dvh-13rem)] overflow-auto overscroll-contain rounded-lg border border-border bg-muted/40">
+            {/*
+              A magnified page pans inside this frame: drag or scroll, or focus
+              it and use the arrow keys (which then pan instead of turning pages).
+              The phone height leaves room for a two-line toolbar. Keyed by page
+              so each new page starts at its top-left corner.
+            */}
+            <div
+              key={zoomed.id}
+              role={magnified ? "region" : undefined}
+              aria-label={magnified ? "Magnified page. Scroll to move around it." : undefined}
+              tabIndex={magnified ? 0 : undefined}
+              onKeyDown={(event) => {
+                if (magnified && (event.key === "ArrowLeft" || event.key === "ArrowRight")) event.stopPropagation();
+              }}
+              className="max-h-[calc(100dvh-16rem)] overflow-auto overscroll-contain rounded-lg border border-border bg-muted/40 outline-none focus-visible:ring-[3px] focus-visible:ring-ring sm:max-h-[calc(100dvh-13rem)]"
+            >
               <img
-                key={zoomed.id}
                 src={submissionImageUrl(submissionId, zoomed.id)}
                 alt={pageImageAlt(studentName, zoomIndex + 1)}
                 decoding="async"
-                className="mx-auto block h-auto w-full"
+                className={cn("block h-auto", magnified ? "w-[200%] max-w-none" : "mx-auto w-full")}
               />
             </div>
-            <div className={cn("flex flex-wrap items-center gap-2", total > 1 ? "justify-between" : "justify-end")}>
+            <div className="flex flex-wrap items-center gap-2">
               {total > 1 ? (
                 <div className="flex items-center gap-2">
                   <Button
@@ -131,12 +159,18 @@ export function PhotoPages({
                   </Button>
                 </div>
               ) : null}
-              <Button variant="ghost" size="sm" asChild>
-                <a href={submissionImageUrl(submissionId, zoomed.id)} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink aria-hidden />
-                  Open full size
-                </a>
-              </Button>
+              <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setMagnified((value) => !value)}>
+                  {magnified ? <ZoomOut aria-hidden /> : <ZoomIn aria-hidden />}
+                  {magnified ? "Fit to width" : "Zoom in"}
+                </Button>
+                <Button variant="ghost" size="sm" asChild>
+                  <a href={submissionImageUrl(submissionId, zoomed.id)} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink aria-hidden />
+                    Open full size
+                  </a>
+                </Button>
+              </div>
             </div>
           </DialogContent>
         ) : null}

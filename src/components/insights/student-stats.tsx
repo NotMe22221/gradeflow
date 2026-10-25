@@ -44,6 +44,9 @@ export function StudentStats({ profile, assignmentCount }: { profile: StudentPro
     stats.returnedCount > 0
       ? `Past due · ${pluralize(stats.returnedCount, "paper")} sent back`
       : "Past due, nothing submitted";
+  // Papers with no AI pass yet are not in the review queue, so they never read as "waiting for your approval".
+  const inReviewHint =
+    stats.readyCount > 0 ? `${stats.readyCount} ready for AI pass` : "Waiting for your approval";
 
   return (
     <section aria-label="Grade summary" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -60,7 +63,7 @@ export function StudentStats({ profile, assignmentCount }: { profile: StudentPro
         value={String(stats.publishedCount)}
         hint={`of ${pluralize(assignmentCount, "assignment")}`}
       />
-      <StatTile label="In review" icon={Hourglass} value={String(stats.inReviewCount)} hint="Waiting for your approval" />
+      <StatTile label="In review" icon={Hourglass} value={String(stats.inReviewCount)} hint={inReviewHint} />
       <StatTile label="Missing" icon={CircleAlert} value={String(stats.missingCount)} hint={missingHint} />
     </section>
   );

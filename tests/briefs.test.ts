@@ -28,10 +28,10 @@ function record(overrides: Partial<StudentRecord> = {}): StudentRecord {
     class: { id: "c1", name: "English 10", section: "Period 2", subject: "English" },
     student: { id: "s-ava", name: "Ava Quillon", email: "ava@example.test" },
     assignments: [
-      { id: "a1", title: "Persuasive Essay", dueDate: daysAgo(20), maxScore: 15 },
-      { id: "a2", title: "Literary Analysis", dueDate: daysAgo(10), maxScore: 15 },
-      { id: "a3", title: "Lab Report", dueDate: daysAgo(3), maxScore: 10 },
-      { id: "a4", title: "Research Proposal", dueDate: daysAgo(-6), maxScore: 10 },
+      { id: "a1", title: "Persuasive Essay", kind: "ESSAY", dueDate: daysAgo(20), maxScore: 15 },
+      { id: "a2", title: "Literary Analysis", kind: "ESSAY", dueDate: daysAgo(10), maxScore: 15 },
+      { id: "a3", title: "Lab Report", kind: "ESSAY", dueDate: daysAgo(3), maxScore: 10 },
+      { id: "a4", title: "Research Proposal", kind: "ESSAY", dueDate: daysAgo(-6), maxScore: 10 },
     ],
     submissions: [
       {
@@ -67,8 +67,8 @@ function record(overrides: Partial<StudentRecord> = {}): StudentRecord {
       { id: "sub3", assignmentId: "a3", status: "NEEDS_REVIEW", updatedAt: daysAgo(1), published: null },
     ],
     activity: [
-      { createdAt: daysAgo(0), xp: 50 },
-      { createdAt: daysAgo(1), xp: 15 },
+      { createdAt: daysAgo(0), xp: 50, kind: "SUBMIT" },
+      { createdAt: daysAgo(1), xp: 15, kind: "STUDY_SESSION" },
     ],
     ...overrides,
   };
@@ -110,6 +110,31 @@ describe("conference brief input", () => {
   it("has an empty basis without approved grades", () => {
     const input = buildBriefInput(record({ submissions: [] }), NOW);
     assert.deepEqual(input.basis, { publishedCount: 0, averagePercent: null });
+  });
+
+  it("lists work due later today as upcoming, and never an unscanned paper test", () => {
+    const dueToday = new Date(Date.UTC(2026, 9, 25, 12, 0, 0)); // calendar dates are stored at noon UTC
+    const input = buildBriefInput(
+      record({
+        assignments: [
+          ...record().assignments,
+          { id: "a5", title: "Due Today Essay", kind: "ESSAY", dueDate: dueToday, maxScore: 10 },
+          { id: "a6", title: "Unit 3 Quiz", kind: "TEST", dueDate: daysAgo(1), maxScore: 6 },
+        ],
+      }),
+      NOW // 15:00 UTC on the due date
+    );
+    assert.deepEqual(
+      input.upcoming.map((item) => item.assignment),
+      ["Due Today Essay", "Research Proposal"]
+    );
+  });
+
+  it("sends the model the student's first name only", () => {
+    const data = serializeBriefData(buildBriefInput(record(), NOW));
+    assert.equal(JSON.parse(data).student, "Ava");
+    assert.equal(data.includes("Quillon"), false);
+    assert.equal(data.includes("ava@example.test"), false);
   });
 
   it("escapes the data block so teacher comments cannot close it", () => {
@@ -194,17 +219,90 @@ describe("demo brief", () => {
     const text = JSON.stringify(brief);
     assert.match(brief.headline, /^Ava /);
     assert.match(brief.summary, /2 approved grades in English 10, averaging 77%/);
-    assert.match(brief.summary, /Literary Analysis: 13\/15 \(87%\)/);
-    assert.match(text, /Organization: 100%/);
-    assert.match(text, /Evidence and reasoning: 55%/);
+    assert.match(brief.summary, /13\/15 \(87%\) on Literary Analysis/);
+    assert.match(text, /“Organization”: 100%/);
+    assert.match(text, /“Evidence and reasoning”: 55%/);
     assert.match(text, /Research Proposal/);
     assert.equal(text.includes("Lab Report"), false);
     assert.match(text, /not part of the grade/);
   });
 
+  it("never doubles punctuation after question titles that end in . or ?", () => {
+    const quiz = record({
+      assignments: [
+        { id: "q2", title: "Unit 2 Quiz: The Water Cycle", kind: "TEST", dueDate: daysAgo(12), maxScore: 6 },
+        {
+          id: "e1",
+          title: "Persuasive Essay: Should Our School Adopt a Four-Day Week?",
+          kind: "ESSAY",
+          dueDate: daysAgo(6),
+          maxScore: 10,
+        },
+        { id: "a4", title: "Research Proposal", kind: "ESSAY", dueDate: daysAgo(-6), maxScore: 10 },
+      ],
+      submissions: [
+        {
+          id: "s-q2",
+          assignmentId: "q2",
+          status: "PUBLISHED",
+          updatedAt: daysAgo(10),
+          published: {
+            totalScore: 3,
+            maxScore: 6,
+            breakdown: [
+              item("k1", "Q2. What powers evaporation?", 2, 2),
+              item("k2", "Q4. A stream's pH drops from 7.2 to 5.8 after a storm. Give one likely cause.", 1, 4, "Name a cause."),
+            ],
+            feedback: null,
+            publishedAt: daysAgo(10),
+          },
+        },
+        {
+          id: "s-e1",
+          assignmentId: "e1",
+          status: "PUBLISHED",
+          updatedAt: daysAgo(2),
+          published: {
+            totalScore: 8,
+            maxScore: 10,
+            breakdown: [item("k3", "Clear position", 8, 10)],
+            feedback: "Strong opening.",
+            publishedAt: daysAgo(2),
+          },
+        },
+      ],
+      activity: [
+        { createdAt: daysAgo(0), xp: 15, kind: "STUDY_SESSION" },
+        { createdAt: daysAgo(1), xp: 15, kind: "STUDY_SESSION" },
+        { createdAt: daysAgo(2), xp: 15, kind: "STUDY_SESSION" },
+        { createdAt: daysAgo(3), xp: 15, kind: "STUDY_SESSION" },
+      ],
+    });
+    const brief = buildDemoBrief(buildBriefInput(quiz, NOW));
+    const lines = [
+      brief.headline,
+      brief.summary,
+      ...brief.strengths,
+      ...brief.growthAreas,
+      ...brief.talkingPoints,
+      ...brief.nextSteps,
+      ...brief.questionsForFamily,
+    ];
+    for (const line of lines) {
+      // No "cause..", "cause.:", "evaporation?." and no "cause.”." after a quoted title.
+      assert.doesNotMatch(line, /[.?!][.:,]/, line);
+      assert.doesNotMatch(line, /[.?!][”"’]\./, line);
+    }
+    const text = lines.join("\n");
+    assert.match(text, /“Q2\. What powers evaporation\?”: 100%/);
+    assert.match(text, /Focus area: “Q4\. .* Give one likely cause\.” Revisit/);
+    assert.match(brief.summary, /on Persuasive Essay: Should Our School Adopt a Four-Day Week\?( |$)/);
+    assert.match(text, /Ava is on a 4-day study streak/);
+  });
+
   it("still fills every section for a student with full marks and no upcoming work", () => {
     const perfect = record({
-      assignments: [{ id: "a1", title: "Persuasive Essay", dueDate: null, maxScore: 10 }],
+      assignments: [{ id: "a1", title: "Persuasive Essay", kind: "ESSAY", dueDate: null, maxScore: 10 }],
       submissions: [
         {
           id: "sub1",

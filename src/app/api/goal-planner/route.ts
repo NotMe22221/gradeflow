@@ -2,14 +2,20 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { openAiConfigured } from "@/lib/ai/openai";
 import { AuthError, requireStudent } from "@/lib/auth/session";
 import { MAX_GOAL_CHARS } from "@/lib/goals/parse";
 import { GoalPlannerError, planStudentGoal } from "@/lib/goals/planner";
 import type { GoalPlannerFailure, GoalPlannerSuccess } from "@/lib/goals/types";
+import { readJsonWithLimit } from "@/lib/http/body";
+import { AI_RATE_LIMITS, checkRateLimit, rateLimitMessage } from "@/lib/http/rate-limit";
 import { idSchema } from "@/lib/validation/id";
 
 export const dynamic = "force-dynamic";
+// One gpt-4o-mini call within the text budget (src/lib/ai/openai.ts), plus the database work.
+export const maxDuration = 90;
 
+/** The goal is at most 300 characters; 4 KB leaves room for JSON escaping. */
 const MAX_BODY_BYTES = 4 * 1024;
 
 const NO_STORE = { "Cache-Control": "no-store" };
@@ -23,10 +29,15 @@ const bodySchema = z.object({
   classId: idSchema.optional().nullable(),
 });
 
-function errorResponse(error: string, status: number, code?: GoalPlannerFailure["code"]) {
+function errorResponse(
+  error: string,
+  status: number,
+  code?: GoalPlannerFailure["code"],
+  headers?: Record<string, string>
+) {
   return NextResponse.json<GoalPlannerFailure>(
     code ? { ok: false, error, code } : { ok: false, error },
-    { status, headers: NO_STORE }
+    { status, headers: { ...NO_STORE, ...headers } }
   );
 }
 
@@ -38,27 +49,36 @@ function errorResponse(error: string, status: number, code?: GoalPlannerFailure[
  * required scores are always computed in code (src/lib/goals/plan.ts) from
  * this student's own teacher-approved grades. Saves the goal (one per class)
  * and awards GOAL_SET XP once per day.
+ *
+ * The body is read with a hard byte cap (a chunked request can't stream an
+ * unbounded body into memory). With a live key, each student gets a limited
+ * number of planner calls per window (429 with Retry-After past it); the
+ * demo parser costs nothing and is not limited.
  */
 export async function POST(request: Request) {
   try {
     const student = await requireStudent();
 
-    const declared = Number(request.headers.get("content-length") ?? "0");
-    if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
-      return errorResponse("That goal is too long.", 413);
+    const body = await readJsonWithLimit(request, MAX_BODY_BYTES);
+    if (!body.ok) {
+      return body.reason === "too_large"
+        ? errorResponse(`Keep your goal under ${MAX_GOAL_CHARS} characters.`, 413)
+        : errorResponse("Type your goal first.", 400);
     }
-
-    let body: unknown;
-    try {
-      body = await request.json();
-    } catch {
-      return errorResponse("Type your goal first.", 400);
-    }
-    const parsed = bodySchema.safeParse(body);
+    const parsed = bodySchema.safeParse(body.value);
     if (!parsed.success) {
       const issue = parsed.error.issues[0];
       if (issue?.path[0] === "classId") return errorResponse("Class not found.", 404);
       return errorResponse(issue?.message ?? "Type your goal first.", 400);
+    }
+
+    if (openAiConfigured()) {
+      const limit = checkRateLimit(`${student.id}:text`, AI_RATE_LIMITS.text);
+      if (!limit.ok) {
+        return errorResponse(rateLimitMessage(limit.retryAfterSeconds), 429, undefined, {
+          "Retry-After": String(limit.retryAfterSeconds),
+        });
+      }
     }
 
     let result: GoalPlannerSuccess;

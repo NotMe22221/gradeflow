@@ -1,6 +1,6 @@
-// Reading and checking a POST /api/grade multipart form. Pure (no DB, no
-// secrets): the route uses it, and unit tests exercise it with Node's
-// built-in FormData and File.
+// Checking a POST /api/grade multipart form. Pure (no DB, no secrets): the
+// route reads the body with readFormDataWithLimit() (lib/http/body.ts), and
+// unit tests exercise these checks with Node's built-in FormData and File.
 //
 // Nothing from the client is trusted: ids are shape-checked here and
 // ownership-checked by the pipeline, file counts and sizes are capped, and
@@ -19,38 +19,6 @@ import { idSchema } from "@/lib/validation/id";
 
 /** Upper bound for the whole request: every photo at the limit, plus room for fields. */
 export const MAX_SCAN_REQUEST_BYTES = (MAX_SCAN_PAGES + 1) * MAX_SCAN_IMAGE_BYTES + 1024 * 1024;
-
-/**
- * Parse a multipart body without ever buffering more than `limit` bytes, even
- * when the client sends no Content-Length (a chunked upload). Returns null
- * when the body is too large; throws when it is not valid form data.
- */
-export async function readFormDataWithLimit(request: Request, limit: number): Promise<FormData | null> {
-  const declared = Number(request.headers.get("content-length") ?? "");
-  if (Number.isFinite(declared) && declared > limit) return null;
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  const reader = request.body?.getReader();
-  if (reader) {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      total += value.byteLength;
-      if (total > limit) {
-        await reader.cancel().catch(() => undefined);
-        return null;
-      }
-      chunks.push(value);
-    }
-  }
-  const body = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    body.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return new Response(body, { headers: { "content-type": request.headers.get("content-type") ?? "" } }).formData();
-}
 
 export type ScanFormFields = {
   assignmentId: string;

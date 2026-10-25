@@ -77,6 +77,7 @@ export function CriterionCard({
   const commentTooLong = draft.comment.length > MAX_COMMENT_CHARS;
   const nearCommentLimit = draft.comment.length > MAX_COMMENT_CHARS - 200;
   const demo = grader === "demo";
+  const test = kind === "TEST";
 
   return (
     <Card
@@ -96,7 +97,9 @@ export function CriterionCard({
         </span>
         <div className="min-w-0 flex-1 space-y-2">
           <h3 className="text-sm leading-6 font-semibold break-words text-foreground">
-            <span className="sr-only">Criterion {number}: </span>
+            <span className="sr-only">
+              {test ? "Question" : "Criterion"} {number}:{" "}
+            </span>
             {criterion.title}
           </h3>
           <div className="flex flex-wrap items-center gap-1.5">
@@ -199,6 +202,7 @@ export function CriterionCard({
         evidence={criterion.aiEvidence}
         verified={evidenceVerified}
         paperNoun={scanned ? "transcription" : "paper"}
+        unit={test ? "question" : "criterion"}
         onShow={onShowEvidence}
       />
 
@@ -212,7 +216,11 @@ export function CriterionCard({
           onChange={(event) => onCommentChange(event.target.value)}
           maxLength={MAX_COMMENT_CHARS}
           rows={3}
-          placeholder="What did this paper do well, and what would earn full credit?"
+          placeholder={
+            test
+              ? "What did this answer get right, and what would earn full credit?"
+              : "What did this paper do well, and what would earn full credit?"
+          }
           aria-invalid={commentTooLong ? true : undefined}
           className="min-h-20 text-[13px] leading-relaxed"
         />
@@ -235,15 +243,17 @@ function EvidenceQuote({
   evidence,
   verified,
   paperNoun,
+  unit,
   onShow,
 }: {
   evidence: string | null;
   verified: boolean;
   paperNoun: "paper" | "transcription";
+  unit: "question" | "criterion";
   onShow: () => void;
 }) {
   if (!evidence) {
-    return <p className="text-[13px] text-muted-foreground">No quote from the AI for this criterion.</p>;
+    return <p className="text-[13px] text-muted-foreground">No quoted evidence for this {unit}.</p>;
   }
 
   // A quote cut off mid-sentence gets a visual ellipsis. The stored quote is unchanged.

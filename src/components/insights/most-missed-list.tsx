@@ -10,6 +10,10 @@ import { cn } from "@/lib/utils";
  * Ranked list of the criteria a class loses the most points on. Each row
  * links to its assignment (or, with `linkTo="insights"`, to the class
  * heatmap). The bar is the class average; the percent is always printed.
+ *
+ * `dense` is for a narrow rail (the dashboard): the rank bubble is dropped to
+ * give the text room, the question wraps to two lines, and the assignment and
+ * class get a line each, so the row still says what was missed and where.
  */
 export function MostMissedList({
   items,
@@ -45,20 +49,41 @@ export function MostMissedList({
                 dense ? "px-5 py-3" : "px-6 py-4"
               )}
             >
-              <span
-                aria-hidden
-                className="tabular flex size-6 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-muted-foreground ring-1 ring-border"
-              >
-                {index + 1}
-              </span>
+              {dense ? null : (
+                <span
+                  aria-hidden
+                  className="tabular flex size-6 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-muted-foreground ring-1 ring-border"
+                >
+                  {index + 1}
+                </span>
+              )}
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium text-foreground" title={item.title}>
+                <span
+                  className={cn(
+                    "block text-sm font-medium text-foreground",
+                    dense ? "line-clamp-2 [overflow-wrap:anywhere]" : "truncate"
+                  )}
+                  title={item.title}
+                >
                   {item.title}
                 </span>
-                <span className="block truncate text-xs text-muted-foreground" title={context}>
-                  {context}
-                  {dense ? null : <span className="tabular"> · out of {formatPoints(item.maxPoints)}</span>}
-                </span>
+                {dense ? (
+                  <>
+                    <span className="mt-0.5 block truncate text-xs text-muted-foreground" title={item.assignmentTitle}>
+                      {item.assignmentTitle}
+                    </span>
+                    {showClass ? (
+                      <span className="block truncate text-xs text-muted-foreground" title={item.className}>
+                        {item.className}
+                      </span>
+                    ) : null}
+                  </>
+                ) : (
+                  <span className="block truncate text-xs text-muted-foreground" title={context}>
+                    {context}
+                    <span className="tabular"> · out of {formatPoints(item.maxPoints)}</span>
+                  </span>
+                )}
                 <span aria-hidden className="mt-2 block h-1.5 w-full overflow-hidden rounded-full bg-muted">
                   <span
                     className={cn("block h-full rounded-full", tone.bar)}

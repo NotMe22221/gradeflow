@@ -22,10 +22,13 @@ import {
 import { xpForPublishedGrade } from "@/lib/gamification/rules";
 import { toReviewItem, type ReviewQueueRow } from "@/lib/review/map";
 import {
+  DEMO_SCAN_MODELS,
   criterionGuideLabel,
+  demoScanModel,
   hasPagePhotos,
   isScanned,
   pageImageAlt,
+  paperNounFor,
   parseSubmissionSource,
   submissionImageUrl,
   toReviewImages,
@@ -252,6 +255,18 @@ describe("summarizeDraft and blockingReason", () => {
     assert.equal(summary.ready, false);
     assert.equal(blockingReason(summary), "This rubric has no criteria to score.");
   });
+
+  it("counts questions, not criteria, on a handwritten test", () => {
+    const paper = item({ id: "sub_1" });
+    assert.equal(blockingReason(summarizeDraft(paper, draftWith(paper, { c1: "" })), "TEST"), "One question still needs a score.");
+    assert.equal(
+      blockingReason(summarizeDraft(paper, draftWith(paper, { c1: "", c2: "" })), "TEST"),
+      "2 questions still need a score."
+    );
+    const empty = item({ id: "sub_2", criteria: [] });
+    assert.equal(blockingReason(summarizeDraft(empty, createDraft(empty)), "TEST"), "This test has no questions to score.");
+    assert.equal(blockingReason(summarizeDraft(paper, draftWith(paper, { c1: "" })), "ESSAY"), "One criterion still needs a score.");
+  });
 });
 
 // --- Draft working values (a cleared score stays cleared) ----------------------
@@ -452,6 +467,29 @@ describe("layoutEvidence", () => {
     assert.equal(layoutText(layout), text);
   });
 
+  it("highlights short answers that fill a whole answer line of a transcription", () => {
+    const transcription = "Q1. Sand, silt\nQ2. O horizon\nQ3. Terracing\nQ4. Roots\nQ5. Rain gardens";
+    const answers = ["Sand, silt", "O horizon", "Terracing", "Roots", "Rain gardens"];
+    const layout = layoutEvidence(
+      transcription,
+      answers.map((answer, index) => criterion({ id: `q${index + 1}`, aiEvidence: answer, evidenceFound: true }))
+    );
+    assert.equal(layoutText(layout), transcription);
+    assert.deepEqual(layout.markForCriterion, { q1: 0, q2: 1, q3: 2, q4: 3, q5: 4 });
+    const marks = layout.segments.flatMap((segment) => (segment.kind === "mark" ? [segment.text] : []));
+    assert.deepEqual(marks, answers);
+  });
+
+  it("never highlights a short quote that is only part of an answer, or one the server rejected", () => {
+    const transcription = "Q1. Sand, silt\nQ2. O horizon";
+    const layout = layoutEvidence(transcription, [
+      criterion({ id: "q1", aiEvidence: "horizon", evidenceFound: true }),
+      criterion({ id: "q2", aiEvidence: "O horizon", evidenceFound: false }),
+    ]);
+    assert.deepEqual(layout.markForCriterion, {});
+    assert.equal(layoutText(layout), transcription);
+  });
+
   it("finds short snippets and repeated passages", () => {
     const text = "Hi Claude.\nMy report starts here.\nHi Claude.";
     const layout = layoutEvidence(text, [], ["Hi Claude."]);
@@ -646,16 +684,57 @@ describe("scan media helpers", () => {
     assert.equal(isScanned({ source: "TEXT", images: [] }), false);
   });
 
+  const onePage = [{ id: "img_1", position: 0 }];
+  const ai = (grader: "openai" | "demo" | "claude", model: string | null) => ({
+    grader,
+    model,
+    confidence: "medium" as const,
+    overallComment: null,
+    flags: [],
+  });
+
   it("labels the transcription with its engine and never calls demo output AI", () => {
-    assert.deepEqual(transcriptionCaption("openai"), {
+    assert.deepEqual(transcriptionCaption({ ai: ai("openai", "gpt-4o"), images: onePage }), {
       tone: "ai",
       text: "Transcribed by GPT-4o. Check it against the photo.",
     });
-    const demo = transcriptionCaption("demo");
+    const demo = transcriptionCaption({ ai: ai("demo", null), images: onePage });
     assert.equal(demo.tone, "demo");
     assert.match(demo.text, /^Demo transcription/);
     assert.match(demo.text, /not read by AI/);
-    assert.match(transcriptionCaption(null).text, /Check it against the photo/);
+    assert.doesNotMatch(demo.text, /GPT|Transcribed by/);
+  });
+
+  it("says where a demo transcription came from only when the scan recorded it", () => {
+    const typed = transcriptionCaption({ ai: ai("demo", demoScanModel("typed")), images: onePage });
+    assert.equal(typed.text, "Demo transcription: typed in the scanner, not read by AI. Check it against the photo.");
+    const sample = transcriptionCaption({ ai: ai("demo", demoScanModel("sample")), images: onePage });
+    assert.equal(
+      sample.text,
+      "Demo transcription: stored with the sample photo, not read by AI. Check it against the photo."
+    );
+    // Older demo scans stored no marker: the caption covers both sources and claims neither.
+    const unknown = transcriptionCaption({ ai: ai("demo", null), images: onePage });
+    assert.match(unknown.text, /sample photo's stored text or what was typed in the scanner/);
+    assert.doesNotMatch(unknown.text, /stored with the sample photo/);
+    assert.equal(DEMO_SCAN_MODELS.typed, "demo-typed");
+    assert.equal(DEMO_SCAN_MODELS.sample, "demo-sample");
+  });
+
+  it("matches the photo wording to the pages on file and stays neutral without a vision record", () => {
+    const twoPages = [...onePage, { id: "img_2", position: 1 }];
+    assert.match(transcriptionCaption({ ai: ai("openai", "gpt-4o"), images: twoPages }).text, /against the photos\.$/);
+    assert.match(transcriptionCaption({ ai: ai("openai", "gpt-4o"), images: [] }).text, /photos are not on file\.$/);
+    const none = transcriptionCaption({ ai: null, images: onePage });
+    assert.equal(none.tone, "neutral");
+    assert.doesNotMatch(none.text, /AI|GPT|sample|typed/);
+    assert.equal(transcriptionCaption({ ai: ai("claude", null), images: onePage }).tone, "neutral");
+  });
+
+  it("calls a scanned paper a transcription", () => {
+    assert.equal(paperNounFor({ source: "SCAN", images: [] }), "transcription");
+    assert.equal(paperNounFor({ source: "TEXT", images: onePage }), "transcription");
+    assert.equal(paperNounFor({ source: "TEXT", images: [] }), "paper");
   });
 
   it("names the full-credit description an answer key for tests", () => {

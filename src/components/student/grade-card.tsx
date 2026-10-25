@@ -2,6 +2,7 @@ import { BadgeCheck, MessageSquareText } from "lucide-react";
 
 import { SubmissionText } from "@/components/student/submission-text";
 import { Card } from "@/components/ui/card";
+import type { AssignmentKind } from "@/lib/constants";
 import { formatDate, formatPercent, formatPoints } from "@/lib/format";
 import type { BreakdownItem } from "@/lib/grades/breakdown";
 
@@ -25,6 +26,7 @@ export function GradeCard({
   content,
   fileName,
   contentLabel,
+  kind = "ESSAY",
 }: {
   totalScore: number;
   maxScore: number;
@@ -36,6 +38,8 @@ export function GradeCard({
   fileName?: string | null;
   /** Label for the paper disclosure, e.g. for a transcribed paper test. */
   contentLabel?: string;
+  /** A paper test's criteria are its questions. */
+  kind?: AssignmentKind;
 }) {
   const overall = scoreShare(totalScore, maxScore);
   const overallFeedback = feedback?.trim();
@@ -73,7 +77,9 @@ export function GradeCard({
       </div>
 
       <div className="border-t border-border px-6 py-6">
-        <h3 className="text-sm font-semibold text-foreground">Rubric feedback</h3>
+        <h3 className="text-sm font-semibold text-foreground">
+          {kind === "TEST" ? "Feedback by question" : "Rubric feedback"}
+        </h3>
         {breakdown.length === 0 ? (
           <p className="mt-2 text-sm text-muted-foreground">
             Per-criterion feedback isn&apos;t available for this grade. Your total above is final.

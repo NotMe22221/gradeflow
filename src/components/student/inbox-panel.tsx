@@ -42,7 +42,14 @@ function PrimaryAction({ row, className }: { row: InboxAssignment; className?: s
         </Button>
       );
     case "returned":
-      return (
+      return row.kind === "TEST" ? (
+        <Button asChild className={className}>
+          <Link href={href}>
+            <MessageSquareText aria-hidden />
+            Read your teacher&apos;s note
+          </Link>
+        </Button>
+      ) : (
         <Button asChild className={className}>
           <Link href={href}>
             <PenLine aria-hidden />
@@ -98,14 +105,18 @@ export function InboxPanel({
   const shown = row.criteria.slice(0, PREVIEW_LIMIT);
   const more = row.criteria.length - shown.length;
   const isTest = row.kind === "TEST";
+  const stateBadge = <StudentStateBadge state={row.state} paperTest={isTest} awaitingScan={row.awaitingScan} />;
+  // The state badge already says "Paper test" for a test that hasn't happened yet.
+  const paperTestBadge =
+    isTest && !(row.state === "not_submitted" && !row.awaitingScan) ? <Badge variant="outline">Paper test</Badge> : null;
 
   return (
     <div className="flex flex-col gap-5">
       {showHeading ? (
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <StudentStateBadge state={row.state} />
-            {isTest ? <Badge variant="outline">Paper test</Badge> : null}
+            {stateBadge}
+            {paperTestBadge}
           </div>
           <h3
             ref={headingRef}
@@ -126,8 +137,8 @@ export function InboxPanel({
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
-          <StudentStateBadge state={row.state} />
-          {isTest ? <Badge variant="outline">Paper test</Badge> : null}
+          {stateBadge}
+          {paperTestBadge}
           {row.pastDue ? <Badge variant="danger">Overdue</Badge> : null}
         </div>
       )}

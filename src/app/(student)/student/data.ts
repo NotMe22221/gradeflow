@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { InboxAssignment } from "@/components/student/inbox-model";
-import { isPastDue, studentStateFor } from "@/components/student/student-status";
+import { isAwaitingScan, isOverdue, studentStateFor } from "@/components/student/student-status";
 import { parseAssignmentKind } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { demoCoachingTip } from "@/lib/goals/coaching";
@@ -76,17 +76,19 @@ export async function loadStudentDashboard(studentId: string, now: Date): Promis
       const submission = assignment.submissions[0] ?? null;
       const published = submission?.publishedGrade ?? null;
       const state = studentStateFor(submission?.status, published !== null);
-      const needsWork = state === "not_submitted" || state === "returned";
+      const kind = parseAssignmentKind(assignment.kind);
       inbox.push({
         id: assignment.id,
         title: assignment.title,
         classId: klass.id,
         className: klass.name,
-        kind: parseAssignmentKind(assignment.kind),
+        kind,
         dueDate: iso(assignment.dueDate),
         submittedAt: iso(submission?.submittedAt),
         publishedAt: iso(published?.publishedAt),
-        pastDue: needsWork && isPastDue(assignment.dueDate, now),
+        // A paper test is never overdue: the student can't submit one.
+        pastDue: isOverdue(kind, state, assignment.dueDate, now),
+        awaitingScan: isAwaitingScan(kind, state, assignment.dueDate, now),
         state,
         score: published ? { total: published.totalScore, max: published.maxScore } : null,
         totalPoints: assignment.criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0),
@@ -106,6 +108,7 @@ export async function loadStudentDashboard(studentId: string, now: Date): Promis
             return {
               id: assignment.id,
               title: assignment.title,
+              kind: assignment.kind,
               dueDate: assignment.dueDate,
               criteria: assignment.criteria,
               submission: submission

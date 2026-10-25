@@ -53,6 +53,15 @@ export function InsightsSkeleton() {
               </div>
             ))}
           </div>
+          <div className="space-y-2 px-6 pb-6">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-2 w-full rounded-full" />
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pt-1">
+              {[0, 1, 2, 3, 4].map((band) => (
+                <Skeleton key={band} className="h-3 w-full" />
+              ))}
+            </div>
+          </div>
         </Card>
       </div>
 

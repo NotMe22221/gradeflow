@@ -2,6 +2,7 @@ import {
   CircleCheck,
   CircleSlash,
   Flag,
+  Info,
   Lightbulb,
   Mountain,
   ShieldCheck,
@@ -11,6 +12,7 @@ import {
 
 import { GoalEngineBadge } from "@/components/student/goal-engine-badge";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDate, formatPoints, pluralize } from "@/lib/format";
 import { formatPercentValue, LETTER_SCALE_NOTE, type GoalStatus } from "@/lib/goals/plan";
 import type { GoalEngine, GoalPlanView } from "@/lib/goals/types";
@@ -37,6 +39,26 @@ export function GoalStatusPill({ plan, className }: { plan: Pick<GoalPlanView, "
 function percentText(value: number | null): string {
   return value === null ? "–" : `${formatPercentValue(value)}%`;
 }
+
+/** "Due Oct 24", or "Test day Oct 24" for a paper test. */
+function taskDateLabel(task: GoalPlanView["tasks"][number]): string {
+  if (task.paperTest) return task.dueDate ? `Test day ${formatDate(task.dueDate)}` : "No test date";
+  return task.dueDate ? `Due ${formatDate(task.dueDate)}` : "No due date";
+}
+
+const STANDING_TOOLTIP =
+  "Points earned out of points possible on your approved grades. An average that counts each assignment equally can differ slightly.";
+
+// Stat tiles. Below sm each tile is a two-column row: label over hint on the
+// left, the number on the right. From sm up they are three columns, and every
+// label reserves two lines so the numbers sit at the same height.
+const TILE =
+  "min-w-0 rounded-lg border border-border bg-background/60 px-3 py-3 max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:items-center max-sm:gap-x-4 sm:px-4";
+const TILE_LABEL =
+  "text-xs leading-snug font-medium text-muted-foreground max-sm:col-start-1 max-sm:row-start-1 sm:min-h-[2lh]";
+const TILE_VALUE =
+  "tabular text-lg font-semibold break-words text-foreground max-sm:col-start-2 max-sm:row-span-2 max-sm:row-start-1 max-sm:text-right sm:mt-1 sm:text-xl";
+const TILE_HINT = "tabular text-xs leading-snug text-muted-foreground max-sm:col-start-1 max-sm:row-start-2";
 
 /**
  * A computed goal plan. Every number comes from code (src/lib/goals/plan.ts)
@@ -75,35 +97,52 @@ export function GoalPlanResult({
 
       <p className="text-sm text-pretty text-foreground/90">{plan.statusMessage}</p>
 
-      <dl className="grid grid-cols-3 gap-2 sm:gap-3">
-        <div className="min-w-0 rounded-lg border border-border bg-background/60 px-3 py-3 sm:px-4">
-          <dt className="text-[11px] leading-tight font-medium text-muted-foreground sm:text-xs">Current standing</dt>
-          <dd className="tabular mt-1 text-base font-semibold break-words text-foreground sm:text-xl">{percentText(plan.currentPercent)}</dd>
-          <dd className="tabular text-[11px] leading-tight text-muted-foreground sm:text-xs">
+      {/* Phones: one row per stat (label and hint left, number right). sm+: three tiles whose numbers line up. */}
+      <dl className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
+        <div className={TILE}>
+          <dt className={TILE_LABEL}>
+            <span>
+              Current standing <span className="font-normal">(by points)</span>
+            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="How current standing is calculated"
+                  className="ml-1 inline-flex size-4 translate-y-0.5 items-center justify-center rounded-full align-baseline text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
+                >
+                  <Info className="size-3.5" aria-hidden />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{STANDING_TOOLTIP}</TooltipContent>
+            </Tooltip>
+          </dt>
+          <dd className={TILE_VALUE}>{percentText(plan.currentPercent)}</dd>
+          <dd className={TILE_HINT}>
             {plan.gradedCount > 0 ? `From ${pluralize(plan.gradedCount, "approved grade")}` : "No approved grades yet"}
           </dd>
         </div>
-        <div className="min-w-0 rounded-lg border border-border bg-background/60 px-3 py-3 sm:px-4">
-          <dt className="text-[11px] leading-tight font-medium text-muted-foreground sm:text-xs">Needed on what&apos;s left</dt>
-          <dd className="tabular mt-1 text-base font-semibold break-words text-foreground sm:text-xl">
+        <div className={TILE}>
+          <dt className={TILE_LABEL}>Needed on what&apos;s left</dt>
+          <dd className={TILE_VALUE}>
             {plan.status === "no_remaining"
               ? "–"
               : required !== null && required > 100
                 ? "100%+"
                 : percentText(required)}
           </dd>
-          <dd className="tabular text-[11px] leading-tight text-muted-foreground sm:text-xs">
+          <dd className={TILE_HINT}>
             {plan.status === "no_remaining"
               ? "Nothing left"
               : `${formatPoints(Math.round(plan.requiredPoints * 10) / 10)} of ${formatPoints(plan.remainingMax)} pts`}
           </dd>
         </div>
-        <div className="min-w-0 rounded-lg border border-border bg-background/60 px-3 py-3 sm:px-4">
-          <dt className="text-[11px] leading-tight font-medium text-muted-foreground sm:text-xs">Best possible</dt>
-          <dd className="tabular mt-1 text-base font-semibold break-words text-foreground sm:text-xl">
+        <div className={TILE}>
+          <dt className={TILE_LABEL}>Best possible</dt>
+          <dd className={TILE_VALUE}>
             {plan.earnedMax + plan.remainingMax > 0 ? percentText(plan.bestPossiblePercent) : "–"}
           </dd>
-          <dd className="text-[11px] leading-tight text-muted-foreground sm:text-xs">With full marks on the rest</dd>
+          <dd className={TILE_HINT}>With full marks on the rest</dd>
         </div>
       </dl>
 
@@ -120,8 +159,9 @@ export function GoalPlanResult({
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-2 text-sm font-medium break-words text-foreground">{task.title}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      <span className="tabular">{task.dueDate ? `Due ${formatDate(task.dueDate)}` : "No due date"}</span>
+                      <span className="tabular">{taskDateLabel(task)}</span>
                       {task.pastDue ? <span className="font-medium text-danger-soft-foreground"> · Overdue</span> : null}
+                      {task.awaitingScan ? <span> · Waiting for your teacher to scan it</span> : null}
                       {task.submitted ? <span> · Submitted, waiting for a grade</span> : null}
                     </p>
                   </div>

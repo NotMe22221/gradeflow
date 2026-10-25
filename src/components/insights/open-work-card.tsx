@@ -12,6 +12,8 @@ function StateBadge({ item }: { item: OpenWorkItem }) {
     missing: { label: "Missing", variant: "danger" },
     returned: { label: "Sent back", variant: "outline" },
     in_review: { label: "In review", variant: "warning" },
+    ready: { label: "Ready for AI pass", variant: "secondary" },
+    awaiting_scan: { label: "Not scanned yet", variant: "outline" },
     upcoming: { label: item.dueDate ? `Due ${formatDate(item.dueDate)}` : "Upcoming", variant: "secondary" },
     not_submitted: { label: "Not submitted", variant: "secondary" },
   };

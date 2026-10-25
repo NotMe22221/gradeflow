@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Camera, CheckCircle2, FlaskConical, Loader2, ScanLine, Sparkles, Upload, X } from "lucide-react";
+import { Camera, CheckCircle2, FlaskConical, ImageIcon, Loader2, ScanLine, Sparkles, Upload, X } from "lucide-react";
 
 import { FormAlert } from "@/components/classes/form-feedback";
 import {
@@ -262,7 +262,7 @@ export function AnswerKeyImport({
           </h3>
           <p className="text-[13px] text-pretty text-muted-foreground">
             {engine === "openai"
-              ? "GPT-4o reads each question, its answer, and its points. Check every question before you save."
+              ? "GPT-4o reads each question, its answer, and its points from any photo, including the sample. Check every question before you save."
               : "Demo mode reads the sample answer key only. Set OPENAI_API_KEY to read your own photos with GPT-4o."}
           </p>
         </div>
@@ -337,9 +337,10 @@ export function AnswerKeyImport({
           <Camera aria-hidden />
           Take photo
         </Button>
+        {/* With a key, the sample is a real GPT-4o read like any photo, so it is not labelled demo. */}
         <Button type="button" variant="ghost" onClick={() => void readSample()} disabled={disabled || busy}>
-          <FlaskConical aria-hidden />
-          Use the sample answer key (demo)
+          {engine === "openai" ? <ImageIcon aria-hidden /> : <FlaskConical aria-hidden />}
+          {engine === "openai" ? "Try the sample answer key" : "Use the sample answer key (demo)"}
         </Button>
         <input
           ref={uploadRef}

@@ -2,7 +2,7 @@ import "server-only";
 
 import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
-import { dayKey, ONCE_PER_DAY, type ActivityKind } from "@/lib/gamification/rules";
+import { dayKey, ONCE_PER_DAY, startOfDay, type ActivityKind } from "@/lib/gamification/rules";
 
 type Client = Prisma.TransactionClient | typeof db;
 
@@ -10,6 +10,9 @@ type Client = Prisma.TransactionClient | typeof db;
  * Record one XP-earning action for a student. Once-per-day kinds are skipped
  * when already earned today. Returns the XP awarded (0 when skipped).
  * XP is engagement only: it never touches grades.
+ *
+ * "Today" is the server's calendar day (startOfDay/dayKey in rules.ts), the
+ * same day the streak and "Study session logged today" use.
  */
 export async function awardXp(
   client: Client,
@@ -18,10 +21,8 @@ export async function awardXp(
   const now = input.now ?? new Date();
   if (input.xp <= 0) return 0;
   if (ONCE_PER_DAY.includes(input.kind)) {
-    const start = new Date(now);
-    start.setHours(0, 0, 0, 0);
     const existing = await client.studyActivity.findFirst({
-      where: { studentId: input.studentId, kind: input.kind, createdAt: { gte: start } },
+      where: { studentId: input.studentId, kind: input.kind, createdAt: { gte: startOfDay(now) } },
       select: { createdAt: true },
     });
     if (existing && dayKey(existing.createdAt) === dayKey(now)) return 0;

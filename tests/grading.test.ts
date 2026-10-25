@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 
 import { SAMPLE_PAPERS } from "@/lib/demo/sample-papers";
 import { pluralize, wordCount } from "@/lib/format";
-import { cleanEvidence, findEvidenceSpan } from "@/lib/grading/evidence";
+import { cleanEvidence, findEvidenceSpan, findTestEvidenceSpan } from "@/lib/grading/evidence";
 import {
   detectPromptInjection,
   isGraderDirected,
@@ -321,6 +321,15 @@ describe("validateGrading", () => {
     assert.equal(result.criteria[3].evidenceFound, true);
     assert.ok(!result.flags.some((f) => f.code === "EVIDENCE_NOT_FOUND"));
     assert.equal(result.criteria[3].evidence, cleanEvidence(evidence));
+  });
+
+  it("rejects a short quote by default, and accepts it with the test locator only as a whole answer line", () => {
+    const paper = `${STRONG_ESSAY}\nQ2. Later bells`;
+    const short = withCriterion(1, { evidence: "Later bells" });
+    assert.equal(validateGrading(short, essayInput(paper)).criteria[1].evidenceFound, false);
+    assert.equal(validateGrading(short, essayInput(paper), findTestEvidenceSpan).criteria[1].evidenceFound, true);
+    const fragment = withCriterion(1, { evidence: "bells" });
+    assert.equal(validateGrading(fragment, essayInput(paper), findTestEvidenceSpan).criteria[1].evidenceFound, false);
   });
 
   it("flags empty evidence and leaves a missing justification empty", () => {

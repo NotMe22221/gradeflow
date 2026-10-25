@@ -2,8 +2,8 @@
 // logic, and unit tests. No React, no DB: safe for client components, server
 // code, and tests.
 
-import type { Confidence } from "@/lib/constants";
-import { findEvidenceSpan } from "@/lib/grading/evidence";
+import type { AssignmentKind, Confidence } from "@/lib/constants";
+import { findEvidenceSpan, findTestEvidenceSpan } from "@/lib/grading/evidence";
 import { detectPromptInjection, splitSentences } from "@/lib/grading/injection";
 import { SCORE_STEP, isOnScoreStep } from "@/lib/review/scores";
 import type {
@@ -249,20 +249,24 @@ export function summarizeDraft(item: ReviewItem, draft: ItemDraft): DraftSummary
   };
 }
 
-/** One plain sentence on why a paper cannot be published yet. */
-export function blockingReason(summary: DraftSummary): string | null {
+/**
+ * One plain sentence on why a paper cannot be published yet. A handwritten
+ * test is scored by question, an essay by rubric criterion.
+ */
+export function blockingReason(summary: DraftSummary, kind: AssignmentKind = "ESSAY"): string | null {
+  const test = kind === "TEST";
   if (summary.invalidIds.length > 0) {
     return summary.invalidIds.length === 1
       ? "Fix the highlighted score before publishing."
       : `Fix the ${summary.invalidIds.length} highlighted scores before publishing.`;
   }
   if (summary.missingIds.length > 0) {
-    return summary.missingIds.length === 1
-      ? "One criterion still needs a score."
-      : `${summary.missingIds.length} criteria still need a score.`;
+    const count = summary.missingIds.length;
+    if (count === 1) return test ? "One question still needs a score." : "One criterion still needs a score.";
+    return `${count} ${test ? "questions" : "criteria"} still need a score.`;
   }
   if (summary.textTooLong) return "Shorten the feedback that is over the length limit.";
-  if (summary.maxTotal === 0) return "This rubric has no criteria to score.";
+  if (summary.maxTotal === 0) return test ? "This test has no questions to score." : "This rubric has no criteria to score.";
   return null;
 }
 
@@ -350,7 +354,10 @@ function findSnippetRanges(content: string, snippet: string): Range[] {
 /**
  * Split the paper into plain text, highlighted evidence, and flagged
  * (grader-directed) passages. Only quotes the server verified (evidenceFound)
- * are highlighted, and each is re-located with the same matcher. Overlapping
+ * are highlighted, and each is re-located with the matcher the scan validator
+ * uses: a verbatim quote, or a short answer that fills a whole answer line of
+ * a transcription ("O horizon" on "Q2. O horizon"). Essays are verified with
+ * the verbatim matcher alone, so the fallback never widens what they show. Overlapping
  * quotes merge into one mark that carries every criterion number. A flagged
  * passage grows to contain any mark it overlaps, so marks nest inside it and
  * no text is ever duplicated or dropped. Everything stays plain text.
@@ -363,7 +370,7 @@ export function layoutEvidence(
   const spans: { start: number; end: number; ref: EvidenceRef }[] = [];
   criteria.forEach((criterion, index) => {
     if (!criterion.evidenceFound || !criterion.aiEvidence) return;
-    const span = findEvidenceSpan(content, criterion.aiEvidence);
+    const span = findTestEvidenceSpan(content, criterion.aiEvidence);
     if (!span || span.end <= span.start) return;
     spans.push({ ...span, ref: { id: criterion.id, number: index + 1, title: criterion.title } });
   });

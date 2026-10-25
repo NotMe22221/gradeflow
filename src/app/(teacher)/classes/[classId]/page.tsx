@@ -94,20 +94,22 @@ export default async function ClassPage({ params }: { params: Params }) {
         }
         title={klass.name}
         actions={
+          // On a phone the buttons stack full width with the primary action
+          // first, matching the assignment page.
           <>
-            <Button variant="outline" asChild>
+            <Button variant="outline" asChild className="max-sm:w-full">
               <Link href={`/gradebook?class=${klass.id}`}>
                 <Table2 aria-hidden />
                 Open gradebook
               </Link>
             </Button>
-            <Button variant="outline" asChild>
+            <Button variant="outline" asChild className="max-sm:w-full">
               <Link href={`/classes/${klass.id}/assignments/new?kind=TEST`}>
                 <Camera aria-hidden />
                 New handwritten test
               </Link>
             </Button>
-            <Button asChild>
+            <Button asChild className="max-sm:order-first max-sm:w-full">
               <Link href={`/classes/${klass.id}/assignments/new`}>
                 <Plus aria-hidden />
                 New assignment
