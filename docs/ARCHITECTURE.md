@@ -152,13 +152,21 @@ src/components/
   signal, never as a probability of correctness.
 - **Time saved** is labelled as an illustrative estimate with its assumption.
 - **Approve shortcut**: `A` opens a confirmation; it never fires while typing in
-  an input, textarea, select, or contenteditable element.
+  an input, textarea, select, or contenteditable element, while a dialog is
+  open, with modifier keys, or on key repeat.
+- **Scores** are whole or half points (`SCORE_STEP` in `src/lib/review/scores.ts`),
+  enforced in the review form, in the server actions, and again at publish.
+- **Drafts**: review edits autosave as drafts (`CriterionScore.finalScore` /
+  `finalComment`; a non-null `finalComment` means the teacher has a draft).
+  `saveReviewDraft` calls `refresh()` so browser Back/Forward never replays a
+  stale queue.
 
 ## Extending
 
 - **Real LMS export**: implement `GradebookExporter` (`src/lib/export/types.ts`)
   for Canvas or Google Classroom and register it in `src/lib/export/index.ts`
-  next to the CSV exporter.
+  next to the CSV exporter. `export()` may be async, and every registered
+  exporter automatically gets an "Export <label>" button on the gradebook.
 - **Another grader**: implement `Grader` (`src/lib/grading/types.ts`), add its
   kind to `GRADERS` and `GRADER_LABELS` in `src/lib/constants.ts`, and return it
   from `getGrader()` (`src/lib/grading/index.ts`). Validation and the approval
