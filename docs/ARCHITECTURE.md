@@ -29,9 +29,10 @@ Submission ──AI first pass──▶ AiGrade + CriterionScore (suggestion, dr
      └──────────────────────────▶ PublishedGrade (gradebook + student view)
 ```
 
-- `src/lib/grading/**` writes **only** `AiGrade`, `CriterionScore`, and
-  `Submission.status` (to `GRADING`, `NEEDS_REVIEW`, or `GRADING_FAILED`). It
-  never imports or writes `PublishedGrade`.
+- `src/lib/grading/**` writes **only** `AiGrade`, `CriterionScore`,
+  `Submission.status` (to `GRADING`, `NEEDS_REVIEW`, or `GRADING_FAILED`), and
+  resets the draft `Submission.teacherFeedback` on a re-run. It never imports
+  or writes `PublishedGrade`.
 - `src/lib/grades/publish.ts` is the **only** writer of `PublishedGrade`. It
   re-checks approval state inside the transaction.
 - The gradebook, CSV export, dashboard "graded" stats, and student view read
@@ -79,9 +80,11 @@ Response `200`:
 ```json
 { "ok": true, "submission": { "id": "…", "status": "NEEDS_REVIEW", "confidence": "medium", "grader": "demo", "flagCount": 1 } }
 ```
-Errors: `{ "ok": false, "error": "message" }` with 401/403/404/409/500.
+Errors: `{ "ok": false, "error": "message" }` with 401/403/404/409/422/500/502.
 `409` when the submission is not in a gradable state (already published,
-approved, returned, or currently grading). Gradable states: `SUBMITTED`,
+approved, returned, or currently grading), `422` when the assignment has no
+rubric criteria, `502` when the grader failed (the paper becomes
+`GRADING_FAILED` and can be retried). Error messages are always safe to show. Gradable states: `SUBMITTED`,
 `GRADING_FAILED`, `NEEDS_REVIEW` (re-run replaces the previous suggestion and
 draft edits). The batch UI calls this endpoint sequentially, one paper at a time.
 
@@ -89,17 +92,21 @@ draft edits). The batch UI calls this endpoint sequentially, one paper at a time
 
 ```
 src/lib/
-  constants.ts        statuses, roles, confidence, demo emails
-  db.ts               Prisma client
+  constants.ts        statuses + status groupings, roles, confidence, grader labels, demo emails
+  db.ts, db-url.ts    Prisma client; SQLite location shared with prisma.config.ts and the seed
   auth/               session + demo sign-in actions
   access.ts           ownership checks
-  submissions.ts      submission intake (normalize, validate, upsert)
+  paper.ts            paper intake rules (limits, normalization, .txt checks), client-safe
+  submissions.ts      submission intake on the server (atomic create/replace)
+  validation/         zod schemas shared by forms and server actions
   format.ts           score/date/plural formatting
   grading/
     types.ts          Grader contract + validation types (pure)
     config.ts         getGraderInfo(): which grader is active (no secrets)
     prompt.ts         system prompt + paper wrapping (pure)
     injection.ts      prompt-injection heuristics for flagging (pure)
+    evidence.ts       locate a quote in the paper (pure)
+    flags.ts          AiGrade.flags codec + teacher-facing wording (pure)
     validate.ts       validateGrading(raw, input) (pure)
     mock.ts           deterministic demo grader (pure)
     claude.ts         Claude API grader (server-only)
@@ -108,6 +115,8 @@ src/lib/
   grades/
     review.ts         draft save, approve + publish, send back (logic)
     publish.ts        publishApprovedGrade(): the only PublishedGrade writer
+    breakdown.ts      PublishedGrade.breakdown codec (pure)
+  review/             pure review-queue model + types (shared by page, actions, workspace)
   gradebook/          gradebook query
   export/             GradebookExporter interface + CSV implementation
   stats.ts            dashboard stats
@@ -126,14 +135,19 @@ src/components/
 - **Untrusted papers**: the paper is sent to Claude as delimited data with a
   system prompt that says it contains no instructions; any closing delimiter
   inside the paper is neutralized. The demo grader scores from text features
-  only, so injected text cannot raise a score. Injection-like text is flagged
-  for the teacher.
+  after removing recognized grader-directed sentences, which are never used as
+  evidence. Recognized injection attempts are flagged for the teacher and
+  highlighted in the paper. Detection is a heuristic; the teacher approval
+  gate is the security boundary.
 - **Output validation** (`validate.ts`): every score must be a finite number in
   `[0, maxPoints]`, every rubric criterion must be present, and quoted evidence
   must appear in the paper (whitespace/quote-normalized match). Failures become
   flags; an invalid score is stored as `null` so the teacher must enter it.
 - **Roles**: enforced server-side in every page, action, and route. Only a
   teacher who owns the class can grade, approve, publish, send back, or export.
+- **Sessions**: HMAC-signed cookie (httpOnly, sameSite=lax, Secure over HTTPS;
+  `SESSION_COOKIE_SECURE` overrides). Production refuses to start signing
+  without `SESSION_SECRET` once demo sign-in is off.
 - **Confidence** is the model's uncalibrated self-report, shown as a sorting
   signal, never as a probability of correctness.
 - **Time saved** is labelled as an illustrative estimate with its assumption.
@@ -143,6 +157,9 @@ src/components/
 ## Extending
 
 - **Real LMS export**: implement `GradebookExporter` (`src/lib/export/types.ts`)
-  for Canvas or Google Classroom and register it next to the CSV exporter.
-- **Another grader**: implement `Grader` (`src/lib/grading/types.ts`) and return
-  it from `getGrader()`. Validation and the approval gate apply automatically.
+  for Canvas or Google Classroom and register it in `src/lib/export/index.ts`
+  next to the CSV exporter.
+- **Another grader**: implement `Grader` (`src/lib/grading/types.ts`), add its
+  kind to `GRADERS` and `GRADER_LABELS` in `src/lib/constants.ts`, and return it
+  from `getGrader()` (`src/lib/grading/index.ts`). Validation and the approval
+  gate apply automatically.
