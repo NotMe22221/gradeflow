@@ -99,6 +99,8 @@ export async function upsertSubmission(input: {
         data: {
           content,
           fileName: input.fileName ?? null,
+          // Typed text replaces a scan entirely: it is no longer a photo transcription.
+          source: "TEXT",
           submittedAt: new Date(),
           status: "SUBMITTED",
           teacherFeedback: null,
@@ -108,9 +110,10 @@ export async function upsertSubmission(input: {
         },
       });
       if (claimed.count !== 1) throw new SubmissionConflict();
-      // The previous AI pass and draft edits belong to the old text.
+      // The previous AI pass, draft edits, and any scanned photos belong to the old paper.
       await tx.aiGrade.deleteMany({ where: { submissionId: existing.id } });
       await tx.criterionScore.deleteMany({ where: { submissionId: existing.id } });
+      await tx.submissionImage.deleteMany({ where: { submissionId: existing.id } });
     });
   } catch (error) {
     if (error instanceof SubmissionConflict) {
