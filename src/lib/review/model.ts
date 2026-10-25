@@ -6,7 +6,13 @@ import type { Confidence } from "@/lib/constants";
 import { findEvidenceSpan } from "@/lib/grading/evidence";
 import { detectPromptInjection, splitSentences } from "@/lib/grading/injection";
 import { SCORE_STEP, isOnScoreStep } from "@/lib/review/scores";
-import type { QueueSort, ReviewCriterion, ReviewItem, ReviewPayload } from "@/lib/review/types";
+import type {
+  PreviousReturn,
+  QueueSort,
+  ReviewCriterion,
+  ReviewItem,
+  ReviewPayload,
+} from "@/lib/review/types";
 
 export const MAX_COMMENT_CHARS = 2000;
 export const MAX_FEEDBACK_CHARS = 4000;
@@ -421,6 +427,31 @@ export function layoutEvidence(
   segments.push(...inline(cursor, content.length));
 
   return { segments, markForCriterion, flaggedCount: regions.length };
+}
+
+/**
+ * True when an evidence quote stops mid-sentence (the grader clipped a long
+ * run-on sentence), so the card can show a visual ellipsis. Display only:
+ * the stored quote stays verbatim.
+ */
+export function quoteIsClipped(quote: string): boolean {
+  return !/[.!?…]["'”’)]*$/.test(quote.trim());
+}
+
+// --- Resubmissions ----------------------------------------------------------
+
+/**
+ * The teacher's earlier send-back, when the student has resubmitted since.
+ * Resubmitting keeps returnNote and returnedAt, so only a submission newer
+ * than the send-back counts.
+ */
+export function previousReturn(row: {
+  submittedAt: Date;
+  returnedAt: Date | null;
+  returnNote: string | null;
+}): PreviousReturn | null {
+  if (!row.returnedAt || row.submittedAt.getTime() <= row.returnedAt.getTime()) return null;
+  return { note: row.returnNote?.trim() ?? "", at: row.returnedAt.toISOString() };
 }
 
 // --- DOM ids ----------------------------------------------------------------

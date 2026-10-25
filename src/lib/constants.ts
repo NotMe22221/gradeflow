@@ -25,6 +25,15 @@ export const READY_FOR_AI_STATUSES: SubmissionStatus[] = ["SUBMITTED", "GRADING_
  */
 export const STALE_GRADING_CLAIM_MS = 7 * 60 * 1000;
 
+/**
+ * A GRADING claim abandoned mid-grade (see STALE_GRADING_CLAIM_MS). The
+ * assignment page, gradebook, and dashboard counts all treat it as ready for
+ * an AI pass, so no surface shows "Grading" for a run that will never finish.
+ */
+export function isStaleGradingClaim(status: string, updatedAt: Date, now: number = Date.now()): boolean {
+  return status === "GRADING" && now - updatedAt.getTime() > STALE_GRADING_CLAIM_MS;
+}
+
 /** Papers the server lets the AI pass (re-)run on. Re-running NEEDS_REVIEW replaces the suggestion. */
 export const AI_RERUNNABLE_STATUSES: SubmissionStatus[] = [...READY_FOR_AI_STATUSES, "NEEDS_REVIEW"];
 
@@ -38,6 +47,17 @@ export type GraderKind = (typeof GRADERS)[number];
 export const GRADER_LABELS: Record<GraderKind, string> = {
   claude: "Claude",
   demo: "Demo grader",
+};
+
+/**
+ * Tooltip text per grader (grader badge and top-bar status). Add an entry
+ * here when adding a grader to GRADERS.
+ */
+export const GRADER_DESCRIPTIONS: Record<GraderKind, (model: string | null) => string> = {
+  claude: (model) =>
+    `First pass by the Claude API${model ? ` (${model})` : ""}. A suggestion only: nothing publishes until you approve it.`,
+  demo: () =>
+    "Local, deterministic heuristic used when no ANTHROPIC_API_KEY is set. Its scores and quotes are placeholders, not real AI output.",
 };
 
 /** Coerce a stored AiGrade.grader value. Unknown values are treated as the demo grader. */

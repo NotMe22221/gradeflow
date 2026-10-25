@@ -10,7 +10,12 @@ import { db } from "@/lib/db";
 import { wordCount } from "@/lib/format";
 import { publishApprovedGrade } from "@/lib/grades/publish";
 import { parseFlags } from "@/lib/grading/flags";
-import { MAX_COMMENT_CHARS, MAX_FEEDBACK_CHARS, MAX_RETURN_NOTE_CHARS } from "@/lib/review/model";
+import {
+  MAX_COMMENT_CHARS,
+  MAX_FEEDBACK_CHARS,
+  MAX_RETURN_NOTE_CHARS,
+  previousReturn,
+} from "@/lib/review/model";
 import { isOnScoreStep } from "@/lib/review/scores";
 import type { ReviewItem, ReviewPayload } from "@/lib/review/types";
 import { idSchema } from "@/lib/validation/id";
@@ -177,6 +182,8 @@ export async function getReviewQueue(teacherId: string): Promise<ReviewItem[]> {
       content: true,
       fileName: true,
       submittedAt: true,
+      returnNote: true,
+      returnedAt: true,
       teacherFeedback: true,
       student: { select: { id: true, name: true } },
       assignment: {
@@ -236,6 +243,7 @@ export async function getReviewQueue(teacherId: string): Promise<ReviewItem[]> {
         };
       }),
       teacherFeedback: row.teacherFeedback,
+      previousReturn: previousReturn(row),
     };
   });
 }

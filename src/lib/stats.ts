@@ -1,13 +1,19 @@
 import "server-only";
 
-import { ILLUSTRATIVE_MINUTES_SAVED_PER_PAPER, READY_FOR_AI_STATUSES } from "@/lib/constants";
+import type { Prisma } from "@/generated/prisma/client";
+import {
+  ILLUSTRATIVE_MINUTES_SAVED_PER_PAPER,
+  READY_FOR_AI_STATUSES,
+  STALE_GRADING_CLAIM_MS,
+} from "@/lib/constants";
 import { db } from "@/lib/db";
 
 /*
  * Teacher dashboard numbers. "Graded" figures and scores come only from
  * PublishedGrade (teacher-approved). Workflow counts (pending review, ready
  * for AI) come from Submission.status, using the shared groupings in
- * constants.ts (READY_FOR_AI_STATUSES: never run, or a failed run to retry).
+ * constants.ts (READY_FOR_AI_STATUSES: never run, or a failed run to retry;
+ * plus GRADING claims abandoned mid-grade, as isStaleGradingClaim defines).
  * Every query is scoped to the teacher's own classes.
  */
 
@@ -62,6 +68,18 @@ function ownedBy(teacherId: string) {
   return { assignment: { class: { teacherId } } };
 }
 
+/**
+ * Papers waiting on an AI first pass: READY_FOR_AI_STATUSES plus stale GRADING
+ * claims (the database form of isStaleGradingClaim), so these counts agree with
+ * the assignment page and gradebook, which offer a retry for them.
+ */
+function readyForAiConditions(now: Date): Prisma.SubmissionWhereInput[] {
+  return [
+    { status: { in: READY_FOR_AI_STATUSES } },
+    { status: "GRADING", updatedAt: { lt: new Date(now.getTime() - STALE_GRADING_CLAIM_MS) } },
+  ];
+}
+
 function startOfDay(date: Date): Date {
   const start = new Date(date);
   start.setHours(0, 0, 0, 0);
@@ -80,7 +98,7 @@ export async function getDashboardStats(teacherId: string, now: Date = new Date(
       select: { aiTotalScore: true, totalScore: true },
     }),
     db.submission.count({ where: { status: "NEEDS_REVIEW", ...ownedBy(teacherId) } }),
-    db.submission.count({ where: { status: { in: READY_FOR_AI_STATUSES }, ...ownedBy(teacherId) } }),
+    db.submission.count({ where: { OR: readyForAiConditions(now), ...ownedBy(teacherId) } }),
   ]);
 
   const diffs = comparisons
@@ -119,7 +137,7 @@ export async function getClassSummaries(teacherId: string, now: Date = new Date(
     db.submission.groupBy({
       by: ["assignmentId", "status"],
       where: {
-        status: { in: ["NEEDS_REVIEW", ...READY_FOR_AI_STATUSES] },
+        OR: [{ status: "NEEDS_REVIEW" }, ...readyForAiConditions(now)],
         ...ownedBy(teacherId),
       },
       _count: { _all: true },
@@ -132,6 +150,8 @@ export async function getClassSummaries(teacherId: string, now: Date = new Date(
 
   const pendingByAssignment = new Map<string, number>();
   const readyByAssignment = new Map<string, number>();
+  // Every other status here is ready for AI, including GRADING: the where
+  // clause only lets stale (abandoned) GRADING claims through.
   for (const row of statusCounts) {
     const target = row.status === "NEEDS_REVIEW" ? pendingByAssignment : readyByAssignment;
     target.set(row.assignmentId, (target.get(row.assignmentId) ?? 0) + row._count._all);
@@ -182,10 +202,13 @@ export async function getClassSummaries(teacherId: string, now: Date = new Date(
 }
 
 /** Assignments with papers waiting on an AI first pass, most papers first. */
-export async function getReadyForAiAssignments(teacherId: string): Promise<ReadyForAiAssignment[]> {
+export async function getReadyForAiAssignments(
+  teacherId: string,
+  now: Date = new Date()
+): Promise<ReadyForAiAssignment[]> {
   const counts = await db.submission.groupBy({
     by: ["assignmentId"],
-    where: { status: { in: READY_FOR_AI_STATUSES }, ...ownedBy(teacherId) },
+    where: { OR: readyForAiConditions(now), ...ownedBy(teacherId) },
     _count: { _all: true },
   });
   if (counts.length === 0) return [];

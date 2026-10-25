@@ -6,10 +6,12 @@
 // builder's input type has no place for AI suggestions or draft edits, so
 // they cannot leak into the gradebook or an export.
 
+import { isStaleGradingClaim } from "@/lib/constants";
+
 export type GradebookCellState =
   | "published" // teacher approved; score is set
   | "in_review" // AI draft waiting in the review queue (or mid-approval)
-  | "ready" // submitted, AI first pass not run yet (or it failed and can be retried)
+  | "ready" // submitted, AI first pass not run yet (or it failed, or its run was abandoned, and can be retried)
   | "grading" // AI first pass running
   | "returned" // sent back to the student with a note
   | "missing"; // no submission yet
@@ -73,16 +75,26 @@ export type GradebookSource = {
     assignmentId: string;
     studentId: string;
     status: string;
+    /** Last status change; lets a stale GRADING claim show as "ready" (see isStaleGradingClaim). */
+    updatedAt?: Date;
     publishedGrade: { totalScore: number; maxScore: number } | null;
   }[];
 };
 
 /**
  * Map a submission to its gradebook state. A PublishedGrade row is the only
- * thing that makes a cell "published", whatever the status string says.
+ * thing that makes a cell "published", whatever the status string says. A
+ * GRADING claim abandoned mid-grade is "ready", matching the assignment page,
+ * which offers Retry for it.
  */
-export function cellStateFor(status: string | null, hasPublishedGrade: boolean): GradebookCellState {
+export function cellStateFor(
+  status: string | null,
+  hasPublishedGrade: boolean,
+  updatedAt?: Date | null,
+  now: number = Date.now()
+): GradebookCellState {
   if (hasPublishedGrade) return "published";
+  if (status !== null && updatedAt && isStaleGradingClaim(status, updatedAt, now)) return "ready";
   switch (status) {
     case null:
       return "missing";
@@ -118,7 +130,7 @@ function compareNames(a: GradebookStudent, b: GradebookStudent): number {
  * Build the gradebook grid. Averages weight every assignment equally (mean of
  * percents) and only ever include published grades.
  */
-export function buildGradebook(source: GradebookSource): GradebookData {
+export function buildGradebook(source: GradebookSource, now: number = Date.now()): GradebookData {
   const assignments: GradebookAssignment[] = source.assignments.map((assignment) => ({
     id: assignment.id,
     title: assignment.title,
@@ -136,7 +148,7 @@ export function buildGradebook(source: GradebookSource): GradebookData {
     const cells = assignments.map((assignment): GradebookCell => {
       const submission = submissionByKey.get(`${student.id}:${assignment.id}`);
       const published = submission?.publishedGrade ?? null;
-      const state = cellStateFor(submission?.status ?? null, published !== null);
+      const state = cellStateFor(submission?.status ?? null, published !== null, submission?.updatedAt, now);
 
       if (published) {
         const percent = percentOf(published.totalScore, published.maxScore);

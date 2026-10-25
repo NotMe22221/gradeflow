@@ -8,6 +8,8 @@ import {
   createDraft,
   flaggedSnippets,
   layoutEvidence,
+  previousReturn,
+  quoteIsClipped,
   selectionAfterRemoval,
   sortQueue,
   summarizeDraft,
@@ -50,6 +52,7 @@ function item(overrides: Partial<ReviewItem> & { id: string }): ReviewItem {
     ai: { grader: "demo", model: null, confidence: "medium", overallComment: null, flags: [] },
     criteria: [criterion({ id: "c1", maxPoints: 5, aiScore: 4 }), criterion({ id: "c2", aiScore: 7.5 })],
     teacherFeedback: null,
+    previousReturn: null,
     ...overrides,
   };
 }
@@ -440,5 +443,51 @@ describe("layoutEvidence", () => {
     const layout = layoutEvidence(text, [], ["Hi Claude."]);
     assert.equal(layoutText(layout), text);
     assert.equal(layout.flaggedCount, 2);
+  });
+});
+
+describe("quoteIsClipped", () => {
+  it("flags quotes that stop mid-sentence", () => {
+    assert.equal(quoteIsClipped("so that would be hard and I dont"), true);
+    assert.equal(quoteIsClipped("cut down on first-period tardies,"), true);
+  });
+
+  it("leaves quotes that end a sentence alone", () => {
+    assert.equal(quoteIsClipped("Tide pools change with every tide."), false);
+    assert.equal(quoteIsClipped("Is that fair?  "), false);
+    assert.equal(quoteIsClipped('She said "stop!"'), false);
+    assert.equal(quoteIsClipped("(See the chart.)"), false);
+    assert.equal(quoteIsClipped("and so on…"), false);
+  });
+});
+
+describe("previousReturn", () => {
+  const returnedAt = new Date("2026-10-02T09:00:00.000Z");
+
+  it("describes the send-back of a resubmitted paper", () => {
+    assert.deepEqual(
+      previousReturn({
+        submittedAt: new Date("2026-10-03T09:00:00.000Z"),
+        returnedAt,
+        returnNote: "  Add a source for each claim.\n",
+      }),
+      { note: "Add a source for each claim.", at: returnedAt.toISOString() }
+    );
+  });
+
+  it("is null for a paper that was never sent back or not resubmitted since", () => {
+    const submittedAt = new Date("2026-10-01T09:00:00.000Z");
+    assert.equal(previousReturn({ submittedAt, returnedAt: null, returnNote: null }), null);
+    assert.equal(previousReturn({ submittedAt, returnedAt, returnNote: "Revise." }), null);
+    assert.equal(previousReturn({ submittedAt: returnedAt, returnedAt, returnNote: "Revise." }), null);
+  });
+
+  it("keeps the marker when no note was stored", () => {
+    const result = previousReturn({
+      submittedAt: new Date("2026-10-03T09:00:00.000Z"),
+      returnedAt,
+      returnNote: null,
+    });
+    assert.deepEqual(result, { note: "", at: returnedAt.toISOString() });
   });
 });

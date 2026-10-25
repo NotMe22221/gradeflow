@@ -79,7 +79,7 @@ export function CriterionFieldset({
         </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_7.5rem]">
-        <div className="grid gap-2">
+        <div className="grid content-start gap-2">
           <Label htmlFor={`criterion-${criterion.key}-title`}>Title</Label>
           <Input
             id={`criterion-${criterion.key}-title`}

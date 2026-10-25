@@ -1,9 +1,9 @@
 "use client";
 
-import { Clock, FileText, Flag, Type } from "lucide-react";
+import { Clock, FileText, Flag, Type, Undo2 } from "lucide-react";
 
 import { Avatar } from "@/components/ui/avatar";
-import { formatDateTime, formatRelative, pluralize } from "@/lib/format";
+import { formatDate, formatDateTime, formatRelative, pluralize } from "@/lib/format";
 import {
   flaggedDomId,
   markDomId,
@@ -33,6 +33,7 @@ export function PaperPane({
   className?: string;
 }) {
   const markCount = Object.keys(layout.markForCriterion).length;
+  const previousReturn = item.previousReturn;
 
   const renderInline = (segment: InlineSegment, key: number) =>
     segment.kind === "text" ? (
@@ -82,7 +83,7 @@ export function PaperPane({
               <span className="inline-flex items-center gap-1.5">
                 <Clock className="size-3.5" aria-hidden />
                 <span title={formatDateTime(item.submittedAt)} suppressHydrationWarning>
-                  Submitted {formatRelative(item.submittedAt)}
+                  {previousReturn ? "Resubmitted" : "Submitted"} {formatRelative(item.submittedAt)}
                 </span>
               </span>
               <span className="tabular inline-flex items-center gap-1.5">
@@ -97,6 +98,17 @@ export function PaperPane({
                 </span>
               ) : null}
             </div>
+            {previousReturn ? (
+              <p className="mt-2 flex items-start gap-1.5 text-[13px] text-muted-foreground">
+                <Undo2 className="mt-[3px] size-3.5 shrink-0" aria-hidden />
+                <span className="min-w-0 break-words whitespace-pre-line">
+                  <span title={formatDateTime(previousReturn.at)} suppressHydrationWarning>
+                    You sent this back {formatDate(previousReturn.at)}
+                  </span>
+                  {previousReturn.note ? <>: &ldquo;{previousReturn.note}&rdquo;</> : "."}
+                </span>
+              </p>
+            ) : null}
           </div>
         </header>
 

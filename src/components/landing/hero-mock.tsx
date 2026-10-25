@@ -177,8 +177,14 @@ function ActionBar() {
         Nothing publishes until you approve it.
       </p>
       <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
+        {/* Phones hide criterion 3 (4 / 5), so the total covers only the two visible criteria. */}
         <span className="tabular mr-1 text-sm text-muted-foreground">
-          <span className="font-semibold text-foreground">17</span> / 20
+          <span className="sm:hidden">
+            <span className="font-semibold text-foreground">13</span> / 15
+          </span>
+          <span className="hidden sm:inline">
+            <span className="font-semibold text-foreground">17</span> / 20
+          </span>
         </span>
         <div className="flex items-center gap-2">
           <span className={cn(buttonVariants({ variant: "outline", size: "sm" }), "hidden sm:inline-flex")}>

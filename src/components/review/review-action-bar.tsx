@@ -35,12 +35,16 @@ function ApproveButton({
   className?: string;
 }) {
   const reasonId = useId();
+  // data-review-approve marks the focusable control (the button, or the
+  // tooltip wrapper while blocked): the workspace returns focus to it after
+  // a dialog closes on a handled paper.
   const button = (
     <Button
       type="button"
       onClick={onApprove}
       disabled={busy || blockedReason !== null}
       aria-describedby={blockedReason ? reasonId : undefined}
+      data-review-approve={blockedReason ? undefined : ""}
       className={blockedReason ? "h-full w-full" : className}
     >
       <CheckCheck aria-hidden className="max-sm:hidden" />
@@ -64,6 +68,7 @@ function ApproveButton({
       <TooltipTrigger asChild>
         <span
           tabIndex={0}
+          data-review-approve=""
           className={cn(
             "inline-flex rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring",
             className

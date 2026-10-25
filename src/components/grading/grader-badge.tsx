@@ -2,7 +2,7 @@ import { FlaskConical, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { GRADER_LABELS, type GraderKind } from "@/lib/constants";
+import { GRADER_DESCRIPTIONS, GRADER_LABELS, type GraderKind } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 const focusable = "cursor-help outline-none focus-visible:ring-[3px] focus-visible:ring-ring";
@@ -29,10 +29,7 @@ export function GraderBadge({
             {GRADER_LABELS.demo}
           </Badge>
         </TooltipTrigger>
-        <TooltipContent>
-          Local, deterministic heuristic used when no ANTHROPIC_API_KEY is set. Its scores and
-          quotes are placeholders for the demo, not real AI output.
-        </TooltipContent>
+        <TooltipContent>{GRADER_DESCRIPTIONS.demo(null)}</TooltipContent>
       </Tooltip>
     );
   }
@@ -44,10 +41,7 @@ export function GraderBadge({
           {GRADER_LABELS[grader]}
         </Badge>
       </TooltipTrigger>
-      <TooltipContent>
-        First pass by the Claude API{model ? ` (${model})` : ""}. A suggestion only: nothing
-        publishes until you approve it.
-      </TooltipContent>
+      <TooltipContent>{GRADER_DESCRIPTIONS[grader](model ?? null)}</TooltipContent>
     </Tooltip>
   );
 }

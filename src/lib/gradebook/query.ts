@@ -45,6 +45,7 @@ export async function getGradebook(teacherId: string, classId: string): Promise<
         assignmentId: true,
         studentId: true,
         status: true,
+        updatedAt: true,
         publishedGrade: { select: { totalScore: true, maxScore: true } },
       },
     }),

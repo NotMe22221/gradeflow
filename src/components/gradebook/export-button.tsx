@@ -44,7 +44,7 @@ export function ExportButtons({
             <a
               href={gradebookExportHref(classId, format.id)}
               download
-              aria-label={`Export the ${classTitle} gradebook as ${format.label}`}
+              aria-label={`Export ${format.label}: ${classTitle} gradebook`}
             >
               <Download aria-hidden />
               Export {format.label}

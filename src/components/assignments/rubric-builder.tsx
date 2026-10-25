@@ -61,7 +61,8 @@ export function RubricBuilder({ classId }: { classId: string }) {
   const atMax = criteria.length >= RUBRIC_LIMITS.maxCriteria;
   const dueLabel = dueDate && parseDateOnly(dueDate) ? formatDate(parseDateOnly(dueDate)) : null;
 
-  // Move focus to a newly added criterion once it is in the DOM.
+  // Move focus to a newly added criterion, or to the one that took a removed
+  // criterion's place, once it is in the DOM.
   useEffect(() => {
     if (!focusKey.current) return;
     document.getElementById(`criterion-${focusKey.current}-title`)?.focus();
@@ -95,6 +96,9 @@ export function RubricBuilder({ classId }: { classId: string }) {
 
   function removeCriterion(index: number) {
     if (criteria.length <= RUBRIC_LIMITS.minCriteria) return;
+    // The removed button unmounts; focus the next criterion (or the new last one).
+    const remaining = criteria.filter((_, i) => i !== index);
+    focusKey.current = remaining[Math.min(index, remaining.length - 1)]?.key ?? null;
     setCriteria((current) => current.filter((_, i) => i !== index));
     clearCriteriaErrors();
   }

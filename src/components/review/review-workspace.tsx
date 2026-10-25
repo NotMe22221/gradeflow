@@ -36,12 +36,15 @@ import {
   sortQueue,
   summarizeDraft,
 } from "@/lib/review/model";
+import { isEditableTarget } from "@/lib/review/shortcuts";
 import type { QueueSort, ReviewFilterOption, ReviewItem } from "@/lib/review/types";
 
 type PaneTab = "paper" | "rubric";
 type AssignmentFilter = { id: string; title: string | null } | null;
 /** The review query parameters: ?assignment and ?s. */
 type UrlSelection = { assignment: string | null; s: string | null };
+/** Where focus goes when the approve or send-back dialog closes. */
+type ReturnFocus = { element: HTMLElement | null; openedWith: "button" | "shortcut" };
 
 function buildFilterOptions(items: ReviewItem[]): ReviewFilterOption[] {
   const options = new Map<string, ReviewFilterOption>();
@@ -62,6 +65,31 @@ function buildFilterOptions(items: ReviewItem[]): ReviewFilterOption[] {
 
 function afterLayout(run: () => void) {
   requestAnimationFrame(() => requestAnimationFrame(run));
+}
+
+function activeElement(): HTMLElement | null {
+  return document.activeElement instanceof HTMLElement ? document.activeElement : null;
+}
+
+/** The Approve control of whichever action bar is showing (desktop or phone). */
+function visibleApproveControl(): HTMLElement | null {
+  for (const element of document.querySelectorAll<HTMLElement>("[data-review-approve]")) {
+    if (element.getClientRects().length > 0) return element;
+  }
+  return null;
+}
+
+/**
+ * Focus `element` if it is still on the page and leaves the shortcuts
+ * working (never a text field, which would swallow A, S, and the arrows).
+ * Returns whether focus landed.
+ */
+function tryFocus(element: HTMLElement | null | undefined): boolean {
+  if (!element || !element.isConnected || element === document.body || isEditableTarget(element)) {
+    return false;
+  }
+  element.focus({ preventScroll: true });
+  return document.activeElement === element;
 }
 
 /** Scroll a passage of the paper into view; flash evidence, focus flagged text. */
@@ -112,6 +140,9 @@ export function ReviewWorkspace({
   const [sendingBack, setSendingBack] = useState(false);
   // Synchronous guard against double submits, ahead of any re-render.
   const busyRef = useRef(false);
+  const returnFocusRef = useRef<ReturnFocus | null>(null);
+  const paperPaneRef = useRef<HTMLDivElement>(null);
+  const emptyStateRef = useRef<HTMLDivElement>(null);
 
   const liveItems = useMemo(() => items.filter((item) => !removedIds.has(item.id)), [items, removedIds]);
   const filterOptions = useMemo(() => buildFilterOptions(liveItems), [liveItems]);
@@ -222,21 +253,47 @@ export function ReviewWorkspace({
     });
   }, []);
 
-  const requestApprove = useCallback(() => {
-    if (!current || !summary || busyRef.current) return;
-    if (!summary.ready) {
-      toast.error("Not ready to publish yet", { description: blockingReason(summary) ?? undefined });
-      const firstProblem = summary.invalidIds[0] ?? summary.missingIds[0];
-      if (firstProblem) focusCriterion(current.id, firstProblem);
-      return;
-    }
-    setApproveTargetId(current.id);
-  }, [current, summary, focusCriterion]);
+  const requestApprove = useCallback(
+    (openedWith: ReturnFocus["openedWith"]) => {
+      if (!current || !summary || busyRef.current) return;
+      if (!summary.ready) {
+        toast.error("Not ready to publish yet", { description: blockingReason(summary) ?? undefined });
+        const firstProblem = summary.invalidIds[0] ?? summary.missingIds[0];
+        if (firstProblem) focusCriterion(current.id, firstProblem);
+        return;
+      }
+      returnFocusRef.current = { element: activeElement(), openedWith };
+      setApproveTargetId(current.id);
+    },
+    [current, summary, focusCriterion]
+  );
 
-  const requestSendBack = useCallback(() => {
-    if (!current || busyRef.current) return;
-    setSendBackTargetId(current.id);
-  }, [current]);
+  const requestSendBack = useCallback(
+    (openedWith: ReturnFocus["openedWith"]) => {
+      if (!current || busyRef.current) return;
+      returnFocusRef.current = { element: activeElement(), openedWith };
+      setSendBackTargetId(current.id);
+    },
+    [current]
+  );
+
+  // The dialogs have no trigger for Radix to return focus to. Go back to
+  // where the teacher was; if that left with a handled paper, land on the
+  // next paper's Approve button (or its paper pane after a shortcut).
+  const restoreFocus = useCallback(() => {
+    // In development, React StrictMode replays Radix's mount effect, which
+    // calls this while the dialog is still open. Act only once it is gone.
+    if (document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
+    const saved = returnFocusRef.current;
+    returnFocusRef.current = null;
+    if (tryFocus(saved?.element)) return;
+    const approve = visibleApproveControl();
+    const paper = paperPaneRef.current;
+    const fallbacks = saved?.openedWith === "shortcut" ? [paper, approve] : [approve, paper];
+    // With the queue cleared, the empty state's first action.
+    fallbacks.push(emptyStateRef.current?.querySelector<HTMLElement>("a[href], button") ?? null);
+    for (const element of fallbacks) if (tryFocus(element)) return;
+  }, []);
 
   async function confirmApprove() {
     const item = approveItem;
@@ -337,15 +394,18 @@ export function ReviewWorkspace({
   useReviewShortcuts(!overlayOpen, {
     onNext: () => goBy(1),
     onPrevious: () => goBy(-1),
-    onApprove: requestApprove,
-    onSendBack: requestSendBack,
+    onApprove: () => requestApprove("shortcut"),
+    onSendBack: () => requestSendBack("shortcut"),
     onHelp: () => setShortcutsOpen(true),
   });
 
   let body: React.ReactNode;
   if (!current || !summary || !draft || !layout) {
     body = (
-      <div className="flex flex-1 items-center justify-center bg-background px-4 py-12 sm:px-8">
+      <div
+        ref={emptyStateRef}
+        className="flex flex-1 items-center justify-center bg-background px-4 py-12 sm:px-8"
+      >
         {liveItems.length === 0 ? (
           handledCount > 0 ? (
             <CaughtUpState />
@@ -365,8 +425,8 @@ export function ReviewWorkspace({
     const actionProps = {
       saveState: drafts.saveStateFor(current.id),
       onRetrySave: () => drafts.retry(current.id),
-      onSendBack: requestSendBack,
-      onApprove: requestApprove,
+      onSendBack: () => requestSendBack("button"),
+      onApprove: () => requestApprove("button"),
       blockedReason,
       busy,
     };
@@ -413,6 +473,7 @@ export function ReviewWorkspace({
 
           <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
             <TabsContent
+              ref={paperPaneRef}
               value="paper"
               forceMount
               className="flex min-w-0 flex-1 flex-col focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset data-[state=inactive]:hidden lg:min-h-0 lg:data-[state=inactive]:flex"
@@ -496,6 +557,7 @@ export function ReviewWorkspace({
           summary={approveSummary}
           pending={publishing}
           onConfirm={() => void confirmApprove()}
+          restoreFocus={restoreFocus}
         />
       ) : null}
 
@@ -509,6 +571,7 @@ export function ReviewWorkspace({
           studentName={sendBackItem.student.name}
           pending={sendingBack}
           onConfirm={confirmSendBack}
+          restoreFocus={restoreFocus}
         />
       ) : null}
 

@@ -50,6 +50,16 @@ export type ReviewItem = {
   ai: ReviewAiSummary | null;
   criteria: ReviewCriterion[];
   teacherFeedback: string | null;
+  /** Set when the student resubmitted after the teacher sent the paper back. */
+  previousReturn: PreviousReturn | null;
+};
+
+/** The teacher's earlier send-back of a resubmitted paper. */
+export type PreviousReturn = {
+  /** The send-back note, trimmed. Empty if none was stored. */
+  note: string;
+  /** ISO timestamp. */
+  at: string;
 };
 
 export type ReviewFilterOption = {

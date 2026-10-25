@@ -24,6 +24,7 @@ export function SendBackDialog({
   studentName,
   pending,
   onConfirm,
+  restoreFocus,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -31,6 +32,8 @@ export function SendBackDialog({
   pending: boolean;
   /** Resolves true when the paper was sent back. */
   onConfirm: (note: string) => Promise<boolean>;
+  /** Moves focus back to the page on close (there is no trigger to return to). */
+  restoreFocus: () => void;
 }) {
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +64,13 @@ export function SendBackDialog({
 
   return (
     <Dialog open={open} onOpenChange={(next) => (pending ? undefined : onOpenChange(next))}>
-      <DialogContent showCloseButton={!pending}>
+      <DialogContent
+        showCloseButton={!pending}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          restoreFocus();
+        }}
+      >
         <form
           className="grid gap-4"
           onSubmit={(event) => {

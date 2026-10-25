@@ -24,6 +24,7 @@ import {
   MAX_COMMENT_CHARS,
   checkScore,
   criterionCardId,
+  quoteIsClipped,
   scoreInputId,
   type CriterionDraft,
 } from "@/lib/review/model";
@@ -234,6 +235,9 @@ function EvidenceQuote({
     return <p className="text-[13px] text-muted-foreground">No quote from the AI for this criterion.</p>;
   }
 
+  // A quote cut off mid-sentence gets a visual ellipsis. The stored quote is unchanged.
+  const ellipsis = quoteIsClipped(evidence) ? "…" : "";
+
   if (verified) {
     return (
       <button
@@ -250,7 +254,10 @@ function EvidenceQuote({
             Show in paper
           </span>
         </span>
-        <q className="block text-[13px] leading-relaxed break-words text-foreground italic">{evidence}</q>
+        <q className="block text-[13px] leading-relaxed break-words text-foreground italic">
+          {evidence}
+          {ellipsis}
+        </q>
       </button>
     );
   }
@@ -261,7 +268,10 @@ function EvidenceQuote({
         <CircleAlert className="size-3.5" aria-hidden />
         Not found in paper
       </span>
-      <q className="block text-[13px] leading-relaxed break-words text-muted-foreground italic">{evidence}</q>
+      <q className="block text-[13px] leading-relaxed break-words text-muted-foreground italic">
+        {evidence}
+        {ellipsis}
+      </q>
     </div>
   );
 }

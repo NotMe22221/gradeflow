@@ -27,6 +27,7 @@ export function ApproveDialog({
   summary,
   pending,
   onConfirm,
+  restoreFocus,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -34,13 +35,21 @@ export function ApproveDialog({
   summary: DraftSummary;
   pending: boolean;
   onConfirm: () => void;
+  /** Moves focus back to the page on close (there is no trigger to return to). */
+  restoreFocus: () => void;
 }) {
   const name = item.student.name;
   const scores = new Map(summary.payload.scores.map((entry) => [entry.criterionId, entry.score]));
 
   return (
     <AlertDialog open={open} onOpenChange={(next) => (pending ? undefined : onOpenChange(next))}>
-      <AlertDialogContent onEscapeKeyDown={(event) => pending && event.preventDefault()}>
+      <AlertDialogContent
+        onEscapeKeyDown={(event) => pending && event.preventDefault()}
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          restoreFocus();
+        }}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle className="tabular">
             Publish {formatScore(summary.total, summary.maxTotal)} for {name}?

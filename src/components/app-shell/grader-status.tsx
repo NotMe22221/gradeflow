@@ -1,6 +1,7 @@
 import { FlaskConical, Sparkles } from "lucide-react";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { GRADER_DESCRIPTIONS } from "@/lib/constants";
 import type { GraderInfo } from "@/lib/grading/config";
 import { cn } from "@/lib/utils";
 
@@ -24,11 +25,7 @@ export function GraderStatus({ info, className }: { info: GraderInfo; className?
           {demo ? info.label : `${info.label} grading`}
         </span>
       </TooltipTrigger>
-      <TooltipContent align="end">
-        {demo
-          ? "No ANTHROPIC_API_KEY is set, so AI first passes use a local deterministic demo grader. Its output is a placeholder, not real AI."
-          : `AI first passes use the Claude API (${info.model}). Suggestions only: every published grade needs your approval.`}
-      </TooltipContent>
+      <TooltipContent align="end">{GRADER_DESCRIPTIONS[info.kind](info.model)}</TooltipContent>
     </Tooltip>
   );
 }

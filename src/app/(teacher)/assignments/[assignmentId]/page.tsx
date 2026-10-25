@@ -13,7 +13,7 @@ import type { EligibleStudent, SubmissionFlag, SubmissionRowData } from "@/compo
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { getOwnedAssignment } from "@/lib/access";
 import { AuthError, requireTeacherPage } from "@/lib/auth/session";
-import { isConfidence, parseGraderKind, STALE_GRADING_CLAIM_MS } from "@/lib/constants";
+import { isConfidence, isStaleGradingClaim, parseGraderKind } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { formatDate, formatDateTime, formatRelative, pluralize, wordCount } from "@/lib/format";
 import { getGraderInfo } from "@/lib/grading/config";
@@ -84,8 +84,7 @@ export default async function AssignmentPage({ params }: { params: Params }) {
     .map((submission) => {
       // Shown as a failed run so it gets Retry and joins the batch; the grade
       // route takes over the stale claim.
-      const interrupted =
-        submission.status === "GRADING" && now.getTime() - submission.updatedAt.getTime() > STALE_GRADING_CLAIM_MS;
+      const interrupted = isStaleGradingClaim(submission.status, submission.updatedAt, now.getTime());
       return {
         id: submission.id,
         student: submission.student,

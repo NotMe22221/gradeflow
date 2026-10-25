@@ -1536,7 +1536,8 @@ function overallCommentFor(
   f: Features,
   criteria: RubricCriterionInput[],
   fractions: number[],
-  injectionFound: boolean
+  injectionFound: boolean,
+  displayWords: number
 ): string {
   if (f.wordCount === 0) return "This paper has no text to grade.";
   const avg = fractions.length ? fractions.reduce((a, b) => a + b, 0) / fractions.length : 0;
@@ -1544,9 +1545,9 @@ function overallCommentFor(
     avg >= 0.8 ? "A strong paper" : avg >= 0.6 ? "A solid paper" : avg >= 0.4 ? "A developing paper" : "An early draft";
   let comment: string;
   if (criteria.length === 0) {
-    comment = `${opener} of ${pluralize(f.wordCount, "word")}.`;
+    comment = `${opener} of ${pluralize(displayWords, "word")}.`;
   } else if (criteria.length === 1) {
-    comment = `${opener} of ${pluralize(f.wordCount, "word")}, judged against "${criteria[0].title}".`;
+    comment = `${opener} of ${pluralize(displayWords, "word")}, judged against "${criteria[0].title}".`;
   } else {
     let best = 0;
     let worst = 0;
@@ -1556,8 +1557,8 @@ function overallCommentFor(
     });
     comment =
       best === worst || fractions[best] - fractions[worst] < 0.05
-        ? `${opener} of ${pluralize(f.wordCount, "word")}, fairly even across the rubric.`
-        : `${opener} of ${pluralize(f.wordCount, "word")}: it is strongest on "${criteria[best].title}" and has the most room to grow on "${criteria[worst].title}".`;
+        ? `${opener} of ${pluralize(displayWords, "word")}, fairly even across the rubric.`
+        : `${opener} of ${pluralize(displayWords, "word")}: it is strongest on "${criteria[best].title}" and has the most room to grow on "${criteria[worst].title}".`;
   }
   if (injectionFound) comment += " It includes text addressed to the grader, which was ignored for scoring.";
   return comment;
@@ -1567,6 +1568,9 @@ function overallCommentFor(
 export function gradeWithDemoHeuristics(input: GradingInput): RawGradingResult {
   const f = analyze(input);
   const injectionFound = detectPromptInjection(input.paper).found;
+  // Comments quote the full paper's length, matching the paper header and the
+  // short-paper flag; scoring still uses f.wordCount from the stripped text.
+  const displayWords = countWords(input.paper);
   const candidates = buildCandidates(f, input.paper);
   const usedEvidence = new Set<string>();
   const usedVariants = new Map<string, number>();
@@ -1593,7 +1597,7 @@ export function gradeWithDemoHeuristics(input: GradingInput): RawGradingResult {
         ? "The paper has no text to evaluate for this criterion."
         : variants[(hash(`${criterion.id}|${criterion.title}`) + offset) % variants.length](f, criterion);
     if (shortPaper) {
-      justification += ` At ${pluralize(f.wordCount, "word")}, the paper is well under the expected length of about ${f.targetWords} words.`;
+      justification += ` At ${pluralize(displayWords, "word")}, the paper is well under the expected length of about ${f.targetWords} words.`;
     }
 
     return {
@@ -1607,7 +1611,7 @@ export function gradeWithDemoHeuristics(input: GradingInput): RawGradingResult {
   return {
     criteria: results,
     confidence: confidenceFor(f, fractions, injectionFound),
-    overallComment: overallCommentFor(f, input.criteria, fractions, injectionFound),
+    overallComment: overallCommentFor(f, input.criteria, fractions, injectionFound, displayWords),
   };
 }
 
