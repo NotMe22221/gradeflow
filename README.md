@@ -73,7 +73,7 @@ The click path for judges. Times are a guide.
 
 1. **Land and sign in (0:00).** On http://localhost:3000, read the pitch and click
    **View the demo**. The pill in the top bar shows which AI engines are live.
-   Hover it for the engine behind each feature.
+   Click it to see the engine behind each feature.
 2. **Grade a handwritten test (0:15).** Open **Paper Scanner**. Choose **Use a
    sample photo → Rafael Copperleaf**. The photo is added, and the Unit 3 Quiz
    and Rafael are selected. Click **Grade with GPT-4o**, or **Grade with demo

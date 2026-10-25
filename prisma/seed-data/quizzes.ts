@@ -102,7 +102,7 @@ const GRAMMAR = {
   q4Full: answer(
     "Meticulous means very careful and precise about small details.",
     2,
-    "Matches the answer key: very careful and precise about details."
+    "Correct: very careful and precise about details."
   ),
   q4Attentive: answer(
     "Extremely careful and paying attention to every detail.",
@@ -191,7 +191,7 @@ const GRAMMAR_QUIZ: QuizResult[] = [
     approvedAt: { daysAgo: 16, hour: 16, minute: 5 },
     confidence: "high",
     overallComment:
-      "Strong across the quiz: every grammar item matches the answer key. Q7 uses ambivalent correctly but without context that shows mixed feelings.",
+      "Strong across the quiz: every grammar item is correct. Q7 uses ambivalent correctly but without context that shows mixed feelings.",
     feedback:
       "Great work, Ava. You were the only student to get full credit on the pronoun case item. On vocabulary sentences, add context that proves you know the meaning, like the two feelings behind ambivalent.",
     answers: [
@@ -409,7 +409,7 @@ const WATER_CYCLE_QUIZ: QuizResult[] = [
     feedback:
       "Nice work on the freshwater question, Nadia. On two-part questions like Q5, always finish with the effect: what happens to the water because of the change?",
     answers: [
-      answer("It is called condensation.", 2, "Names condensation, the process in the answer key."),
+      answer("It is called condensation.", 2, "Correctly names condensation."),
       answer("Solar energy heats up oceans and lakes.", 2, "Names solar energy heating surface water, which matches the key."),
       answer(
         "When plants release water.",
