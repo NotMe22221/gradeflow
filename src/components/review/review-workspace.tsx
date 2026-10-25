@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { approveAndPublish, sendBackToStudent } from "@/app/(teacher)/review/actions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApproveDialog } from "@/components/review/approve-dialog";
-import { PaperPane } from "@/components/review/paper-pane";
+import { PaperPane, type PaperView } from "@/components/review/paper-pane";
 import { QueueList } from "@/components/review/queue-list";
 import { DesktopActionBar, MobileActionBar } from "@/components/review/review-action-bar";
 import {
@@ -132,6 +132,11 @@ export function ReviewWorkspace({
   const [removedIds, setRemovedIds] = useState<ReadonlySet<string>>(() => new Set());
   const [handledCount, setHandledCount] = useState(0);
   const [tab, setTab] = useState<PaneTab>("paper");
+  // Transcription or photo, for the paper on screen. Every paper opens on its transcription.
+  const [paperView, setPaperView] = useState<{ id: string | null; view: PaperView }>({
+    id: null,
+    view: "transcription",
+  });
   const [approveTargetId, setApproveTargetId] = useState<string | null>(null);
   const [sendBackTargetId, setSendBackTargetId] = useState<string | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -162,6 +167,8 @@ export function ReviewWorkspace({
     () => (current ? layoutEvidence(current.content, current.criteria, flaggedSnippets(current)) : null),
     [current]
   );
+
+  const currentPaperView: PaperView = current && paperView.id === current.id ? paperView.view : "transcription";
 
   const approveItem = liveItems.find((item) => item.id === approveTargetId) ?? null;
   const sendBackItem = liveItems.find((item) => item.id === sendBackTargetId) ?? null;
@@ -370,6 +377,8 @@ export function ReviewWorkspace({
       const markIndex = layout.markForCriterion[criterionId];
       if (markIndex === undefined) return;
       setTab("paper");
+      // Quotes live in the transcription, not on the photo.
+      setPaperView({ id: current.id, view: "transcription" });
       const id = markDomId(current.id, markIndex);
       afterLayout(() => {
         const mark = document.getElementById(id);
@@ -382,6 +391,7 @@ export function ReviewWorkspace({
   const showFlagged = useCallback(() => {
     if (!current || !layout || layout.flaggedCount === 0) return;
     setTab("paper");
+    setPaperView({ id: current.id, view: "transcription" });
     const id = flaggedDomId(current.id, 0);
     afterLayout(() => {
       const passage = document.getElementById(id);
@@ -482,6 +492,8 @@ export function ReviewWorkspace({
                 key={current.id}
                 item={current}
                 layout={layout}
+                view={currentPaperView}
+                onViewChange={(view) => setPaperView({ id: current.id, view })}
                 className="flex-1 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
               />
             </TabsContent>

@@ -102,3 +102,85 @@ export function computeStreak(activityDates: Date[], now: Date = new Date()): St
 
   return { current, activeToday, longest: Math.max(longest, current) };
 }
+
+// --- Activity labels and summaries (pure) -------------------------------------
+
+export function isActivityKind(value: string): value is ActivityKind {
+  return (ACTIVITY_KINDS as readonly string[]).includes(value);
+}
+
+/** Total XP from activity rows, ignoring anything that is not a finite positive number. */
+export function totalXp(rows: readonly { xp: number }[]): number {
+  return rows.reduce((sum, row) => sum + (Number.isFinite(row.xp) && row.xp > 0 ? row.xp : 0), 0);
+}
+
+/**
+ * "Persuasive Essay: Should Our School Adopt a Four-Day Week?" -> "Persuasive Essay".
+ * Keeps the full title when the part before the colon is too short to stand alone.
+ */
+export function shortTitle(title: string): string {
+  const trimmed = title.trim();
+  const head = trimmed.split(":")[0]?.trim() ?? trimmed;
+  return head.length >= 6 && head.length < trimmed.length ? head : trimmed;
+}
+
+/** How one XP event reads in a chip, e.g. "Submitted Persuasive Essay". */
+export function describeActivity(kind: string, subject: string | null): string {
+  const name = subject ? shortTitle(subject) : null;
+  switch (kind) {
+    case "SUBMIT":
+      return name ? `Submitted ${name}` : "Submitted a paper";
+    case "ON_TIME":
+      return name ? `On time: ${name}` : "On-time bonus";
+    case "RESUBMIT":
+      return name ? `Resubmitted ${name}` : "Resubmitted a paper";
+    case "GRADE_PUBLISHED":
+      return name ? `Graded: ${name}` : "Grade published";
+    case "STUDY_SESSION":
+      return name ? `Studied ${name}` : "Study session";
+    case "GOAL_SET":
+      return name ? `Set a goal in ${name}` : "Set a grade goal";
+    default:
+      return "Activity";
+  }
+}
+
+export type StreakSummary = { headline: string; detail: string };
+
+/** "4-day streak" + "Active today" / "Study today to keep it going". */
+export function streakSummary(streak: StreakInfo): StreakSummary {
+  if (streak.current <= 0) return { headline: "No streak yet", detail: "Study today to start one" };
+  return {
+    headline: `${streak.current}-day streak`,
+    detail: streak.activeToday ? "Active today" : "Study today to keep it going",
+  };
+}
+
+/** "Level 3 · 140 / 250 XP to Level 4". */
+export function levelSummary(level: LevelProgress): string {
+  return `Level ${level.level} · ${level.intoLevel} / ${level.levelSize} XP to Level ${level.level + 1}`;
+}
+
+// --- Submission XP (pure) -----------------------------------------------------
+
+export type XpAward = { kind: ActivityKind; xp: number };
+
+/**
+ * XP for a submission: SUBMIT (+ ON_TIME before the due date) for a first
+ * submission, RESUBMIT for a resubmission after a send-back. Kinds already
+ * awarded for this submission are skipped, so a submission never earns the
+ * same kind twice.
+ */
+export function submissionXpAwards(input: {
+  resubmission: boolean;
+  onTime: boolean;
+  alreadyAwarded: ReadonlySet<string>;
+}): XpAward[] {
+  const awards: XpAward[] = input.resubmission
+    ? [{ kind: "RESUBMIT", xp: XP_RULES.RESUBMIT }]
+    : [
+        { kind: "SUBMIT", xp: XP_RULES.SUBMIT },
+        ...(input.onTime ? [{ kind: "ON_TIME" as const, xp: XP_RULES.ON_TIME }] : []),
+      ];
+  return awards.filter((award) => !input.alreadyAwarded.has(award.kind));
+}

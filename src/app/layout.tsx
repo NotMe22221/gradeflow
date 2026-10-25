@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: "%s · GradeSmart AI",
   },
   description:
-    "GradeSmart AI takes student papers from submission to published grades. AI drafts rubric scores with evidence; nothing publishes until a teacher approves it.",
+    "GradeSmart AI bridges paper classrooms and digital grading. AI drafts rubric scores for typed papers and photographed handwritten tests, and nothing publishes until a teacher approves it.",
 };
 
 export const viewport: Viewport = {

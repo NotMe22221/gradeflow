@@ -5,17 +5,12 @@ import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
 import { getOwnedAssignment, getOwnedSubmission } from "@/lib/access";
 import { AuthError, requireTeacher } from "@/lib/auth/session";
-import { isConfidence, parseGraderKind } from "@/lib/constants";
 import { db } from "@/lib/db";
-import { wordCount } from "@/lib/format";
+import { awardXp } from "@/lib/gamification/award";
+import { xpForPublishedGrade } from "@/lib/gamification/rules";
 import { publishApprovedGrade } from "@/lib/grades/publish";
-import { parseFlags } from "@/lib/grading/flags";
-import {
-  MAX_COMMENT_CHARS,
-  MAX_FEEDBACK_CHARS,
-  MAX_RETURN_NOTE_CHARS,
-  previousReturn,
-} from "@/lib/review/model";
+import { toReviewItem } from "@/lib/review/map";
+import { MAX_COMMENT_CHARS, MAX_FEEDBACK_CHARS, MAX_RETURN_NOTE_CHARS } from "@/lib/review/model";
 import { isOnScoreStep } from "@/lib/review/scores";
 import type { ReviewItem, ReviewPayload } from "@/lib/review/types";
 import { idSchema } from "@/lib/validation/id";
@@ -171,7 +166,11 @@ function draftFeedback(feedback: string): string | null {
 
 // --- Queue ------------------------------------------------------------------
 
-/** Papers waiting in this teacher's review queue, oldest first. */
+/**
+ * Papers waiting in this teacher's review queue, oldest first. Scanned tests
+ * carry their page photo ids (never the bytes); the photos are served by
+ * GET /api/submissions/[submissionId]/images/[imageId].
+ */
 export async function getReviewQueue(teacherId: string): Promise<ReviewItem[]> {
   const rows = await db.submission.findMany({
     where: { status: "NEEDS_REVIEW", assignment: { class: { teacherId } } },
@@ -181,6 +180,7 @@ export async function getReviewQueue(teacherId: string): Promise<ReviewItem[]> {
       id: true,
       content: true,
       fileName: true,
+      source: true,
       submittedAt: true,
       returnNote: true,
       returnedAt: true,
@@ -190,62 +190,33 @@ export async function getReviewQueue(teacherId: string): Promise<ReviewItem[]> {
         select: {
           id: true,
           title: true,
+          kind: true,
           class: { select: { name: true } },
-          criteria: { orderBy: { position: "asc" } },
+          criteria: {
+            orderBy: { position: "asc" },
+            select: { id: true, title: true, description: true, maxPoints: true, position: true },
+          },
         },
       },
       aiGrade: {
         select: { grader: true, model: true, confidence: true, overallComment: true, flags: true },
       },
-      scores: true,
+      scores: {
+        select: {
+          criterionId: true,
+          aiScore: true,
+          aiJustification: true,
+          aiEvidence: true,
+          evidenceFound: true,
+          finalScore: true,
+          finalComment: true,
+        },
+      },
+      images: { orderBy: { position: "asc" }, select: { id: true, position: true } },
     },
   });
 
-  return rows.map((row) => {
-    const scoreByCriterion = new Map(row.scores.map((score) => [score.criterionId, score]));
-    return {
-      id: row.id,
-      content: row.content,
-      fileName: row.fileName,
-      submittedAt: row.submittedAt.toISOString(),
-      wordCount: wordCount(row.content),
-      student: row.student,
-      assignment: {
-        id: row.assignment.id,
-        title: row.assignment.title,
-        className: row.assignment.class.name,
-      },
-      ai: row.aiGrade
-        ? {
-            // Unknown values are labelled as the demo grader, so placeholder
-            // output is never presented as real AI.
-            grader: parseGraderKind(row.aiGrade.grader),
-            model: row.aiGrade.model,
-            confidence: isConfidence(row.aiGrade.confidence) ? row.aiGrade.confidence : "low",
-            overallComment: row.aiGrade.overallComment,
-            flags: parseFlags(row.aiGrade.flags),
-          }
-        : null,
-      criteria: row.assignment.criteria.map((criterion) => {
-        const score = scoreByCriterion.get(criterion.id);
-        return {
-          id: criterion.id,
-          title: criterion.title,
-          description: criterion.description,
-          maxPoints: criterion.maxPoints,
-          position: criterion.position,
-          aiScore: score?.aiScore ?? null,
-          aiJustification: score?.aiJustification ?? null,
-          aiEvidence: score?.aiEvidence ?? null,
-          evidenceFound: score?.evidenceFound ?? false,
-          finalScore: score?.finalScore ?? null,
-          finalComment: score?.finalComment ?? null,
-        };
-      }),
-      teacherFeedback: row.teacherFeedback,
-      previousReturn: previousReturn(row),
-    };
-  });
+  return rows.map(toReviewItem);
 }
 
 /** Title of an assignment this teacher owns, for the filter's empty state. */
@@ -315,7 +286,19 @@ export async function approveAndPublish(submissionId: unknown, payload: unknown)
       throw new ReviewError("This paper was already handled, so nothing was published.");
     }
 
-    return publishApprovedGrade(tx, id, teacher.id);
+    const result = await publishApprovedGrade(tx, id, teacher.id);
+
+    // Engagement only: XP never touches the grade itself. Inside the same
+    // transaction, so XP exists exactly when the grade was published.
+    await awardXp(tx, {
+      studentId: submission.student.id,
+      kind: "GRADE_PUBLISHED",
+      xp: xpForPublishedGrade(result.totalScore, result.maxScore),
+      refId: id,
+      now,
+    });
+
+    return result;
   });
 
   return {

@@ -5,7 +5,7 @@ import { MobileNav } from "@/components/app-shell/mobile-nav";
 import { SidebarNav } from "@/components/app-shell/sidebar-nav";
 import { UserMenu, type SwitchableStudent } from "@/components/app-shell/user-menu";
 import { Logo } from "@/components/brand/logo";
-import type { GraderInfo } from "@/lib/grading/config";
+import type { EngineStatus } from "@/lib/ai/engines";
 
 /**
  * Teacher app frame: top bar (logo, grader status, demo user) above a left
@@ -14,14 +14,14 @@ import type { GraderInfo } from "@/lib/grading/config";
  */
 export function AppShell({
   user,
-  graderInfo,
+  engines,
   counts,
   students,
   demoLogin,
   children,
 }: {
   user: { name: string; email: string; role: "TEACHER" | "STUDENT" };
-  graderInfo: GraderInfo;
+  engines: EngineStatus;
   counts: { review: number };
   students: SwitchableStudent[];
   demoLogin: boolean;
@@ -33,7 +33,7 @@ export function AppShell({
         <MobileNav counts={counts} />
         <Logo href="/dashboard" />
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <GraderStatus info={graderInfo} />
+          <GraderStatus status={engines} />
           <UserMenu user={user} students={students} demoLogin={demoLogin} />
         </div>
       </header>

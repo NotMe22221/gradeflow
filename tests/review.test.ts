@@ -19,6 +19,18 @@ import {
   type InlineSegment,
   type ItemDraft,
 } from "@/lib/review/model";
+import { xpForPublishedGrade } from "@/lib/gamification/rules";
+import { toReviewItem, type ReviewQueueRow } from "@/lib/review/map";
+import {
+  criterionGuideLabel,
+  hasPagePhotos,
+  isScanned,
+  pageImageAlt,
+  parseSubmissionSource,
+  submissionImageUrl,
+  toReviewImages,
+  transcriptionCaption,
+} from "@/lib/review/media";
 import { isOnScoreStep } from "@/lib/review/scores";
 import { isEditableTarget, shortcutForKey } from "@/lib/review/shortcuts";
 import type { ReviewCriterion, ReviewItem } from "@/lib/review/types";
@@ -45,10 +57,12 @@ function item(overrides: Partial<ReviewItem> & { id: string }): ReviewItem {
   return {
     content: "A short synthetic paper about tide pools.",
     fileName: null,
+    source: "TEXT",
+    images: [],
     submittedAt: "2026-10-01T09:00:00.000Z",
     wordCount: 7,
     student: { id: "stu_1", name: "Wren Ashcombe" },
-    assignment: { id: "asg_1", title: "Tide Pool Report", className: "Science 7" },
+    assignment: { id: "asg_1", title: "Tide Pool Report", className: "Science 7", kind: "ESSAY" },
     ai: { grader: "demo", model: null, confidence: "medium", overallComment: null, flags: [] },
     criteria: [criterion({ id: "c1", maxPoints: 5, aiScore: 4 }), criterion({ id: "c2", aiScore: 7.5 })],
     teacherFeedback: null,
@@ -489,5 +503,173 @@ describe("previousReturn", () => {
       returnNote: null,
     });
     assert.deepEqual(result, { note: "", at: returnedAt.toISOString() });
+  });
+});
+
+// --- Scanned handwritten tests ----------------------------------------------------
+
+function queueRow(overrides: Partial<ReviewQueueRow> = {}): ReviewQueueRow {
+  return {
+    id: "sub_scan",
+    content: "Q1. All the land that drains into the same river.\nQ2. Fertilizer runoff.",
+    fileName: null,
+    source: "SCAN",
+    submittedAt: new Date("2026-10-04T10:00:00.000Z"),
+    returnNote: null,
+    returnedAt: null,
+    teacherFeedback: null,
+    student: { id: "stu_9", name: "Juniper Vale" },
+    assignment: {
+      id: "asg_quiz",
+      title: "Unit 3 Quiz",
+      kind: "TEST",
+      class: { name: "Environmental Science" },
+      criteria: [
+        { id: "q1", title: "Q1. Watershed", description: "Land that drains to one river or lake.", maxPoints: 2, position: 0 },
+        { id: "q2", title: "Q2. Two pollution sources", description: "Any two: fertilizer, oil, road salt.", maxPoints: 2, position: 1 },
+      ],
+    },
+    aiGrade: {
+      grader: "openai",
+      model: "vision-model",
+      confidence: "medium",
+      overallComment: null,
+      flags: "[]",
+    },
+    scores: [
+      {
+        criterionId: "q1",
+        aiScore: 2,
+        aiJustification: "Matches the key.",
+        aiEvidence: "All the land that drains into the same river.",
+        evidenceFound: true,
+        finalScore: null,
+        finalComment: null,
+      },
+    ],
+    images: [
+      { id: "img_b", position: 1 },
+      { id: "img_a", position: 0 },
+    ],
+    ...overrides,
+  };
+}
+
+describe("toReviewItem", () => {
+  it("maps a scanned test with its kind, source, and page photos in order", () => {
+    const mapped = toReviewItem(queueRow());
+    assert.equal(mapped.source, "SCAN");
+    assert.equal(mapped.assignment.kind, "TEST");
+    assert.equal(mapped.assignment.className, "Environmental Science");
+    assert.deepEqual(mapped.images, [
+      { id: "img_a", position: 0 },
+      { id: "img_b", position: 1 },
+    ]);
+    assert.equal(mapped.ai?.grader, "openai");
+    assert.equal(mapped.submittedAt, "2026-10-04T10:00:00.000Z");
+    assert.equal(mapped.wordCount, 13);
+  });
+
+  it("joins AI scores to criteria and leaves unscored criteria empty", () => {
+    const [q1, q2] = toReviewItem(queueRow()).criteria;
+    assert.equal(q1.aiScore, 2);
+    assert.equal(q1.evidenceFound, true);
+    assert.equal(q1.description, "Land that drains to one river or lake.");
+    assert.equal(q2.aiScore, null);
+    assert.equal(q2.aiEvidence, null);
+    assert.equal(q2.evidenceFound, false);
+    assert.equal(q2.finalComment, null);
+  });
+
+  it("coerces unknown stored values to safe defaults", () => {
+    const mapped = toReviewItem(
+      queueRow({
+        source: "FAX",
+        assignment: { ...queueRow().assignment, kind: "QUIZ" },
+        aiGrade: { grader: "mystery", model: null, confidence: "certain", overallComment: null, flags: "not json" },
+      })
+    );
+    assert.equal(mapped.source, "TEXT");
+    assert.equal(mapped.assignment.kind, "ESSAY");
+    // Unknown engines are labelled as the demo grader, never as real AI.
+    assert.equal(mapped.ai?.grader, "demo");
+    assert.equal(mapped.ai?.confidence, "low");
+    assert.deepEqual(mapped.ai?.flags, []);
+  });
+
+  it("maps a typed essay with no photos and no AI record", () => {
+    const mapped = toReviewItem(
+      queueRow({ source: "TEXT", images: [], aiGrade: null, assignment: { ...queueRow().assignment, kind: "ESSAY" } })
+    );
+    assert.equal(mapped.source, "TEXT");
+    assert.deepEqual(mapped.images, []);
+    assert.equal(mapped.ai, null);
+    assert.equal(isScanned(mapped), false);
+    assert.equal(hasPagePhotos(mapped), false);
+  });
+
+  it("never carries image bytes into the client payload", () => {
+    const row = queueRow({ images: [{ id: "img_a", position: 0, data: new Uint8Array([1, 2, 3]) } as never] });
+    assert.deepEqual(toReviewItem(row).images, [{ id: "img_a", position: 0 }]);
+  });
+});
+
+describe("scan media helpers", () => {
+  it("parses submission sources", () => {
+    assert.equal(parseSubmissionSource("SCAN"), "SCAN");
+    assert.equal(parseSubmissionSource("TEXT"), "TEXT");
+    assert.equal(parseSubmissionSource("scan"), "TEXT");
+    assert.equal(parseSubmissionSource(null), "TEXT");
+    assert.equal(parseSubmissionSource(undefined), "TEXT");
+  });
+
+  it("orders page photos by position", () => {
+    assert.deepEqual(
+      toReviewImages([
+        { id: "c", position: 2 },
+        { id: "a", position: 0 },
+        { id: "b", position: 1 },
+      ]).map((image) => image.id),
+      ["a", "b", "c"]
+    );
+  });
+
+  it("builds the image route URL and alt text", () => {
+    assert.equal(submissionImageUrl("sub_1", "img_2"), "/api/submissions/sub_1/images/img_2");
+    assert.equal(submissionImageUrl("a/b", "c?d"), "/api/submissions/a%2Fb/images/c%3Fd");
+    assert.equal(pageImageAlt("Juniper Vale", 2), "Page 2 of Juniper Vale's test");
+  });
+
+  it("treats a SCAN source or stored photos as scanned", () => {
+    assert.equal(isScanned({ source: "SCAN", images: [] }), true);
+    assert.equal(isScanned({ source: "TEXT", images: [{ id: "x", position: 0 }] }), true);
+    assert.equal(isScanned({ source: "TEXT", images: [] }), false);
+  });
+
+  it("labels the transcription with its engine and never calls demo output AI", () => {
+    assert.deepEqual(transcriptionCaption("openai"), {
+      tone: "ai",
+      text: "Transcribed by GPT-4o. Check it against the photo.",
+    });
+    const demo = transcriptionCaption("demo");
+    assert.equal(demo.tone, "demo");
+    assert.match(demo.text, /^Demo transcription/);
+    assert.match(demo.text, /not read by AI/);
+    assert.match(transcriptionCaption(null).text, /Check it against the photo/);
+  });
+
+  it("names the full-credit description an answer key for tests", () => {
+    assert.equal(criterionGuideLabel("TEST"), "Answer key");
+    assert.equal(criterionGuideLabel("ESSAY"), "What full credit looks like");
+  });
+});
+
+describe("xpForPublishedGrade (awarded on publish)", () => {
+  it("scales from 0 to 50 with the published percentage", () => {
+    assert.equal(xpForPublishedGrade(10, 10), 50);
+    assert.equal(xpForPublishedGrade(0, 10), 0);
+    assert.equal(xpForPublishedGrade(7.5, 10), 38);
+    assert.equal(xpForPublishedGrade(5, 0), 0);
+    assert.equal(xpForPublishedGrade(12, 10), 50);
   });
 });

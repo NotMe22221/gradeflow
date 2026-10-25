@@ -16,12 +16,15 @@ export function SubmittedCard({
   returnedAt,
   content,
   fileName,
+  contentLabel,
 }: {
   submittedAt: Date;
   /** Set when this is a resubmission after a send-back. */
   returnedAt?: Date | null;
   content: string;
   fileName?: string | null;
+  /** Label for the paper disclosure, e.g. for a transcribed paper test. */
+  contentLabel?: string;
 }) {
   const resubmitted = !!returnedAt && submittedAt.getTime() > returnedAt.getTime();
   const steps: Step[] = [
@@ -95,7 +98,7 @@ export function SubmittedCard({
           ))}
         </ol>
       </div>
-      <SubmissionText content={content} fileName={fileName} />
+      <SubmissionText content={content} fileName={fileName} label={contentLabel} />
     </Card>
   );
 }

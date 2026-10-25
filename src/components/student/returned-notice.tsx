@@ -7,10 +7,13 @@ export function ReturnedNotice({
   returnNote,
   returnedAt,
   teacherName,
+  instruction = "Revise your paper and resubmit it below.",
 }: {
   returnNote: string | null;
   returnedAt: Date | null;
   teacherName: string | null;
+  /** What the student should do next. */
+  instruction?: string;
 }) {
   const note = returnNote?.trim();
 
@@ -26,7 +29,7 @@ export function ReturnedNotice({
           </h2>
           <p className="text-sm text-warning-soft-foreground">
             {returnedAt ? `Sent back ${formatDate(returnedAt)}. ` : ""}
-            Revise your paper and resubmit it below.
+            {instruction}
           </p>
           {note ? (
             <figure className="mt-4 rounded-lg border border-warning/25 bg-card px-4 py-3 shadow-card">

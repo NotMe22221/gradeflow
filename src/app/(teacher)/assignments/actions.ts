@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { AddSubmissionResult, LoadSamplesResult } from "@/components/assignments/types";
 import { getOwnedAssignment } from "@/lib/access";
 import { AuthError, requireTeacher } from "@/lib/auth/session";
+import { parseAssignmentKind } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { pickSampleSet } from "@/lib/demo/sample-papers";
 import {
@@ -106,6 +107,10 @@ export async function loadSamplePapers(assignmentId: string): Promise<LoadSample
     const id = idSchema.safeParse(assignmentId);
     if (!id.success) return { ok: false, error: "Assignment not found." };
     const assignment = await getOwnedAssignment(teacher.id, id.data);
+    if (parseAssignmentKind(assignment.kind) === "TEST") {
+      // The synthetic papers are essays. Handwritten tests use the sample photos on the scan page.
+      return { ok: false, error: "Sample papers are essays. Use Scan papers to try the sample test photos." };
+    }
 
     const waiting = await db.enrollment.findMany({
       where: {

@@ -10,15 +10,22 @@ export type StudentRubricCriterion = {
   maxPoints: number;
 };
 
-/** The rubric as the student sees it: criteria, points, and what full credit looks like. */
+/**
+ * The rubric as the student sees it: criteria, points, and what full credit
+ * looks like. For a paper test ("questions") each criterion is a question and
+ * its description is the teacher's answer key, so only titles and points show.
+ */
 export function AssignmentRubric({
   criteria,
+  variant = "rubric",
   className,
 }: {
   criteria: StudentRubricCriterion[];
+  variant?: "rubric" | "questions";
   className?: string;
 }) {
   const total = criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0);
+  const questions = variant === "questions";
 
   return (
     <section aria-labelledby="rubric-heading" className={className}>
@@ -29,7 +36,7 @@ export function AssignmentRubric({
             className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground"
           >
             <ListChecks className="size-4 text-muted-foreground" aria-hidden />
-            Rubric
+            {questions ? "Questions" : "Rubric"}
           </h2>
           {criteria.length > 0 ? (
             <span className="tabular text-sm text-muted-foreground">{pluralize(total, "point")}</span>
@@ -56,15 +63,22 @@ export function AssignmentRubric({
                       {formatPoints(criterion.maxPoints)} pts
                     </span>
                   </div>
-                  <p className="text-[13px] leading-relaxed whitespace-pre-line text-muted-foreground">
-                    <span className="font-medium text-foreground/80">What full credit looks like: </span>
-                    {criterion.description}
-                  </p>
+                  {questions ? null : (
+                    <p className="text-[13px] leading-relaxed whitespace-pre-line text-muted-foreground">
+                      <span className="font-medium text-foreground/80">What full credit looks like: </span>
+                      {criterion.description}
+                    </p>
+                  )}
                 </div>
               </li>
             ))}
           </ol>
         )}
+        {questions && criteria.length > 0 ? (
+          <p className="border-t border-border px-5 py-3 text-xs text-muted-foreground">
+            The answer key stays with your teacher.
+          </p>
+        ) : null}
       </Card>
     </section>
   );

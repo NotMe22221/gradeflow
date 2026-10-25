@@ -3,7 +3,8 @@
 // Idempotent and self-resetting. It deletes every row, children first, and
 // inserts the fully synthetic demo dataset in one transaction, so running it
 // twice leaves the same demo state and a failed run leaves the old data intact.
-// Every person, school, place, survey, and story in the dataset is fictional.
+// Every person, school, place, survey, quiz answer, and story in the dataset
+// is fictional.
 
 import "dotenv/config";
 
@@ -14,82 +15,26 @@ import { DEMO_STUDENT_EMAIL, DEMO_TEACHER_EMAIL } from "../src/lib/constants";
 import { DATABASE_URL } from "../src/lib/db-url";
 import { serializeBreakdown, type BreakdownItem } from "../src/lib/grades/breakdown";
 import { findEvidenceSpan } from "../src/lib/grading/evidence";
-import { createClock, sum, type Clock } from "./seed-data/helpers";
-import { PUBLISHED_HISTORY, type PublishedHistoryEntry } from "./seed-data/history";
-import { PAPERS } from "./seed-data/papers";
+import { SAMPLE_TEST_PHOTOS } from "../src/lib/scan/samples";
+import {
+  assignmentByKey,
+  PENDING,
+  PUBLISHED,
+  publishedTotals,
+  submissionKey,
+  TERM_START,
+  type SeedPending,
+  type SeedPublished,
+} from "./seed-data/dataset";
+import { STUDENT_GOALS, type ActivityRef, type SeedActivity } from "./seed-data/engagement";
+import { createClock, type Clock } from "./seed-data/helpers";
 import { CLASSES, DEMO_TEACHER, STUDENTS, type ClassKey, type StudentKey } from "./seed-data/people";
-import { ASSIGNMENTS, type AssignmentKey, type SeedAssignment } from "./seed-data/rubrics";
-import { PENDING_SUBMISSIONS, type SeedSubmission } from "./seed-data/submissions";
+import { ASSIGNMENTS, type AssignmentKey } from "./seed-data/rubrics";
+import { engagementFor, questionAverage, validateDataset } from "./seed-data/validate";
 
 const prisma = new PrismaClient({
   adapter: new PrismaBetterSqlite3({ url: DATABASE_URL }),
 });
-
-// --- Validation ----------------------------------------------------------------
-// The dataset is checked before anything is deleted, so a typo in a paper or
-// rubric fails loudly instead of seeding inconsistent demo data.
-
-function assignmentByKey(key: AssignmentKey): SeedAssignment {
-  const assignment = ASSIGNMENTS.find((candidate) => candidate.key === key);
-  if (!assignment) throw new Error(`Unknown assignment "${key}".`);
-  return assignment;
-}
-
-function validateDataset() {
-  const problems: string[] = [];
-  const seen = new Set<string>();
-
-  for (const submission of [...PENDING_SUBMISSIONS, ...PUBLISHED_HISTORY]) {
-    const assignment = assignmentByKey(submission.assignmentKey);
-    const klass = CLASSES.find((candidate) => candidate.key === assignment.classKey);
-    const pair = `${submission.assignmentKey}/${submission.studentKey}`;
-    if (seen.has(pair)) problems.push(`${pair}: duplicate submission.`);
-    seen.add(pair);
-    if (!klass?.studentKeys.includes(submission.studentKey)) {
-      problems.push(`${pair}: student is not enrolled in ${assignment.classKey}.`);
-    }
-    if (submission.submittedAt.daysAgo < 1) problems.push(`${pair}: submittedAt must be at least a day ago.`);
-  }
-
-  for (const entry of PUBLISHED_HISTORY) {
-    const pair = `${entry.assignmentKey}/${entry.studentKey}`;
-    const content = PAPERS[entry.paperKey];
-    const criteria = assignmentByKey(entry.assignmentKey).criteria;
-    const rubricKeys = criteria.map((criterion) => criterion.key);
-    const extra = Object.keys(entry.scores).filter((key) => !rubricKeys.includes(key));
-    if (extra.length > 0) problems.push(`${pair}: scores for unknown criteria ${extra.join(", ")}.`);
-
-    let adjusted = false;
-    for (const criterion of criteria) {
-      const score = entry.scores[criterion.key];
-      if (!score) {
-        problems.push(`${pair}: missing a score for "${criterion.key}".`);
-        continue;
-      }
-      for (const [label, value] of [
-        ["aiScore", score.aiScore],
-        ["finalScore", score.finalScore],
-      ] as const) {
-        if (!Number.isFinite(value) || value < 0 || value > criterion.maxPoints) {
-          problems.push(`${pair}/${criterion.key}: ${label} ${value} is outside 0-${criterion.maxPoints}.`);
-        }
-      }
-      if (score.aiScore !== score.finalScore) adjusted = true;
-      // The quote must be a verbatim substring AND pass the app's own matcher,
-      // so the review and student views highlight it exactly.
-      if (!content.includes(score.aiEvidence) || !findEvidenceSpan(content, score.aiEvidence)) {
-        problems.push(`${pair}/${criterion.key}: evidence is not a verbatim quote from the paper.`);
-      }
-    }
-    if (!adjusted) problems.push(`${pair}: the teacher review should adjust at least one score.`);
-  }
-
-  if (problems.length > 0) {
-    throw new Error(`The demo dataset is inconsistent:\n  - ${problems.join("\n  - ")}`);
-  }
-}
-
-// --- Seeding -------------------------------------------------------------------
 
 type Tx = Prisma.TransactionClient;
 
@@ -101,7 +46,10 @@ type SeededAssignment = {
 type Ids = {
   teacherId: string;
   students: Map<StudentKey, string>;
+  classes: Map<ClassKey, string>;
   assignments: Map<AssignmentKey, SeededAssignment>;
+  /** Keyed by submissionKey(assignmentKey, studentKey). */
+  submissions: Map<string, string>;
 };
 
 function lookup<K, V>(map: Map<K, V>, key: K): V {
@@ -115,6 +63,9 @@ async function resetDatabase(tx: Tx) {
   await tx.publishedGrade.deleteMany();
   await tx.criterionScore.deleteMany();
   await tx.aiGrade.deleteMany();
+  await tx.submissionImage.deleteMany();
+  await tx.studyActivity.deleteMany();
+  await tx.studentGoal.deleteMany();
   await tx.submission.deleteMany();
   await tx.rubricCriterion.deleteMany();
   await tx.assignment.deleteMany();
@@ -125,7 +76,7 @@ async function resetDatabase(tx: Tx) {
 
 async function seedPeopleAndClasses(tx: Tx, clock: Clock) {
   // Accounts and classes date from the start of the term, about six weeks ago.
-  const termStart = clock.at({ daysAgo: 40, hour: 8, minute: 0 });
+  const termStart = clock.at(TERM_START);
 
   const teacher = await tx.user.create({
     data: { name: DEMO_TEACHER.name, email: DEMO_TEACHER.email, role: "TEACHER", createdAt: termStart },
@@ -181,6 +132,7 @@ async function seedAssignments(
         classId: lookup(classes, assignment.classKey),
         title: assignment.title,
         instructions: assignment.instructions,
+        kind: assignment.kind,
         dueDate: clock.dueInDays(assignment.dueInDays),
         createdAt: clock.at({ daysAgo: assignment.createdDaysAgo, hour: 7, minute: 45 }),
         criteria: {
@@ -208,67 +160,71 @@ async function seedAssignments(
 }
 
 /** Papers waiting for the AI first pass: no AiGrade or CriterionScore rows. */
-async function seedPendingSubmission(tx: Tx, clock: Clock, ids: Ids, submission: SeedSubmission) {
+async function seedPendingSubmission(tx: Tx, clock: Clock, ids: Ids, submission: SeedPending) {
   const submittedAt = clock.at(submission.submittedAt);
-  await tx.submission.create({
+  const created = await tx.submission.create({
     data: {
       assignmentId: lookup(ids.assignments, submission.assignmentKey).id,
       studentId: lookup(ids.students, submission.studentKey),
-      content: PAPERS[submission.paperKey],
+      content: submission.content,
       fileName: submission.fileName,
+      source: "TEXT",
       submittedAt,
       status: "SUBMITTED",
       updatedAt: submittedAt,
     },
   });
+  ids.submissions.set(submissionKey(submission.assignmentKey, submission.studentKey), created.id);
 }
 
 /**
  * A past teacher approval, recreated: the AI suggestion, the teacher's final
  * values, the approval, and the published snapshot, shaped exactly as
- * approveAndPublish() and publishApprovedGrade() would have left them.
+ * approveAndPublish() and publishApprovedGrade() would have left them. For a
+ * scanned quiz the content is the transcription; history keeps no photos.
  */
-async function seedPublishedHistory(tx: Tx, clock: Clock, ids: Ids, entry: PublishedHistoryEntry) {
-  const assignment = lookup(ids.assignments, entry.assignmentKey);
-  const content = PAPERS[entry.paperKey];
-  const submittedAt = clock.at(entry.submittedAt);
-  const aiGradedAt = clock.at(entry.aiGradedAt);
-  const approvedAt = clock.at(entry.approvedAt);
+async function seedPublished(tx: Tx, clock: Clock, ids: Ids, record: SeedPublished) {
+  const assignment = lookup(ids.assignments, record.assignmentKey);
+  const submittedAt = clock.at(record.submittedAt);
+  const aiGradedAt = clock.at(record.aiGradedAt);
+  const approvedAt = clock.at(record.approvedAt);
 
   // In rubric order. The approved comment is the teacher's own, or the AI
   // justification the review screen pre-fills when the teacher keeps it.
   const rows = assignment.criteria.map((criterion) => {
-    const score = entry.scores[criterion.key];
+    const score = record.scores[criterion.key];
     return {
       criterion,
       score,
       comment: (score.finalComment ?? score.aiJustification).trim(),
-      evidenceFound: findEvidenceSpan(content, score.aiEvidence) !== null,
+      evidenceFound: findEvidenceSpan(record.content, score.aiEvidence) !== null,
     };
   });
 
   const submission = await tx.submission.create({
     data: {
       assignmentId: assignment.id,
-      studentId: lookup(ids.students, entry.studentKey),
-      content,
-      fileName: entry.fileName,
+      studentId: lookup(ids.students, record.studentKey),
+      content: record.content,
+      fileName: record.fileName,
+      source: record.source,
       submittedAt,
       status: "PUBLISHED",
-      teacherFeedback: entry.feedback,
+      teacherFeedback: record.feedback,
       approvedAt,
       approvedById: ids.teacherId,
       updatedAt: approvedAt,
     },
   });
+  ids.submissions.set(submissionKey(record.assignmentKey, record.studentKey), submission.id);
 
   await tx.aiGrade.create({
     data: {
       submissionId: submission.id,
       grader: "demo",
       model: null,
-      confidence: entry.confidence,
-      overallComment: entry.overallComment,
+      confidence: record.confidence,
+      overallComment: record.overallComment,
       flags: "[]",
       createdAt: aiGradedAt,
     },
@@ -294,15 +250,16 @@ async function seedPublishedHistory(tx: Tx, clock: Clock, ids: Ids, entry: Publi
     score: score.finalScore,
     comment,
   }));
+  const totals = publishedTotals(record);
 
   await tx.publishedGrade.create({
     data: {
       submissionId: submission.id,
-      totalScore: sum(rows.map(({ score }) => score.finalScore)),
-      maxScore: sum(rows.map(({ criterion }) => criterion.maxPoints)),
+      totalScore: totals.total,
+      maxScore: totals.max,
       breakdown: serializeBreakdown(breakdown),
-      feedback: entry.feedback,
-      aiTotalScore: sum(rows.map(({ score }) => score.aiScore)),
+      feedback: record.feedback,
+      aiTotalScore: totals.aiTotal,
       approvedById: ids.teacherId,
       approvedAt,
       // Approving publishes in the same step, so both share one timestamp.
@@ -311,32 +268,104 @@ async function seedPublishedHistory(tx: Tx, clock: Clock, ids: Ids, entry: Publi
   });
 }
 
-async function seed() {
-  validateDataset();
-  const clock = createClock();
+function resolveRef(ids: Ids, ref: ActivityRef): string {
+  switch (ref.type) {
+    case "submission":
+      return lookup(ids.submissions, submissionKey(ref.assignmentKey, ref.studentKey));
+    case "assignment":
+      return lookup(ids.assignments, ref.assignmentKey).id;
+    case "class":
+      return lookup(ids.classes, ref.classKey);
+  }
+}
 
-  await prisma.$transaction(
-    async (tx) => {
-      await resetDatabase(tx);
-      const { classes, ...people } = await seedPeopleAndClasses(tx, clock);
-      const ids: Ids = { ...people, assignments: await seedAssignments(tx, clock, classes) };
-      for (const submission of PENDING_SUBMISSIONS) await seedPendingSubmission(tx, clock, ids, submission);
-      for (const entry of PUBLISHED_HISTORY) await seedPublishedHistory(tx, clock, ids, entry);
-    },
-    { maxWait: 10_000, timeout: 60_000 }
-  );
+/** XP history, written as awardXp() would have: one row per earning action. */
+async function seedActivities(tx: Tx, ids: Ids, activities: SeedActivity[]) {
+  await tx.studyActivity.createMany({
+    data: activities.map((activity) => ({
+      studentId: lookup(ids.students, activity.studentKey),
+      kind: activity.kind,
+      xp: activity.xp,
+      refId: resolveRef(ids, activity.ref),
+      createdAt: activity.at,
+    })),
+  });
+}
 
-  const [teachers, students, classCount, assignments, criteria, waiting, published, publishedGrades] =
-    await Promise.all([
-      prisma.user.count({ where: { role: "TEACHER" } }),
-      prisma.user.count({ where: { role: "STUDENT" } }),
-      prisma.class.count(),
-      prisma.assignment.count(),
-      prisma.rubricCriterion.count(),
-      prisma.submission.count({ where: { status: "SUBMITTED" } }),
-      prisma.submission.count({ where: { status: "PUBLISHED" } }),
-      prisma.publishedGrade.count(),
-    ]);
+/** Saved planner goals, as the goal planner's upsert would have left them. */
+async function seedGoals(tx: Tx, clock: Clock, ids: Ids) {
+  for (const goal of STUDENT_GOALS) {
+    await tx.studentGoal.create({
+      data: {
+        studentId: lookup(ids.students, goal.studentKey),
+        classId: lookup(ids.classes, goal.classKey),
+        rawText: goal.rawText,
+        targetPercent: goal.targetPercent,
+        targetLabel: goal.targetLabel,
+        createdAt: clock.at(goal.createdAt),
+        updatedAt: clock.at(goal.updatedAt),
+      },
+    });
+  }
+}
+
+// --- Summary -----------------------------------------------------------------------
+
+function percent(value: number | null): string {
+  return value === null ? "n/a" : `${Math.round(value)}%`;
+}
+
+/** "Q5 25%, Q7 39%": the most missed questions of a seeded quiz. */
+function mostMissed(key: AssignmentKey, limit: number): string {
+  return assignmentByKey(key)
+    .criteria.map((criterion, index) => ({ label: `Q${index + 1}`, average: questionAverage(key, criterion.key) ?? 100 }))
+    .sort((a, b) => a.average - b.average)
+    .slice(0, limit)
+    .map((entry) => `${entry.label} ${percent(entry.average)}`)
+    .join(", ");
+}
+
+async function printSummary(clock: Clock, activities: SeedActivity[]) {
+  const [
+    teachers,
+    students,
+    classCount,
+    essays,
+    tests,
+    criteria,
+    waiting,
+    published,
+    scanned,
+    publishedGrades,
+    images,
+    activityCount,
+    goals,
+  ] = await Promise.all([
+    prisma.user.count({ where: { role: "TEACHER" } }),
+    prisma.user.count({ where: { role: "STUDENT" } }),
+    prisma.class.count(),
+    prisma.assignment.count({ where: { kind: "ESSAY" } }),
+    prisma.assignment.count({ where: { kind: "TEST" } }),
+    prisma.rubricCriterion.count(),
+    prisma.submission.count({ where: { status: "SUBMITTED" } }),
+    prisma.submission.count({ where: { status: "PUBLISHED" } }),
+    prisma.submission.count({ where: { source: "SCAN" } }),
+    prisma.publishedGrade.count(),
+    prisma.submissionImage.count(),
+    prisma.studyActivity.count(),
+    prisma.studentGoal.count(),
+  ]);
+
+  const describe = (key: StudentKey) => {
+    const snapshot = engagementFor(activities, key, clock.now);
+    const streak = snapshot.streak.current > 0 ? `${snapshot.streak.current}-day streak` : "streak broken";
+    return `Level ${snapshot.level}, ${snapshot.xp} XP, ${streak}${snapshot.streak.activeToday ? " (active today)" : ""}`;
+  };
+  const ava = STUDENTS[0];
+  const goal = STUDENT_GOALS[0];
+  const goalStudent = STUDENTS.find((student) => student.key === goal.studentKey);
+  const unit3 = assignmentByKey("unit3Quiz");
+  const samples = SAMPLE_TEST_PHOTOS.filter((sample) => sample.assignmentTitle === unit3.title);
 
   console.log(
     [
@@ -344,13 +373,47 @@ async function seed() {
       "GradeSmart AI demo data is ready.",
       `  ${teachers} teacher: ${DEMO_TEACHER.name} <${DEMO_TEACHER_EMAIL}>`,
       `  ${students} students in ${classCount} classes (demo student: ${DEMO_STUDENT_EMAIL})`,
-      `  ${assignments} assignments with ${criteria} rubric criteria`,
-      `  ${waiting + published} submissions: ${waiting} waiting for the AI first pass, ${published} published (${publishedGrades} grades in the gradebook)`,
+      `  ${essays + tests} assignments (${essays} essays, ${tests} paper quizzes) with ${criteria} rubric criteria`,
+      `  ${waiting + published} submissions: ${waiting} waiting for the AI first pass, ${published} published (${scanned} scanned quizzes; ${publishedGrades} grades in the gradebook)`,
+      `  ${images} stored photos, ${activityCount} XP events, ${goals} saved goal${goals === 1 ? "" : "s"}`,
+      "",
+      "Demo flows:",
+      `  Paper Scanner: "${unit3.title}" (Environmental Science) has no submissions.`,
+      ...samples.map((sample) => `    Scan ${sample.src.replace(/^\//, "public/")} for ${sample.studentName}.`),
+      `  Class heatmap: Grammar and Vocabulary Quiz 1 most missed ${mostMissed("grammarQuiz1", 2)}; Water Cycle quiz ${mostMissed("waterCycleQuiz", 1)}.`,
+      `  Student view: ${ava.name}: ${describe(ava.key)}.`,
+      `  Goal planner: ${goalStudent?.name ?? goal.studentKey} has a saved goal ("${goal.rawText}", ${goal.targetLabel} = ${goal.targetPercent}%): ${describe(goal.studentKey)}.`,
       "",
       "Run npm run dev and click View the demo.",
       "",
     ].join("\n")
   );
+}
+
+async function seed() {
+  const clock = createClock();
+  // Checked before anything is deleted; also plans the XP history.
+  const activities = validateDataset(clock);
+
+  await prisma.$transaction(
+    async (tx) => {
+      await resetDatabase(tx);
+      const { classes, ...people } = await seedPeopleAndClasses(tx, clock);
+      const ids: Ids = {
+        ...people,
+        classes,
+        assignments: await seedAssignments(tx, clock, classes),
+        submissions: new Map(),
+      };
+      for (const submission of PENDING) await seedPendingSubmission(tx, clock, ids, submission);
+      for (const record of PUBLISHED) await seedPublished(tx, clock, ids, record);
+      await seedActivities(tx, ids, activities);
+      await seedGoals(tx, clock, ids);
+    },
+    { maxWait: 10_000, timeout: 60_000 }
+  );
+
+  await printSummary(clock, activities);
 }
 
 try {

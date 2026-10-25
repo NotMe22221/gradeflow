@@ -87,6 +87,11 @@ export function parseAssignmentKind(value: string | null | undefined): Assignmen
 export const SUBMISSION_SOURCES = ["TEXT", "SCAN"] as const;
 export type SubmissionSource = (typeof SUBMISSION_SOURCES)[number];
 
+/** Coerce a stored Submission.source. Unknown values are typed papers. */
+export function parseSubmissionSource(value: string | null | undefined): SubmissionSource {
+  return (SUBMISSION_SOURCES as readonly string[]).includes(value ?? "") ? (value as SubmissionSource) : "TEXT";
+}
+
 export const DEMO_TEACHER_EMAIL = "morgan.hale@gradesmart.example";
 
 /** Illustrative assumption for the time-saved estimate. Not a measurement. */

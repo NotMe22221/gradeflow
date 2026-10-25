@@ -14,6 +14,7 @@ export default function NewAssignmentLoading() {
           <Skeleton className="h-20 w-full rounded-xl" />
           <div className="space-y-6 rounded-xl border border-border bg-card p-6 shadow-card">
             <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-9 w-full sm:w-96" />
             <Skeleton className="h-9 w-full" />
             <Skeleton className="h-36 w-full" />
             <Skeleton className="h-9 w-52" />

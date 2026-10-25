@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, ChevronRight, ClipboardList, Plus } from "lucide-react";
+import { CalendarDays, Camera, ChevronRight, ClipboardList, Plus } from "lucide-react";
 
 import { describeSummary, StatusBar, type StatusSummary } from "@/components/classes/status-summary";
 import { EmptyState } from "@/components/empty-state";
@@ -11,6 +11,8 @@ import { formatDate, pluralize } from "@/lib/format";
 export type AssignmentListItem = {
   id: string;
   title: string;
+  /** Handwritten tests are graded from photos with the Paper Scanner. */
+  isTest: boolean;
   dueDate: Date | null;
   totalPoints: number;
   criteriaCount: number;
@@ -66,7 +68,17 @@ export function AssignmentList({ classId, items }: { classId: string; items: Ass
                         {item.dueDate ? `Due ${formatDate(item.dueDate)}` : "No due date"}
                       </span>
                       <span className="tabular">{pluralize(item.totalPoints, "point")}</span>
-                      <span className="tabular">{pluralize(item.criteriaCount, "criterion", "criteria")}</span>
+                      <span className="tabular">
+                        {item.isTest
+                          ? pluralize(item.criteriaCount, "question")
+                          : pluralize(item.criteriaCount, "criterion", "criteria")}
+                      </span>
+                      {item.isTest ? (
+                        <Badge variant="outline">
+                          <Camera aria-hidden />
+                          Handwritten test
+                        </Badge>
+                      ) : null}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">

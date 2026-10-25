@@ -5,6 +5,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDate, formatPoints } from "@/lib/format";
 import type { GradebookData } from "@/lib/gradebook/types";
+import { studentProfileHref } from "@/lib/insights/links";
 import { cn } from "@/lib/utils";
 
 /*
@@ -79,9 +80,13 @@ export function GradebookTable({ data }: { data: GradebookData }) {
                 <div className="flex min-w-0 items-center gap-3">
                   <Avatar name={row.student.name} className="hidden size-7 text-[11px] sm:inline-flex" />
                   <div className="min-w-0">
-                    <div className="max-w-[16rem] truncate text-sm font-medium" title={row.student.name}>
+                    <Link
+                      href={studentProfileHref(data.class.id, row.student.id)}
+                      title={`${row.student.name}: open profile`}
+                      className="block max-w-[16rem] truncate rounded-sm text-sm font-medium outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring"
+                    >
                       {row.student.name}
-                    </div>
+                    </Link>
                     <div className="hidden max-w-[16rem] truncate text-xs font-normal text-muted-foreground sm:block" title={row.student.email}>
                       {row.student.email}
                     </div>

@@ -50,6 +50,16 @@ export function createClock(now: Date = new Date()) {
       return new Date(today.getTime() + days * DAY_MS);
     },
 
+    /**
+     * A moment earlier today: `minutes` before now, but never before local
+     * midnight, so it always counts as today and is never in the future.
+     */
+    earlierToday(minutes: number): Date {
+      const midnight = new Date(now);
+      midnight.setHours(0, 0, 0, 0);
+      return new Date(Math.max(midnight.getTime(), now.getTime() - minutes * 60 * 1000));
+    },
+
     /** An exact offset from now, for "a moment later" timestamps. */
     plusSeconds(date: Date, seconds: number): Date {
       return new Date(date.getTime() + seconds * 1000);

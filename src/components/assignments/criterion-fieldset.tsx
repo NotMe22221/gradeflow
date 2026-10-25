@@ -2,22 +2,34 @@
 
 import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 
-import { fieldA11y, errorId, type CriterionDraft, type CriterionField } from "@/components/assignments/rubric-draft";
+import {
+  fieldA11y,
+  errorId,
+  type BuilderCopy,
+  type CriterionDraft,
+  type CriterionField,
+} from "@/components/assignments/rubric-draft";
 import { FieldError } from "@/components/classes/form-feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { RUBRIC_LIMITS } from "@/lib/validation/assignment";
+import type { RubricLimits } from "@/lib/validation/assignment";
 import type { FieldErrors } from "@/lib/validation/form";
 
-/** One rubric criterion in the builder: title, max points, full-credit description. */
+/**
+ * One rubric criterion in the builder: title, max points, full-credit
+ * description. For a handwritten test it reads as a question: label,
+ * points, and the answer key.
+ */
 export function CriterionFieldset({
   index,
   count,
   criterion,
   errors,
   disabled,
+  copy,
+  limits,
   onChange,
   onMove,
   onRemove,
@@ -28,6 +40,8 @@ export function CriterionFieldset({
   criterion: CriterionDraft;
   errors: FieldErrors;
   disabled: boolean;
+  copy: BuilderCopy;
+  limits: RubricLimits;
   onChange: (field: CriterionField, value: string) => void;
   onMove: (direction: -1 | 1) => void;
   onRemove: () => void;
@@ -42,7 +56,7 @@ export function CriterionFieldset({
           <span className="tabular flex size-6 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground ring-1 ring-border">
             {number}
           </span>
-          Criterion {number}
+          {copy.itemLabel} {number}
         </span>
         <div className="flex items-center gap-0.5">
           <Button
@@ -51,7 +65,7 @@ export function CriterionFieldset({
             size="icon-sm"
             onClick={() => onMove(-1)}
             disabled={index === 0 || disabled}
-            aria-label={`Move criterion ${number} up`}
+            aria-label={`Move ${copy.noun} ${number} up`}
           >
             <ArrowUp />
           </Button>
@@ -61,7 +75,7 @@ export function CriterionFieldset({
             size="icon-sm"
             onClick={() => onMove(1)}
             disabled={index === count - 1 || disabled}
-            aria-label={`Move criterion ${number} down`}
+            aria-label={`Move ${copy.noun} ${number} down`}
           >
             <ArrowDown />
           </Button>
@@ -70,8 +84,8 @@ export function CriterionFieldset({
             variant="ghost"
             size="icon-sm"
             onClick={onRemove}
-            disabled={count <= RUBRIC_LIMITS.minCriteria || disabled}
-            aria-label={`Remove criterion ${number}`}
+            disabled={count <= limits.minCriteria || disabled}
+            aria-label={`Remove ${copy.noun} ${number}`}
             className="hover:text-destructive"
           >
             <Trash2 />
@@ -80,26 +94,26 @@ export function CriterionFieldset({
       </div>
       <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_7.5rem]">
         <div className="grid content-start gap-2">
-          <Label htmlFor={`criterion-${criterion.key}-title`}>Title</Label>
+          <Label htmlFor={`criterion-${criterion.key}-title`}>{copy.titleLabel}</Label>
           <Input
             id={`criterion-${criterion.key}-title`}
             value={criterion.title}
             onChange={(event) => onChange("title", event.target.value)}
-            placeholder="Evidence and reasoning"
-            maxLength={RUBRIC_LIMITS.criterionTitleMax}
+            placeholder={copy.titlePlaceholder}
+            maxLength={limits.criterionTitleMax}
             autoComplete="off"
             {...fieldA11y(errors, `${base}.title`)}
           />
           <FieldError id={errorId(`${base}.title`)} message={errors[`${base}.title`]} />
         </div>
         <div className="grid content-start gap-2">
-          <Label htmlFor={`criterion-${criterion.key}-points`}>Max points</Label>
+          <Label htmlFor={`criterion-${criterion.key}-points`}>{copy.pointsLabel}</Label>
           <Input
             id={`criterion-${criterion.key}-points`}
             type="number"
             inputMode="numeric"
-            min={RUBRIC_LIMITS.minPoints}
-            max={RUBRIC_LIMITS.maxPoints}
+            min={limits.minPoints}
+            max={limits.maxPoints}
             step={1}
             value={criterion.maxPoints}
             onChange={(event) => onChange("maxPoints", event.target.value)}
@@ -110,13 +124,13 @@ export function CriterionFieldset({
         </div>
       </div>
       <div className="mt-4 grid gap-2">
-        <Label htmlFor={`criterion-${criterion.key}-description`}>What full credit looks like</Label>
+        <Label htmlFor={`criterion-${criterion.key}-description`}>{copy.descriptionLabel}</Label>
         <Textarea
           id={`criterion-${criterion.key}-description`}
           value={criterion.description}
           onChange={(event) => onChange("description", event.target.value)}
-          placeholder="Supports every claim with specific evidence and explains how it proves the point."
-          maxLength={RUBRIC_LIMITS.criterionDescriptionMax}
+          placeholder={copy.descriptionPlaceholder}
+          maxLength={limits.criterionDescriptionMax}
           className="max-h-60 min-h-20"
           {...fieldA11y(errors, `${base}.description`)}
         />

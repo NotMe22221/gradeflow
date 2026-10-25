@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import { getOwnedClass } from "@/lib/access";
 import { AuthError, requireTeacher } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { assignmentInputSchema, parseDateOnly, type CreateAssignmentResult } from "@/lib/validation/assignment";
+import { parseAssignmentInput, parseDateOnly, type CreateAssignmentResult } from "@/lib/validation/assignment";
 import { classInputSchema, studentInputSchema, type AddStudentResult, type FormFailure } from "@/lib/validation/class";
 import { fieldErrorsFromIssues } from "@/lib/validation/form";
 import { idSchema } from "@/lib/validation/id";
@@ -120,7 +120,11 @@ export async function addStudent(classId: string, formData: FormData): Promise<A
   }
 }
 
-/** Create an assignment and its rubric, then open the assignment. */
+/**
+ * Create an assignment and its rubric, then open the assignment. A TEST
+ * (handwritten test) stores one criterion per question, with the answer key
+ * as the criterion's full-credit description.
+ */
 export async function createAssignment(classId: string, input: unknown): Promise<CreateAssignmentResult> {
   let assignmentId: string;
   try {
@@ -129,7 +133,8 @@ export async function createAssignment(classId: string, input: unknown): Promise
     if (!id.success) return { ok: false, error: "Class not found." };
     const klass = await getOwnedClass(teacher.id, id.data);
 
-    const parsed = assignmentInputSchema.safeParse(input);
+    // The kind decides which limits apply (anything but "TEST" is an essay).
+    const parsed = parseAssignmentInput(input);
     if (!parsed.success) {
       return {
         ok: false,
@@ -138,10 +143,11 @@ export async function createAssignment(classId: string, input: unknown): Promise
       };
     }
 
-    const { title, instructions, dueDate, criteria } = parsed.data;
+    const { kind, title, instructions, dueDate, criteria } = parsed.data;
     const created = await db.assignment.create({
       data: {
         classId: klass.id,
+        kind,
         title,
         instructions,
         dueDate: dueDate ? parseDateOnly(dueDate) : null,

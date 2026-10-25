@@ -1,0 +1,146 @@
+"use client";
+
+import { useState } from "react";
+import { ChevronLeft, ChevronRight, ExternalLink, ImageOff, ZoomIn } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { pageImageAlt, submissionImageUrl } from "@/lib/review/media";
+import type { ReviewImage } from "@/lib/review/types";
+import { cn } from "@/lib/utils";
+
+/**
+ * The original photos of a scanned test, in page order, so the teacher can
+ * check the transcription against the handwriting. Click a page to zoom.
+ * Photos are untrusted data and are only ever shown as images.
+ */
+export function PhotoPages({
+  submissionId,
+  studentName,
+  images,
+}: {
+  submissionId: string;
+  studentName: string;
+  images: ReviewImage[];
+}) {
+  const [zoomIndex, setZoomIndex] = useState<number | null>(null);
+  const [failed, setFailed] = useState<ReadonlySet<string>>(() => new Set());
+  const total = images.length;
+  const zoomed = zoomIndex === null ? null : images[zoomIndex] ?? null;
+
+  const markFailed = (id: string) => setFailed((current) => new Set(current).add(id));
+  const step = (offset: number) =>
+    setZoomIndex((index) => (index === null ? index : Math.min(total - 1, Math.max(0, index + offset))));
+
+  return (
+    <>
+      <ol className="space-y-6" aria-label={`Photos of ${studentName}'s test`}>
+        {images.map((image, index) => {
+          const pageNumber = index + 1;
+          const src = submissionImageUrl(submissionId, image.id);
+          const broken = failed.has(image.id);
+          return (
+            <li key={image.id}>
+              <figure className="space-y-2">
+                {broken ? (
+                  <div className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/50 px-6 text-center text-sm text-muted-foreground">
+                    <ImageOff className="size-5" aria-hidden />
+                    Page {pageNumber} could not be loaded. Reload to try again.
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setZoomIndex(index)}
+                    className="group relative block w-full overflow-hidden rounded-xl border border-border bg-card shadow-card outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
+                    aria-label={`Zoom in on page ${pageNumber}`}
+                  >
+                    {/* Plain <img>: the image route checks access and sets private caching. */}
+                    <img
+                      src={src}
+                      alt={pageImageAlt(studentName, pageNumber)}
+                      loading="lazy"
+                      decoding="async"
+                      onError={() => markFailed(image.id)}
+                      className="block h-auto w-full bg-muted/40"
+                    />
+                    <span className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-card/95 px-2.5 py-1 text-xs font-medium text-foreground shadow-card transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100">
+                      <ZoomIn className="size-3.5" aria-hidden />
+                      Zoom
+                    </span>
+                  </button>
+                )}
+                <figcaption className="tabular text-center text-xs text-muted-foreground">
+                  Page {pageNumber} of {total}
+                </figcaption>
+              </figure>
+            </li>
+          );
+        })}
+      </ol>
+
+      <Dialog open={zoomed !== null} onOpenChange={(open) => (open ? undefined : setZoomIndex(null))}>
+        {zoomed && zoomIndex !== null ? (
+          <DialogContent
+            className="gap-3 p-4 sm:max-w-4xl sm:p-6"
+            onKeyDown={(event) => {
+              if (event.key === "ArrowLeft") step(-1);
+              if (event.key === "ArrowRight") step(1);
+            }}
+          >
+            <DialogHeader className="pr-10">
+              <DialogTitle className="tabular">
+                Page {zoomIndex + 1} of {total}
+              </DialogTitle>
+              <DialogDescription>
+                {studentName}&apos;s test. Compare the handwriting with the transcription before you publish.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-[calc(100dvh-13rem)] overflow-auto overscroll-contain rounded-lg border border-border bg-muted/40">
+              <img
+                key={zoomed.id}
+                src={submissionImageUrl(submissionId, zoomed.id)}
+                alt={pageImageAlt(studentName, zoomIndex + 1)}
+                decoding="async"
+                className="mx-auto block h-auto w-full"
+              />
+            </div>
+            <div className={cn("flex flex-wrap items-center gap-2", total > 1 ? "justify-between" : "justify-end")}>
+              {total > 1 ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => step(-1)}
+                    disabled={zoomIndex === 0}
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft aria-hidden />
+                    Previous
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => step(1)}
+                    disabled={zoomIndex === total - 1}
+                    aria-label="Next page"
+                  >
+                    Next
+                    <ChevronRight aria-hidden />
+                  </Button>
+                </div>
+              ) : null}
+              <Button variant="ghost" size="sm" asChild>
+                <a href={submissionImageUrl(submissionId, zoomed.id)} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink aria-hidden />
+                  Open full size
+                </a>
+              </Button>
+            </div>
+          </DialogContent>
+        ) : null}
+      </Dialog>
+    </>
+  );
+}

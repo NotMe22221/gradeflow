@@ -1,11 +1,29 @@
 // Assignment + rubric validation shared by the rubric builder (client) and the
 // createAssignment server action, so both enforce exactly the same rules.
 // Pure: safe for client components, server code, and unit tests.
+//
+// Two kinds of assignment share one shape:
+// - ESSAY: typed papers graded against rubric criteria.
+// - TEST:  handwritten tests. Each criterion is one question, and its
+//          description is the answer key (what earns full credit).
 
 import { z } from "zod";
 
+import { parseAssignmentKind, type AssignmentKind } from "@/lib/constants";
 import type { FieldErrors } from "@/lib/validation/form";
 
+export type RubricLimits = {
+  minCriteria: number;
+  maxCriteria: number;
+  minPoints: number;
+  maxPoints: number;
+  titleMax: number;
+  instructionsMax: number;
+  criterionTitleMax: number;
+  criterionDescriptionMax: number;
+};
+
+/** Limits for an essay rubric. */
 export const RUBRIC_LIMITS = {
   minCriteria: 1,
   maxCriteria: 10,
@@ -15,7 +33,21 @@ export const RUBRIC_LIMITS = {
   instructionsMax: 6000,
   criterionTitleMax: 80,
   criterionDescriptionMax: 600,
-} as const;
+} as const satisfies RubricLimits;
+
+/**
+ * A handwritten test has more, shorter items than an essay rubric. These
+ * match what the answer-key import can return (src/lib/scan/answer-key.ts).
+ */
+export const TEST_LIMITS = {
+  ...RUBRIC_LIMITS,
+  maxCriteria: 20,
+  criterionTitleMax: 120,
+} as const satisfies RubricLimits;
+
+export function rubricLimitsFor(kind: AssignmentKind): RubricLimits {
+  return kind === "TEST" ? TEST_LIMITS : RUBRIC_LIMITS;
+}
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -32,51 +64,119 @@ export function parseDateOnly(value: string): Date | null {
   return date;
 }
 
-const pointsMessage = `Use a whole number from ${RUBRIC_LIMITS.minPoints} to ${RUBRIC_LIMITS.maxPoints}.`;
+/**
+ * The kind an untrusted payload asks for. Same semantics as
+ * parseAssignmentKind: anything other than "TEST" is an essay.
+ */
+export function kindOfInput(input: unknown): AssignmentKind {
+  if (!input || typeof input !== "object" || !("kind" in input)) return "ESSAY";
+  const { kind } = input as { kind: unknown };
+  return parseAssignmentKind(typeof kind === "string" ? kind : null);
+}
 
-export const criterionInputSchema = z.object({
-  title: z
-    .string()
-    .trim()
-    .min(1, "Give this criterion a title.")
-    .max(RUBRIC_LIMITS.criterionTitleMax, `Keep criterion titles under ${RUBRIC_LIMITS.criterionTitleMax} characters.`),
-  description: z
-    .string()
-    .trim()
-    .min(1, "Describe what full credit looks like.")
-    .max(
-      RUBRIC_LIMITS.criterionDescriptionMax,
-      `Keep this under ${RUBRIC_LIMITS.criterionDescriptionMax} characters.`
-    ),
-  maxPoints: z
-    .number({ error: pointsMessage })
-    .int(pointsMessage)
-    .min(RUBRIC_LIMITS.minPoints, pointsMessage)
-    .max(RUBRIC_LIMITS.maxPoints, pointsMessage),
-});
+type Messages = {
+  criterionTitle: string;
+  criterionTitleTooLong: string;
+  criterionDescription: string;
+  criterionDescriptionTooLong: string;
+  instructions: string;
+  minCriteria: string;
+  maxCriteria: string;
+};
 
-export const assignmentInputSchema = z.object({
-  title: z
-    .string()
-    .trim()
-    .min(1, "Give the assignment a title.")
-    .max(RUBRIC_LIMITS.titleMax, `Keep the title under ${RUBRIC_LIMITS.titleMax} characters.`),
-  instructions: z
-    .string()
-    .trim()
-    .min(1, "Write the prompt students will respond to.")
-    .max(
-      RUBRIC_LIMITS.instructionsMax,
-      `Keep the prompt under ${RUBRIC_LIMITS.instructionsMax.toLocaleString("en-US")} characters.`
-    ),
-  dueDate: z
-    .string()
-    .trim()
-    .refine((value) => value === "" || parseDateOnly(value) !== null, "Pick a valid date, or leave it empty."),
-  criteria: z
-    .array(criterionInputSchema)
-    .min(RUBRIC_LIMITS.minCriteria, "Add at least one criterion.")
-    .max(RUBRIC_LIMITS.maxCriteria, `Use ${RUBRIC_LIMITS.maxCriteria} criteria or fewer.`),
-});
+function messagesFor(kind: AssignmentKind, limits: RubricLimits): Messages {
+  if (kind === "TEST") {
+    return {
+      criterionTitle: "Name this question.",
+      criterionTitleTooLong: `Keep question labels under ${limits.criterionTitleMax} characters.`,
+      criterionDescription: "Write the answer that earns full credit.",
+      criterionDescriptionTooLong: `Keep the answer key under ${limits.criterionDescriptionMax} characters.`,
+      instructions: "Add the directions printed on the test.",
+      minCriteria: "Add at least one question.",
+      maxCriteria: `Use ${limits.maxCriteria} questions or fewer.`,
+    };
+  }
+  return {
+    criterionTitle: "Give this criterion a title.",
+    criterionTitleTooLong: `Keep criterion titles under ${limits.criterionTitleMax} characters.`,
+    criterionDescription: "Describe what full credit looks like.",
+    criterionDescriptionTooLong: `Keep this under ${limits.criterionDescriptionMax} characters.`,
+    instructions: "Write the prompt students will respond to.",
+    minCriteria: "Add at least one criterion.",
+    maxCriteria: `Use ${limits.maxCriteria} criteria or fewer.`,
+  };
+}
+
+function buildSchema(kind: AssignmentKind) {
+  const limits = rubricLimitsFor(kind);
+  const messages = messagesFor(kind, limits);
+  const pointsMessage = `Use a whole number from ${limits.minPoints} to ${limits.maxPoints}.`;
+
+  const criterion = z.object({
+    title: z
+      .string()
+      .trim()
+      .min(1, messages.criterionTitle)
+      .max(limits.criterionTitleMax, messages.criterionTitleTooLong),
+    description: z
+      .string()
+      .trim()
+      .min(1, messages.criterionDescription)
+      .max(limits.criterionDescriptionMax, messages.criterionDescriptionTooLong),
+    maxPoints: z
+      .number({ error: pointsMessage })
+      .int(pointsMessage)
+      .min(limits.minPoints, pointsMessage)
+      .max(limits.maxPoints, pointsMessage),
+  });
+
+  return z.object({
+    title: z
+      .string()
+      .trim()
+      .min(1, "Give the assignment a title.")
+      .max(limits.titleMax, `Keep the title under ${limits.titleMax} characters.`),
+    instructions: z
+      .string()
+      .trim()
+      .min(1, messages.instructions)
+      .max(
+        limits.instructionsMax,
+        `Keep this under ${limits.instructionsMax.toLocaleString("en-US")} characters.`
+      ),
+    dueDate: z
+      .string()
+      .trim()
+      .refine((value) => value === "" || parseDateOnly(value) !== null, "Pick a valid date, or leave it empty."),
+    criteria: z
+      .array(criterion)
+      .min(limits.minCriteria, messages.minCriteria)
+      .max(limits.maxCriteria, messages.maxCriteria),
+  });
+}
+
+/** One schema per assignment kind. Use parseAssignmentInput() to pick the right one. */
+export const assignmentInputSchemas = {
+  ESSAY: buildSchema("ESSAY"),
+  TEST: buildSchema("TEST"),
+} as const;
+
+export type AssignmentInput = z.output<(typeof assignmentInputSchemas)[AssignmentKind]> & {
+  kind: AssignmentKind;
+};
+export type CriterionInput = AssignmentInput["criteria"][number];
+
+/**
+ * Validate an assignment payload against the rules for the kind it asks for
+ * (an unknown or missing kind is an essay). The parsed data carries the kind
+ * that was validated, never the raw value the client sent.
+ */
+export function parseAssignmentInput(
+  input: unknown
+): { success: true; data: AssignmentInput } | { success: false; error: z.ZodError } {
+  const kind = kindOfInput(input);
+  const result = assignmentInputSchemas[kind].safeParse(input);
+  return result.success ? { success: true, data: { ...result.data, kind } } : { success: false, error: result.error };
+}
 
 export type CreateAssignmentResult = { ok: false; error: string; fieldErrors?: FieldErrors };

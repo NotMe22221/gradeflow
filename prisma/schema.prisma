@@ -151,7 +151,7 @@ model SubmissionImage {
 model AiGrade {
   id             String   @id @default(cuid())
   submissionId   String   @unique
-  // "claude" | "demo"
+  // "claude" (essays) | "openai" (camera grader, gpt-4o) | "demo"
   grader         String
   model          String?
   // "high" | "medium" | "low" - the model's uncalibrated self-report.

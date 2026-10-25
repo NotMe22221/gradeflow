@@ -16,6 +16,11 @@ import type {
   ValidationFlag,
 } from "@/lib/grading/types";
 
+/** A criterion title for use inside a sentence: no trailing sentence punctuation. */
+function quotedTitle(title: string): string {
+  return title.trim().replace(/[.?!:;]+$/, "");
+}
+
 /** A grading failure whose message is safe to show to a teacher. */
 export class GradingError extends Error {
   constructor(
@@ -69,7 +74,7 @@ function validateScore(
     flags.push({
       code: "SCORE_OUT_OF_RANGE",
       criterionId: criterion.id,
-      message: `AI returned an unusable score for "${criterion.title}". Enter a score yourself.`,
+      message: `AI returned an unusable score for "${quotedTitle(criterion.title)}". Enter a score yourself.`,
     });
     return null;
   }
@@ -77,7 +82,7 @@ function validateScore(
     flags.push({
       code: "SCORE_OUT_OF_RANGE",
       criterionId: criterion.id,
-      message: `AI suggested ${formatPoints(value)} of ${formatPoints(criterion.maxPoints)} points for "${criterion.title}". Enter a score yourself.`,
+      message: `AI suggested ${formatPoints(value)} of ${formatPoints(criterion.maxPoints)} points for "${quotedTitle(criterion.title)}". Enter a score yourself.`,
     });
     return null;
   }
@@ -97,7 +102,7 @@ function validateEvidence(
     flags.push({
       code: "EVIDENCE_NOT_FOUND",
       criterionId: criterion.id,
-      message: `The AI did not quote any evidence for "${criterion.title}".`,
+      message: `The AI did not quote any evidence for "${quotedTitle(criterion.title)}".`,
     });
     return { evidence: null, evidenceFound: false };
   }
@@ -107,7 +112,7 @@ function validateEvidence(
     flags.push({
       code: "EVIDENCE_NOT_FOUND",
       criterionId: criterion.id,
-      message: `The quoted evidence for "${criterion.title}" does not appear in the paper.`,
+      message: `The quoted evidence for "${quotedTitle(criterion.title)}" does not appear in the paper.`,
     });
   }
   return { evidence: cleaned, evidenceFound };
@@ -163,7 +168,7 @@ export function validateGrading(raw: RawGradingResult, input: GradingInput): Val
       criterionFlags.push({
         code: "MISSING_CRITERION",
         criterionId: criterion.id,
-        message: `The AI did not score "${criterion.title}". Enter a score yourself.`,
+        message: `The AI did not score "${quotedTitle(criterion.title)}". Enter a score yourself.`,
       });
       // No placeholder text: the justification pre-fills the student-facing
       // comment, and the MISSING_CRITERION flag already explains the gap.

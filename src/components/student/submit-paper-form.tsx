@@ -153,6 +153,11 @@ export function SubmitPaperForm({
           ? "Paper resubmitted. Your teacher will review it."
           : "Paper submitted. Your teacher will review it."
       );
+      if (result.xpAwarded > 0) {
+        toast(`+${result.xpAwarded} XP`, {
+          description: `${result.onTime ? "Includes the on-time bonus. " : ""}XP tracks effort. It never changes your grade.`,
+        });
+      }
       router.refresh();
     });
   }

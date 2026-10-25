@@ -1,7 +1,7 @@
 // Serializable shapes passed from the assignment page (server) to its client
 // components. Pure types: safe to import anywhere.
 
-import type { Confidence, GraderKind } from "@/lib/constants";
+import type { Confidence, GraderKind, SubmissionSource } from "@/lib/constants";
 
 /** A validation flag with its teacher-facing wording (see describeFlag). */
 export type SubmissionFlag = { code: string; message: string };
@@ -22,6 +22,10 @@ export type SubmissionRowData = {
   submittedLabel: string;
   submittedTitle: string;
   fileName: string | null;
+  /** "SCAN" for a handwritten test read by the camera grader. */
+  source: SubmissionSource;
+  /** Stored page photos (scans only). */
+  pageCount: number;
   wordCount: number;
   /** Teacher-only AI summary. Never passed to any student-facing view. */
   ai: { confidence: Confidence; grader: GraderKind; flags: SubmissionFlag[] } | null;

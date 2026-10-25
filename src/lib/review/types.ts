@@ -1,7 +1,7 @@
 // Serializable shapes passed from the review page (server) to the review
 // workspace (client). Pure types: safe to import anywhere.
 
-import type { Confidence, GraderKind } from "@/lib/constants";
+import type { AssignmentKind, Confidence, GraderKind, SubmissionSource } from "@/lib/constants";
 import type { StoredFlag } from "@/lib/grading/flags";
 
 /** A validation flag on the AI suggestion, as stored in AiGrade.flags. */
@@ -10,7 +10,10 @@ export type ReviewFlag = StoredFlag;
 export type ReviewCriterion = {
   id: string;
   title: string;
-  /** What full credit looks like, written by the teacher. */
+  /**
+   * What full credit looks like, written by the teacher. For a handwritten
+   * test (assignment kind TEST) this is the question's answer key.
+   */
   description: string;
   maxPoints: number;
   position: number;
@@ -37,16 +40,26 @@ export type ReviewAiSummary = {
   flags: ReviewFlag[];
 };
 
+/** A stored photo of a scanned page. Ids only: the bytes are served by the image route. */
+export type ReviewImage = { id: string; position: number };
+
 export type ReviewItem = {
   id: string;
-  /** Untrusted student text. Rendered as text only, never as HTML. */
+  /**
+   * Untrusted student text. Rendered as text only, never as HTML. For a
+   * scanned test (source SCAN) this is the transcription of the photos.
+   */
   content: string;
   fileName: string | null;
+  /** "TEXT" (pasted or uploaded) or "SCAN" (photos read by the camera grader). */
+  source: SubmissionSource;
+  /** Page photos in page order; empty for typed papers. */
+  images: ReviewImage[];
   /** ISO timestamp. */
   submittedAt: string;
   wordCount: number;
   student: { id: string; name: string };
-  assignment: { id: string; title: string; className: string };
+  assignment: { id: string; title: string; className: string; kind: AssignmentKind };
   ai: ReviewAiSummary | null;
   criteria: ReviewCriterion[];
   teacherFeedback: string | null;

@@ -2,7 +2,7 @@ import { AppShell } from "@/components/app-shell/app-shell";
 import { requireTeacherPage } from "@/lib/auth/session";
 import { demoLoginEnabled } from "@/lib/constants";
 import { db } from "@/lib/db";
-import { getGraderInfo } from "@/lib/grading/config";
+import { getEngineStatus } from "@/lib/ai/engines";
 
 export default async function TeacherLayout({ children }: { children: React.ReactNode }) {
   const user = await requireTeacherPage();
@@ -25,7 +25,7 @@ export default async function TeacherLayout({ children }: { children: React.Reac
   return (
     <AppShell
       user={user}
-      graderInfo={getGraderInfo()}
+      engines={getEngineStatus()}
       counts={{ review: reviewCount }}
       students={students}
       demoLogin={demoLoginEnabled()}

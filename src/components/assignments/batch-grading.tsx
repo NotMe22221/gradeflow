@@ -52,7 +52,11 @@ type BatchGradingContextValue = {
   liveFor: (row: SubmissionRowData) => LiveRowState | undefined;
   run: BatchRun | null;
   isRunning: boolean;
-  /** Papers the AI pass can run on now (READY_FOR_AI_STATUSES, not already queued or graded). */
+  /**
+   * Papers the AI pass can run on now (READY_FOR_AI_STATUSES, not already
+   * queued or graded). Scanned tests are never included: the camera grader
+   * grades them as they are scanned.
+   */
   gradableIds: string[];
   /** Papers waiting in the review queue, including ones graded moments ago. */
   reviewCount: number;
@@ -146,7 +150,8 @@ export function BatchGradingProvider({
   const gradableIds = useMemo(
     () =>
       rows
-        .filter((row) => isReadyForAi(row.status))
+        // Scanned tests arrive already graded by the camera grader; a rescan replaces them.
+        .filter((row) => isReadyForAi(row.status) && row.source !== "SCAN")
         .filter((row) => {
           const phase = liveFor(row)?.phase;
           return phase !== "done" && phase !== "queued" && phase !== "grading";

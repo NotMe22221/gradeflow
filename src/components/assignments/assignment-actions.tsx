@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { FlaskConical, Inbox, Loader2, MoreHorizontal, Sparkles, Table2 } from "lucide-react";
+import { Camera, FlaskConical, Inbox, Loader2, MoreHorizontal, Sparkles, Table2 } from "lucide-react";
 
 import { AddSubmissionDialog } from "@/components/assignments/add-submission-dialog";
 import { useBatchGrading } from "@/components/assignments/batch-grading";
 import { LOAD_SAMPLES_HINT, useLoadSamples } from "@/components/assignments/load-samples";
+import { scanHref } from "@/components/assignments/scan-links";
 import type { EligibleStudent } from "@/components/assignments/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,20 +17,27 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { AssignmentKind } from "@/lib/constants";
 import { pluralize } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 /**
  * Page-header actions: overflow menu, add submission, and the AI pass / review
  * CTA. On phones the CTA comes first at full width, then the review link, then
  * the utility buttons.
+ *
+ * A handwritten test's primary action is "Scan papers": scans arrive already
+ * graded, so the batch AI pass only appears when typed papers are waiting.
  */
 export function AssignmentActions({
   classId,
+  kind,
   eligibleStudents,
   hasRoster,
   missingCount,
 }: {
   classId: string;
+  kind: AssignmentKind;
   eligibleStudents: EligibleStudent[];
   hasRoster: boolean;
   /** Enrolled students with no paper yet (sample papers can fill these). */
@@ -39,9 +47,33 @@ export function AssignmentActions({
   const samples = useLoadSamples(assignmentId);
   const reviewHref = `/review?assignment=${encodeURIComponent(assignmentId)}`;
   const gradable = gradableIds.length;
+  const test = kind === "TEST";
+  // The synthetic sample papers are essays; tests use the sample photos on the scan page.
+  const showSamples = !test && missingCount > 0;
 
   const runningLabel =
     run && isRunning ? `Grading ${Math.min(run.processed + 1, run.total)} of ${run.total}…` : "Grading…";
+
+  const reviewButton = (primary: boolean) => (
+    <Button variant={primary ? "default" : "outline"} asChild className={cn("max-sm:w-full", primary && "max-sm:order-first")}>
+      <Link href={reviewHref}>
+        <Inbox aria-hidden />
+        Review {pluralize(reviewCount, "paper")}
+      </Link>
+    </Button>
+  );
+
+  const batchButton = (primary: boolean) => (
+    <Button
+      variant={primary ? "default" : "outline"}
+      onClick={() => start()}
+      disabled={isRunning}
+      className={cn("max-sm:w-full", primary && "max-sm:order-first")}
+    >
+      {isRunning ? <Loader2 className="animate-spin" aria-hidden /> : <Sparkles aria-hidden />}
+      {isRunning ? runningLabel : `Run AI first pass on ${pluralize(gradable, "paper")}`}
+    </Button>
+  );
 
   return (
     <>
@@ -53,7 +85,7 @@ export function AssignmentActions({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-72">
-            {missingCount > 0 ? (
+            {showSamples ? (
               <>
                 <DropdownMenuLabel>Demo</DropdownMenuLabel>
                 <DropdownMenuItem onSelect={samples.load} disabled={samples.pending || isRunning} className="items-start">
@@ -83,28 +115,26 @@ export function AssignmentActions({
         />
       </div>
 
-      {gradable > 0 || isRunning ? (
+      {test ? (
         <>
-          {reviewCount > 0 && !isRunning ? (
-            <Button variant="outline" asChild className="max-sm:w-full">
-              <Link href={reviewHref}>
-                <Inbox aria-hidden />
-                Review {pluralize(reviewCount, "paper")}
+          {reviewCount > 0 && !isRunning ? reviewButton(false) : null}
+          {gradable > 0 || isRunning ? batchButton(false) : null}
+          {hasRoster ? (
+            <Button asChild className="max-sm:order-first max-sm:w-full">
+              <Link href={scanHref(assignmentId)}>
+                <Camera aria-hidden />
+                Scan papers
               </Link>
             </Button>
           ) : null}
-          <Button onClick={() => start()} disabled={isRunning} className="max-sm:order-first max-sm:w-full">
-            {isRunning ? <Loader2 className="animate-spin" aria-hidden /> : <Sparkles aria-hidden />}
-            {isRunning ? runningLabel : `Run AI first pass on ${pluralize(gradable, "paper")}`}
-          </Button>
+        </>
+      ) : gradable > 0 || isRunning ? (
+        <>
+          {reviewCount > 0 && !isRunning ? reviewButton(false) : null}
+          {batchButton(true)}
         </>
       ) : reviewCount > 0 ? (
-        <Button asChild className="max-sm:order-first max-sm:w-full">
-          <Link href={reviewHref}>
-            <Inbox aria-hidden />
-            Review {pluralize(reviewCount, "paper")}
-          </Link>
-        </Button>
+        reviewButton(true)
       ) : null}
     </>
   );

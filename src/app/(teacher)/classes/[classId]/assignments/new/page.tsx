@@ -6,13 +6,24 @@ import { ChevronRight } from "lucide-react";
 import { RubricBuilder } from "@/components/assignments/rubric-builder";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { getOwnedClass } from "@/lib/access";
+import { openAiConfigured } from "@/lib/ai/openai";
 import { AuthError, requireTeacherPage } from "@/lib/auth/session";
+import { parseAssignmentKind } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "New assignment" };
 
-export default async function NewAssignmentPage({ params }: { params: Promise<{ classId: string }> }) {
+export default async function NewAssignmentPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ classId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const teacher = await requireTeacherPage();
   const { classId } = await params;
+  const { kind } = await searchParams;
+  // ?kind=TEST opens the builder on a handwritten test; anything else is an essay.
+  const initialKind = parseAssignmentKind(typeof kind === "string" ? kind : null);
   if (classId.length > 64) notFound();
 
   let klass;
@@ -39,9 +50,13 @@ export default async function NewAssignmentPage({ params }: { params: Promise<{ 
           </span>
         }
         title="New assignment"
-        description="Write the prompt and the rubric. The AI grades against exactly these criteria, and you approve every grade."
+        description="Write the prompt and the rubric, or the answer key for a handwritten test. The AI grades against exactly what you write here, and you approve every grade."
       />
-      <RubricBuilder classId={klass.id} />
+      <RubricBuilder
+        classId={klass.id}
+        initialKind={initialKind}
+        answerKeyEngine={openAiConfigured() ? "openai" : "demo"}
+      />
     </PageContainer>
   );
 }

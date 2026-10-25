@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { Award, CalendarDays, ListChecks } from "lucide-react";
+import { Award, CalendarDays, ListChecks, PenLine } from "lucide-react";
 
 import { AssignmentActions } from "@/components/assignments/assignment-actions";
 import { BatchGradingProvider } from "@/components/assignments/batch-grading";
@@ -11,13 +11,22 @@ import { PromptCard, RubricCard } from "@/components/assignments/rubric-card";
 import { SubmissionsTable } from "@/components/assignments/submissions-table";
 import type { EligibleStudent, SubmissionFlag, SubmissionRowData } from "@/components/assignments/types";
 import { PageContainer, PageHeader } from "@/components/page-header";
+import { Badge } from "@/components/ui/badge";
 import { getOwnedAssignment } from "@/lib/access";
+import { modelFor, openAiConfigured } from "@/lib/ai/openai";
 import { AuthError, requireTeacherPage } from "@/lib/auth/session";
-import { isConfidence, isStaleGradingClaim, parseGraderKind } from "@/lib/constants";
+import {
+  GRADER_LABELS,
+  isConfidence,
+  isStaleGradingClaim,
+  parseAssignmentKind,
+  parseGraderKind,
+} from "@/lib/constants";
 import { db } from "@/lib/db";
 import { formatDate, formatDateTime, formatRelative, pluralize, wordCount } from "@/lib/format";
-import { getGraderInfo } from "@/lib/grading/config";
+import { getGraderInfo, type GraderInfo } from "@/lib/grading/config";
 import { describeFlag, parseFlags, type FlagCriterion } from "@/lib/grading/flags";
+import { parseSubmissionSource } from "@/lib/review/media";
 
 type Params = Promise<{ assignmentId: string }>;
 
@@ -52,9 +61,18 @@ function displayFlags(json: string, criteria: FlagCriterion[]): SubmissionFlag[]
 // Students may resubmit or be graded, but a published grade is final.
 const LOCKED_STATUSES = new Set(["PUBLISHED", "APPROVED", "GRADING"]);
 
+/** The camera grader that reads scanned tests. Names the engine only, never the key. */
+function scanGraderInfo(): GraderInfo {
+  return openAiConfigured()
+    ? { kind: "openai", label: GRADER_LABELS.openai, model: modelFor("vision") }
+    : { kind: "demo", label: GRADER_LABELS.demo, model: null };
+}
+
 export default async function AssignmentPage({ params }: { params: Params }) {
   const assignment = await loadOwnedAssignment((await params).assignmentId);
   if (!assignment) notFound();
+  const kind = parseAssignmentKind(assignment.kind);
+  const test = kind === "TEST";
 
   const [submissions, enrollments] = await Promise.all([
     db.submission.findMany({
@@ -64,8 +82,10 @@ export default async function AssignmentPage({ params }: { params: Params }) {
         status: true,
         content: true,
         fileName: true,
+        source: true,
         submittedAt: true,
         updatedAt: true,
+        _count: { select: { images: true } },
         student: { select: { id: true, name: true } },
         aiGrade: { select: { confidence: true, grader: true, flags: true } },
         publishedGrade: { select: { totalScore: true, maxScore: true } },
@@ -94,6 +114,8 @@ export default async function AssignmentPage({ params }: { params: Params }) {
         submittedLabel: formatRelative(submission.submittedAt, now),
         submittedTitle: formatDateTime(submission.submittedAt),
         fileName: submission.fileName,
+        source: parseSubmissionSource(submission.source),
+        pageCount: submission._count.images,
         wordCount: wordCount(submission.content),
         ai:
           submission.aiGrade && isConfidence(submission.aiGrade.confidence)
@@ -135,6 +157,12 @@ export default async function AssignmentPage({ params }: { params: Params }) {
           title={assignment.title}
           description={
             <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              {test ? (
+                <Badge variant="secondary">
+                  <PenLine aria-hidden />
+                  Handwritten test
+                </Badge>
+              ) : null}
               <span className="inline-flex items-center gap-1.5">
                 <CalendarDays className="size-4" aria-hidden />
                 {assignment.dueDate ? `Due ${formatDate(assignment.dueDate)}` : "No due date"}
@@ -145,13 +173,16 @@ export default async function AssignmentPage({ params }: { params: Params }) {
               </span>
               <span className="tabular inline-flex items-center gap-1.5">
                 <ListChecks className="size-4" aria-hidden />
-                {pluralize(assignment.criteria.length, "criterion", "criteria")}
+                {test
+                  ? pluralize(assignment.criteria.length, "question")
+                  : pluralize(assignment.criteria.length, "criterion", "criteria")}
               </span>
             </span>
           }
           actions={
             <AssignmentActions
               classId={assignment.classId}
+              kind={kind}
               eligibleStudents={eligibleStudents}
               hasRoster={roster.length > 0}
               missingCount={notSubmitted.length}
@@ -164,13 +195,15 @@ export default async function AssignmentPage({ params }: { params: Params }) {
         <div className="space-y-6">
           <SubmissionsTable
             classId={assignment.classId}
+            kind={kind}
+            scanGrader={test ? scanGraderInfo() : null}
             notSubmitted={notSubmitted}
             eligibleStudents={eligibleStudents}
             hasRoster={roster.length > 0}
           />
           <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-            <RubricCard criteria={assignment.criteria} />
-            <PromptCard instructions={assignment.instructions} />
+            <RubricCard criteria={assignment.criteria} kind={kind} />
+            <PromptCard instructions={assignment.instructions} kind={kind} />
           </div>
         </div>
       </PageContainer>

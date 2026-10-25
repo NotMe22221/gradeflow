@@ -1,0 +1,21 @@
+/* A tasteful fill when the dashboard loads. Pure CSS, so the bar is correct
+   before (and without) JavaScript, and it stays still for reduced motion. */
+@keyframes xp-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.fill {
+  transform-origin: left center;
+  animation: xp-fill 900ms cubic-bezier(0.22, 0.8, 0.24, 1) 150ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    animation: none;
+  }
+}

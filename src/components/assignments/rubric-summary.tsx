@@ -1,6 +1,6 @@
 import { ShieldCheck } from "lucide-react";
 
-import { validPoints, type CriterionDraft } from "@/components/assignments/rubric-draft";
+import { validPoints, type BuilderCopy, type CriterionDraft } from "@/components/assignments/rubric-draft";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -11,11 +11,16 @@ export function RubricSummary({
   totalPoints,
   dueLabel,
   templateName,
+  kindLabel,
+  copy,
 }: {
   criteria: CriterionDraft[];
   totalPoints: number;
   dueLabel: string | null;
   templateName: string | null;
+  /** "Essay" or "Handwritten test". */
+  kindLabel: string;
+  copy: BuilderCopy;
 }) {
   return (
     <aside className="hidden lg:sticky lg:top-20 lg:block" aria-label="Rubric summary">
@@ -24,7 +29,7 @@ export function RubricSummary({
           <CardTitle>
             <h2>Summary</h2>
           </CardTitle>
-          <CardDescription>Updates as you build the rubric.</CardDescription>
+          <CardDescription>Updates as you build the {copy.noun === "question" ? "test" : "rubric"}.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
@@ -34,7 +39,7 @@ export function RubricSummary({
             </div>
             <div>
               <p className="tabular text-3xl font-semibold tracking-tight text-foreground">{criteria.length}</p>
-              <p className="text-[13px] text-muted-foreground">{criteria.length === 1 ? "criterion" : "criteria"}</p>
+              <p className="text-[13px] text-muted-foreground">{criteria.length === 1 ? copy.noun : copy.nounPlural}</p>
             </div>
           </div>
           <ul className="space-y-3">
@@ -49,7 +54,7 @@ export function RubricSummary({
                         criterion.title.trim() ? "text-foreground" : "text-muted-foreground italic"
                       )}
                     >
-                      {criterion.title.trim() || `Criterion ${index + 1}`}
+                      {criterion.title.trim() || `${copy.itemLabel} ${index + 1}`}
                     </span>
                     <span className="tabular shrink-0 text-muted-foreground">{points || "–"} pts</span>
                   </div>
@@ -65,6 +70,8 @@ export function RubricSummary({
           </ul>
           <Separator />
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+            <dt className="text-muted-foreground">Type</dt>
+            <dd className="text-right text-foreground">{kindLabel}</dd>
             <dt className="text-muted-foreground">Due</dt>
             <dd className="text-right text-foreground">{dueLabel ?? "No due date"}</dd>
             <dt className="text-muted-foreground">Template</dt>

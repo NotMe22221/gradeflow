@@ -15,8 +15,8 @@ export function FinalCta({ demoLogin }: { demoLogin: boolean }) {
             Grade one paper the GradeSmart AI way.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-pretty text-muted-foreground">
-            Open the demo class, run the AI first pass, edit a suggestion, and approve it. Then watch the
-            grade land in the gradebook and the student view.
+            Open the demo class, run the AI first pass or scan a sample handwritten test, edit a suggestion,
+            and approve it. Then watch the grade land in the gradebook and the student view.
           </p>
           <DemoCtas
             demoLogin={demoLogin}

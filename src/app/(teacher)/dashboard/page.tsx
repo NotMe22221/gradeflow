@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, BookOpen, Inbox, Table2 } from "lucide-react";
 
 import { DashboardClassCard } from "@/components/dashboard/class-card";
+import { MostMissedCard } from "@/components/dashboard/most-missed-card";
 import { ReadyForAiCallout } from "@/components/dashboard/ready-for-ai-callout";
 import { RecentlyPublished } from "@/components/dashboard/recently-published";
 import { SectionHeader } from "@/components/dashboard/section-header";
@@ -12,6 +13,7 @@ import { PageContainer, PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireTeacherPage } from "@/lib/auth/session";
 import { firstName, pluralize } from "@/lib/format";
+import { getMostMissedForTeacher } from "@/lib/insights/query";
 import {
   getClassSummaries,
   getDashboardStats,
@@ -27,11 +29,12 @@ export default async function DashboardPage() {
   const teacher = await requireTeacherPage();
   const now = new Date();
 
-  const [stats, classes, recent, readyAssignments] = await Promise.all([
+  const [stats, classes, recent, readyAssignments, mostMissed] = await Promise.all([
     getDashboardStats(teacher.id, now),
     getClassSummaries(teacher.id, now),
     getRecentlyPublished(teacher.id, 5),
     getReadyForAiAssignments(teacher.id),
+    getMostMissedForTeacher(teacher.id, 3),
   ]);
 
   const pending = stats.pendingReview;
@@ -101,7 +104,10 @@ export default async function DashboardPage() {
           )}
         </section>
 
-        <RecentlyPublished items={recent} now={now} className="min-w-0" />
+        <div className="min-w-0 space-y-8">
+          <RecentlyPublished items={recent} now={now} />
+          {classes.length > 0 ? <MostMissedCard items={mostMissed} /> : null}
+        </div>
       </div>
     </PageContainer>
   );

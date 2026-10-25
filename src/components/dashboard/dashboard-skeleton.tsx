@@ -64,28 +64,55 @@ export function DashboardSkeleton() {
           </div>
         </div>
 
-        <div className="min-w-0">
-          <div className="mb-4 flex h-8 items-center justify-between">
-            <Skeleton className="h-5 w-36" />
-            <Skeleton className="h-8 w-24" />
-          </div>
-          <Card className="overflow-hidden">
-            <div className="divide-y divide-border">
-              {[0, 1, 2, 3, 4].map((row) => (
-                <div key={row} className="flex items-center gap-3 px-5 py-3">
-                  <Skeleton className="size-8 rounded-full" />
-                  <div className="flex-1 space-y-1.5">
-                    <Skeleton className="h-4 w-28" />
-                    <Skeleton className="h-3 w-36 max-w-full" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Skeleton className="ml-auto h-4 w-12" />
-                    <Skeleton className="ml-auto h-3 w-10" />
-                  </div>
-                </div>
-              ))}
+        <div className="min-w-0 space-y-8">
+          <div>
+            <div className="mb-4 flex h-8 items-center justify-between">
+              <Skeleton className="h-5 w-36" />
+              <Skeleton className="h-8 w-24" />
             </div>
-          </Card>
+            <Card className="overflow-hidden">
+              <div className="divide-y divide-border">
+                {[0, 1, 2, 3, 4].map((row) => (
+                  <div key={row} className="flex items-center gap-3 px-5 py-3">
+                    <Skeleton className="size-8 rounded-full" />
+                    <div className="flex-1 space-y-1.5">
+                      <Skeleton className="h-4 w-28" />
+                      <Skeleton className="h-3 w-36 max-w-full" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Skeleton className="ml-auto h-4 w-12" />
+                      <Skeleton className="ml-auto h-3 w-10" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+
+          <div>
+            <div className="mb-4 flex h-8 items-center justify-between">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-8 w-20" />
+            </div>
+            <Card className="overflow-hidden">
+              <div className="divide-y divide-border">
+                {[0, 1, 2].map((row) => (
+                  <div key={row} className="flex items-center gap-4 px-5 py-3">
+                    <Skeleton className="size-6 shrink-0 rounded-full" />
+                    <div className="flex-1 space-y-1.5">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-40 max-w-full" />
+                      <Skeleton className="h-1.5 w-full rounded-full" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Skeleton className="ml-auto h-4 w-10" />
+                      <Skeleton className="ml-auto h-3 w-14" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
         </div>
       </div>
     </PageContainer>

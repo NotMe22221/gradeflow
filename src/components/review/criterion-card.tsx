@@ -18,8 +18,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import type { GraderKind } from "@/lib/constants";
+import type { AssignmentKind, GraderKind } from "@/lib/constants";
 import { formatPoints } from "@/lib/format";
+import { criterionGuideLabel } from "@/lib/review/media";
 import {
   MAX_COMMENT_CHARS,
   checkScore,
@@ -38,6 +39,8 @@ export function CriterionCard({
   number,
   draft,
   grader,
+  kind = "ESSAY",
+  scanned = false,
   evidenceVerified,
   onScoreChange,
   onCommentChange,
@@ -49,6 +52,10 @@ export function CriterionCard({
   number: number;
   draft: CriterionDraft;
   grader: GraderKind | null;
+  /** TEST criteria are questions: the description is the answer key. */
+  kind?: AssignmentKind;
+  /** The paper is a transcription of scanned photos. */
+  scanned?: boolean;
   /** The quote was verified and located in the paper. */
   evidenceVerified: boolean;
   onScoreChange: (raw: string) => void;
@@ -56,7 +63,8 @@ export function CriterionCard({
   onResetScore: () => void;
   onShowEvidence: () => void;
 }) {
-  const [showDescription, setShowDescription] = useState(false);
+  // A test's answer key is short and checked on every question, so it starts open.
+  const [showDescription, setShowDescription] = useState(kind === "TEST");
   const descriptionId = useId();
   const errorId = useId();
   const commentId = useId();
@@ -176,7 +184,7 @@ export function CriterionCard({
             className={cn("size-3.5 transition-transform", showDescription && "rotate-90")}
             aria-hidden
           />
-          What full credit looks like
+          {criterionGuideLabel(kind)}
         </button>
         <p
           id={descriptionId}
@@ -190,6 +198,7 @@ export function CriterionCard({
       <EvidenceQuote
         evidence={criterion.aiEvidence}
         verified={evidenceVerified}
+        paperNoun={scanned ? "transcription" : "paper"}
         onShow={onShowEvidence}
       />
 
@@ -225,10 +234,12 @@ export function CriterionCard({
 function EvidenceQuote({
   evidence,
   verified,
+  paperNoun,
   onShow,
 }: {
   evidence: string | null;
   verified: boolean;
+  paperNoun: "paper" | "transcription";
   onShow: () => void;
 }) {
   if (!evidence) {
@@ -248,10 +259,10 @@ function EvidenceQuote({
         <span className="mb-1.5 flex items-center justify-between gap-2">
           <span className="inline-flex items-center gap-1 text-xs font-medium text-success-soft-foreground">
             <CircleCheck className="size-3.5" aria-hidden />
-            Verified in paper
+            Verified in {paperNoun}
           </span>
           <span className="text-xs text-muted-foreground transition-colors group-hover:text-foreground">
-            Show in paper
+            Show in {paperNoun}
           </span>
         </span>
         <q className="block text-[13px] leading-relaxed break-words text-foreground italic">
@@ -266,7 +277,7 @@ function EvidenceQuote({
     <div className="rounded-lg border-l-[3px] border-danger/40 bg-danger-soft/60 px-3 py-2.5">
       <span className="mb-1.5 inline-flex items-center gap-1 text-xs font-medium text-danger-soft-foreground">
         <CircleAlert className="size-3.5" aria-hidden />
-        Not found in paper
+        Not found in {paperNoun}
       </span>
       <q className="block text-[13px] leading-relaxed break-words text-muted-foreground italic">
         {evidence}

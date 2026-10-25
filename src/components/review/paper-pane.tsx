@@ -1,9 +1,12 @@
 "use client";
 
-import { Clock, FileText, Flag, Type, Undo2 } from "lucide-react";
+import { Camera, Clock, FileText, Flag, FlaskConical, ImageIcon, ScrollText, Sparkles, Type, Undo2 } from "lucide-react";
 
+import { PhotoPages } from "@/components/review/photo-pages";
 import { Avatar } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDate, formatDateTime, formatRelative, pluralize } from "@/lib/format";
+import { hasPagePhotos, isScanned, transcriptionCaption } from "@/lib/review/media";
 import {
   flaggedDomId,
   markDomId,
@@ -13,11 +16,19 @@ import {
 import type { ReviewItem } from "@/lib/review/types";
 import { cn } from "@/lib/utils";
 
+/** What the paper column shows for a scanned test. */
+export type PaperView = "transcription" | "photo";
+
 /**
  * The student's paper as plain text, with verified evidence quotes
  * highlighted and grader-directed text flagged in place. The paper is
  * untrusted input: it is only ever rendered as React text nodes, never as
  * HTML.
+ *
+ * A scanned test adds a "Transcription" | "Photo (N)" toggle so the teacher
+ * can check the AI transcription against the original pages. The view is
+ * controlled by the workspace, so "Show in paper" can switch back to the
+ * transcription before scrolling to a quote.
  *
  * The root is `relative` so absolutely positioned screen-reader text stays
  * inside this pane (it is the scroll container on desktop) instead of
@@ -26,14 +37,22 @@ import { cn } from "@/lib/utils";
 export function PaperPane({
   item,
   layout,
+  view,
+  onViewChange,
   className,
 }: {
   item: ReviewItem;
   layout: EvidenceLayout;
+  view: PaperView;
+  onViewChange: (view: PaperView) => void;
   className?: string;
 }) {
   const markCount = Object.keys(layout.markForCriterion).length;
   const previousReturn = item.previousReturn;
+  const scanned = isScanned(item);
+  const photos = hasPagePhotos(item);
+  const paperNoun = scanned ? "transcription" : "paper";
+  const caption = scanned ? transcriptionCaption(item.ai?.grader) : null;
 
   const renderInline = (segment: InlineSegment, key: number) =>
     segment.kind === "text" ? (
@@ -63,6 +82,76 @@ export function PaperPane({
       </mark>
     );
 
+  const transcription = (
+    <>
+      {caption ? (
+        <p
+          className={cn(
+            "mb-3 flex items-start gap-2 rounded-lg px-3 py-2 text-[13px] leading-relaxed",
+            caption.tone === "demo"
+              ? "border border-dashed border-border bg-muted/50 text-muted-foreground"
+              : "border border-border bg-secondary text-secondary-foreground"
+          )}
+        >
+          {caption.tone === "demo" ? (
+            <FlaskConical className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+          ) : (
+            <Sparkles className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+          )}
+          {caption.text}
+        </p>
+      ) : null}
+
+      {markCount > 0 || layout.flaggedCount > 0 ? (
+        <div className="mb-3 space-y-1.5 text-xs text-muted-foreground">
+          {markCount > 0 ? (
+            <p className="flex items-center gap-2">
+              <span className="h-3 w-5 shrink-0 rounded-sm bg-highlight ring-1 ring-highlight-strong" aria-hidden />
+              Highlights are quotes the {item.ai?.grader === "demo" ? "demo grader" : "AI"} used as evidence,
+              verified in the {paperNoun}. Numbers match the rubric.
+            </p>
+          ) : null}
+          {layout.flaggedCount > 0 ? (
+            <p className="flex items-center gap-2">
+              <span className="h-3 w-5 shrink-0 rounded-sm bg-danger-soft ring-1 ring-danger/40" aria-hidden />
+              Red marks show text addressed to the grader, flagged for your review.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      <article
+        aria-label={scanned ? `Transcription of ${item.student.name}'s test` : `Paper by ${item.student.name}`}
+        className="rounded-xl border border-border bg-card px-5 py-6 shadow-card sm:px-10 sm:py-10"
+      >
+        <div className="mx-auto max-w-prose text-[15px] leading-7 break-words whitespace-pre-wrap text-foreground">
+          {layout.segments.map((segment, index) =>
+            segment.kind === "flagged" ? (
+              <mark
+                key={index}
+                id={flaggedDomId(item.id, segment.flagIndex)}
+                tabIndex={-1}
+                className="scroll-my-24 rounded-sm bg-danger-soft box-decoration-clone px-0.5 text-foreground ring-1 ring-danger/30 outline-none focus:ring-2 focus:ring-danger/60"
+              >
+                <span
+                  aria-hidden
+                  className="mr-1 inline-flex -translate-y-px items-center gap-1 rounded-sm bg-danger/10 px-1 align-middle text-[10px] leading-4 font-semibold whitespace-nowrap text-danger-soft-foreground select-none"
+                >
+                  <Flag className="size-2.5" />
+                  Addressed to the grader
+                </span>
+                <span className="sr-only">Flagged, addressed to the grader: </span>
+                {segment.children.map(renderInline)}
+              </mark>
+            ) : (
+              renderInline(segment, index)
+            )
+          )}
+        </div>
+      </article>
+    </>
+  );
+
   return (
     <div className={cn("relative bg-background", className)}>
       <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-8 lg:py-8">
@@ -90,7 +179,12 @@ export function PaperPane({
                 <Type className="size-3.5" aria-hidden />
                 {pluralize(item.wordCount, "word")}
               </span>
-              {item.fileName ? (
+              {scanned ? (
+                <span className="tabular inline-flex items-center gap-1.5">
+                  <Camera className="size-3.5" aria-hidden />
+                  Scanned{photos ? ` · ${pluralize(item.images.length, "page")}` : ""}
+                </span>
+              ) : item.fileName ? (
                 <span className="relative inline-flex max-w-full min-w-0 items-center gap-1.5">
                   <FileText className="size-3.5 shrink-0" aria-hidden />
                   <span className="sr-only">File: </span>
@@ -112,53 +206,28 @@ export function PaperPane({
           </div>
         </header>
 
-        {markCount > 0 || layout.flaggedCount > 0 ? (
-          <div className="mb-3 space-y-1.5 text-xs text-muted-foreground">
-            {markCount > 0 ? (
-              <p className="flex items-center gap-2">
-                <span className="h-3 w-5 shrink-0 rounded-sm bg-highlight ring-1 ring-highlight-strong" aria-hidden />
-                Highlights are quotes the {item.ai?.grader === "demo" ? "demo grader" : "AI"} used as evidence,
-                verified in the paper. Numbers match the rubric.
-              </p>
-            ) : null}
-            {layout.flaggedCount > 0 ? (
-              <p className="flex items-center gap-2">
-                <span className="h-3 w-5 shrink-0 rounded-sm bg-danger-soft ring-1 ring-danger/40" aria-hidden />
-                Red marks show text addressed to the grader, flagged for your review.
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-
-        <article
-          aria-label={`Paper by ${item.student.name}`}
-          className="rounded-xl border border-border bg-card px-5 py-6 shadow-card sm:px-10 sm:py-10"
-        >
-          <div className="mx-auto max-w-prose text-[15px] leading-7 break-words whitespace-pre-wrap text-foreground">
-            {layout.segments.map((segment, index) =>
-              segment.kind === "flagged" ? (
-                <mark
-                  key={index}
-                  id={flaggedDomId(item.id, segment.flagIndex)}
-                  tabIndex={-1}
-                  className="scroll-my-24 rounded-sm bg-danger-soft box-decoration-clone px-0.5 text-foreground ring-1 ring-danger/30 outline-none focus:ring-2 focus:ring-danger/60"
-                >
-                  <span
-                    aria-hidden
-                    className="mr-1 inline-flex -translate-y-px items-center gap-1 rounded-sm bg-danger/10 px-1 align-middle text-[10px] leading-4 font-semibold whitespace-nowrap text-danger-soft-foreground select-none"
-                  >
-                    <Flag className="size-2.5" />
-                    Addressed to the grader
-                  </span>
-                  <span className="sr-only">Flagged, addressed to the grader: </span>
-                  {segment.children.map(renderInline)}
-                </mark>
-              ) : (
-                renderInline(segment, index)
-              )
-            )}
-          </div>
-        </article>
+        {photos ? (
+          <Tabs value={view} onValueChange={(value) => onViewChange(value as PaperView)} className="gap-4">
+            <TabsList className="grid w-full grid-cols-2 sm:w-80" aria-label="Paper view">
+              <TabsTrigger value="transcription">
+                <ScrollText aria-hidden />
+                Transcription
+              </TabsTrigger>
+              <TabsTrigger value="photo">
+                <ImageIcon aria-hidden />
+                <span className="tabular">Photo ({item.images.length})</span>
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="transcription" className="outline-none">
+              {transcription}
+            </TabsContent>
+            <TabsContent value="photo" className="outline-none">
+              <PhotoPages submissionId={item.id} studentName={item.student.name} images={item.images} />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          transcription
+        )}
       </div>
     </div>
   );

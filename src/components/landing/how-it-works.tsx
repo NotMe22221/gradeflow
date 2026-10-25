@@ -12,14 +12,14 @@ type Step = {
 const STEPS: Step[] = [
   {
     icon: ListChecks,
-    title: "Set the rubric",
-    body: "Name each criterion, give it a point value, and describe what full credit looks like. Students submit by pasting text or uploading a .txt file.",
-    details: ["Criteria with max points", "What full credit looks like", "Paste or .txt submissions"],
+    title: "Set the rubric or answer key",
+    body: "Name each criterion, give it a point value, and describe what full credit looks like. For a paper test, photograph the answer key and each question becomes a criterion.",
+    details: ["Criteria with max points", "Answer keys read from a photo", "Pasted text, .txt files, or test photos"],
   },
   {
     icon: Sparkles,
     title: "AI drafts the first pass",
-    body: "Each paper is read against your rubric. For every criterion, the AI returns a draft you can check in seconds.",
+    body: "Each paper or photographed test is read against your rubric. For every criterion, the AI returns a draft you can check in seconds.",
     details: [
       "A suggested score",
       "A one to two sentence justification",
@@ -30,7 +30,7 @@ const STEPS: Step[] = [
   {
     icon: ShieldCheck,
     title: "You approve, it publishes",
-    body: "See the paper and the suggestion side by side. Edit any score or comment, send it back with a note, or approve it.",
+    body: "See the paper, or the test photo and its transcription, beside the suggestion. Edit any score or comment, send it back with a note, or approve it.",
     details: [
       "Edit anything before it counts",
       "Send back with a note",

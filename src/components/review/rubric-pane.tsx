@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CriterionCard } from "@/components/review/criterion-card";
 import { firstName, formatPoints, pluralize } from "@/lib/format";
 import { describeFlag } from "@/lib/grading/flags";
+import { isScanned } from "@/lib/review/media";
 import {
   MAX_FEEDBACK_CHARS,
   createDraft,
@@ -52,6 +53,8 @@ export function RubricPane({
   // Demo output is never called "AI" so nobody mistakes it for a real model.
   const source = ai?.grader === "demo" ? "Demo grader" : "AI";
   const unscored = summary.missingIds.length + summary.invalidIds.length;
+  const kind = item.assignment.kind;
+  const scanned = isScanned(item);
 
   const updateCriterion = (criterionId: string, patch: Partial<ItemDraft["scores"][string]>) =>
     onDraftChange((current) => ({
@@ -139,7 +142,7 @@ export function RubricPane({
             <FlagsBanner item={item} onShowFlagged={layout.flaggedCount > 0 ? onShowFlagged : null} />
           ) : null}
 
-          <section aria-label="Rubric" className="space-y-4">
+          <section aria-label={kind === "TEST" ? "Questions" : "Rubric"} className="space-y-4">
             {item.criteria.map((criterion, index) => {
               const entry = draft.scores[criterion.id] ?? fallback.scores[criterion.id];
               return (
@@ -150,6 +153,8 @@ export function RubricPane({
                   number={index + 1}
                   draft={entry}
                   grader={ai?.grader ?? null}
+                  kind={kind}
+                  scanned={scanned}
                   evidenceVerified={layout.markForCriterion[criterion.id] !== undefined}
                   onScoreChange={(raw) => updateCriterion(criterion.id, { raw })}
                   onCommentChange={(comment) => updateCriterion(criterion.id, { comment })}

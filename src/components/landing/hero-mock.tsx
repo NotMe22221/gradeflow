@@ -1,4 +1,4 @@
-import { Check, ChevronRight, CircleCheck, Flag, ShieldCheck, Sparkles } from "lucide-react";
+import { Camera, Check, ChevronRight, CircleCheck, FileText, Flag, ShieldCheck, Sparkles } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,7 @@ export function HeroMock({ className }: { className?: string }) {
   return (
     <figure
       role="img"
-      aria-label="Preview of the GradeSmart AI review screen: a student paper with a highlighted evidence quote beside rubric scores the AI suggested, a high confidence badge, and an Approve and publish button the teacher must press."
+      aria-label="Preview of the GradeSmart AI review screen: a student paper with a highlighted evidence quote beside rubric scores the AI suggested, a high confidence badge, and an Approve and publish button the teacher must press. Beside it, a review queue holds the essay and two photographed handwritten tests."
       className={cn("relative mx-auto w-full max-w-5xl", className)}
     >
       <div aria-hidden className="pointer-events-none select-none">
@@ -172,7 +172,7 @@ function ActionBar() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 sm:px-6">
       {/* From lg up the floating QueueCard sits over this corner; start the copy to its right. */}
-      <p className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex lg:pl-56 xl:pl-48">
+      <p className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex lg:pl-64 xl:pl-56">
         <ShieldCheck className="size-3.5 text-success" />
         Nothing publishes until you approve it.
       </p>
@@ -200,42 +200,79 @@ function ActionBar() {
   );
 }
 
-const QUEUE = [
-  {
-    initials: "RT",
-    name: "Rowan Thistlewood",
-    dot: "bg-success",
-    label: "High",
-    active: true,
-    flagged: false,
-  },
-  { initials: "JV", name: "Juniper Vale", dot: "bg-warning", label: "Medium", active: false, flagged: false },
-  { initials: "OB", name: "Ozzie Brambleton", dot: "bg-danger", label: "Low", active: false, flagged: true },
+type QueueRow = {
+  name: string;
+  task: string;
+  scanned: boolean;
+  confidence: "High" | "Medium" | "Low";
+  active?: boolean;
+  flagged?: boolean;
+};
+
+/* Mirrors the review queue list: typed papers and camera-graded tests side by side. */
+const QUEUE: QueueRow[] = [
+  { name: "Rowan Thistlewood", task: "Persuasive Essay", scanned: false, confidence: "High", active: true },
+  { name: "Iris Thistledown", task: "Unit 3 Quiz", scanned: true, confidence: "Medium" },
+  { name: "Rafael Copperleaf", task: "Unit 3 Quiz", scanned: true, confidence: "Low", flagged: true },
 ];
+
+const CONFIDENCE_BADGE: Record<QueueRow["confidence"], { badge: string; dot: string }> = {
+  High: { badge: "bg-success-soft text-success-soft-foreground", dot: "bg-success" },
+  Medium: { badge: "bg-warning-soft text-warning-soft-foreground", dot: "bg-warning" },
+  Low: { badge: "bg-danger-soft text-danger-soft-foreground", dot: "bg-danger" },
+};
 
 function QueueCard() {
   return (
-    <div className="absolute -bottom-14 -left-8 hidden w-64 rounded-xl border border-border bg-card p-2 shadow-raised lg:block xl:-left-14">
-      <p className="px-2 pt-1 pb-2 text-xs font-medium text-muted-foreground">3 papers waiting for review</p>
+    <div className="absolute -bottom-14 -left-8 hidden w-72 rounded-xl border border-border bg-card p-2 shadow-raised lg:block xl:-left-14">
+      <p className="px-2 pt-1 pb-2 text-xs font-medium text-muted-foreground">3 waiting for your review</p>
       <ul className="space-y-0.5">
-        {QUEUE.map((item) => (
-          <li
-            key={item.name}
-            className={cn("flex items-center gap-2.5 rounded-lg px-2 py-1.5", item.active && "bg-secondary")}
-          >
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-card text-[10px] font-semibold text-secondary-foreground ring-1 ring-border">
-              {item.initials}
-            </span>
-            <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">
-              {item.name}
-            </span>
-            {item.flagged ? <Flag className="size-3 shrink-0 text-danger" /> : null}
-            <span className="inline-flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground">
-              <span className={cn("size-1.5 rounded-full", item.dot)} />
-              {item.label}
-            </span>
-          </li>
-        ))}
+        {QUEUE.map((item, index) => {
+          const SourceIcon = item.scanned ? Camera : FileText;
+          const tone = CONFIDENCE_BADGE[item.confidence];
+          return (
+            <li
+              key={item.name}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-1.5",
+                item.active && "bg-accent ring-1 ring-border"
+              )}
+            >
+              <span
+                className={cn(
+                  "tabular w-3 shrink-0 self-start pt-px text-right text-xs",
+                  item.active ? "font-semibold text-primary" : "text-muted-foreground"
+                )}
+              >
+                {index + 1}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span
+                  className={cn(
+                    "block truncate text-[13px] text-foreground",
+                    item.active ? "font-semibold" : "font-medium"
+                  )}
+                >
+                  {item.name}
+                </span>
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <SourceIcon className="size-3 shrink-0" />
+                  <span className="truncate">{item.task}</span>
+                </span>
+              </span>
+              {item.flagged ? <Flag className="size-3.5 shrink-0 text-warning" /> : null}
+              <span
+                className={cn(
+                  "inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-medium",
+                  tone.badge
+                )}
+              >
+                <span className={cn("size-1.5 rounded-full", tone.dot)} />
+                {item.confidence}
+              </span>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

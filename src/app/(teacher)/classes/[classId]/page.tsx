@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { ChevronRight, Plus, Table2 } from "lucide-react";
+import { Camera, ChevronRight, Plus, Table2 } from "lucide-react";
 
 import { AssignmentList, type AssignmentListItem } from "@/components/classes/assignment-list";
 import { RosterCard } from "@/components/classes/roster-card";
@@ -11,6 +11,7 @@ import { PageContainer, PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { getOwnedClass } from "@/lib/access";
 import { AuthError, requireTeacherPage } from "@/lib/auth/session";
+import { parseAssignmentKind } from "@/lib/constants";
 import { db } from "@/lib/db";
 
 type Params = Promise<{ classId: string }>;
@@ -43,6 +44,7 @@ export default async function ClassPage({ params }: { params: Params }) {
       select: {
         id: true,
         title: true,
+        kind: true,
         dueDate: true,
         criteria: { select: { maxPoints: true } },
         submissions: { select: { status: true } },
@@ -59,6 +61,7 @@ export default async function ClassPage({ params }: { params: Params }) {
   const items: AssignmentListItem[] = assignments.map((assignment) => ({
     id: assignment.id,
     title: assignment.title,
+    isTest: parseAssignmentKind(assignment.kind) === "TEST",
     dueDate: assignment.dueDate,
     totalPoints: assignment.criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0),
     criteriaCount: assignment.criteria.length,
@@ -96,6 +99,12 @@ export default async function ClassPage({ params }: { params: Params }) {
               <Link href={`/gradebook?class=${klass.id}`}>
                 <Table2 aria-hidden />
                 Open gradebook
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={`/classes/${klass.id}/assignments/new?kind=TEST`}>
+                <Camera aria-hidden />
+                New handwritten test
               </Link>
             </Button>
             <Button asChild>

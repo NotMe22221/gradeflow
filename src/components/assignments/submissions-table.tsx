@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Clock, FileText, Flag, Info, Loader2, RotateCw, Sparkles, UserPlus } from "lucide-react";
+import { Camera, Clock, FileText, Flag, Info, Loader2, RotateCw, Sparkles, UserPlus } from "lucide-react";
 
 import { AddSubmissionDialog } from "@/components/assignments/add-submission-dialog";
 import { useBatchGrading, type LiveRowState } from "@/components/assignments/batch-grading";
 import { LOAD_SAMPLES_HINT, LoadSamplesButton } from "@/components/assignments/load-samples";
+import { scanHref } from "@/components/assignments/scan-links";
 import type { EligibleStudent, RosterStudent, SubmissionFlag, SubmissionRowData } from "@/components/assignments/types";
 import { EmptyState } from "@/components/empty-state";
 import { ConfidenceBadge } from "@/components/grading/confidence-badge";
@@ -18,8 +19,9 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { GRADER_LABELS, type Confidence, type GraderKind } from "@/lib/constants";
+import { GRADER_LABELS, type AssignmentKind, type Confidence, type GraderKind } from "@/lib/constants";
 import { formatScore, pluralize } from "@/lib/format";
+import type { GraderInfo } from "@/lib/grading/config";
 import { cn } from "@/lib/utils";
 
 const INTERRUPTED_MESSAGE =
@@ -62,6 +64,8 @@ type RowActionKind = "review" | "retry" | "run" | "waiting" | null;
 
 function rowActionKind(row: SubmissionRowData, view: RowView): RowActionKind {
   if (view.kind === "graded" || (view.kind === "server" && row.status === "NEEDS_REVIEW")) return "review";
+  // A scan is graded as it is scanned; rescanning (not the essay AI pass) replaces it.
+  if (row.source === "SCAN" && (view.kind === "failed" || row.status === "SUBMITTED")) return null;
   if (view.kind === "failed") return "retry";
   if (view.kind === "server" && row.status === "SUBMITTED") return "run";
   if (view.kind === "server" && row.status === "RETURNED") return "waiting";
@@ -214,15 +218,59 @@ function RowAction({
   return null;
 }
 
+/** "Scanned · 2 pages" for a handwritten test read by the camera grader. */
+function ScannedHint({ row, className }: { row: SubmissionRowData; className?: string }) {
+  return (
+    <span className={cn("tabular inline-flex items-center gap-1", className)}>
+      <Camera className="size-3 shrink-0" aria-hidden />
+      Scanned{row.pageCount > 0 ? ` · ${pluralize(row.pageCount, "page")}` : ""}
+    </span>
+  );
+}
+
+/** Opens the camera grader for one student. A new scan replaces a paper that is not yet approved. */
+function ScanLink({
+  assignmentId,
+  student,
+  rescan,
+  className,
+}: {
+  assignmentId: string;
+  student: { id: string; name: string };
+  rescan: boolean;
+  className?: string;
+}) {
+  return (
+    <Button variant="ghost" size="sm" asChild className={className}>
+      <Link href={scanHref(assignmentId, student.id)}>
+        <Camera aria-hidden />
+        {rescan ? "Rescan" : "Scan"}
+        <span className="sr-only"> test for {student.name}</span>
+      </Link>
+    </Button>
+  );
+}
+
 /** Says which grader produced (or will produce) the suggestions on this page. */
-function GraderNote({ graders, hasOutput }: { graders: GraderKind[]; hasOutput: boolean }) {
+function GraderNote({
+  graders,
+  hasOutput,
+  firstPass,
+}: {
+  graders: GraderKind[];
+  hasOutput: boolean;
+  /** The engine that grades the next paper (the camera grader for a handwritten test). */
+  firstPass: GraderInfo;
+}) {
   const { graderInfo } = useBatchGrading();
-  const shown = graders.length > 0 ? graders : [graderInfo.kind];
+  const shown = graders.length > 0 ? graders : [firstPass.kind];
+  const modelFor = (grader: GraderKind) =>
+    grader === firstPass.kind ? firstPass.model : grader === graderInfo.kind ? graderInfo.model : null;
   return (
     <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground sm:justify-end">
       <span>{hasOutput ? "Suggestions by" : "First pass by"}</span>
       {shown.map((grader) => (
-        <GraderBadge key={grader} grader={grader} model={grader === graderInfo.kind ? graderInfo.model : null} />
+        <GraderBadge key={grader} grader={grader} model={modelFor(grader)} />
       ))}
     </div>
   );
@@ -230,16 +278,25 @@ function GraderNote({ graders, hasOutput }: { graders: GraderKind[]; hasOutput: 
 
 export function SubmissionsTable({
   classId,
+  kind = "ESSAY",
+  scanGrader = null,
   notSubmitted,
   eligibleStudents,
   hasRoster,
 }: {
   classId: string;
+  kind?: AssignmentKind;
+  /** The camera grader that reads scanned tests (GPT-4o, or the demo scanner). */
+  scanGrader?: GraderInfo | null;
   notSubmitted: RosterStudent[];
   eligibleStudents: EligibleStudent[];
   hasRoster: boolean;
 }) {
-  const { assignmentId, rows, liveFor, isRunning, start } = useBatchGrading();
+  const { assignmentId, rows, liveFor, isRunning, start, graderInfo } = useBatchGrading();
+  const test = kind === "TEST";
+  // Students whose paper a new scan may replace (nothing approved, published, or grading).
+  const scannable = new Set(test ? eligibleStudents.map((student) => student.id) : []);
+  const firstPass = test && scanGrader ? scanGrader : graderInfo;
 
   const reviewHref = (submissionId?: string) =>
     `/review?assignment=${encodeURIComponent(assignmentId)}${submissionId ? `&s=${encodeURIComponent(submissionId)}` : ""}`;
@@ -254,9 +311,11 @@ export function SubmissionsTable({
 
   const description =
     rows.length === 0
-      ? "Papers appear here as students submit."
+      ? test
+        ? "Scanned tests appear here, graded and ready for your review."
+        : "Papers appear here as students submit."
       : [
-          `${pluralize(rows.length, "paper")} submitted`,
+          `${pluralize(rows.length, "paper")} ${test ? "in" : "submitted"}`,
           notSubmitted.length > 0 ? `${notSubmitted.length} not submitted` : null,
         ]
           .filter(Boolean)
@@ -287,12 +346,45 @@ export function SubmissionsTable({
           </CardTitle>
           <CardDescription className="tabular">{description}</CardDescription>
         </div>
-        {rows.length > 0 ? <GraderNote graders={graders} hasOutput={graders.length > 0} /> : null}
+        {rows.length > 0 ? (
+          <GraderNote graders={graders} hasOutput={graders.length > 0} firstPass={firstPass} />
+        ) : null}
       </CardHeader>
 
       {rows.length === 0 ? (
         <div className="px-6 pb-6">
-          {hasRoster ? (
+          {hasRoster && test ? (
+            <EmptyState
+              icon={Camera}
+              title="No tests scanned yet."
+              description={
+                firstPass.kind === "openai"
+                  ? "Photograph each student's test. GPT-4o reads the handwriting and drafts scores against your answer key for your review."
+                  : "Photograph each student's test. The demo scanner reads the bundled sample photos and drafts scores for your review."
+              }
+              action={
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button asChild>
+                    <Link href={scanHref(assignmentId)}>
+                      <Camera aria-hidden />
+                      Scan papers
+                    </Link>
+                  </Button>
+                  <AddSubmissionDialog
+                    assignmentId={assignmentId}
+                    students={eligibleStudents}
+                    hasRoster={hasRoster}
+                    trigger={
+                      <Button variant="outline">
+                        <FileText aria-hidden />
+                        Add a typed paper
+                      </Button>
+                    }
+                  />
+                </div>
+              }
+            />
+          ) : hasRoster ? (
             <EmptyState
               icon={FileText}
               title="No papers yet. Students submit from their assignment page, or you can add one here."
@@ -333,7 +425,8 @@ export function SubmissionsTable({
               const flagCount = typeof flagSource === "number" ? flagSource : flagSource.length;
               const hasDetails =
                 busy || confidence !== null || flagCount > 0 || row.published !== null || action === "waiting";
-              const hasAction = action !== null && action !== "waiting";
+              const canScan = scannable.has(row.student.id);
+              const hasAction = (action !== null && action !== "waiting") || canScan;
               return (
                 <li
                   key={row.id}
@@ -352,7 +445,14 @@ export function SubmissionsTable({
                               {" · "}
                               {row.wordCount.toLocaleString("en-US")} {row.wordCount === 1 ? "word" : "words"}
                             </span>
-                            {row.fileName ? <span title={row.fileName}> · {row.fileName}</span> : null}
+                            {row.source === "SCAN" ? (
+                              <>
+                                {" · "}
+                                <ScannedHint row={row} />
+                              </>
+                            ) : row.fileName ? (
+                              <span title={row.fileName}> · {row.fileName}</span>
+                            ) : null}
                           </p>
                         </div>
                         <div className="shrink-0">
@@ -393,15 +493,26 @@ export function SubmissionsTable({
                             </div>
                           ) : null}
                           {hasAction ? (
-                            <div className="sm:ml-auto sm:shrink-0">
-                              <RowAction
-                                row={row}
-                                kind={action}
-                                reviewHref={reviewHref(row.id)}
-                                onRun={() => start([row.id])}
-                                disabled={isRunning}
-                                className="w-full sm:w-auto"
-                              />
+                            // Phones: the main action on top, the rescan link below it.
+                            <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:shrink-0 sm:flex-row sm:items-center">
+                              {canScan ? (
+                                <ScanLink
+                                  assignmentId={assignmentId}
+                                  student={row.student}
+                                  rescan
+                                  className="w-full sm:w-auto"
+                                />
+                              ) : null}
+                              {action !== null && action !== "waiting" ? (
+                                <RowAction
+                                  row={row}
+                                  kind={action}
+                                  reviewHref={reviewHref(row.id)}
+                                  onRun={() => start([row.id])}
+                                  disabled={isRunning}
+                                  className="w-full sm:w-auto"
+                                />
+                              ) : null}
                             </div>
                           ) : null}
                         </div>
@@ -417,9 +528,11 @@ export function SubmissionsTable({
                 <Avatar name={student.name} className="opacity-60" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm text-muted-foreground">{student.name}</p>
-                  <p className="text-xs text-muted-foreground">Not submitted</p>
+                  <p className="text-xs text-muted-foreground">{test ? "Not scanned yet" : "Not submitted"}</p>
                 </div>
-                <div className="shrink-0">{addPaper(student)}</div>
+                <div className="shrink-0">
+                  {test ? <ScanLink assignmentId={assignmentId} student={student} rescan={false} /> : addPaper(student)}
+                </div>
               </li>
             ))}
           </ul>
@@ -454,7 +567,11 @@ export function SubmissionsTable({
                           <Avatar name={row.student.name} />
                           <div className="min-w-0">
                             <p className="truncate font-medium text-foreground">{row.student.name}</p>
-                            {row.fileName ? (
+                            {row.source === "SCAN" ? (
+                              <p className="text-xs text-muted-foreground">
+                                <ScannedHint row={row} />
+                              </p>
+                            ) : row.fileName ? (
                               <p className="max-w-48 truncate text-xs text-muted-foreground" title={row.fileName}>
                                 {row.fileName}
                               </p>
@@ -515,13 +632,18 @@ export function SubmissionsTable({
                       </TableCell>
 
                       <TableCell className="pr-6 text-right">
-                        <RowAction
-                          row={row}
-                          kind={action}
-                          reviewHref={reviewHref(row.id)}
-                          onRun={() => start([row.id])}
-                          disabled={isRunning}
-                        />
+                        <div className="flex items-center justify-end gap-1">
+                          {scannable.has(row.student.id) ? (
+                            <ScanLink assignmentId={assignmentId} student={row.student} rescan />
+                          ) : null}
+                          <RowAction
+                            row={row}
+                            kind={action}
+                            reviewHref={reviewHref(row.id)}
+                            onRun={() => start([row.id])}
+                            disabled={isRunning}
+                          />
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -536,10 +658,14 @@ export function SubmissionsTable({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="text-[13px] text-muted-foreground">Not submitted</span>
+                      <span className="text-[13px] text-muted-foreground">
+                        {test ? "Not scanned yet" : "Not submitted"}
+                      </span>
                     </TableCell>
                     <TableCell colSpan={5} />
-                    <TableCell className="pr-6 text-right">{addPaper(student)}</TableCell>
+                    <TableCell className="pr-6 text-right">
+                      {test ? <ScanLink assignmentId={assignmentId} student={student} rescan={false} /> : addPaper(student)}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

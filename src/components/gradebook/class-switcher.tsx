@@ -11,10 +11,13 @@ import { cn } from "@/lib/utils";
 export function ClassSwitcher({
   classes,
   selectedId,
+  basePath = "/gradebook",
   className,
 }: {
   classes: GradebookClassOption[];
   selectedId: string;
+  /** The page the links point at; the class goes in `?class=<id>`. Gradebook by default. */
+  basePath?: string;
   className?: string;
 }) {
   if (classes.length < 2) return null;
@@ -27,7 +30,7 @@ export function ClassSwitcher({
           return (
             <Link
               key={klass.id}
-              href={`/gradebook?class=${encodeURIComponent(klass.id)}`}
+              href={`${basePath}?class=${encodeURIComponent(klass.id)}`}
               scroll={false}
               aria-current={active ? "page" : undefined}
               className={cn(

@@ -2,84 +2,38 @@ import type { Metadata } from "next";
 import { BookOpen } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
-import { PageContainer, PageHeader } from "@/components/page-header";
-import {
-  ClassAssignmentsCard,
-  type StudentAssignmentRow,
-  type StudentClassGroup,
-} from "@/components/student/class-assignments-card";
-import { isPastDue, studentStateFor } from "@/components/student/student-status";
+import { PageContainer } from "@/components/page-header";
+import { AssignmentInbox } from "@/components/student/assignment-inbox";
+import { GoalPlanner } from "@/components/student/goal-planner";
+import { PlannerBridgeProvider } from "@/components/student/planner-bridge";
+import { StudyHeader } from "@/components/student/study-header";
 import { requireStudentPage } from "@/lib/auth/session";
-import { db } from "@/lib/db";
+import { getStudentEngagement } from "@/lib/gamification/engagement";
+import { goalEngineInfo } from "@/lib/goals/planner";
 import { firstName, pluralize } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Your assignments" };
+import { loadSavedPlans, loadStudentDashboard } from "./data";
+
+export const metadata: Metadata = { title: "Your dashboard" };
 
 export default async function StudentHomePage() {
   const student = await requireStudentPage();
   const now = new Date();
 
-  // Only this student's own submissions are loaded, and only the published
-  // totals: no AI suggestion, confidence, or flag ever reaches this page.
-  const enrollments = await db.enrollment.findMany({
-    where: { studentId: student.id },
-    orderBy: { class: { name: "asc" } },
-    select: {
-      class: {
-        select: {
-          id: true,
-          name: true,
-          section: true,
-          subject: true,
-          teacher: { select: { name: true } },
-          assignments: {
-            orderBy: [{ dueDate: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }],
-            select: {
-              id: true,
-              title: true,
-              dueDate: true,
-              submissions: {
-                where: { studentId: student.id },
-                take: 1,
-                select: {
-                  status: true,
-                  publishedGrade: { select: { totalScore: true, maxScore: true } },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
+  // Only this student's own classes, submissions, teacher-approved grades,
+  // and XP. No AI suggestion, confidence, or flag ever reaches this page.
+  const [dashboard, engagement] = await Promise.all([
+    loadStudentDashboard(student.id, now),
+    getStudentEngagement(student.id, now),
+  ]);
+  const savedPlans = await loadSavedPlans(student.id, dashboard.goalClasses);
 
-  const groups: StudentClassGroup[] = enrollments.map(({ class: klass }) => ({
-    id: klass.id,
-    name: klass.name,
-    meta: [klass.section, klass.subject].filter(Boolean).join(" · ") || null,
-    teacherName: klass.teacher.name,
-    assignments: klass.assignments.map((assignment): StudentAssignmentRow => {
-      const submission = assignment.submissions[0];
-      const published = submission?.publishedGrade ?? null;
-      return {
-        id: assignment.id,
-        title: assignment.title,
-        dueDate: assignment.dueDate,
-        pastDue: isPastDue(assignment.dueDate, now),
-        state: studentStateFor(submission?.status, published !== null),
-        score: published ? { total: published.totalScore, max: published.maxScore } : null,
-      };
-    }),
-  }));
+  const toSubmit = dashboard.inbox.filter((row) => row.state === "not_submitted" && row.kind !== "TEST").length;
+  const toRevise = dashboard.inbox.filter((row) => row.state === "returned").length;
+  const waiting = dashboard.inbox.filter((row) => row.state === "submitted").length;
 
-  const rows = groups.flatMap((group) => group.assignments);
-  const toSubmit = rows.filter((row) => row.state === "not_submitted").length;
-  const toRevise = rows.filter((row) => row.state === "returned").length;
-  const waiting = rows.filter((row) => row.state === "submitted").length;
-
-  const greeting = `Hi ${firstName(student.name)}.`;
   let summary: string;
-  if (groups.length === 0) {
+  if (dashboard.classes.length === 0) {
     summary = "Your classes and assignments will show up here.";
   } else if (toSubmit > 0 || toRevise > 0) {
     const parts = [
@@ -94,21 +48,31 @@ export default async function StudentHomePage() {
   }
 
   return (
-    <PageContainer className="max-w-4xl">
-      <PageHeader title="Your assignments" description={`${greeting} ${summary}`} />
+    <PageContainer className="space-y-6 lg:space-y-8">
+      <StudyHeader
+        firstName={firstName(student.name)}
+        summary={summary}
+        streak={engagement.streak}
+        level={engagement.level}
+        recent={engagement.recent}
+      />
 
-      {groups.length === 0 ? (
+      {dashboard.classes.length === 0 ? (
         <EmptyState
           icon={BookOpen}
           title="You're not enrolled in any classes yet."
           description="When your teacher adds you to a class, its assignments will show up here."
         />
       ) : (
-        <div className="space-y-6">
-          {groups.map((group) => (
-            <ClassAssignmentsCard key={group.id} group={group} />
-          ))}
-        </div>
+        <PlannerBridgeProvider>
+          <AssignmentInbox rows={dashboard.inbox} studyLoggedToday={engagement.studyLoggedToday} />
+          <GoalPlanner
+            classes={dashboard.classes}
+            savedPlans={savedPlans}
+            defaultClassId={savedPlans[0]?.classId ?? dashboard.classes[0]?.id ?? null}
+            engine={goalEngineInfo()}
+          />
+        </PlannerBridgeProvider>
       )}
     </PageContainer>
   );

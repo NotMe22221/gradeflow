@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { ArrowLeft, CalendarDays, ChevronRight } from "lucide-react";
+import { ArrowLeft, CalendarDays, ChevronRight, ClipboardList } from "lucide-react";
 
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { AssignmentRubric } from "@/components/student/assignment-rubric";
@@ -15,6 +15,7 @@ import { SubmittedCard } from "@/components/student/submitted-card";
 import { Card } from "@/components/ui/card";
 import { getEnrolledAssignment } from "@/lib/access";
 import { AuthError, requireStudentPage } from "@/lib/auth/session";
+import { parseAssignmentKind } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { formatDate, formatScore, pluralize } from "@/lib/format";
 import { parseBreakdown } from "@/lib/grades/breakdown";
@@ -53,6 +54,7 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
       select: {
         content: true,
         fileName: true,
+        source: true,
         submittedAt: true,
         status: true,
         returnNote: true,
@@ -74,6 +76,10 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
 
   const published = submission?.publishedGrade ?? null;
   const state = studentStateFor(submission?.status, published !== null);
+  // A paper test is taken in class and scanned by the teacher: there is no
+  // upload, and its criteria descriptions are the answer key (never shown).
+  const isTest = parseAssignmentKind(assignment.kind) === "TEST";
+  const contentLabel = submission?.source === "SCAN" ? "Transcription of your paper" : undefined;
   const totalPoints = assignment.criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0);
   const pastDue = state === "not_submitted" && isPastDue(assignment.dueDate, new Date());
   const classLabel = [assignment.class.name, assignment.class.section].filter(Boolean).join(" · ");
@@ -122,6 +128,7 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
   const rubric = (
     <AssignmentRubric
       criteria={assignment.criteria}
+      variant={isTest ? "questions" : "rubric"}
       className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1"
     />
   );
@@ -180,6 +187,7 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
               approvedAt={published.approvedAt}
               content={submission.content}
               fileName={submission.fileName}
+              contentLabel={contentLabel}
             />
           ) : state === "submitted" && submission ? (
             <SubmittedCard
@@ -187,7 +195,18 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
               returnedAt={submission.returnedAt}
               content={submission.content}
               fileName={submission.fileName}
+              contentLabel={contentLabel}
             />
+          ) : state === "returned" && submission && isTest ? (
+            <>
+              <ReturnedNotice
+                returnNote={submission.returnNote}
+                returnedAt={submission.returnedAt}
+                teacherName={teacher?.name ?? null}
+                instruction="Talk with your teacher about next steps. They scan any new paper for you."
+              />
+              <PaperTestCard teacherName={teacher?.name ?? null} />
+            </>
           ) : state === "returned" && submission ? (
             <>
               <ReturnedNotice
@@ -207,6 +226,8 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
                 <SubmitPaperForm assignmentId={assignment.id} defaultText={submission.content} resubmit />
               </Card>
             </>
+          ) : isTest ? (
+            <PaperTestCard teacherName={teacher?.name ?? null} />
           ) : (
             <Card className="p-5 sm:p-6">
               <div className="mb-6 space-y-1.5">
@@ -225,5 +246,25 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
         {submitted ? rubric : null}
       </div>
     </PageContainer>
+  );
+}
+
+/** Paper tests are taken in class; the teacher scans them, so there is nothing to upload. */
+function PaperTestCard({ teacherName }: { teacherName: string | null }) {
+  return (
+    <Card className="p-5 sm:p-6">
+      <div className="flex gap-4">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground ring-1 ring-border">
+          <ClipboardList className="size-4" aria-hidden />
+        </span>
+        <div className="min-w-0 space-y-1.5">
+          <h2 className="text-base font-semibold tracking-tight text-foreground">This is a paper test</h2>
+          <p className="max-w-prose text-sm text-pretty text-muted-foreground">
+            You take it in class on paper. {teacherName ?? "Your teacher"} scans it afterward, and your grade appears
+            here once it&apos;s approved. There&apos;s nothing to upload.
+          </p>
+        </div>
+      </div>
+    </Card>
   );
 }

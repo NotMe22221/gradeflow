@@ -30,6 +30,49 @@ export type SampleAnswerKeyPhoto = {
   questions: { title: string; expectedAnswer: string; maxPoints: number }[];
 };
 
+/**
+ * The answer key the sample test photos were written against. The seed creates
+ * the "Unit 3 Quiz" assignment from it and the scanner tests grade against it,
+ * so the demo and the tests share one source.
+ */
+export const UNIT3_QUIZ_TITLE = "Unit 3 Quiz: Watersheds and Water Quality";
+
+export const UNIT3_QUIZ_CRITERIA: { key: string; title: string; description: string; maxPoints: number }[] = [
+  {
+    key: "q1",
+    title: "Q1. What is a watershed?",
+    description: "All the land area that drains into a common body of water, such as a river, lake, or stream.",
+    maxPoints: 3,
+  },
+  {
+    key: "q2",
+    title: "Q2. Name two sources of nonpoint source pollution.",
+    description:
+      "Any two: fertilizer or pesticide runoff from farms and lawns, oil and road salt from streets and parking lots, pet waste, sediment from construction sites.",
+    maxPoints: 4,
+  },
+  {
+    key: "q3",
+    title: "Q3. Why does low dissolved oxygen harm fish?",
+    description:
+      "Fish absorb dissolved oxygen through their gills to breathe. Below about 5 mg/L they become stressed, and very low levels can suffocate or kill them.",
+    maxPoints: 4,
+  },
+  {
+    key: "q4",
+    title: "Q4. A stream's pH drops from 7.2 to 5.8 after a storm. Give one likely cause.",
+    description: "Acid rain or acidic runoff from the storm lowered the pH, making the stream more acidic.",
+    maxPoints: 4,
+  },
+  {
+    key: "q5",
+    title: "Q5. Describe one way a town could reduce runoff pollution.",
+    description:
+      "Plant buffer strips of trees, shrubs, or grass along the stream, build rain gardens, or use permeable pavement so rainwater soaks into the ground instead of running off.",
+    maxPoints: 5,
+  },
+];
+
 export const SAMPLE_TEST_PHOTOS: SampleTestPhoto[] = [
   {
     id: "unit3-iris",
@@ -38,7 +81,7 @@ export const SAMPLE_TEST_PHOTOS: SampleTestPhoto[] = [
     src: "/samples/unit3-quiz-iris.jpg",
     sha256: "be5d42c367cbd3e5b83a6fcb7c6eea148cffaf98eecf01161e0e3af76e54f0ee",
     studentName: "Iris Thistledown",
-    assignmentTitle: "Unit 3 Quiz: Watersheds and Water Quality",
+    assignmentTitle: UNIT3_QUIZ_TITLE,
     transcription: [
       "Q1. All the land that drains into the same river or lake. Rain that falls anywhere in it ends up in Willow Creek.",
       "Q2. Fertilizer runoff from farms and lawns, and oil and road salt washing off streets.",
@@ -54,7 +97,7 @@ export const SAMPLE_TEST_PHOTOS: SampleTestPhoto[] = [
     src: "/samples/unit3-quiz-rafael.jpg",
     sha256: "ddc1c2bb08ef4f75eadabd5d2d92b1bb75fbe77acb9cedb3fa00600232ada03a",
     studentName: "Rafael Copperleaf",
-    assignmentTitle: "Unit 3 Quiz: Watersheds and Water Quality",
+    assignmentTitle: UNIT3_QUIZ_TITLE,
     transcription: [
       "Q1. A place where water is stored like a lake.",
       "Q2. Factories and trash",

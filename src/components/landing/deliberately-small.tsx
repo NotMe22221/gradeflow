@@ -3,12 +3,13 @@ import { Check, FileSpreadsheet, Minus } from "lucide-react";
 import { LandingContainer, SectionIntro } from "@/components/landing/section-intro";
 
 const DOES = [
-  "Rubrics with points and full-credit descriptions",
-  "Submissions by pasted text or .txt upload",
+  "Rubrics with points, or answer keys for paper tests",
+  "Papers by pasted text or .txt, and handwritten tests by photo",
   "An AI first pass with quoted evidence",
   "A review queue built for speed, with keyboard shortcuts",
-  "A gradebook with CSV export",
-  "A read-only student view of published grades",
+  "A gradebook with CSV export and a class heatmap",
+  "Conference briefs written from approved grades",
+  "A student inbox with a goal planner, streaks, and XP",
 ];
 
 const SKIPS = ["Discussion boards", "Messaging", "Calendars", "Video", "Attendance", "Course marketplaces"];
@@ -21,7 +22,7 @@ export function DeliberatelySmall() {
           id="small-heading"
           eyebrow="Deliberately small"
           title="Easier than an LMS because it does less."
-          description="GradeSmart AI covers the stretch from submitted paper to published grade, and leaves everything else to the tools your school already uses."
+          description="GradeSmart AI covers the stretch from a paper on your desk to a published grade, plus the insight that comes from it. Everything else stays with the tools your school already uses."
         />
 
         <div className="mt-12 grid gap-6 md:grid-cols-2">

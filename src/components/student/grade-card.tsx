@@ -24,6 +24,7 @@ export function GradeCard({
   approvedAt,
   content,
   fileName,
+  contentLabel,
 }: {
   totalScore: number;
   maxScore: number;
@@ -33,6 +34,8 @@ export function GradeCard({
   approvedAt: Date;
   content: string;
   fileName?: string | null;
+  /** Label for the paper disclosure, e.g. for a transcribed paper test. */
+  contentLabel?: string;
 }) {
   const overall = scoreShare(totalScore, maxScore);
   const overallFeedback = feedback?.trim();
@@ -121,7 +124,7 @@ export function GradeCard({
         </div>
       ) : null}
 
-      <SubmissionText content={content} fileName={fileName} />
+      <SubmissionText content={content} fileName={fileName} label={contentLabel} />
     </Card>
   );
 }

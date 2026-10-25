@@ -1,10 +1,12 @@
-import { Users } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, Users } from "lucide-react";
 
 import { AddStudentDialog } from "@/components/classes/add-student-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { Avatar } from "@/components/ui/avatar";
 import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { pluralize } from "@/lib/format";
+import { studentProfileHref } from "@/lib/insights/links";
 
 export type RosterEntry = { id: string; name: string; email: string };
 
@@ -40,14 +42,23 @@ export function RosterCard({
       ) : (
         <ul className="divide-y divide-border border-t border-border">
           {students.map((student) => (
-            <li key={student.id} className="flex items-center gap-3 px-6 py-3">
-              <Avatar name={student.name} />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-foreground">{student.name}</p>
-                <p className="truncate text-[13px] text-muted-foreground" title={student.email}>
-                  {student.email}
-                </p>
-              </div>
+            <li key={student.id}>
+              <Link
+                href={studentProfileHref(classId, student.id)}
+                className="group flex items-center gap-3 px-6 py-3 transition-colors outline-none hover:bg-background focus-visible:bg-background focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset"
+              >
+                <Avatar name={student.name} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">{student.name}</p>
+                  <p className="truncate text-[13px] text-muted-foreground" title={student.email}>
+                    {student.email}
+                  </p>
+                </div>
+                <ChevronRight
+                  className="size-4 shrink-0 text-muted-foreground/60 transition-colors group-hover:text-foreground"
+                  aria-hidden
+                />
+              </Link>
             </li>
           ))}
         </ul>

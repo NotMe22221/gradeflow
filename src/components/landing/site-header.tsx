@@ -7,6 +7,7 @@ import { LandingContainer } from "@/components/landing/section-intro";
 import { Button } from "@/components/ui/button";
 
 const NAV_LINKS = [
+  { href: "#features", label: "Features" },
   { href: "#how-it-works", label: "How it works" },
   { href: "#approval-gate", label: "Approval gate" },
 ];
