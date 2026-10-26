@@ -5,13 +5,13 @@ import {
   House,
   ListTodo,
   Table2,
-  type LucideIcon,
-} from "lucide-react";
+  type IconComponent,
+} from "@/components/icons";
 
 export type NavItem = {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   /** Key for a live count badge supplied by the layout. */
   countKey?: "review" | "todo";
   /** Extra paths that also mark this item active. */

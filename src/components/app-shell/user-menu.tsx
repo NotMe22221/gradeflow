@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, GraduationCap, LogOut, UserRound } from "lucide-react";
+import { ChevronDown, GraduationCap, LogOut, UserRound } from "@/components/icons";
 import { toast } from "sonner";
 
 import { Avatar } from "@/components/ui/avatar";
@@ -42,7 +42,7 @@ export function UserMenu({
         <Avatar name={user.name} className="size-7" />
         <span className="hidden min-w-0 flex-col leading-tight sm:flex">
           <span className="truncate text-sm font-medium text-foreground">{user.name}</span>
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-[0.6875rem] text-muted-foreground">
             {user.role === "TEACHER" ? "Teacher" : "Student"} · Demo account
           </span>
         </span>

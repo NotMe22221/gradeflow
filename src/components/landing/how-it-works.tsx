@@ -1,9 +1,9 @@
-import { Check, ListChecks, ShieldCheck, Sparkles, type LucideIcon } from "lucide-react";
+import { Check, ListChecks, ShieldCheck, PenLine, type IconComponent } from "@/components/icons";
 
 import { LandingContainer, SectionIntro } from "@/components/landing/section-intro";
 
 type Step = {
-  icon: LucideIcon;
+  icon: IconComponent;
   title: string;
   body: string;
   details: string[];
@@ -17,7 +17,7 @@ const STEPS: Step[] = [
     details: ["Criteria with max points", "Answer keys read from a photo", "Pasted text, .txt files, or test photos"],
   },
   {
-    icon: Sparkles,
+    icon: PenLine,
     title: "AI drafts the first pass",
     body: "Each paper or photographed test is read against your rubric. For every criterion, the AI returns a draft you can check in seconds.",
     details: [

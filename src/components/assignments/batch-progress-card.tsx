@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, CircleSlash, FlaskConical, Loader2, Square, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CircleSlash, FlaskConical, Loader2, Square, X } from "@/components/icons";
 
 import { useBatchGrading, type BatchRun } from "@/components/assignments/batch-grading";
 import { GraderBadge } from "@/components/grading/grader-badge";
@@ -104,13 +104,13 @@ export function BatchProgressCard() {
 
       <div className="mt-4 flex items-center gap-3">
         <Progress value={percent} aria-label="Papers graded" aria-valuetext={`${run.processed} of ${run.total} papers`} />
-        <span className="tabular shrink-0 text-[13px] font-medium text-muted-foreground">
+        <span className="tabular shrink-0 text-[0.8125rem] font-medium text-muted-foreground">
           {run.processed}/{run.total}
         </span>
       </div>
 
       {graderInfo.kind === "demo" ? (
-        <p className="mt-4 flex items-start gap-2 text-[13px] text-muted-foreground">
+        <p className="mt-4 flex items-start gap-2 text-[0.8125rem] text-muted-foreground">
           <FlaskConical className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           Demo grader: no ANTHROPIC_API_KEY is set, so a local heuristic stands in for Claude. Its scores and quotes
           are placeholders, not real AI output.

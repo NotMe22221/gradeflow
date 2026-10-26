@@ -26,7 +26,7 @@ export function ClassTabBar({
         >
           <ClassAvatar name={name} className="size-7 text-xs" />
           <span className="min-w-0 leading-tight">
-            <span className="block truncate font-display text-[15px] font-medium text-foreground">{name}</span>
+            <span className="block truncate font-display text-[0.9375rem] font-medium text-foreground">{name}</span>
             {section ? <span className="block truncate text-xs text-muted-foreground">{section}</span> : null}
           </span>
         </Link>

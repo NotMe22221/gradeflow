@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Info, Loader2, UserPlus } from "lucide-react";
+import { Info, Loader2, UserPlus } from "@/components/icons";
 import { toast } from "sonner";
 
 import { addStudent } from "@/app/(teacher)/classes/actions";
@@ -136,7 +136,7 @@ export function AddStudentDialog({
               <FieldError id="student-last-name-error" message={fieldErrors.lastName} />
             </div>
           </div>
-          <p className="flex items-start gap-2 rounded-lg bg-secondary px-3 py-2.5 text-[13px] text-muted-foreground">
+          <p className="flex items-start gap-2 rounded-lg bg-secondary px-3 py-2.5 text-[0.8125rem] text-muted-foreground">
             <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
             Demo data only. Use fictional names.
           </p>

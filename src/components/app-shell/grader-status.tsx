@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { FlaskConical, Sparkles } from "lucide-react";
+import { FlaskConical, CloudCheck } from "@/components/icons";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { EngineStatus } from "@/lib/ai/engines";
@@ -33,7 +33,7 @@ export function GraderStatus({ status, className }: { status: EngineStatus; clas
   const liveCount = rows.filter((row) => row.live).length;
   const allDemo = liveCount === 0;
   const label = allDemo ? "Demo engines" : liveCount === rows.length ? "AI engines live" : "Partly demo";
-  const Icon = liveCount === rows.length ? Sparkles : FlaskConical;
+  const Icon = liveCount === rows.length ? CloudCheck : FlaskConical;
   // Radix renders the popover as role="dialog"; name it by its heading.
   const headingId = useId();
 

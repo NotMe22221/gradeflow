@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ClipboardCheck, FolderOpen, Table2, type LucideIcon } from "lucide-react";
+import { ClipboardCheck, FolderOpen, Table2, type IconComponent } from "@/components/icons";
 
 import { ClassCardBanner } from "@/components/classroom/class-banner";
 import { Avatar } from "@/components/ui/avatar";
@@ -44,7 +44,7 @@ export function classReadyHref(data: Pick<ClassCardData, "id" | "readyAssignment
     : `/classes/${encodeURIComponent(data.id)}/classwork`;
 }
 
-function FooterAction({ href, label, icon: Icon }: { href: string; label: string; icon: LucideIcon }) {
+function FooterAction({ href, label, icon: Icon }: { href: string; label: string; icon: IconComponent }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -112,7 +112,7 @@ export function ClassCard({
               <li key={item.id} className={cn("min-w-0", index === 0 && "pr-[4.5rem]")}>
                 <Link
                   href={`/assignments/${encodeURIComponent(item.id)}`}
-                  className="group/due -mx-1 block rounded-md px-1 py-0.5 text-[13px] leading-5 outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
+                  className="group/due -mx-1 block rounded-md px-1 py-0.5 text-[0.8125rem] leading-5 outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
                 >
                   <time dateTime={item.dueDate.toISOString()} className="block text-xs text-muted-foreground">
                     {dueLabel(item.dueDate, now, { timeZone })}
@@ -123,7 +123,7 @@ export function ClassCard({
             ))}
           </ul>
         ) : (
-          <p className="pt-1 pr-[4.5rem] text-[13px] text-muted-foreground">No work due soon</p>
+          <p className="pt-1 pr-[4.5rem] text-[0.8125rem] text-muted-foreground">No work due soon</p>
         )}
 
         {hasReview || data.readyForAi > 0 ? (
@@ -131,7 +131,7 @@ export function ClassCard({
             {hasReview ? (
               <Link
                 href={classReviewHref(data)}
-                className="tabular inline-flex h-8 items-center rounded-full bg-primary-soft px-3 text-[13px] font-medium text-primary-soft-foreground transition-shadow outline-none hover:shadow-hover focus-visible:ring-[3px] focus-visible:ring-ring"
+                className="tabular inline-flex h-8 items-center rounded-full bg-primary-soft px-3 text-[0.8125rem] font-medium text-primary-soft-foreground transition-shadow outline-none hover:shadow-hover focus-visible:ring-[3px] focus-visible:ring-ring"
               >
                 {data.pendingReview} to review
               </Link>
@@ -139,7 +139,7 @@ export function ClassCard({
             {data.readyForAi > 0 ? (
               <Link
                 href={classReadyHref(data)}
-                className="tabular inline-flex h-8 items-center rounded-full border border-border px-3 text-[13px] text-muted-foreground transition-shadow outline-none hover:text-foreground hover:shadow-hover focus-visible:ring-[3px] focus-visible:ring-ring"
+                className="tabular inline-flex h-8 items-center rounded-full border border-border px-3 text-[0.8125rem] text-muted-foreground transition-shadow outline-none hover:text-foreground hover:shadow-hover focus-visible:ring-[3px] focus-visible:ring-ring"
               >
                 {data.readyForAi} ready for AI pass
               </Link>

@@ -13,7 +13,7 @@ import {
   RotateCcw,
   ShieldCheck,
   X,
-} from "lucide-react";
+} from "@/components/icons";
 import { toast } from "sonner";
 
 import { submitPaper } from "@/app/(student)/student/actions";
@@ -399,7 +399,7 @@ export function TurnInForm({
         >
           <form onSubmit={savePaste} noValidate className="grid gap-4">
             <DialogHeader>
-              <DialogTitle className="font-display text-[22px] font-normal">
+              <DialogTitle className="font-display text-[1.375rem] font-normal">
                 {editing ? "Edit your paper" : "Paste your paper"}
               </DialogTitle>
               <DialogDescription>Plain text only. Formatting like bold or headings is not kept.</DialogDescription>
@@ -420,7 +420,7 @@ export function TurnInForm({
                 placeholder="Paste the full text of your paper here."
                 aria-describedby={draftError ? `${textHelpId} ${draftErrorId}` : textHelpId}
                 aria-invalid={overLimit || draftError !== null ? true : undefined}
-                className="max-h-[55dvh] min-h-64 px-4 py-3 text-[15px] leading-7"
+                className="max-h-[55dvh] min-h-64 px-4 py-3 text-[0.9375rem] leading-7"
               />
               <p id={textHelpId} className="tabular flex justify-end text-xs text-muted-foreground">
                 <span className={cn(overLimit && "font-medium text-danger-soft-foreground")}>

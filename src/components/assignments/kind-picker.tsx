@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, FileText, ScanLine } from "lucide-react";
+import { Check, FileText, ScanLine } from "@/components/icons";
 
 import type { AssignmentKind } from "@/lib/constants";
 import { cn } from "@/lib/utils";

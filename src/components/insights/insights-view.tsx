@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, ChartColumn, Inbox, Table2, Target, UserPlus } from "lucide-react";
+import { ArrowRight, BookOpen, ChartColumn, Inbox, Table2, Target, UserPlus } from "@/components/icons";
 
 import { EmptyState } from "@/components/empty-state";
 import { ClassAvatar } from "@/components/classroom/class-avatar";

@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckIcon } from "lucide-react";
+import { CheckIcon } from "@/components/icons";
 import { Select as SelectPrimitive } from "radix-ui";
 
 import { ClassAvatar } from "@/components/classroom/class-avatar";
@@ -47,7 +47,7 @@ function OptionItem({
 function GroupLabel({ name, children }: { name: string; children: React.ReactNode }) {
   return (
     <SelectPrimitive.Label className="flex items-center gap-2 px-2 pt-2.5 pb-1 text-xs font-medium text-muted-foreground">
-      <ClassAvatar name={name} className="size-5 text-[10px]" />
+      <ClassAvatar name={name} className="size-5 text-[0.625rem]" />
       {children}
     </SelectPrimitive.Label>
   );

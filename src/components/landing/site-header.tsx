@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "@/components/icons";
 
 import { Logo } from "@/components/brand/logo";
 import { DemoSignInForm } from "@/components/landing/demo-sign-in";

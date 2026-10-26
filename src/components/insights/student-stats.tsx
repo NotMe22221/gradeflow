@@ -1,4 +1,4 @@
-import { CircleAlert, ClipboardCheck, FileCheck2, Percent, type LucideIcon } from "lucide-react";
+import { CircleAlert, ClipboardCheck, FileCheck2, Percent, type IconComponent } from "@/components/icons";
 
 import { pluralize } from "@/lib/format";
 import { formatHeatPercent } from "@/lib/insights/heatmap";
@@ -22,7 +22,7 @@ function StatTile({
   tone = "neutral",
 }: {
   label: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   value: string;
   srValue?: string;
   hint: string;
@@ -34,7 +34,7 @@ function StatTile({
         <Icon className="size-[18px] sm:size-5" aria-hidden />
       </span>
       <div className="min-w-0">
-        <h2 className="font-sans text-[13px] font-medium text-muted-foreground">{label}</h2>
+        <h2 className="font-sans text-[0.8125rem] font-medium text-muted-foreground">{label}</h2>
         <p className={cn("tabular font-display text-2xl leading-8 font-medium", TONE[tone].value)}>
           <span aria-hidden={srValue ? true : undefined}>{value}</span>
           {srValue ? <span className="sr-only">{srValue}</span> : null}

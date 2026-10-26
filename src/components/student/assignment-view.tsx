@@ -188,7 +188,7 @@ export function StudentAssignmentView({ assignment, teacherName, submission, now
             <AssignmentIcon isTest={isTest} color={theme.color} className="mt-1 max-sm:hidden" />
             <div className="min-w-0 flex-1">
               <h1
-                className="text-[26px] leading-tight font-normal text-balance break-words sm:text-[32px] sm:leading-10"
+                className="text-[1.625rem] leading-tight font-normal text-balance break-words sm:text-[2rem] sm:leading-10"
                 style={{ color: theme.color }}
               >
                 {assignment.title}
@@ -221,7 +221,7 @@ export function StudentAssignmentView({ assignment, teacherName, submission, now
               Instructions
             </h2>
             {assignment.instructions.trim() ? (
-              <div className="max-w-prose text-[15px] leading-7 break-words whitespace-pre-line text-foreground">
+              <div className="max-w-prose text-[0.9375rem] leading-7 break-words whitespace-pre-line text-foreground">
                 {assignment.instructions}
               </div>
             ) : (

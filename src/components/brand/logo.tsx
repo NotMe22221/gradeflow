@@ -44,10 +44,10 @@ export function Logo({ href = "/", className }: { href?: string; className?: str
       <LogoMark />
       <span aria-hidden className="flex h-8 min-w-0 flex-auto flex-wrap items-center overflow-hidden">
         <span className="h-8 w-0" />
-        <span className="pl-2.5 font-display text-[19px] leading-8 font-semibold tracking-[-0.01em] whitespace-nowrap text-foreground sm:text-[21px]">
+        <span className="pl-2.5 font-display text-[1.1875rem] leading-8 font-semibold tracking-[-0.01em] whitespace-nowrap text-foreground sm:text-[1.3125rem]">
           GradeSmart
         </span>
-        <span className="pl-[0.3em] font-display text-[19px] leading-8 font-normal whitespace-nowrap text-muted-foreground sm:text-[21px]">
+        <span className="pl-[0.3em] font-display text-[1.1875rem] leading-8 font-normal whitespace-nowrap text-muted-foreground sm:text-[1.3125rem]">
           AI
         </span>
       </span>

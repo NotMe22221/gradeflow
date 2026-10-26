@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui";
-import { CheckIcon } from "lucide-react";
+import { CheckIcon } from "@/components/icons";
 
 import { cn } from "@/lib/utils";
 

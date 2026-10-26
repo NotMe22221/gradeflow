@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Camera, ChevronDown, Inbox } from "lucide-react";
+import { ArrowRight, Camera, ChevronDown, Inbox } from "@/components/icons";
 
 import { workCounts } from "@/components/classes/status-summary";
 import { AssignmentIcon } from "@/components/classwork/assignment-icon";
@@ -73,7 +73,7 @@ function ClassworkRow({
         >
           <AssignmentIcon isTest={item.isTest} color={color} />
           <span className="min-w-0 flex-1">
-            <span className="line-clamp-2 text-[15px] font-medium break-words text-foreground sm:line-clamp-1">{item.title}</span>
+            <span className="line-clamp-2 text-[0.9375rem] font-medium break-words text-foreground sm:line-clamp-1">{item.title}</span>
             {/* Phones: due date and status under the title. */}
             <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground sm:hidden">
               <span>{dueText}</span>
@@ -82,7 +82,7 @@ function ClassworkRow({
           </span>
           <span className="hidden shrink-0 items-center gap-4 sm:flex">
             <StatusHint item={item} />
-            <span className="w-28 text-right text-[13px] whitespace-nowrap text-muted-foreground">{dueText}</span>
+            <span className="w-28 text-right text-[0.8125rem] whitespace-nowrap text-muted-foreground">{dueText}</span>
           </span>
           <ChevronDown
             className={cn("size-5 shrink-0 text-muted-foreground transition-transform", expanded && "rotate-180")}
@@ -103,7 +103,7 @@ function ClassworkRow({
               </p>
             ) : null}
             {item.summary.ready > 0 && !item.isTest ? (
-              <p className="tabular text-[13px] text-muted-foreground">
+              <p className="tabular text-[0.8125rem] text-muted-foreground">
                 {pluralize(item.summary.ready, "paper")} ready for the AI first pass.
               </p>
             ) : null}
@@ -111,7 +111,7 @@ function ClassworkRow({
           {item.summary.total > 0 ? (
             <WorkCounts counts={counts} isTest={item.isTest} className="shrink-0" />
           ) : (
-            <p className="text-[13px] text-muted-foreground">Add students to start collecting work.</p>
+            <p className="text-[0.8125rem] text-muted-foreground">Add students to start collecting work.</p>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-3 sm:pl-[4.5rem]">
@@ -162,10 +162,10 @@ export function ClassworkList({ items, color }: { items: ClassworkItem[]; color:
         return (
           <section key={topic.key} aria-labelledby={`topic-${topic.key}`}>
             <div className="mb-4 flex items-end justify-between gap-4 border-b border-primary pb-2">
-              <h2 id={`topic-${topic.key}`} className="text-[22px] leading-tight font-normal text-primary sm:text-2xl">
+              <h2 id={`topic-${topic.key}`} className="text-[1.375rem] leading-tight font-normal text-primary sm:text-2xl">
                 {topic.title}
               </h2>
-              <span className="tabular pb-0.5 text-[13px] text-muted-foreground">
+              <span className="tabular pb-0.5 text-[0.8125rem] text-muted-foreground">
                 {pluralize(topicItems.length, topic.isTest ? "test" : "assignment")}
               </span>
             </div>

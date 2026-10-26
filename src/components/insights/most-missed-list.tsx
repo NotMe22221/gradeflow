@@ -59,7 +59,7 @@ export function MostMissedList({
                 aria-hidden
                 className={cn(
                   "tabular flex shrink-0 items-center justify-center self-start rounded-full bg-primary-soft font-medium text-primary-soft-foreground",
-                  dense ? "mt-0.5 size-8 text-[13px]" : "size-10 text-sm"
+                  dense ? "mt-0.5 size-8 text-[0.8125rem]" : "size-10 text-sm"
                 )}
               >
                 {index + 1}
@@ -81,7 +81,7 @@ export function MostMissedList({
                     </span>
                     {showClass ? (
                       <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground" title={item.className}>
-                        <ClassAvatar name={item.className} className="size-4 text-[9px]" />
+                        <ClassAvatar name={item.className} className="size-4 text-[0.5625rem]" />
                         <span className="truncate">{item.className}</span>
                       </span>
                     ) : null}

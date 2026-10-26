@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import { scrollStateOf, UNMEASURED_SCROLL, type ScrollState } from "@/lib/insights/scroll";

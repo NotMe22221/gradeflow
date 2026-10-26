@@ -7,9 +7,9 @@ import {
   FileText,
   Plus,
   ScanLine,
-  Sparkles,
-  type LucideIcon,
-} from "lucide-react";
+  PenLine,
+  type IconComponent,
+} from "@/components/icons";
 
 import { EmptyState } from "@/components/empty-state";
 import { Avatar } from "@/components/ui/avatar";
@@ -53,7 +53,7 @@ export function StreamUpcomingCard({
   return (
     <SideCard title="Upcoming">
       {items.length === 0 ? (
-        <p className="mt-3 text-[13px] text-muted-foreground">No work due soon</p>
+        <p className="mt-3 text-[0.8125rem] text-muted-foreground">No work due soon</p>
       ) : (
         <ul className="mt-2 space-y-1">
           {items.map((item) => (
@@ -65,7 +65,7 @@ export function StreamUpcomingCard({
                 <time dateTime={item.dueDate.toISOString()} className="block text-xs text-muted-foreground">
                   {dueLabel(item.dueDate, now, { timeZone })}
                 </time>
-                <span className="line-clamp-2 text-[13px] leading-5 font-medium text-foreground group-hover:underline">
+                <span className="line-clamp-2 text-[0.8125rem] leading-5 font-medium text-foreground group-hover:underline">
                   {item.title}
                 </span>
               </Link>
@@ -82,12 +82,12 @@ export function StreamUpcomingCard({
   );
 }
 
-function ToolLink({ href, icon: Icon, children }: { href: string; icon: LucideIcon; children: React.ReactNode }) {
+function ToolLink({ href, icon: Icon, children }: { href: string; icon: IconComponent; children: React.ReactNode }) {
   return (
     <li>
       <Link
         href={href}
-        className="group -mx-2 flex min-h-10 items-center gap-3 rounded-full px-2 text-[13px] font-medium text-foreground outline-none hover:bg-foreground/[0.04] focus-visible:ring-[3px] focus-visible:ring-ring"
+        className="group -mx-2 flex min-h-10 items-center gap-3 rounded-full px-2 text-[0.8125rem] font-medium text-foreground outline-none hover:bg-foreground/[0.04] focus-visible:ring-[3px] focus-visible:ring-ring"
       >
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary-soft-foreground">
           <Icon className="size-4" aria-hidden />
@@ -146,7 +146,7 @@ function names(list: string[], shown = 3): string {
   return list.length > shown ? `${head} and ${list.length - shown} more` : head;
 }
 
-function describe(item: StreamItem, teacherName: string): { icon: LucideIcon; text: React.ReactNode; meta?: string } {
+function describe(item: StreamItem, teacherName: string): { icon: IconComponent; text: React.ReactNode; meta?: string } {
   const title = <span className="font-medium">{item.title}</span>;
   switch (item.kind) {
     case "posted":
@@ -190,7 +190,7 @@ function describe(item: StreamItem, teacherName: string): { icon: LucideIcon; te
       };
     case "drafts":
       return {
-        icon: Sparkles,
+        icon: PenLine,
         text: (
           <>
             AI drafts ready for review: {title} <span className="tabular">({item.count})</span>
@@ -274,7 +274,7 @@ export function StreamFeed({
                     </time>
                     {meta ? <span> · {meta}</span> : null}
                     {demoOnly ? (
-                      <span className="ml-1.5 inline-flex h-5 items-center rounded-full border border-dashed border-input/50 px-2 align-middle text-[11px] font-medium whitespace-nowrap">
+                      <span className="ml-1.5 inline-flex h-5 items-center rounded-full border border-dashed border-input/50 px-2 align-middle text-[0.6875rem] font-medium whitespace-nowrap">
                         {item.demoCount === item.count ? "Demo grader" : `Demo grader on ${item.demoCount}`}
                       </span>
                     ) : null}

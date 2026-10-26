@@ -1,4 +1,4 @@
-import { Flame, ShieldCheck, Sparkles, Trophy } from "lucide-react";
+import { Flame, ShieldCheck, Trophy } from "@/components/icons";
 
 import { XpBar } from "@/components/student/xp-bar";
 import type { XpEvent } from "@/lib/gamification/engagement";
@@ -31,7 +31,7 @@ export function StudyHeader({
       {/* The greeting sits beside the stats only when the strip itself is 48rem+ wide (the drawer takes 18rem at lg). */}
       <div className="flex flex-col gap-4 px-4 py-4 sm:px-5 @3xl:flex-row @3xl:items-center @3xl:gap-6">
         <div className="min-w-0 flex-1 @3xl:min-w-[16rem]">
-          <h1 id="home-heading" className="text-[22px] leading-7 font-medium text-balance text-foreground">
+          <h1 id="home-heading" className="text-[1.375rem] leading-7 font-medium text-balance text-foreground">
             Welcome back, {firstName}
           </h1>
           <p className="mt-0.5 text-sm text-pretty text-muted-foreground">{summary}</p>
@@ -99,7 +99,7 @@ export function StudyHeader({
           </ul>
         ) : (
           <p className="hidden items-center gap-1.5 text-xs text-muted-foreground md:flex">
-            <Sparkles className="size-3.5" aria-hidden />
+            <Trophy className="size-3.5" aria-hidden />
             Earn XP by turning in work, logging study sessions, and setting goals.
           </p>
         )}

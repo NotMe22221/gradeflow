@@ -9,8 +9,8 @@ import {
   FlaskConical,
   Pencil,
   RotateCcw,
-  Sparkles,
-} from "lucide-react";
+  PenLine,
+} from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -95,7 +95,7 @@ export function CriterionCard({
           {number}
         </span>
         <div className="min-w-0 flex-1 space-y-1.5">
-          <h3 className="pt-0.5 text-[15px] leading-6 font-semibold break-words text-foreground">
+          <h3 className="pt-0.5 text-[0.9375rem] leading-6 font-semibold break-words text-foreground">
             <span className="sr-only">
               {test ? "Question" : "Criterion"} {number}:{" "}
             </span>
@@ -111,7 +111,7 @@ export function CriterionCard({
                     : "bg-primary-soft text-primary-soft-foreground"
                 )}
               >
-                {demo ? <FlaskConical className="size-3" aria-hidden /> : <Sparkles className="size-3" aria-hidden />}
+                {demo ? <FlaskConical className="size-3" aria-hidden /> : <PenLine className="size-3" aria-hidden />}
                 {demo ? "Demo suggested" : "AI suggested"} {formatPoints(criterion.aiScore)}
               </span>
             ) : (
@@ -172,12 +172,12 @@ export function CriterionCard({
 
       <div className="space-y-4 px-4 pt-3 pb-4 sm:px-5 sm:pb-5">
         {check.error ? (
-          <p id={errorId} className="flex items-center gap-1.5 text-[13px] text-danger-soft-foreground">
+          <p id={errorId} className="flex items-center gap-1.5 text-[0.8125rem] text-danger-soft-foreground">
             <CircleAlert className="size-3.5 shrink-0" aria-hidden />
             {check.error}
           </p>
         ) : blank ? (
-          <p id={errorId} className="text-[13px] text-muted-foreground">
+          <p id={errorId} className="text-[0.8125rem] text-muted-foreground">
             Enter a score from 0 to {criterion.maxPoints} to return this grade.
           </p>
         ) : null}
@@ -188,7 +188,7 @@ export function CriterionCard({
             onClick={() => setShowDescription((open) => !open)}
             aria-expanded={showDescription}
             aria-controls={descriptionId}
-            className="-mx-2 inline-flex h-8 items-center gap-1 rounded-full px-2 text-[13px] font-medium text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.05] hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
+            className="-mx-2 inline-flex h-8 items-center gap-1 rounded-full px-2 text-[0.8125rem] font-medium text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.05] hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
           >
             {criterionGuideLabel(kind)}
             <ChevronDown
@@ -199,7 +199,7 @@ export function CriterionCard({
           <p
             id={descriptionId}
             hidden={!showDescription}
-            className="mt-1.5 border-l-2 border-border pl-3 text-[13px] leading-relaxed break-words whitespace-pre-line text-muted-foreground"
+            className="mt-1.5 border-l-2 border-border pl-3 text-[0.8125rem] leading-relaxed break-words whitespace-pre-line text-muted-foreground"
           >
             {criterion.description}
           </p>
@@ -215,7 +215,7 @@ export function CriterionCard({
         />
 
         <div className="space-y-2">
-          <Label htmlFor={commentId} className="text-[13px]">
+          <Label htmlFor={commentId} className="text-[0.8125rem]">
             Feedback for student
           </Label>
           <Textarea
@@ -230,7 +230,7 @@ export function CriterionCard({
                 : "What did this paper do well, and what would earn full credit?"
             }
             aria-invalid={commentTooLong ? true : undefined}
-            className="min-h-20 text-[13px] leading-relaxed"
+            className="min-h-20 text-[0.8125rem] leading-relaxed"
           />
           {nearCommentLimit ? (
             <p
@@ -269,7 +269,7 @@ function EvidenceQuote({
   onShow: () => void;
 }) {
   if (!evidence) {
-    return <p className="text-[13px] text-muted-foreground">No quoted evidence for this {unit}.</p>;
+    return <p className="text-[0.8125rem] text-muted-foreground">No quoted evidence for this {unit}.</p>;
   }
 
   // A quote cut off mid-sentence gets a visual ellipsis. The stored quote is unchanged.
@@ -286,7 +286,7 @@ function EvidenceQuote({
           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success-soft-foreground">
             <span
               aria-hidden
-              className="tabular inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-highlight-strong px-1 text-[10px] leading-none font-semibold text-foreground"
+              className="tabular inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-highlight-strong px-1 text-[0.625rem] leading-none font-semibold text-foreground"
             >
               {number}
             </span>
@@ -298,7 +298,7 @@ function EvidenceQuote({
             <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden />
           </span>
         </span>
-        <q className="block text-[13px] leading-relaxed break-words text-foreground italic">
+        <q className="block text-[0.8125rem] leading-relaxed break-words text-foreground italic">
           {evidence}
           {ellipsis}
         </q>
@@ -312,7 +312,7 @@ function EvidenceQuote({
         <CircleAlert className="size-3.5" aria-hidden />
         Not found in {paperNoun}
       </span>
-      <q className="block text-[13px] leading-relaxed break-words text-muted-foreground italic">
+      <q className="block text-[0.8125rem] leading-relaxed break-words text-muted-foreground italic">
         {evidence}
         {ellipsis}
       </q>

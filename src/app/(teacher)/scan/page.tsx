@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Camera } from "lucide-react";
+import { Camera } from "@/components/icons";
 
 import { EmptyState } from "@/components/empty-state";
 import { PageContainer } from "@/components/page-header";

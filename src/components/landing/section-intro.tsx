@@ -21,12 +21,12 @@ export function SectionIntro({
       <p className="text-sm font-medium text-primary">{eyebrow}</p>
       <h2
         id={id}
-        className="mt-3 text-[30px] leading-[1.2] font-medium tracking-[-0.01em] text-balance text-foreground sm:text-[40px] sm:leading-[1.15]"
+        className="mt-3 text-[1.875rem] leading-[1.2] font-medium tracking-[-0.01em] text-balance text-foreground sm:text-[2.5rem] sm:leading-[1.15]"
       >
         {title}
       </h2>
       {description ? (
-        <p className="mt-4 text-base leading-7 text-pretty text-muted-foreground sm:text-[17px]">{description}</p>
+        <p className="mt-4 text-base leading-7 text-pretty text-muted-foreground sm:text-[1.0625rem]">{description}</p>
       ) : null}
     </div>
   );

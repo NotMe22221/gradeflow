@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FilePlus2, Plus, UserPlus } from "lucide-react";
+import { FilePlus2, Plus, UserPlus } from "@/components/icons";
 
 import { EmptyState } from "@/components/empty-state";
 import { ExportButtons, type ExportFormatOption } from "@/components/gradebook/export-button";

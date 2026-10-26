@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { CheckCheck, CornerUpLeft } from "lucide-react";
+import { CheckCheck, CornerUpLeft } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";

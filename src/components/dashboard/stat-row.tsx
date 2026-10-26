@@ -1,4 +1,4 @@
-import { Clock, FileCheck2, Scale, type LucideIcon } from "lucide-react";
+import { Clock, FileCheck2, Scale, type IconComponent } from "@/components/icons";
 
 import { ILLUSTRATIVE_MINUTES_SAVED_PER_PAPER } from "@/lib/constants";
 import { formatPoints, pluralize } from "@/lib/format";
@@ -23,7 +23,7 @@ function Stat({
   children,
 }: {
   label: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   value: string;
   unit?: string;
   /** Spoken form of value + unit when the visual form reads poorly. */
@@ -38,7 +38,7 @@ function Stat({
         <Icon className="size-5" aria-hidden />
       </span>
       <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 [grid-template-areas:'label_value'_'note_value'] md:grid-cols-1 md:[grid-template-areas:'label'_'value'_'note']">
-        <h3 className="font-sans text-[13px] font-medium text-muted-foreground [grid-area:label]">{label}</h3>
+        <h3 className="font-sans text-[0.8125rem] font-medium text-muted-foreground [grid-area:label]">{label}</h3>
         <div className="flex flex-col items-end gap-1 [grid-area:value] md:mt-0.5 md:flex-row md:flex-wrap md:items-center md:gap-x-2.5">
           <p className="flex items-baseline gap-1">
             <span
@@ -111,7 +111,7 @@ export function StatRow({ stats, className }: { stats: DashboardStats; className
         unit={timeSaved.unit}
         srValue={`About ${timeSaved.value.replace("~", "")} ${timeSaved.unit}, an illustrative estimate`}
         badge={
-          <span className="inline-flex h-6 items-center rounded-full border border-dashed border-input/50 px-2 text-[11px] font-medium whitespace-nowrap text-muted-foreground">
+          <span className="inline-flex h-6 items-center rounded-full border border-dashed border-input/50 px-2 text-[0.6875rem] font-medium whitespace-nowrap text-muted-foreground">
             Illustrative estimate
           </span>
         }

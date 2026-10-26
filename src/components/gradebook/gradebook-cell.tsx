@@ -75,27 +75,27 @@ export function GradebookCellView({
           href={`/assignments/${encodeURIComponent(cell.assignmentId)}`}
           title={display.hint}
           aria-label={`${display.label}: ${studentName}, ${assignmentTitle}. Open the assignment to run the AI pass.`}
-          className={`${focusRing} text-[13px] text-muted-foreground hover:text-foreground hover:underline`}
+          className={`${focusRing} text-[0.8125rem] text-muted-foreground hover:text-foreground hover:underline`}
         >
           {display.label}
         </Link>
       );
     case "grading":
       return (
-        <span className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground" title={display.hint}>
+        <span className="inline-flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground" title={display.hint}>
           <span className="size-1.5 animate-pulse rounded-full bg-primary" aria-hidden />
           {display.label}
         </span>
       );
     case "returned":
       return (
-        <span className="text-[13px] text-muted-foreground" title={display.hint}>
+        <span className="text-[0.8125rem] text-muted-foreground" title={display.hint}>
           {display.label}
         </span>
       );
     case "missing_past_due":
       return (
-        <span className="text-[13px] font-medium text-danger" title={display.hint}>
+        <span className="text-[0.8125rem] font-medium text-danger" title={display.hint}>
           {display.label}
         </span>
       );

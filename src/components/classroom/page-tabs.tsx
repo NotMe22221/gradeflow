@@ -36,7 +36,7 @@ export function PageTabs({ tabs, className, label }: { tabs: PageTab[]; classNam
           >
             {tab.label}
             {tab.count ? (
-              <span className="tabular rounded-full bg-primary-soft px-1.5 py-0.5 text-[11px] font-semibold text-primary-soft-foreground">
+              <span className="tabular rounded-full bg-primary-soft px-1.5 py-0.5 text-[0.6875rem] font-semibold text-primary-soft-foreground">
                 {tab.count}
               </span>
             ) : null}

@@ -1,4 +1,4 @@
-import { FlaskConical, History, Sparkles } from "lucide-react";
+import { FlaskConical, History, Cloud } from "@/components/icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -84,7 +84,7 @@ export function GoalEngineBadge({
         explanation={openAiExplanation(model)}
         className={className}
       >
-        <Sparkles aria-hidden />
+        <Cloud aria-hidden />
         {model ?? "OpenAI"}
       </ExplainedBadge>
     );

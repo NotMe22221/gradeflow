@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleAlert, Cloud, CloudAlert, CloudCheck, LoaderCircle } from "lucide-react";
+import { CircleAlert, Cloud, CloudAlert, CloudCheck, LoaderCircle } from "@/components/icons";
 
 import type { SaveState } from "@/components/review/use-review-drafts";
 import { cn } from "@/lib/utils";

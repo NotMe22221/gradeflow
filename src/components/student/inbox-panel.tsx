@@ -11,7 +11,7 @@ import {
   Plus,
   Target,
   Timer,
-} from "lucide-react";
+} from "@/components/icons";
 
 import { AssignmentIcon } from "@/components/classwork/assignment-icon";
 import { statusSummary, type InboxAssignment, type InboxRow } from "@/components/student/inbox-model";
@@ -91,7 +91,7 @@ export function InboxPanel({
             >
               {row.title}
             </h3>
-            <p className="mt-0.5 text-[13px] text-muted-foreground">
+            <p className="mt-0.5 text-[0.8125rem] text-muted-foreground">
               {row.className}
               <span aria-hidden> · </span>
               <span className={cn("tabular", row.pastDue && "font-medium text-danger")}>{row.dueText}</span>
@@ -144,14 +144,14 @@ export function InboxPanel({
           ) : null}
         </div>
         {row.criteria.length === 0 ? (
-          <p className="px-4 py-4 text-[13px] text-muted-foreground">
+          <p className="px-4 py-4 text-[0.8125rem] text-muted-foreground">
             Your teacher hasn&apos;t added rubric criteria yet.
           </p>
         ) : (
           <ul className="divide-y divide-border">
             {shown.map((criterion) => (
               <li key={criterion.id} className="flex items-baseline justify-between gap-3 px-4 py-2">
-                <span className="min-w-0 truncate text-[13px] text-foreground" title={criterion.title}>
+                <span className="min-w-0 truncate text-[0.8125rem] text-foreground" title={criterion.title}>
                   {criterion.title}
                 </span>
                 <span className="tabular shrink-0 text-xs text-muted-foreground">

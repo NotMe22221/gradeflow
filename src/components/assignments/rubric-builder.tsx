@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus } from "@/components/icons";
 import { toast } from "sonner";
 
 import { createAssignment } from "@/app/(teacher)/classes/actions";
@@ -293,10 +293,10 @@ export function RubricBuilder({
       <div className="mb-6 flex items-start gap-4 sm:mb-8">
         <AssignmentIcon isTest={kind === "TEST"} color={classColor} className="mt-0.5 size-12 [&_svg]:size-6" />
         <div className="min-w-0 flex-1 space-y-1.5">
-          <h1 className="text-[26px] leading-tight font-medium text-balance text-foreground sm:text-[28px]">
+          <h1 className="text-[1.625rem] leading-tight font-medium text-balance text-foreground sm:text-[1.75rem]">
             {heading.title}
           </h1>
-          <p className="max-w-2xl text-[15px] text-pretty text-muted-foreground">{heading.description}</p>
+          <p className="max-w-2xl text-[0.9375rem] text-pretty text-muted-foreground">{heading.description}</p>
         </div>
       </div>
 
@@ -324,7 +324,7 @@ export function RubricBuilder({
           </div>
           <div className="grid gap-2">
             <Label htmlFor="assignment-instructions">{copy.instructionsLabel}</Label>
-            <p id="assignment-instructions-hint" className="-mt-1 text-[13px] text-muted-foreground">
+            <p id="assignment-instructions-hint" className="-mt-1 text-[0.8125rem] text-muted-foreground">
               {copy.instructionsHint}
             </p>
             <Textarea
@@ -382,7 +382,7 @@ export function RubricBuilder({
         <section aria-labelledby="rubric-heading" className="min-w-0 space-y-4 @4xl:col-start-1 @4xl:row-start-2">
           <div className="flex items-end justify-between gap-4 px-1 pt-2">
             <div className="min-w-0 space-y-1">
-              <h2 id="rubric-heading" className="text-[22px] leading-tight font-normal text-foreground">
+              <h2 id="rubric-heading" className="text-[1.375rem] leading-tight font-normal text-foreground">
                 {copy.sectionTitle}
               </h2>
               <p className="max-w-2xl text-sm text-pretty text-muted-foreground">{copy.sectionDescription}</p>
@@ -424,7 +424,7 @@ export function RubricBuilder({
               <Plus aria-hidden />
               {copy.addLabel}
             </Button>
-            <p className="px-1 text-[13px] text-muted-foreground">
+            <p className="px-1 text-[0.8125rem] text-muted-foreground">
               {criteria.length > limits.maxCriteria
                 ? `Remove ${pluralize(criteria.length - limits.maxCriteria, copy.noun, copy.nounPlural)} to save: the limit is ${limits.maxCriteria}.`
                 : atMax

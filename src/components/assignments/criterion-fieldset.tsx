@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Trash2 } from "@/components/icons";
 
 import {
   fieldA11y,
@@ -52,8 +52,8 @@ export function CriterionFieldset({
   return (
     <li className="rounded-xl border border-border bg-card p-4 transition-shadow focus-within:shadow-hover sm:p-6">
       <div className="mb-4 flex items-center justify-between gap-2">
-        <span className="flex items-center gap-3 font-display text-[15px] font-medium text-foreground">
-          <span className="tabular flex size-8 items-center justify-center rounded-full bg-primary-soft font-sans text-[13px] font-semibold text-primary-soft-foreground">
+        <span className="flex items-center gap-3 font-display text-[0.9375rem] font-medium text-foreground">
+          <span className="tabular flex size-8 items-center justify-center rounded-full bg-primary-soft font-sans text-[0.8125rem] font-semibold text-primary-soft-foreground">
             {number}
           </span>
           {copy.itemLabel} {number}

@@ -27,7 +27,7 @@ the branding: no Google logos, product names, or proprietary fonts.
 - **Elevation:** resting cards are flat with a border. Use `hover:shadow-hover`
   on clickable cards and `shadow-raised` for menus and dialogs.
 - **Spacing:** 8pt rhythm (Tailwind 2/4/6/8/12/16). Content max width `max-w-6xl`.
-- **Icons:** lucide, 18–20px, outline style (close to Material Symbols outlined).
+- **Icons:** Material Symbols Rounded (Apache-2.0), generated into `src/components/icons` by `scripts/build-icons.mjs`. Filled variant for the active state. No "AI" glyphs (sparkles, wands, robots): an icon says what a thing does.
 - **Focus:** the `--ring` token is opaque primary (6.4:1 on white). Buttons use
   `ring-2` with a 2px offset; tabs, menu items, and anything inside a scroller
   use an inset ring so it is never clipped. Every page starts with a "Skip to

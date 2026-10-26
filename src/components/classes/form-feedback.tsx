@@ -1,4 +1,4 @@
-import { AlertCircle } from "lucide-react";
+import { AlertCircle } from "@/components/icons";
 
 import { cn } from "@/lib/utils";
 
@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 export function FieldError({ id, message, className }: { id: string; message?: string; className?: string }) {
   if (!message) return null;
   return (
-    <p id={id} className={cn("text-[13px] leading-snug text-destructive", className)}>
+    <p id={id} className={cn("text-[0.8125rem] leading-snug text-destructive", className)}>
       {message}
     </p>
   );

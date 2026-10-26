@@ -95,7 +95,7 @@ export function HeatmapGrid({ heatmap }: { heatmap: ClassHeatmap }) {
                 >
                   {group.title}
                 </Link>
-                <span className="tabular mt-0.5 block truncate text-[11px] text-muted-foreground">
+                <span className="tabular mt-0.5 block truncate text-[0.6875rem] text-muted-foreground">
                   Avg {formatHeatPercent(group.average)} · {group.gradedCount} graded
                 </span>
               </th>
@@ -122,10 +122,10 @@ export function HeatmapGrid({ heatmap }: { heatmap: ClassHeatmap }) {
                   starts.has(index) && "border-l pl-2"
                 )}
               >
-                <span className="line-clamp-2 text-[11px] leading-tight font-medium whitespace-normal text-foreground [overflow-wrap:anywhere]">
+                <span className="line-clamp-2 text-[0.6875rem] leading-tight font-medium whitespace-normal text-foreground [overflow-wrap:anywhere]">
                   {column.title}
                 </span>
-                <span className="tabular mt-0.5 block text-[10px] text-muted-foreground">
+                <span className="tabular mt-0.5 block text-[0.625rem] text-muted-foreground">
                   <span aria-hidden>/{formatPoints(column.maxPoints)}</span>
                   <span className="sr-only">
                     out of {formatPoints(column.maxPoints)} {column.maxPoints === 1 ? "point" : "points"}
@@ -151,7 +151,7 @@ export function HeatmapGrid({ heatmap }: { heatmap: ClassHeatmap }) {
                   title={`${row.student.name}: profile and conference brief`}
                   className="flex min-w-0 items-center gap-2 rounded-sm py-1 text-sm font-medium text-foreground outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring"
                 >
-                  <Avatar name={row.student.name} className="hidden size-6 text-[10px] sm:inline-flex" />
+                  <Avatar name={row.student.name} className="hidden size-6 text-[0.625rem] sm:inline-flex" />
                   <span className="max-w-[8.5rem] truncate sm:max-w-[13rem]">{row.student.name}</span>
                 </Link>
               </th>
@@ -212,7 +212,7 @@ export function HeatmapGrid({ heatmap }: { heatmap: ClassHeatmap }) {
                 <span className={cn("tabular block text-xs font-semibold", HEAT_TONE[heatBand(column.average)].text)}>
                   {formatHeatPercent(column.average)}
                 </span>
-                <span className="tabular block text-[10px] text-muted-foreground">
+                <span className="tabular block text-[0.625rem] text-muted-foreground">
                   <span aria-hidden>n={column.sampleSize}</span>
                   <span className="sr-only">{pluralize(column.sampleSize, "student")}</span>
                 </span>

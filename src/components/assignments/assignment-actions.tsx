@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Camera, FlaskConical, Inbox, Loader2, MoreVertical, Sparkles, Table2 } from "lucide-react";
+import { Camera, FlaskConical, Inbox, Loader2, MoreVertical, ListChecks, Table2 } from "@/components/icons";
 
 import { AddSubmissionDialog } from "@/components/assignments/add-submission-dialog";
 import { useBatchGrading } from "@/components/assignments/batch-grading";
@@ -77,7 +77,7 @@ export function AssignmentActions({
       disabled={isRunning}
       className={cn("max-sm:w-full", primary && "max-sm:order-first")}
     >
-      {isRunning ? <Loader2 className="animate-spin" aria-hidden /> : <Sparkles aria-hidden />}
+      {isRunning ? <Loader2 className="animate-spin" aria-hidden /> : <ListChecks aria-hidden />}
       {isRunning ? runningLabel : `Run AI first pass on ${pluralize(gradable, "paper")}`}
     </Button>
   );

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { BookOpen } from "lucide-react";
+import { BookOpen } from "@/components/icons";
 
 import { ClassCard, ClassCardGrid } from "@/components/classes/class-card";
 import { NewClassDialog } from "@/components/classes/new-class-dialog";

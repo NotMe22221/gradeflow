@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookOpen, ClipboardCheck, Table2 } from "lucide-react";
+import { BookOpen, ClipboardCheck, Table2 } from "@/components/icons";
 
 import { ClassCard, ClassCardGrid } from "@/components/classes/class-card";
 import { NewClassDialog } from "@/components/classes/new-class-dialog";
@@ -59,11 +59,11 @@ export default async function DashboardPage() {
     <PageContainer>
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 space-y-1">
-          <p className="text-[13px] font-medium text-muted-foreground">{todayLabel(now, timeZone)}</p>
-          <h1 className="text-[26px] leading-tight font-medium text-balance text-foreground sm:text-[28px]">
+          <p className="text-[0.8125rem] font-medium text-muted-foreground">{todayLabel(now, timeZone)}</p>
+          <h1 className="text-[1.625rem] leading-tight font-medium text-balance text-foreground sm:text-[1.75rem]">
             Welcome back, {firstName(teacher.name)}
           </h1>
-          <p className="text-[15px] text-muted-foreground">{statusLine}</p>
+          <p className="text-[0.9375rem] text-muted-foreground">{statusLine}</p>
         </div>
         {pending > 0 ? (
           <Button asChild className="self-start sm:self-auto">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { GraduationCap, Menu, School } from "lucide-react";
+import { GraduationCap, Menu, School } from "@/components/icons";
 
 import { GraderStatus } from "@/components/app-shell/grader-status";
 import { NavDrawer } from "@/components/app-shell/nav-drawer";

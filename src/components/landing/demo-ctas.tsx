@@ -33,7 +33,7 @@ export function DemoCtas({
           See the student view
         </DemoSignInForm>
       </div>
-      <p className="mt-4 text-[13px] text-muted-foreground">Demo uses synthetic students and papers only.</p>
+      <p className="mt-4 text-[0.8125rem] text-muted-foreground">Demo uses synthetic students and papers only.</p>
     </div>
   );
 }

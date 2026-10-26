@@ -70,7 +70,7 @@ export function ClassBanner({
       {/* Full height and as wide as the text. On phones it wraps at 80%, so the art keeps the right edge. */}
       <div className="relative flex min-h-40 w-fit max-w-[80%] flex-col justify-end py-6 pr-10 pl-6 sm:min-h-52 sm:max-w-full sm:py-8 sm:pr-12 sm:pl-8">
         <Scrim color={theme.color} />
-        <h1 className="text-[28px] leading-tight font-semibold text-balance sm:text-[36px]">{name}</h1>
+        <h1 className="text-[1.75rem] leading-tight font-semibold text-balance sm:text-[2.25rem]">{name}</h1>
         {section || subject ? (
           <p className="mt-1 text-base text-pretty text-white/90 sm:text-lg">
             {[section, subject].filter(Boolean).join(" · ")}
@@ -116,7 +116,7 @@ export function ClassCardBanner({
             the whole banner is one click target. */}
         <Link
           href={href}
-          className="block truncate rounded-sm text-[22px] leading-7 font-medium outline-none after:absolute after:top-0 after:left-0 after:z-10 after:h-[104px] after:w-[100cqw] hover:underline focus-visible:after:ring-2 focus-visible:after:ring-white focus-visible:after:ring-inset"
+          className="block truncate rounded-sm text-[1.375rem] leading-7 font-medium outline-none after:absolute after:top-0 after:left-0 after:z-10 after:h-[104px] after:w-[100cqw] hover:underline focus-visible:after:ring-2 focus-visible:after:ring-white focus-visible:after:ring-inset"
         >
           <span className="font-display">{name}</span>
         </Link>
@@ -124,7 +124,7 @@ export function ClassCardBanner({
       <div className="relative w-fit max-w-[calc(100%+1rem)] flex-1 pr-8 pl-4">
         <Scrim color={theme.color} fade="top" />
         <p className="truncate text-sm text-white/90">{[section, subject].filter(Boolean).join(" · ")}</p>
-        {meta ? <p className="mt-2 truncate text-[13px] text-white/90">{meta}</p> : null}
+        {meta ? <p className="mt-2 truncate text-[0.8125rem] text-white/90">{meta}</p> : null}
       </div>
     </div>
   );

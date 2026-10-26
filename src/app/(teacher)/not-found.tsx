@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileQuestion } from "lucide-react";
+import { FileQuestion } from "@/components/icons";
 
 import { PageContainer } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,8 @@ export default function TeacherNotFound() {
         <span className="mb-5 flex size-16 items-center justify-center rounded-full bg-primary-soft text-primary-soft-foreground">
           <FileQuestion className="size-7" aria-hidden />
         </span>
-        <h1 className="text-[26px] leading-tight font-medium text-balance text-foreground">We couldn&apos;t find that page.</h1>
-        <p className="mt-2 max-w-sm text-[15px] text-pretty text-muted-foreground">
+        <h1 className="text-[1.625rem] leading-tight font-medium text-balance text-foreground">We couldn&apos;t find that page.</h1>
+        <p className="mt-2 max-w-sm text-[0.9375rem] text-pretty text-muted-foreground">
           It may belong to another class, or the demo data was reset.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-2">

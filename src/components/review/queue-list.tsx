@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Flag } from "lucide-react";
+import { Flag } from "@/components/icons";
 
 import { Avatar } from "@/components/ui/avatar";
 import type { Confidence } from "@/lib/constants";
@@ -92,7 +92,7 @@ export function QueueList({
             >
               <Avatar
                 name={item.student.name}
-                className={cn("size-9 text-[13px]", active && "bg-card text-primary ring-0")}
+                className={cn("size-9 text-[0.8125rem]", active && "bg-card text-primary ring-0")}
               />
               <span className="min-w-0 flex-1">
                 <span
@@ -117,7 +117,7 @@ export function QueueList({
               </span>
               <span className="flex shrink-0 flex-col items-end gap-1.5">
                 {total ? (
-                  <span className="tabular text-[13px] italic">
+                  <span className="tabular text-[0.8125rem] italic">
                     <span className="sr-only">, draft grade </span>
                     {total}
                   </span>

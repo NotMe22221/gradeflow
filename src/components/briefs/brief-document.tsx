@@ -1,4 +1,4 @@
-import { ListChecks, MessageCircleQuestion, MessagesSquare, ShieldCheck, Target, TrendingUp, type LucideIcon } from "lucide-react";
+import { ListChecks, MessageCircleQuestion, MessagesSquare, ShieldCheck, Target, TrendingUp, type IconComponent } from "@/components/icons";
 
 import type { BriefBasis, ConferenceBrief } from "@/lib/briefs/types";
 import { formatBriefBasis } from "@/lib/briefs/text";
@@ -15,7 +15,7 @@ function Section({
   variant,
 }: {
   title: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   iconClassName?: string;
   items: string[];
   numbered?: boolean;
@@ -87,7 +87,7 @@ export function BriefDocument({
   return (
     <article aria-labelledby={headingId} className={cn("text-foreground", print ? "space-y-4" : "space-y-6")}>
       <header className={cn("border-b border-border", print ? "space-y-1.5 pb-3" : "space-y-3 pb-5")}>
-        <p className={cn("font-medium text-primary", print ? "text-[8.5pt]" : "text-[13px]")}>
+        <p className={cn("font-medium text-primary", print ? "text-[8.5pt]" : "text-[0.8125rem]")}>
           Parent-teacher conference brief
         </p>
         <h3
@@ -95,7 +95,7 @@ export function BriefDocument({
           tabIndex={-1}
           className={cn(
             "font-medium text-balance outline-none",
-            print ? "text-[15pt] leading-tight" : "text-[22px] leading-snug"
+            print ? "text-[15pt] leading-tight" : "text-[1.375rem] leading-snug"
           )}
         >
           {brief.headline}
@@ -114,7 +114,7 @@ export function BriefDocument({
         </p>
       </header>
 
-      <p className={cn("text-pretty", print ? "text-[10pt] leading-snug" : "text-[15px] leading-relaxed")}>
+      <p className={cn("text-pretty", print ? "text-[10pt] leading-snug" : "text-[0.9375rem] leading-relaxed")}>
         {brief.summary}
       </p>
 

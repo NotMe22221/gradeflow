@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { ArrowUpDown, ChevronDown, ChevronLeft, ChevronRight, Keyboard, ListFilter } from "lucide-react";
+import { ArrowUpDown, ChevronDown, ChevronLeft, ChevronRight, Keyboard, ListFilter } from "@/components/icons";
 
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -103,11 +103,11 @@ export function ReviewHeader({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <div className="min-w-0 flex-1 basis-44">
           <div className="flex items-center gap-2.5">
-            <h1 className="truncate text-[26px] leading-8 font-medium text-foreground">To review</h1>
+            <h1 className="truncate text-[1.625rem] leading-8 font-medium text-foreground">To review</h1>
             {totalCount > 0 ? (
               <span
                 aria-hidden
-                className="tabular inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary-soft px-2 text-[13px] font-medium text-primary-soft-foreground"
+                className="tabular inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary-soft px-2 text-[0.8125rem] font-medium text-primary-soft-foreground"
               >
                 {totalCount}
               </span>
@@ -270,7 +270,7 @@ function StudentSwitcher({
             className="flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-full border border-border bg-card pr-3 pl-1.5 text-left transition-colors outline-none hover:bg-foreground/[0.04] focus-visible:ring-[3px] focus-visible:ring-ring data-[state=open]:bg-primary-soft/60 sm:w-64 sm:flex-none"
             aria-label={`Paper ${position} of ${queue.length}: ${current.student.name}. Jump to another paper`}
           >
-            <Avatar name={current.student.name} className="size-9 bg-primary-soft text-[13px] text-primary-soft-foreground ring-0" />
+            <Avatar name={current.student.name} className="size-9 bg-primary-soft text-[0.8125rem] text-primary-soft-foreground ring-0" />
             <span className="min-w-0 flex-1" aria-hidden>
               <span className="block truncate text-sm font-medium text-foreground">{current.student.name}</span>
               <span className="tabular block truncate text-xs text-muted-foreground">

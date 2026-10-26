@@ -1,4 +1,4 @@
-import { ChevronRight, FileText } from "lucide-react";
+import { ChevronRight, FileText } from "@/components/icons";
 
 import { pluralize, wordCount } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -49,7 +49,7 @@ export function SubmissionText({
         </span>
       </summary>
       <div className="border-t border-border px-4 py-5 sm:px-6">
-        <div className="max-w-prose text-[15px] leading-7 break-words whitespace-pre-wrap text-foreground">
+        <div className="max-w-prose text-[0.9375rem] leading-7 break-words whitespace-pre-wrap text-foreground">
           {content}
         </div>
       </div>

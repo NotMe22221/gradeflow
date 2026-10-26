@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, FlaskConical } from "lucide-react";
+import { ChevronDown, FlaskConical } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import {

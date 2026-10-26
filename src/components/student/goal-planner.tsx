@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CircleAlert, LoaderCircle, Target, Wand2 } from "lucide-react";
+import { CircleAlert, LoaderCircle, Target } from "@/components/icons";
 import { toast } from "sonner";
 
 import { EmptyState } from "@/components/empty-state";
@@ -238,7 +238,7 @@ export function GoalPlanner({
             />
           </div>
           <Button type="submit" disabled={pending} className="w-full sm:w-auto">
-            {pending ? <LoaderCircle className="animate-spin" aria-hidden /> : <Wand2 aria-hidden />}
+            {pending ? <LoaderCircle className="animate-spin" aria-hidden /> : <Target aria-hidden />}
             {pending ? "Planning…" : "Plan it"}
           </Button>
         </div>
@@ -251,7 +251,7 @@ export function GoalPlanner({
               type="button"
               onClick={() => applyExample(example)}
               disabled={pending}
-              className="inline-flex h-8 items-center rounded-lg border border-input bg-card px-3 text-[13px] font-medium text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring disabled:opacity-50"
+              className="inline-flex h-8 items-center rounded-lg border border-input bg-card px-3 text-[0.8125rem] font-medium text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring disabled:opacity-50"
             >
               {example}
             </button>
@@ -274,7 +274,7 @@ export function GoalPlanner({
         <p className="sr-only" role="status" aria-live="polite">
           {announcement}
         </p>
-        {note ? <p className="mb-4 text-[13px] font-medium text-foreground/80">{note}</p> : null}
+        {note ? <p className="mb-4 text-[0.8125rem] font-medium text-foreground/80">{note}</p> : null}
         {pending && !current ? (
           <PlanSkeleton />
         ) : current ? (

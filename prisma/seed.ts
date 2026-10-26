@@ -66,6 +66,7 @@ async function resetDatabase(tx: Tx) {
   await tx.submissionImage.deleteMany();
   await tx.studyActivity.deleteMany();
   await tx.studentGoal.deleteMany();
+  await tx.userPreferences.deleteMany();
   await tx.submission.deleteMany();
   await tx.rubricCriterion.deleteMany();
   await tx.assignment.deleteMany();

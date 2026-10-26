@@ -1,4 +1,4 @@
-import { BookOpen } from "lucide-react";
+import { BookOpen } from "@/components/icons";
 
 import { EmptyState } from "@/components/empty-state";
 import { PageContainer } from "@/components/page-header";

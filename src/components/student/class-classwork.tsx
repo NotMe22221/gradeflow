@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ClipboardList, SquareUserRound } from "lucide-react";
+import { ClipboardList, SquareUserRound } from "@/components/icons";
 
 import { AssignmentIcon } from "@/components/classwork/assignment-icon";
 import { EmptyState } from "@/components/empty-state";

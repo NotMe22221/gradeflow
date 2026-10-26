@@ -105,7 +105,7 @@ export function GradebookTable({
                 scope="row"
                 className={cn(
                   stickyCell,
-                  "z-10 h-12 border-b border-border bg-background px-4 text-left text-[13px] font-medium text-foreground sm:pl-6"
+                  "z-10 h-12 border-b border-border bg-background px-4 text-left text-[0.8125rem] font-medium text-foreground sm:pl-6"
                 )}
               >
                 Class average

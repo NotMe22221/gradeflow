@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus } from "@/components/icons";
 
 import { createClass } from "@/app/(teacher)/classes/actions";
 import { FieldError, FormAlert } from "@/components/classes/form-feedback";

@@ -33,6 +33,17 @@ model User {
   approvals      PublishedGrade[] @relation("ApprovedBy")
   activities     StudyActivity[]
   goals          StudentGoal[]
+  preferences    UserPreferences?
+}
+
+/// Per-user look and layout (theme, accent, text size, density, section order).
+/// `data` is JSON validated by src/lib/preferences/schema.ts; unknown or stale
+/// values fall back to defaults when read.
+model UserPreferences {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data      String
+  updatedAt DateTime @updatedAt
 }
 
 model Class {

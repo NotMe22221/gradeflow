@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Camera, Clock, Flag, Info, Loader2, RotateCw, Sparkles, UserPlus } from "lucide-react";
+import { Camera, Clock, Flag, Info, Loader2, RotateCw, ListChecks, UserPlus } from "@/components/icons";
 
 import { AddSubmissionDialog } from "@/components/assignments/add-submission-dialog";
 import { useBatchGrading, type LiveRowState } from "@/components/assignments/batch-grading";
@@ -194,14 +194,14 @@ function RowStatus({
     case "SUBMITTED":
       return (
         <span className="flex flex-wrap items-baseline gap-x-2">
-          <span className="text-[13px] font-medium text-success">{test ? "Scanned" : "Turned in"}</span>
+          <span className="text-[0.8125rem] font-medium text-success">{test ? "Scanned" : "Turned in"}</span>
           {row.source !== "SCAN" ? <span className="text-xs text-muted-foreground">Ready for AI pass</span> : null}
         </span>
       );
     case "RETURNED":
       return (
         <span className="flex flex-wrap items-baseline gap-x-2">
-          <span className="text-[13px] font-medium text-foreground">Sent back</span>
+          <span className="text-[0.8125rem] font-medium text-foreground">Sent back</span>
           <span className="text-xs text-muted-foreground">{test ? "Waiting for a rescan" : "Waiting on student"}</span>
         </span>
       );
@@ -210,7 +210,7 @@ function RowStatus({
     case "NEEDS_REVIEW":
       return <Badge variant="warning">Needs review</Badge>;
     default:
-      return <span className="text-[13px] text-muted-foreground">{row.status}</span>;
+      return <span className="text-[0.8125rem] text-muted-foreground">{row.status}</span>;
   }
 }
 
@@ -252,7 +252,7 @@ function RowAction({
   if (kind === "run") {
     return (
       <Button variant="text" size="sm" onClick={onRun} disabled={disabled} className={size}>
-        <Sparkles aria-hidden />
+        <ListChecks aria-hidden />
         Run AI pass
         {who}
       </Button>
@@ -309,7 +309,7 @@ function GraderNote({
   const modelFor = (grader: GraderKind) =>
     grader === firstPass.kind ? firstPass.model : grader === graderInfo.kind ? graderInfo.model : null;
   return (
-    <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-2 text-[0.8125rem] text-muted-foreground">
       <span>{hasOutput ? "Suggestions by" : "First pass by"}</span>
       {shown.map((grader) => (
         <GraderBadge key={grader} grader={grader} model={modelFor(grader)} />
@@ -333,10 +333,10 @@ function GroupHeading({ id, title, count }: { id: string; title: string; count: 
   return (
     <h3
       id={id}
-      className="flex items-center gap-2 border-y border-border bg-background px-4 py-2 font-sans text-[13px] font-medium text-muted-foreground md:px-6"
+      className="flex items-center gap-2 border-y border-border bg-background px-4 py-2 font-sans text-[0.8125rem] font-medium text-muted-foreground md:px-6"
     >
       {title}
-      <span className="tabular rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-secondary-foreground">
+      <span className="tabular rounded-full bg-secondary px-2 py-0.5 text-[0.6875rem] font-semibold text-secondary-foreground">
         {count}
       </span>
     </h3>
@@ -472,7 +472,7 @@ export function SubmissionsTable({
       <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between md:px-6">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-foreground">All students</h2>
-          <p className="tabular text-[13px] text-muted-foreground">
+          <p className="tabular text-[0.8125rem] text-muted-foreground">
             {pluralize(rows.length + notSubmitted.length, "student")}
           </p>
         </div>
@@ -517,11 +517,11 @@ export function SubmissionsTable({
                 </div>
                 <div className={STATUS_CELL}>
                   {test ? (
-                    <span className="text-[13px] text-muted-foreground">Not scanned yet</span>
+                    <span className="text-[0.8125rem] text-muted-foreground">Not scanned yet</span>
                   ) : pastDue ? (
-                    <span className="text-[13px] font-medium text-danger">Missing</span>
+                    <span className="text-[0.8125rem] font-medium text-danger">Missing</span>
                   ) : (
-                    <span className="text-[13px] text-muted-foreground">Assigned</span>
+                    <span className="text-[0.8125rem] text-muted-foreground">Assigned</span>
                   )}
                 </div>
                 <div className={ACTION_CELL}>

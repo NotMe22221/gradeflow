@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CircleCheckBig, ClipboardList, FileText, ScanLine, Undo2, UserRound, type LucideIcon } from "lucide-react";
+import { CircleCheckBig, ClipboardList, FileText, ScanLine, Undo2, UserRound, type IconComponent } from "@/components/icons";
 
 import { ClassBanner } from "@/components/classroom/class-banner";
 import { EmptyState } from "@/components/empty-state";
@@ -27,7 +27,7 @@ export function StudentUpcomingCard({ classId, items }: { classId: string; items
         Upcoming
       </h2>
       {items.length === 0 ? (
-        <p className="mt-3 text-[13px] text-muted-foreground">No work due soon</p>
+        <p className="mt-3 text-[0.8125rem] text-muted-foreground">No work due soon</p>
       ) : (
         <ul className="mt-2 space-y-1">
           {items.map((item) => (
@@ -43,7 +43,7 @@ export function StudentUpcomingCard({ classId, items }: { classId: string; items
                 ) : (
                   <span className="block text-xs text-muted-foreground">{item.dueText}</span>
                 )}
-                <span className="line-clamp-2 text-[13px] leading-5 font-medium text-foreground group-hover:underline">
+                <span className="line-clamp-2 text-[0.8125rem] leading-5 font-medium text-foreground group-hover:underline">
                   {item.title}
                 </span>
               </Link>
@@ -63,7 +63,7 @@ export function StudentUpcomingCard({ classId, items }: { classId: string; items
 function describe(
   item: StudentStreamItem,
   teacherName: string
-): { icon: LucideIcon; text: React.ReactNode; meta?: string } {
+): { icon: IconComponent; text: React.ReactNode; meta?: string } {
   const title = <span className="font-medium">{item.title}</span>;
   switch (item.kind) {
     case "posted":

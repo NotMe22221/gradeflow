@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import { signInAsDemoStudent, signInAsDemoTeacher } from "@/lib/auth/actions";

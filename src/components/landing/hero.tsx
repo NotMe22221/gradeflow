@@ -1,4 +1,4 @@
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowRight, ShieldCheck } from "@/components/icons";
 
 import { DemoCtas } from "@/components/landing/demo-ctas";
 import { HeroMock } from "@/components/landing/hero-mock";
@@ -12,13 +12,13 @@ export function Hero({ demoLogin }: { demoLogin: boolean }) {
     <section aria-labelledby="hero-heading" className="overflow-x-clip pt-12 pb-4 sm:pt-20 sm:pb-8 lg:pt-24">
       <LandingContainer>
         <div className="mx-auto max-w-3xl text-center">
-          <p className="inline-flex h-8 items-center gap-2 rounded-full bg-primary-soft px-3.5 text-[13px] font-medium text-primary-soft-foreground">
+          <p className="inline-flex h-8 items-center gap-2 rounded-full bg-primary-soft px-3.5 text-[0.8125rem] font-medium text-primary-soft-foreground">
             <ShieldCheck className="size-4" aria-hidden />
             AI-assisted grading for teachers
           </p>
           <h1
             id="hero-heading"
-            className="mt-6 text-[40px] leading-[1.1] font-medium tracking-[-0.02em] text-balance text-foreground sm:text-[60px] sm:leading-[1.05]"
+            className="mt-6 text-[2.5rem] leading-[1.1] font-medium tracking-[-0.02em] text-balance text-foreground sm:text-[3.75rem] sm:leading-[1.05]"
           >
             AI drafts the first pass. You make the call.
           </h1>

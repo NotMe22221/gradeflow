@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { FlaskConical, Info, Sparkles, TriangleAlert } from "lucide-react";
+import { FlaskConical, Info, PenLine, TriangleAlert } from "@/components/icons";
 
 import { ConfidenceBadge } from "@/components/grading/confidence-badge";
 import { GraderBadge } from "@/components/grading/grader-badge";
@@ -82,7 +82,7 @@ export function RubricPane({
         {/* The grade: pinned while the criteria scroll on desktop. */}
         <div className="z-10 border-b border-border bg-card px-4 pt-3 pb-4 sm:px-5 lg:sticky lg:top-0">
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-            <p className="text-[13px] font-medium text-muted-foreground">Grade</p>
+            <p className="text-[0.8125rem] font-medium text-muted-foreground">Grade</p>
             {ai ? (
               <div className="flex flex-wrap items-center gap-1.5">
                 <ConfidenceBadge confidence={ai.confidence} />
@@ -92,7 +92,7 @@ export function RubricPane({
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-2">
             <p className="flex items-baseline gap-1.5" aria-live="polite">
-              <span className="tabular font-display text-[34px] leading-none font-medium text-foreground">
+              <span className="tabular font-display text-[2.125rem] leading-none font-medium text-foreground">
                 {formatPoints(summary.total)}
               </span>
               <span className="tabular text-lg text-muted-foreground">/ {formatPoints(summary.maxTotal)}</span>
@@ -107,7 +107,7 @@ export function RubricPane({
                     : "bg-primary-soft text-primary-soft-foreground"
                 )}
               >
-                {demo ? <FlaskConical className="size-3.5" aria-hidden /> : <Sparkles className="size-3.5" aria-hidden />}
+                {demo ? <FlaskConical className="size-3.5" aria-hidden /> : <PenLine className="size-3.5" aria-hidden />}
                 {summary.aiTotal === summary.total
                   ? `Matches the ${demo ? "demo" : "AI"} suggestion`
                   : `${demo ? "Demo" : "AI"} suggested ${formatPoints(summary.aiTotal)}`}
@@ -137,7 +137,7 @@ export function RubricPane({
           ) : null}
 
           {!ai ? (
-            <div className="flex gap-3 rounded-xl bg-secondary p-4 text-[13px] leading-relaxed text-secondary-foreground">
+            <div className="flex gap-3 rounded-xl bg-secondary p-4 text-[0.8125rem] leading-relaxed text-secondary-foreground">
               <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
               <p>There is no AI suggestion on file for this paper. Score each {unit.one} yourself.</p>
             </div>
@@ -182,9 +182,9 @@ export function RubricPane({
 
           {/* The suggested summary sits below the scores, right before the overall note it informs. */}
           {ai?.overallComment ? (
-            <div className="rounded-xl bg-secondary px-4 py-3 text-[13px] leading-relaxed break-words text-secondary-foreground">
+            <div className="rounded-xl bg-secondary px-4 py-3 text-[0.8125rem] leading-relaxed break-words text-secondary-foreground">
               <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-foreground">
-                {demo ? <FlaskConical className="size-3.5" aria-hidden /> : <Sparkles className="size-3.5" aria-hidden />}
+                {demo ? <FlaskConical className="size-3.5" aria-hidden /> : <PenLine className="size-3.5" aria-hidden />}
                 {source} summary
                 <span className="sr-only">: </span>
               </p>
@@ -194,7 +194,7 @@ export function RubricPane({
 
           <div className="space-y-2 rounded-xl border border-border p-4 sm:p-5">
             <Label htmlFor={feedbackId}>Overall note to student</Label>
-            <p id={feedbackHintId} className="text-[13px] text-muted-foreground">
+            <p id={feedbackHintId} className="text-[0.8125rem] text-muted-foreground">
               Optional. {firstName(item.student.name)} sees it with the returned grade.
             </p>
             <Textarea
@@ -208,7 +208,7 @@ export function RubricPane({
               rows={4}
               aria-describedby={feedbackHintId}
               placeholder="A sentence or two on the paper as a whole."
-              className="mt-1 min-h-24 text-[13px] leading-relaxed"
+              className="mt-1 min-h-24 text-[0.8125rem] leading-relaxed"
             />
           </div>
         </div>
@@ -249,7 +249,7 @@ function FlagsBanner({
         <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning-soft-foreground" aria-hidden />
         <div className="min-w-0 space-y-2">
           <p className="text-sm font-medium text-warning-soft-foreground">Check before you return this grade</p>
-          <ul className="list-disc space-y-1.5 pl-4 text-[13px] leading-relaxed break-words text-warning-soft-foreground marker:text-warning">
+          <ul className="list-disc space-y-1.5 pl-4 text-[0.8125rem] leading-relaxed break-words text-warning-soft-foreground marker:text-warning">
             {lines.map((line, index) => (
               <li key={index}>
                 {line.criterionLabel ? <span className="font-medium">{line.criterionLabel}: </span> : null}

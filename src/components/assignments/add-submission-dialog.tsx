@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { ClipboardPaste, FilePlus2, FileUp, Loader2, ShieldCheck, X } from "lucide-react";
+import { ClipboardPaste, FilePlus2, FileUp, Loader2, ShieldCheck, X } from "@/components/icons";
 import { toast } from "sonner";
 
 import { addSubmission } from "@/app/(teacher)/assignments/actions";
@@ -211,7 +211,7 @@ export function AddSubmissionDialog({
                 message={error?.field === "studentId" ? error.message : undefined}
               />
               {replacing ? (
-                <p className="flex flex-wrap items-center gap-1.5 text-[13px] text-muted-foreground">
+                <p className="flex flex-wrap items-center gap-1.5 text-[0.8125rem] text-muted-foreground">
                   {firstName(selected?.name ?? "")} already has a paper here
                   <StatusBadge status={replacing} />
                   Adding a new one replaces it and clears any AI suggestion.
@@ -241,7 +241,7 @@ export function AddSubmissionDialog({
               <TabsContent value="paste" className="grid gap-2">
                 <div className="flex items-baseline justify-between gap-2">
                   <Label htmlFor="submission-text">Paper text</Label>
-                  <span className="tabular text-[13px] text-muted-foreground">{pluralize(words, "word")}</span>
+                  <span className="tabular text-[0.8125rem] text-muted-foreground">{pluralize(words, "word")}</span>
                 </div>
                 <Textarea
                   id="submission-text"
@@ -283,7 +283,7 @@ export function AddSubmissionDialog({
                   <span className="max-w-full truncate text-sm font-medium text-foreground">
                     {file ? file.name : "Choose a .txt file or drop it here"}
                   </span>
-                  <span className="tabular text-[13px] text-muted-foreground">
+                  <span className="tabular text-[0.8125rem] text-muted-foreground">
                     {file ? `${formatBytes(file.size)} · ${pluralize(words, "word")}` : FILE_HINT}
                   </span>
                   <input
@@ -302,13 +302,13 @@ export function AddSubmissionDialog({
                 {file ? (
                   <div className="grid min-w-0 gap-2">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[13px] font-medium text-foreground">Preview</span>
+                      <span className="text-[0.8125rem] font-medium text-foreground">Preview</span>
                       <Button type="button" variant="ghost" size="sm" onClick={clearFile} disabled={pending}>
                         <X aria-hidden />
                         Remove file
                       </Button>
                     </div>
-                    <div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-muted/40 p-3 text-[13px] leading-relaxed break-words whitespace-pre-wrap text-foreground">
+                    <div className="max-h-48 overflow-y-auto rounded-lg border border-border bg-muted/40 p-3 text-[0.8125rem] leading-relaxed break-words whitespace-pre-wrap text-foreground">
                       {preview.length > PREVIEW_CHARS ? `${preview.slice(0, PREVIEW_CHARS)}…` : preview}
                     </div>
                   </div>
@@ -317,7 +317,7 @@ export function AddSubmissionDialog({
             </Tabs>
 
             <DialogFooter className="items-center sm:justify-between">
-              <p className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+              <p className="flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground">
                 <ShieldCheck className="size-3.5 shrink-0 text-success" aria-hidden />
                 Paper text is treated as data, never as instructions.
               </p>

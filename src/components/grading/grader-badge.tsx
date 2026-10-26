@@ -1,4 +1,4 @@
-import { FlaskConical, Sparkles } from "lucide-react";
+import { FlaskConical, Cloud } from "@/components/icons";
 
 import { EngineInfoBadge } from "@/components/grading/engine-info-badge";
 import { GRADER_DESCRIPTIONS, GRADER_LABELS, type GraderKind } from "@/lib/constants";
@@ -32,7 +32,7 @@ export function GraderBadge({
   return (
     <EngineInfoBadge
       variant="default"
-      icon={<Sparkles aria-hidden />}
+      icon={<Cloud aria-hidden />}
       label={GRADER_LABELS[grader]}
       explanation={GRADER_DESCRIPTIONS[grader](model ?? null)}
       className={className}

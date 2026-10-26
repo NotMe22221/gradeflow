@@ -27,7 +27,7 @@ export function PrivateComments({ comments, timeZone }: { comments: PrivateComme
           <li key={comment.key} className="flex gap-3">
             <Avatar name={comment.author} className="size-8 bg-primary-soft text-primary-soft-foreground ring-0" />
             <figure className="min-w-0 flex-1">
-              <figcaption className="text-[13px] leading-5">
+              <figcaption className="text-[0.8125rem] leading-5">
                 <span className="font-medium text-foreground">{comment.author}</span>
                 {comment.at ? <span className="tabular text-muted-foreground"> · {formatDate(comment.at, timeZone)}</span> : null}
                 {comment.context ? (

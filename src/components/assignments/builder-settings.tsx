@@ -1,6 +1,6 @@
 "use client";
 
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "@/components/icons";
 
 import { KindPicker } from "@/components/assignments/kind-picker";
 import { errorId, fieldA11y, type BuilderCopy } from "@/components/assignments/rubric-draft";
@@ -55,7 +55,7 @@ export function BuilderSettings({
       <div className="p-5">
         <p className="text-sm leading-none font-medium text-foreground">Points</p>
         <p className="mt-3 flex items-baseline gap-2" aria-live="polite">
-          <span className="tabular font-display text-[32px] leading-none text-foreground">{totalPoints}</span>
+          <span className="tabular font-display text-[2rem] leading-none text-foreground">{totalPoints}</span>
           <span className="tabular text-sm text-muted-foreground">
             from {pluralize(itemCount, copy.noun, copy.nounPlural)}
           </span>
@@ -78,7 +78,7 @@ export function BuilderSettings({
         <FieldError id={errorId("dueDate")} message={errors.dueDate} />
       </div>
 
-      <p className="flex items-start gap-2 p-5 text-[13px] leading-relaxed text-muted-foreground">
+      <p className="flex items-start gap-2 p-5 text-[0.8125rem] leading-relaxed text-muted-foreground">
         <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
         AI scores are suggestions. A grade reaches the student only when you choose Approve &amp; return.
       </p>

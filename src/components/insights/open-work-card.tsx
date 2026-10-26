@@ -73,9 +73,9 @@ export function OpenWorkCard({
                       {item.title}
                     </span>
                     <span className="tabular block truncate text-xs text-muted-foreground">{meta}</span>
-                    <span className="mt-1 block text-[13px] @xs:hidden">{status}</span>
+                    <span className="mt-1 block text-[0.8125rem] @xs:hidden">{status}</span>
                   </span>
-                  <span className="hidden shrink-0 text-[13px] @xs:inline">{status}</span>
+                  <span className="hidden shrink-0 text-[0.8125rem] @xs:inline">{status}</span>
                 </Link>
               </li>
             );

@@ -1,4 +1,4 @@
-import { Flame, Trophy, type LucideIcon } from "lucide-react";
+import { Flame, Trophy, type IconComponent } from "@/components/icons";
 
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { LevelProgress, StreakInfo } from "@/lib/gamification/rules";
@@ -32,7 +32,7 @@ export function EngagementCard({ streak, level }: { streak: StreakInfo; level: L
       */}
       <dl className="space-y-5 border-t border-border px-5 py-5 sm:px-6">
         <div className="relative min-h-10 min-w-0 pl-[3.375rem]">
-          <dt className="text-[13px] text-muted-foreground">
+          <dt className="text-[0.8125rem] text-muted-foreground">
             <EngagementIcon icon={Flame} />
             Study streak
           </dt>
@@ -44,7 +44,7 @@ export function EngagementCard({ streak, level }: { streak: StreakInfo; level: L
           </dd>
         </div>
         <div className="relative min-h-10 min-w-0 pl-[3.375rem]">
-          <dt className="text-[13px] text-muted-foreground">
+          <dt className="text-[0.8125rem] text-muted-foreground">
             <EngagementIcon icon={Trophy} />
             Level
           </dt>
@@ -73,7 +73,7 @@ export function EngagementCard({ streak, level }: { streak: StreakInfo; level: L
   );
 }
 
-function EngagementIcon({ icon: Icon }: { icon: LucideIcon }) {
+function EngagementIcon({ icon: Icon }: { icon: IconComponent }) {
   return (
     <span
       aria-hidden

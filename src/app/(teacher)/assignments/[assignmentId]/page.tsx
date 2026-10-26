@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight } from "@/components/icons";
 
 import { AssignmentActions } from "@/components/assignments/assignment-actions";
 import { AssignmentTabs, type AssignmentTab } from "@/components/assignments/assignment-tabs";
@@ -164,13 +164,13 @@ export default async function AssignmentPage({ params, searchParams }: { params:
     <BatchGradingProvider assignmentId={assignment.id} graderInfo={getGraderInfo()} rows={rows}>
       <PageContainer>
         <nav aria-label="Breadcrumb" className="mb-4">
-          <ol className="flex min-w-0 items-center gap-1 text-[13px] font-medium text-muted-foreground">
+          <ol className="flex min-w-0 items-center gap-1 text-[0.8125rem] font-medium text-muted-foreground">
             <li className="min-w-0">
               <Link
                 href={`/classes/${encodeURIComponent(assignment.classId)}`}
                 className="flex min-w-0 items-center gap-2 rounded-full py-1 pr-2 outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
               >
-                <ClassAvatar name={assignment.class.name} className="size-6 text-[11px]" />
+                <ClassAvatar name={assignment.class.name} className="size-6 text-[0.6875rem]" />
                 <span className="truncate">
                   {[assignment.class.name, assignment.class.section].filter(Boolean).join(" · ")}
                 </span>
@@ -197,7 +197,7 @@ export default async function AssignmentPage({ params, searchParams }: { params:
             className="mt-0.5 size-12 [&_svg]:size-6"
           />
           <div className="min-w-0 space-y-1.5">
-            <h1 className="text-[26px] leading-tight font-medium text-balance break-words text-foreground sm:text-[28px]">
+            <h1 className="text-[1.625rem] leading-tight font-medium text-balance break-words text-foreground sm:text-[1.75rem]">
               {assignment.title}
             </h1>
             <p className="tabular text-sm text-muted-foreground">{meta.join(" · ")}</p>

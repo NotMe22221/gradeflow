@@ -8,10 +8,10 @@ import {
   Grid3x3,
   Inbox,
   ListChecks,
-  Sparkles,
+  PenLine,
   Target,
-  type LucideIcon,
-} from "lucide-react";
+  type IconComponent,
+} from "@/components/icons";
 
 import {
   BriefPreview,
@@ -26,7 +26,7 @@ import { LandingContainer, SectionIntro } from "@/components/landing/section-int
 import { cn } from "@/lib/utils";
 
 type Feature = {
-  icon: LucideIcon;
+  icon: IconComponent;
   title: string;
   body: string;
   /** The AI engine behind the feature when its API key is set. Omitted for features with no AI. */
@@ -137,7 +137,7 @@ function FeatureGroup({
   gridClassName,
 }: {
   id: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   label: string;
   features: Feature[];
   gridClassName: string;
@@ -146,7 +146,7 @@ function FeatureGroup({
     <div className="mt-14 sm:mt-16">
       <div className="flex items-center gap-3 border-b border-primary pb-2.5">
         <Icon className="size-6 shrink-0 text-primary" aria-hidden />
-        <h3 id={id} className="text-[24px] leading-8 font-normal text-primary sm:text-[28px] sm:leading-9">
+        <h3 id={id} className="text-[1.5rem] leading-8 font-normal text-primary sm:text-[1.75rem] sm:leading-9">
           {label}
         </h3>
       </div>
@@ -169,7 +169,7 @@ function FeatureCard({ feature }: { feature: Feature }) {
           </span>
           {feature.engine ? (
             <span className="inline-flex h-7 min-w-0 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground">
-              <Sparkles className="size-3.5 shrink-0" aria-hidden />
+              <PenLine className="size-3.5 shrink-0" aria-hidden />
               <span className="sr-only">AI engine: </span>
               <span className="truncate">{feature.engine}</span>
             </span>

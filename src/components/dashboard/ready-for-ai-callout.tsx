@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import { ListChecks } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import { pluralize } from "@/lib/format";
@@ -40,7 +40,7 @@ export function ReadyForAiCallout({
     >
       <div className="flex min-w-0 flex-1 items-start gap-3">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-          <Sparkles className="size-4" aria-hidden />
+          <ListChecks className="size-4" aria-hidden />
         </span>
         <p className="min-w-0 pt-1.5 text-sm leading-5 text-pretty text-foreground">
           <span className="font-medium">{headline}</span>{" "}

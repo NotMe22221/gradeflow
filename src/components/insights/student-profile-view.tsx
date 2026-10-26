@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChartColumn, Table2 } from "lucide-react";
+import { ChartColumn, Table2 } from "@/components/icons";
 
 import { ConferenceBriefCard } from "@/components/briefs/conference-brief-card";
 import { ClassAvatar } from "@/components/classroom/class-avatar";
@@ -46,11 +46,11 @@ export function StudentProfileView({
             className="size-16 bg-primary-soft font-display text-xl font-medium text-primary-soft-foreground ring-0 sm:size-20 sm:text-2xl"
           />
           <div className="min-w-0">
-            <h1 className="text-[26px] leading-tight font-medium break-words text-foreground sm:text-[28px]">
+            <h1 className="text-[1.625rem] leading-tight font-medium break-words text-foreground sm:text-[1.75rem]">
               {record.student.name}
             </h1>
-            <p className="mt-1.5 flex min-w-0 items-center gap-2 text-[15px] text-muted-foreground">
-              <ClassAvatar name={record.class.name} className="size-5 text-[10px]" />
+            <p className="mt-1.5 flex min-w-0 items-center gap-2 text-[0.9375rem] text-muted-foreground">
+              <ClassAvatar name={record.class.name} className="size-5 text-[0.625rem]" />
               <span className="truncate">{classTitle}</span>
             </p>
             <p className="mt-0.5 text-sm [overflow-wrap:anywhere] text-muted-foreground">{record.student.email}</p>

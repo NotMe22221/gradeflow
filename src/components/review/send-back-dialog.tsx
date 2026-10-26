@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import { CornerUpLeft, LoaderCircle } from "lucide-react";
+import { CornerUpLeft, LoaderCircle } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -110,7 +110,7 @@ export function SendBackDialog({
               className="min-h-28 leading-relaxed"
             />
             {error ? (
-              <p id={errorId} className="text-[13px] text-danger-soft-foreground">
+              <p id={errorId} className="text-[0.8125rem] text-danger-soft-foreground">
                 {error}
               </p>
             ) : (

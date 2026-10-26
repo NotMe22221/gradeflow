@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShieldCheck, type LucideIcon } from "lucide-react";
+import { ShieldCheck, type IconComponent } from "@/components/icons";
 
 import type { DrawerClass, NavItem } from "@/components/app-shell/nav-items";
 import { ClassAvatar } from "@/components/classroom/class-avatar";
@@ -54,7 +54,7 @@ export function NavDrawer({
   classesLabel: string;
   classesHref: string;
   /** Stands in for the section label in the icon rail. */
-  classesIcon: LucideIcon;
+  classesIcon: IconComponent;
   classHref: (id: string) => string;
   collapsed?: boolean;
   showGateNote?: boolean;
@@ -89,7 +89,7 @@ export function NavDrawer({
                 <span className="relative">
                   <Icon className="size-5 shrink-0" aria-hidden />
                   {collapsed && count > 0 ? (
-                    <span className="absolute -top-1.5 -right-2 min-w-4 rounded-full bg-primary px-1 text-center text-[10px] leading-4 font-semibold text-primary-foreground tabular">
+                    <span className="absolute -top-1.5 -right-2 min-w-4 rounded-full bg-primary px-1 text-center text-[0.625rem] leading-4 font-semibold text-primary-foreground tabular">
                       {count}
                     </span>
                   ) : null}

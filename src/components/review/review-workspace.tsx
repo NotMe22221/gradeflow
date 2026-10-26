@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FileText, ListChecks } from "lucide-react";
+import { FileText, ListChecks } from "@/components/icons";
 import { toast } from "sonner";
 
 import { approveAndPublish, sendBackToStudent } from "@/app/(teacher)/review/actions";

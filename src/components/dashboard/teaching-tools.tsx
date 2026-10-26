@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Camera, ChartColumn, ChevronRight, FileText, type LucideIcon } from "lucide-react";
+import { Camera, ChartColumn, ChevronRight, FileText, type IconComponent } from "@/components/icons";
 
 import { BriefStudentPicker } from "@/components/dashboard/brief-student-picker";
 import { SectionHeader } from "@/components/dashboard/section-header";
@@ -15,7 +15,7 @@ function ToolCard({
   children,
   className,
 }: {
-  icon: LucideIcon;
+  icon: IconComponent;
   title: string;
   description: string;
   /** Makes the whole card a link (via the stretched title link). */
@@ -51,7 +51,7 @@ function ToolCard({
               title
             )}
           </h3>
-          <p className="mt-0.5 text-sm text-pretty text-muted-foreground max-sm:text-[13px]">{description}</p>
+          <p className="mt-0.5 text-sm text-pretty text-muted-foreground max-sm:text-[0.8125rem]">{description}</p>
         </div>
         {/* Phones: a chevron instead of the call-to-action line. */}
         {cta ? <ChevronRight className="size-5 shrink-0 text-muted-foreground sm:hidden" aria-hidden /> : null}

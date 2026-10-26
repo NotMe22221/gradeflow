@@ -3,7 +3,7 @@
 import { useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ChevronDown, CircleCheck, Inbox, PartyPopper } from "lucide-react";
+import { ChevronDown, CircleCheck, Inbox, PartyPopper } from "@/components/icons";
 
 import { AssignmentIcon } from "@/components/classwork/assignment-icon";
 import { EmptyState } from "@/components/empty-state";
@@ -97,7 +97,7 @@ export function TodoView({ items, classes }: { items: TodoItem[]; classes: { id:
 
       <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-[26px] leading-tight font-medium text-foreground sm:text-[28px]">To-do</h1>
+          <h1 className="text-[1.625rem] leading-tight font-medium text-foreground sm:text-[1.75rem]">To-do</h1>
           <div className="w-full sm:w-64">
             <label htmlFor={selectId} className="sr-only">
               Filter by class

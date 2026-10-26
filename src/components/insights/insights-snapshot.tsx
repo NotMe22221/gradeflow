@@ -1,4 +1,4 @@
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "@/components/icons";
 
 import { HEAT_TONE } from "@/components/insights/heat-tone";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="min-w-0">
-      <dt className="truncate text-[13px] text-muted-foreground">{label}</dt>
+      <dt className="truncate text-[0.8125rem] text-muted-foreground">{label}</dt>
       <dd className="tabular mt-0.5 font-display text-2xl leading-8 font-medium text-foreground">{value}</dd>
       {hint ? <dd className="tabular truncate text-xs text-muted-foreground">{hint}</dd> : null}
     </div>
@@ -26,7 +26,7 @@ function AverageSpread({ heatmap }: { heatmap: ClassHeatmap }) {
 
   return (
     <div className="px-5 pb-6 sm:px-6">
-      <h3 id="average-spread-heading" className="font-sans text-[13px] font-medium text-foreground">
+      <h3 id="average-spread-heading" className="font-sans text-[0.8125rem] font-medium text-foreground">
         Student averages
       </h3>
       <div aria-hidden className="mt-2.5 flex h-2 w-full gap-0.5 overflow-hidden rounded-full bg-secondary">

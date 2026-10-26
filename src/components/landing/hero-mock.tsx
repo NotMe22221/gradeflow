@@ -8,10 +8,10 @@ import {
   Menu,
   MoreVertical,
   ShieldCheck,
-  Sparkles,
+  PenLine,
   Table2,
-  type LucideIcon,
-} from "lucide-react";
+  type IconComponent,
+} from "@/components/icons";
 
 import { LogoMark } from "@/components/brand/logo";
 import { BannerArt } from "@/components/classroom/banner-art";
@@ -78,21 +78,21 @@ function AppBar() {
         <Menu className="size-5" />
       </span>
       <LogoMark className="size-7" />
-      <span className="font-display text-[17px] font-semibold tracking-[-0.01em] text-foreground">
+      <span className="font-display text-[1.0625rem] font-semibold tracking-[-0.01em] text-foreground">
         GradeSmart <span className="font-normal text-muted-foreground">AI</span>
       </span>
       <span className="ml-auto hidden h-7 items-center gap-1.5 rounded-full border border-dashed border-border px-2.5 text-xs font-medium text-muted-foreground sm:inline-flex">
         <FlaskConical className="size-3.5" />
         Demo engines
       </span>
-      <span className="ml-auto flex size-8 items-center justify-center rounded-full bg-secondary text-[11px] font-semibold text-secondary-foreground ring-1 ring-border sm:ml-0">
+      <span className="ml-auto flex size-8 items-center justify-center rounded-full bg-secondary text-[0.6875rem] font-semibold text-secondary-foreground ring-1 ring-border sm:ml-0">
         MH
       </span>
     </div>
   );
 }
 
-const NAV: { icon: LucideIcon; label: string; active?: boolean; count?: number }[] = [
+const NAV: { icon: IconComponent; label: string; active?: boolean; count?: number }[] = [
   { icon: House, label: "Home" },
   { icon: ClipboardCheck, label: "To review", active: true, count: 5 },
   { icon: Camera, label: "Paper Scanner" },
@@ -107,7 +107,7 @@ function Drawer() {
         <span
           key={item.label}
           className={cn(
-            "flex h-10 items-center gap-3 rounded-full px-3.5 text-[13px] font-medium",
+            "flex h-10 items-center gap-3 rounded-full px-3.5 text-[0.8125rem] font-medium",
             item.active ? "bg-primary-soft text-primary-soft-foreground" : "text-sidebar-foreground"
           )}
         >
@@ -119,7 +119,7 @@ function Drawer() {
       <span className="my-2 h-px bg-border" />
       <span className="px-3.5 pb-1 text-xs font-medium text-muted-foreground">Teaching</span>
       {CLASSES.map((klass) => (
-        <span key={klass.name} className="flex h-12 items-center gap-3 rounded-full px-3 text-[13px] font-medium text-sidebar-foreground">
+        <span key={klass.name} className="flex h-12 items-center gap-3 rounded-full px-3 text-[0.8125rem] font-medium text-sidebar-foreground">
           <span
             className="flex size-7 shrink-0 items-center justify-center rounded-full text-xs text-white"
             style={{ backgroundColor: classTheme(klass).color }}
@@ -128,7 +128,7 @@ function Drawer() {
           </span>
           <span className="min-w-0 leading-tight">
             <span className="block truncate">{klass.name}</span>
-            <span className="block truncate text-[11px] font-normal text-muted-foreground">{klass.section}</span>
+            <span className="block truncate text-[0.6875rem] font-normal text-muted-foreground">{klass.section}</span>
           </span>
         </span>
       ))}
@@ -146,11 +146,11 @@ function ClassCard({ klass, className }: { klass: MockClass; className?: string 
           className="pointer-events-none absolute -right-6 -bottom-4 -z-10 h-[104px] w-auto text-white opacity-80"
         />
         <p className="truncate font-display text-lg leading-6 font-medium">{klass.name}</p>
-        <p className="truncate text-[13px] text-white/90">{klass.section}</p>
+        <p className="truncate text-[0.8125rem] text-white/90">{klass.section}</p>
       </div>
       <div className="space-y-0.5 px-4 pt-3 pb-3.5">
         <p className="text-xs text-muted-foreground">{klass.due}</p>
-        <p className="truncate text-[13px] font-medium text-foreground">{klass.work}</p>
+        <p className="truncate text-[0.8125rem] font-medium text-foreground">{klass.work}</p>
       </div>
       <div className="flex items-center justify-between border-t border-border px-3 py-2">
         <span className="tabular inline-flex h-7 items-center gap-1.5 rounded-full bg-primary-soft px-2.5 text-xs font-medium text-primary-soft-foreground">
@@ -190,7 +190,7 @@ function GradingPanel({ className }: { className?: string }) {
       </div>
 
       <div className="grid min-w-0 flex-1 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
-        <div className="border-b border-border bg-background/60 px-4 py-4 text-[13px] leading-6 text-foreground/90 lg:border-r lg:border-b-0">
+        <div className="border-b border-border bg-background/60 px-4 py-4 text-[0.8125rem] leading-6 text-foreground/90 lg:border-r lg:border-b-0">
           <p>
             The strongest reason for the change is sleep. According to the Cedar Ridge sleep survey,{" "}
             <mark className="rounded-sm bg-highlight box-decoration-clone px-0.5 text-foreground">{EVIDENCE}</mark>.
@@ -204,7 +204,7 @@ function GradingPanel({ className }: { className?: string }) {
           <p className="flex items-center justify-between px-1 pb-1 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">Rubric</span>
             <span className="inline-flex items-center gap-1">
-              <Sparkles className="size-3" />
+              <PenLine className="size-3" />
               AI draft
             </span>
           </p>
@@ -218,21 +218,21 @@ function GradingPanel({ className }: { className?: string }) {
               )}
             >
               <div className="flex items-center gap-2">
-                <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">{criterion.title}</span>
-                <span className="tabular flex h-7 w-9 items-center justify-center rounded-md border border-input/60 bg-card text-[13px] font-semibold text-foreground">
+                <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-medium text-foreground">{criterion.title}</span>
+                <span className="tabular flex h-7 w-9 items-center justify-center rounded-md border border-input/60 bg-card text-[0.8125rem] font-semibold text-foreground">
                   {criterion.score}
                 </span>
                 <span className="tabular w-6 text-xs text-muted-foreground">/ {criterion.max}</span>
               </div>
               {criterion.open ? (
-                <p className="mt-1.5 flex items-start gap-1.5 text-[11px] leading-4 text-success-soft-foreground">
+                <p className="mt-1.5 flex items-start gap-1.5 text-[0.6875rem] leading-4 text-success-soft-foreground">
                   <Check className="mt-px size-3 shrink-0" />
                   Quote found in the paper
                 </p>
               ) : null}
             </div>
           ))}
-          <p className="hidden items-start gap-1.5 px-1 pt-1 text-[11px] leading-4 text-muted-foreground sm:flex">
+          <p className="hidden items-start gap-1.5 px-1 pt-1 text-[0.6875rem] leading-4 text-muted-foreground sm:flex">
             <ShieldCheck className="size-3.5 shrink-0 text-success" />
             Nothing reaches the student until you approve it.
           </p>

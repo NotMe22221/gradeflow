@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, Clock, FileText, Flag, FlaskConical, ImageIcon, ScrollText, Sparkles, Undo2 } from "lucide-react";
+import { Camera, Clock, FileText, Flag, FlaskConical, ImageIcon, ScrollText, ScanSearch, Undo2 } from "@/components/icons";
 
 import { ClassAvatar } from "@/components/classroom/class-avatar";
 import { PhotoPages } from "@/components/review/photo-pages";
@@ -76,7 +76,7 @@ export function PaperPane({
             key={ref.id}
             aria-hidden
             title={ref.title}
-            className="tabular mr-1 inline-flex h-4 min-w-4 -translate-y-px items-center justify-center rounded-full bg-highlight-strong px-1 align-middle text-[10px] leading-none font-semibold text-foreground select-none"
+            className="tabular mr-1 inline-flex h-4 min-w-4 -translate-y-px items-center justify-center rounded-full bg-highlight-strong px-1 align-middle text-[0.625rem] leading-none font-semibold text-foreground select-none"
           >
             {ref.number}
           </span>
@@ -90,7 +90,7 @@ export function PaperPane({
       {caption ? (
         <p
           className={cn(
-            "mb-3 flex items-start gap-2 rounded-xl px-4 py-2.5 text-[13px] leading-relaxed",
+            "mb-3 flex items-start gap-2 rounded-xl px-4 py-2.5 text-[0.8125rem] leading-relaxed",
             caption.tone === "demo"
               ? "border border-dashed border-input/50 text-muted-foreground"
               : "bg-secondary text-secondary-foreground"
@@ -99,7 +99,7 @@ export function PaperPane({
           {caption.tone === "demo" ? (
             <FlaskConical className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           ) : caption.tone === "ai" ? (
-            <Sparkles className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+            <ScanSearch className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           ) : (
             <ScrollText className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           )}
@@ -144,7 +144,7 @@ export function PaperPane({
           <span className="tabular shrink-0 text-xs text-muted-foreground">{pluralize(item.wordCount, "word")}</span>
         </div>
         <div className="px-5 py-7 @xl:px-10 @xl:py-10">
-          <div className="mx-auto max-w-prose text-[15px] leading-7 break-words whitespace-pre-wrap text-foreground">
+          <div className="mx-auto max-w-prose text-[0.9375rem] leading-7 break-words whitespace-pre-wrap text-foreground">
             {layout.segments.map((segment, index) =>
               segment.kind === "flagged" ? (
                 <mark
@@ -155,7 +155,7 @@ export function PaperPane({
                 >
                   <span
                     aria-hidden
-                    className="mr-1 inline-flex -translate-y-px items-center gap-1 rounded-sm bg-danger/10 px-1 align-middle text-[10px] leading-4 font-semibold whitespace-nowrap text-danger-soft-foreground select-none"
+                    className="mr-1 inline-flex -translate-y-px items-center gap-1 rounded-sm bg-danger/10 px-1 align-middle text-[0.625rem] leading-4 font-semibold whitespace-nowrap text-danger-soft-foreground select-none"
                   >
                     <Flag className="size-2.5" />
                     Addressed to the grader
@@ -189,7 +189,7 @@ export function PaperPane({
               <span className="sr-only">, </span>
               {item.assignment.className}
             </p>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-muted-foreground">
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.8125rem] text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <Clock className="size-3.5" aria-hidden />
                 <span title={formatDateTime(item.submittedAt)} suppressHydrationWarning>
@@ -204,7 +204,7 @@ export function PaperPane({
               ) : null}
             </div>
             {previousReturn ? (
-              <p className="mt-2 flex items-start gap-1.5 text-[13px] text-muted-foreground">
+              <p className="mt-2 flex items-start gap-1.5 text-[0.8125rem] text-muted-foreground">
                 <Undo2 className="mt-[3px] size-3.5 shrink-0" aria-hidden />
                 <span className="min-w-0 break-words whitespace-pre-line">
                   <span title={formatDateTime(previousReturn.at)} suppressHydrationWarning>

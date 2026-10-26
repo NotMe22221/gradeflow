@@ -1,4 +1,4 @@
-import { Target, TrendingUp, type LucideIcon } from "lucide-react";
+import { Target, TrendingUp, type IconComponent } from "@/components/icons";
 
 import { HEAT_TONE } from "@/components/insights/heat-tone";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,7 @@ function SkillList({
   empty,
 }: {
   title: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   iconClassName: string;
   items: SkillInsight[];
   empty: string;

@@ -1,4 +1,4 @@
-import { Target } from "lucide-react";
+import { Target } from "@/components/icons";
 
 import { SideCard, SideCardEmpty } from "@/components/dashboard/recently-published";
 import { MostMissedList } from "@/components/insights/most-missed-list";

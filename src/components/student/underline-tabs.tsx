@@ -42,7 +42,7 @@ export function UnderlineTabsTrigger({
     >
       {children}
       {count !== undefined ? (
-        <span className="tabular min-w-5 rounded-full bg-secondary px-1.5 text-center text-[11px] leading-[18px] font-semibold text-muted-foreground group-data-[state=active]/tab:bg-primary-soft group-data-[state=active]/tab:text-primary-soft-foreground">
+        <span className="tabular min-w-5 rounded-full bg-secondary px-1.5 text-center text-[0.6875rem] leading-[1.125rem] font-semibold text-muted-foreground group-data-[state=active]/tab:bg-primary-soft group-data-[state=active]/tab:text-primary-soft-foreground">
           {count}
         </span>
       ) : null}

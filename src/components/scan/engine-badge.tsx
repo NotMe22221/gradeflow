@@ -1,4 +1,4 @@
-import { FlaskConical, ScanEye } from "lucide-react";
+import { FlaskConical, ScanEye } from "@/components/icons";
 
 import { EngineInfoBadge } from "@/components/grading/engine-info-badge";
 

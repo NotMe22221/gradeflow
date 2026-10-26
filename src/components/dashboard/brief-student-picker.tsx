@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "@/components/icons";
 import { Select as SelectPrimitive } from "radix-ui";
 
 import { Button } from "@/components/ui/button";

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CircleCheck, RotateCcw, ScrollText, ShieldCheck, TriangleAlert } from "lucide-react";
+import { ArrowRight, CircleCheck, RotateCcw, ScrollText, ShieldCheck, TriangleAlert } from "@/components/icons";
 
 import { ConfidenceBadge } from "@/components/grading/confidence-badge";
 import { GraderBadge } from "@/components/grading/grader-badge";
@@ -109,7 +109,7 @@ export function ScanResult({ result, onScanAnother }: { result: ScanGradeSuccess
             {result.flags.slice(0, MAX_FLAGS_SHOWN).map((flag, index) => (
               <li
                 key={index}
-                className="flex items-start gap-2 rounded-xl bg-warning-soft px-3.5 py-2.5 text-[13px] text-pretty text-warning-soft-foreground"
+                className="flex items-start gap-2 rounded-xl bg-warning-soft px-3.5 py-2.5 text-[0.8125rem] text-pretty text-warning-soft-foreground"
               >
                 <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
                 <span className="min-w-0">{flag}</span>
@@ -137,7 +137,7 @@ export function ScanResult({ result, onScanAnother }: { result: ScanGradeSuccess
             Scan another
           </Button>
         </div>
-        <p className="flex items-start gap-2 text-[13px] text-pretty text-muted-foreground">
+        <p className="flex items-start gap-2 text-[0.8125rem] text-pretty text-muted-foreground">
           <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-success" aria-hidden />
           The draft is in To review. Nothing publishes until you approve and return it.
         </p>

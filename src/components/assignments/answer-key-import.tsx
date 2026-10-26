@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Camera, CheckCircle2, FlaskConical, ImageIcon, Loader2, ScanLine, Sparkles, Upload, X } from "lucide-react";
+import { Camera, CheckCircle2, FlaskConical, ImageIcon, Loader2, ScanLine, ScanSearch, Upload, X } from "@/components/icons";
 
 import { FormAlert } from "@/components/classes/form-feedback";
 import {
@@ -257,10 +257,10 @@ export function AnswerKeyImport({
           <ScanLine className="size-5" aria-hidden />
         </div>
         <div className="min-w-0 space-y-0.5">
-          <h3 id="answer-key-import-title" className="text-[15px] font-medium text-foreground">
+          <h3 id="answer-key-import-title" className="text-[0.9375rem] font-medium text-foreground">
             Import the answer key from a photo
           </h3>
-          <p className="text-[13px] text-pretty text-muted-foreground">
+          <p className="text-[0.8125rem] text-pretty text-muted-foreground">
             {engine === "openai"
               ? "GPT-4o reads each question, its answer, and its points from any photo, including the sample. Check every question before you save."
               : "Demo mode reads the sample answer key only. Set OPENAI_API_KEY to read your own photos with GPT-4o."}
@@ -283,7 +283,7 @@ export function AnswerKeyImport({
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
                     <EngineBadge engine={phase.result.engine} />
-                    <span className="tabular text-[13px] text-muted-foreground">{describeImport(phase.result)}</span>
+                    <span className="tabular text-[0.8125rem] text-muted-foreground">{describeImport(phase.result)}</span>
                   </div>
                 </>
               ) : (
@@ -404,7 +404,7 @@ export function AnswerKeyImport({
 function EngineBadge({ engine }: { engine: AnswerKeyEngine }) {
   return engine === "openai" ? (
     <Badge variant="default">
-      <Sparkles aria-hidden />
+      <ScanSearch aria-hidden />
       {ENGINE_LABEL.openai}
     </Badge>
   ) : (

@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText } from "lucide-react";
+import { FileText } from "@/components/icons";
 
 import { PAPER_ANCHOR } from "@/components/student/submission-text";
 import { pluralize } from "@/lib/format";

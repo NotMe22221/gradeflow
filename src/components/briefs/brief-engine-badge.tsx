@@ -1,4 +1,4 @@
-import { FlaskConical, Sparkles } from "lucide-react";
+import { FlaskConical, Cloud } from "@/components/icons";
 
 import { EngineInfoBadge } from "@/components/grading/engine-info-badge";
 import type { BriefEngine } from "@/lib/briefs/types";
@@ -28,11 +28,11 @@ export function BriefEngineBadge({
     <EngineInfoBadge
       variant={demo ? "outline" : "default"}
       dashed={demo}
-      icon={demo ? <FlaskConical aria-hidden /> : <Sparkles aria-hidden />}
+      icon={demo ? <FlaskConical aria-hidden /> : <Cloud aria-hidden />}
       label={briefEngineLabel(engine, model)}
       explanation={explanation}
       align="end"
-      className={cn("h-7 rounded-full px-3 text-[13px] [&>svg]:size-3.5", className)}
+      className={cn("h-7 rounded-full px-3 text-[0.8125rem] [&>svg]:size-3.5", className)}
     />
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CameraOff, LoaderCircle, X } from "lucide-react";
+import { CameraOff, LoaderCircle, X } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import { encodeJpeg } from "@/components/scan/image-prep";

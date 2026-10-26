@@ -1,4 +1,4 @@
-import { ListChecks } from "lucide-react";
+import { ListChecks } from "@/components/icons";
 
 import { formatPoints, pluralize } from "@/lib/format";
 import type { BreakdownItem } from "@/lib/grades/breakdown";
@@ -125,7 +125,7 @@ export function AssignmentRubric({
                   </p>
                 ) : null}
                 {!questions && item.description ? (
-                  <p className="mt-1.5 text-[13px] leading-relaxed break-words whitespace-pre-line text-muted-foreground">
+                  <p className="mt-1.5 text-[0.8125rem] leading-relaxed break-words whitespace-pre-line text-muted-foreground">
                     <span className="font-medium text-foreground/80">Full credit: </span>
                     {item.description}
                   </p>

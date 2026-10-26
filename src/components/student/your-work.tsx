@@ -1,4 +1,4 @@
-import { BadgeCheck, Check, ClipboardList } from "lucide-react";
+import { BadgeCheck, Check, ClipboardList } from "@/components/icons";
 
 import { WORK_TONE_CLASS, type WorkStatus } from "@/components/student/todo-model";
 import { formatDate, formatDueDate, formatPercent, formatPoints } from "@/lib/format";
@@ -25,7 +25,7 @@ export function YourWorkCard({
       className={cn("rounded-xl border border-border bg-card p-5", className)}
     >
       <div className="mb-4 flex items-baseline justify-between gap-3">
-        <h2 id="your-work-heading" className="text-[22px] leading-7 font-normal text-foreground">
+        <h2 id="your-work-heading" className="text-[1.375rem] leading-7 font-normal text-foreground">
           Your work
         </h2>
         <p className={cn("shrink-0 text-sm font-medium", WORK_TONE_CLASS[status.tone])}>
@@ -55,13 +55,13 @@ export function ReturnedGrade({
 }) {
   return (
     <div className="rounded-lg bg-secondary px-4 py-3.5">
-      <p className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
+      <p className="flex items-center gap-1.5 text-[0.8125rem] font-medium text-muted-foreground">
         <BadgeCheck className="size-4 text-success" aria-hidden />
         Your grade
       </p>
       <div className="mt-1 flex items-baseline gap-2">
         <p className="tabular font-display text-foreground">
-          <span className="text-[40px] leading-none font-medium">{formatPoints(totalScore)}</span>
+          <span className="text-[2.5rem] leading-none font-medium">{formatPoints(totalScore)}</span>
           <span className="text-xl text-muted-foreground"> / {formatPoints(maxScore)}</span>
           <span className="sr-only"> points</span>
         </p>
@@ -157,7 +157,7 @@ export function PaperTestNotice({
         <p className="text-sm font-medium text-foreground">
           {sentBack ? "Talk with your teacher about next steps" : "Your teacher scans this test"}
         </p>
-        <p className="text-[13px] text-pretty text-muted-foreground">
+        <p className="text-[0.8125rem] text-pretty text-muted-foreground">
           {sentBack ? (
             <>{teacher} scans any new paper for you. There&apos;s nothing to upload.</>
           ) : awaitingScan && testDay ? (

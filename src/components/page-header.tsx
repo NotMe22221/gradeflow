@@ -35,11 +35,11 @@ export function PageHeader({
     >
       <div className="min-w-0 space-y-1.5">
         {eyebrow ? (
-          <div className="text-[13px] font-medium text-muted-foreground">{eyebrow}</div>
+          <div className="text-[0.8125rem] font-medium text-muted-foreground">{eyebrow}</div>
         ) : null}
-        <h1 className="text-[26px] leading-tight font-medium text-balance text-foreground sm:text-[28px]">{title}</h1>
+        <h1 className="text-[1.625rem] leading-tight font-medium text-balance text-foreground sm:text-[1.75rem]">{title}</h1>
         {description ? (
-          <p className="max-w-2xl text-[15px] text-pretty text-muted-foreground">{description}</p>
+          <p className="max-w-2xl text-[0.9375rem] text-pretty text-muted-foreground">{description}</p>
         ) : null}
       </div>
       {actions ? (

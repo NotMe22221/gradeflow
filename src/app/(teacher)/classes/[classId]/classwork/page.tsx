@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { ClipboardCheck, FileText, ScanLine } from "lucide-react";
+import { ClipboardCheck, FileText, ScanLine } from "@/components/icons";
 
 import { classReviewHref } from "@/components/classes/class-card";
 import { summarizeStatuses } from "@/components/classes/status-summary";
@@ -113,7 +113,7 @@ export default async function ClassworkPage({ params }: { params: Params }) {
           <div className="mb-6 flex size-24 items-center justify-center rounded-full bg-primary-soft text-primary-soft-foreground">
             <FileText className="size-10" aria-hidden />
           </div>
-          <h2 className="text-[22px] font-normal text-foreground">Create assignments and tests for your class.</h2>
+          <h2 className="text-[1.375rem] font-normal text-foreground">Create assignments and tests for your class.</h2>
           <p className="mt-2 max-w-md text-sm text-pretty text-muted-foreground">
             Write a rubric for typed essays, or an answer key for paper tests you scan. The AI drafts every grade
             and you approve each one.

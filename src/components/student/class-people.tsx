@@ -1,4 +1,4 @@
-import { Users } from "lucide-react";
+import { Users } from "@/components/icons";
 
 import { Avatar } from "@/components/ui/avatar";
 import { pluralize } from "@/lib/format";
@@ -11,7 +11,7 @@ import { pluralize } from "@/lib/format";
 function PeopleHeading({ id, title, aside }: { id: string; title: string; aside?: React.ReactNode }) {
   return (
     <div className="flex min-h-16 items-end justify-between gap-4 border-b border-primary pb-2">
-      <h2 id={id} className="text-[28px] leading-9 font-normal text-primary sm:text-[32px] sm:leading-10">
+      <h2 id={id} className="text-[1.75rem] leading-9 font-normal text-primary sm:text-[2rem] sm:leading-10">
         {title}
       </h2>
       {aside ? <div className="flex shrink-0 items-center gap-2 pb-1">{aside}</div> : null}

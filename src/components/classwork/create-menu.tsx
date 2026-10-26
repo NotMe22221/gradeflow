@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FileText, Plus, ScanLine } from "lucide-react";
+import { FileText, Plus, ScanLine } from "@/components/icons";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +22,7 @@ export function CreateMenu({ classId, className }: { classId: string; className?
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button className={cn("h-12 gap-2.5 pr-7 pl-5 text-[15px]", className)}>
+        <Button className={cn("h-12 gap-2.5 pr-7 pl-5 text-[0.9375rem]", className)}>
           <Plus className="size-5" aria-hidden />
           Create
         </Button>

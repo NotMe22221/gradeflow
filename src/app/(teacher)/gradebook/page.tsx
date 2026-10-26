@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, BookOpen } from "lucide-react";
+import { ArrowRight, BookOpen } from "@/components/icons";
 
 import { ClassAvatar } from "@/components/classroom/class-avatar";
 import { EmptyState } from "@/components/empty-state";
@@ -87,7 +87,7 @@ export default async function GradebookPage({
             <ClassAvatar name={data.class.name} className="size-10 text-base" />
             <div className="min-w-0 flex-1">
               <h2 className="truncate text-base font-semibold text-foreground">{data.class.name}</h2>
-              {data.class.section ? <p className="truncate text-[13px] text-muted-foreground">{data.class.section}</p> : null}
+              {data.class.section ? <p className="truncate text-[0.8125rem] text-muted-foreground">{data.class.section}</p> : null}
             </div>
             <Button asChild variant="text" size="sm">
               <Link href={gradesHref}>

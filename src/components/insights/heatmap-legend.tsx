@@ -14,7 +14,7 @@ export function HeatmapLegend({ className }: { className?: string }) {
                 aria-hidden
                 className={cn("block h-3 w-9 rounded-sm ring-1 ring-black/5 ring-inset sm:w-11", band.tone.cell)}
               />
-              <span className="tabular text-[11px] leading-none whitespace-nowrap">{band.label}</span>
+              <span className="tabular text-[0.6875rem] leading-none whitespace-nowrap">{band.label}</span>
             </li>
           ))}
         </ul>
@@ -22,7 +22,7 @@ export function HeatmapLegend({ className }: { className?: string }) {
       <div className="flex items-center gap-2">
         <span
           aria-hidden
-          className={cn("flex h-5 w-8 items-center justify-center rounded-sm text-[11px]", HEAT_TONE.empty.cell)}
+          className={cn("flex h-5 w-8 items-center justify-center rounded-sm text-[0.6875rem]", HEAT_TONE.empty.cell)}
         >
           –
         </span>

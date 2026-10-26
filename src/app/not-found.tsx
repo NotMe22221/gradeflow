@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FileQuestion } from "lucide-react";
+import { FileQuestion } from "@/components/icons";
 
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
@@ -16,10 +16,10 @@ export default function NotFound() {
             <FileQuestion className="size-7" aria-hidden />
           </span>
           <p className="tabular text-sm font-medium text-primary">Error 404</p>
-          <h1 className="mt-2 text-[26px] leading-tight font-medium text-balance text-foreground">
+          <h1 className="mt-2 text-[1.625rem] leading-tight font-medium text-balance text-foreground">
             We couldn&apos;t find that page.
           </h1>
-          <p className="mt-2 max-w-sm text-[15px] text-pretty text-muted-foreground">
+          <p className="mt-2 max-w-sm text-[0.9375rem] text-pretty text-muted-foreground">
             The link may be out of date, or the demo data was reset.
           </p>
           <Button asChild className="mt-8">

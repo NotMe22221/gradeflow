@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, CircleCheckBig } from "lucide-react";
+import { ChevronRight, CircleCheckBig } from "@/components/icons";
 
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";

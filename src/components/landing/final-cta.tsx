@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "@/components/icons";
 
 import { DemoCtas } from "@/components/landing/demo-ctas";
 import { LandingContainer } from "@/components/landing/section-intro";
@@ -10,7 +10,7 @@ export function FinalCta({ demoLogin }: { demoLogin: boolean }) {
         <div className="rounded-[28px] bg-primary-soft px-6 py-12 text-center text-primary-soft-foreground sm:px-12 sm:py-16">
           <h2
             id="final-cta-heading"
-            className="mx-auto max-w-2xl text-[30px] leading-[1.2] font-medium tracking-[-0.01em] text-balance sm:text-[40px] sm:leading-[1.15]"
+            className="mx-auto max-w-2xl text-[1.875rem] leading-[1.2] font-medium tracking-[-0.01em] text-balance sm:text-[2.5rem] sm:leading-[1.15]"
           >
             Grade one paper the GradeSmart AI way.
           </h2>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, CircleCheck, Inbox, ListFilter, Table2 } from "lucide-react";
+import { BookOpen, CircleCheck, Inbox, ListFilter, Table2 } from "@/components/icons";
 
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";

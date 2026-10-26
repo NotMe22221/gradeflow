@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { Users } from "lucide-react";
+import { Users } from "@/components/icons";
 
 import { StreamComposer, StreamFeed, StreamToolsCard, StreamUpcomingCard } from "@/components/classes/class-stream";
 import { ClassBanner } from "@/components/classroom/class-banner";

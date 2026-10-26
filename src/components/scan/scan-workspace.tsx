@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   Upload,
   X,
-} from "lucide-react";
+} from "@/components/icons";
 import { toast } from "sonner";
 
 import { FieldError, FormAlert } from "@/components/classes/form-feedback";
@@ -515,7 +515,7 @@ export function ScanWorkspace({
           ) : null}
 
           {preparing ? (
-            <p className="flex items-center gap-2 text-[13px] text-muted-foreground" role="status">
+            <p className="flex items-center gap-2 text-[0.8125rem] text-muted-foreground" role="status">
               <LoaderCircle className="size-3.5 animate-spin" aria-hidden />
               Preparing photo…
             </p>
@@ -536,7 +536,7 @@ export function ScanWorkspace({
                 <p className="text-sm font-medium text-foreground">
                   Answer key photo <span className="font-normal text-muted-foreground">(optional)</span>
                 </p>
-                <p className="text-[13px] text-pretty text-muted-foreground">
+                <p className="text-[0.8125rem] text-pretty text-muted-foreground">
                   {visionEnabled
                     ? "GPT-4o reads the expected answers from it. Without one, it uses the assignment's answer key."
                     : "The demo scanner always grades against the assignment's answer key."}
@@ -619,7 +619,7 @@ export function ScanWorkspace({
               <form onSubmit={submit} noValidate className="grid grid-cols-[minmax(0,1fr)] gap-5">
                 {matchNotice ? (
                   <p
-                    className="flex items-start gap-2 rounded-xl bg-primary-soft px-3.5 py-2.5 text-[13px] text-pretty text-primary-soft-foreground"
+                    className="flex items-start gap-2 rounded-xl bg-primary-soft px-3.5 py-2.5 text-[0.8125rem] text-pretty text-primary-soft-foreground"
                     role="status"
                   >
                     <CircleCheck className="mt-0.5 size-3.5 shrink-0" aria-hidden />
@@ -641,8 +641,8 @@ export function ScanWorkspace({
                     disabled={busy}
                   />
                   {assignment ? (
-                    <p className="flex min-w-0 items-center gap-2 text-[13px] text-muted-foreground">
-                      {klass ? <ClassAvatar name={klass.name} className="size-5 text-[10px]" /> : null}
+                    <p className="flex min-w-0 items-center gap-2 text-[0.8125rem] text-muted-foreground">
+                      {klass ? <ClassAvatar name={klass.name} className="size-5 text-[0.625rem]" /> : null}
                       <span className="min-w-0">
                         {klass?.label ? `${klass.label} · ` : ""}
                         {assignmentHint(assignment)}
@@ -668,7 +668,7 @@ export function ScanWorkspace({
                   {student && paper ? (
                     <p
                       className={cn(
-                        "text-[13px] text-pretty",
+                        "text-[0.8125rem] text-pretty",
                         paper.replaceable ? "text-muted-foreground" : "text-destructive"
                       )}
                     >
@@ -703,7 +703,7 @@ export function ScanWorkspace({
                       }
                       disabled={busy}
                     />
-                    <p id="scan-transcription-help" className="text-[13px] text-pretty text-muted-foreground">
+                    <p id="scan-transcription-help" className="text-[0.8125rem] text-pretty text-muted-foreground">
                       The demo scanner can&apos;t read handwriting. Type each answer on its own line, starting with its
                       number (Q1., Q2.). Sample photos don&apos;t need this.
                     </p>
@@ -717,7 +717,7 @@ export function ScanWorkspace({
                   {visionEnabled ? <ScanLine aria-hidden /> : <FlaskConical aria-hidden />}
                   {visionEnabled ? "Grade with GPT-4o" : "Grade with demo scanner"}
                 </Button>
-                <p className="flex items-start gap-2 text-[13px] text-pretty text-muted-foreground">
+                <p className="flex items-start gap-2 text-[0.8125rem] text-pretty text-muted-foreground">
                   <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-success" aria-hidden />
                   The draft lands in To review. Nothing publishes until you approve and return it.
                 </p>

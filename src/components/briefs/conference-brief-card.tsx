@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CircleAlert, Copy, FileText, Info, Printer, RefreshCw, Sparkles } from "lucide-react";
+import { CircleAlert, Copy, FileText, Info, LoaderCircle, Printer, RefreshCw, ScrollText } from "@/components/icons";
 import { toast } from "sonner";
 
 import { BriefDocument } from "@/components/briefs/brief-document";
@@ -239,7 +239,7 @@ export function ConferenceBriefCard({
         {pending ? (
           <div aria-busy className="space-y-3">
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Sparkles className="size-4 animate-pulse" aria-hidden />
+              <LoaderCircle className="size-4 animate-spin" aria-hidden />
               Drafting the brief from approved grades…
             </p>
             <BriefSkeleton />
@@ -266,7 +266,7 @@ export function ConferenceBriefCard({
               </div>
             </div>
 
-            <p className="flex items-start gap-2.5 rounded-xl bg-secondary px-4 py-3 text-[13px] text-pretty text-secondary-foreground">
+            <p className="flex items-start gap-2.5 rounded-xl bg-secondary px-4 py-3 text-[0.8125rem] text-pretty text-secondary-foreground">
               <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
               <span>
                 <span className="font-medium">Review before sharing with families.</span>{" "}
@@ -296,7 +296,7 @@ export function ConferenceBriefCard({
                 : `Approve and return a grade for ${firstName} to generate a brief. Briefs use teacher-approved grades only.`}
             </p>
             <Button onClick={generate} disabled={!canGenerate} className="shrink-0">
-              <Sparkles aria-hidden />
+              <ScrollText aria-hidden />
               Generate conference brief
             </Button>
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCheck, LoaderCircle } from "lucide-react";
+import { CheckCheck, LoaderCircle } from "@/components/icons";
 
 import {
   AlertDialog,
@@ -62,7 +62,7 @@ export function ApproveDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <dl className="max-h-56 divide-y divide-border overflow-y-auto rounded-xl border border-border text-[13px]">
+        <dl className="max-h-56 divide-y divide-border overflow-y-auto rounded-xl border border-border text-[0.8125rem]">
           {item.criteria.map((criterion, index) => (
             <div key={criterion.id} className="flex items-center justify-between gap-4 px-4 py-2.5">
               <dt className="min-w-0 truncate text-muted-foreground">

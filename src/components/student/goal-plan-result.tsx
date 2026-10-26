@@ -7,8 +7,8 @@ import {
   Mountain,
   ShieldCheck,
   TrendingUp,
-  type LucideIcon,
-} from "lucide-react";
+  type IconComponent,
+} from "@/components/icons";
 
 import { GoalEngineBadge } from "@/components/student/goal-engine-badge";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,7 @@ import { formatPercentValue, LETTER_SCALE_NOTE, type GoalStatus } from "@/lib/go
 import type { GoalEngine, GoalPlanView } from "@/lib/goals/types";
 import { cn } from "@/lib/utils";
 
-const STATUS_ICONS: Record<GoalStatus, LucideIcon> = {
+const STATUS_ICONS: Record<GoalStatus, IconComponent> = {
   secured: CircleCheck,
   on_track: TrendingUp,
   stretch: Mountain,
@@ -29,7 +29,7 @@ const STATUS_ICONS: Record<GoalStatus, LucideIcon> = {
 export function GoalStatusPill({ plan, className }: { plan: Pick<GoalPlanView, "status" | "statusLabel" | "statusTone">; className?: string }) {
   const Icon = STATUS_ICONS[plan.status];
   return (
-    <Badge variant={plan.statusTone} className={cn("px-2.5 py-1 text-[13px] [&>svg]:size-3.5", className)}>
+    <Badge variant={plan.statusTone} className={cn("px-2.5 py-1 text-[0.8125rem] [&>svg]:size-3.5", className)}>
       <Icon aria-hidden />
       {plan.statusLabel}
     </Badge>
@@ -84,9 +84,9 @@ export function GoalPlanResult({
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1">
-          <p className="text-[13px] font-medium text-muted-foreground">Your target</p>
+          <p className="text-[0.8125rem] font-medium text-muted-foreground">Your target</p>
           <p className="font-display text-xl font-medium text-balance text-foreground">{plan.interpretation}</p>
-          <p className="text-[13px] break-words text-muted-foreground">
+          <p className="text-[0.8125rem] break-words text-muted-foreground">
             You wrote &ldquo;{plan.goalText}&rdquo;
             <span className="tabular"> · Saved {formatDate(plan.savedAt)}</span>
           </p>

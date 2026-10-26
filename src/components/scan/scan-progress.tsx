@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Circle, CircleCheck, FlaskConical, LoaderCircle } from "lucide-react";
+import { Circle, CircleCheck, FlaskConical, LoaderCircle } from "@/components/icons";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -72,7 +72,7 @@ export function ScanProgress({
               {pluralize(pageCount, "page")} · {assignmentTitle}
             </p>
           </div>
-          <span className="tabular shrink-0 text-[13px] font-medium text-muted-foreground" aria-hidden>
+          <span className="tabular shrink-0 text-[0.8125rem] font-medium text-muted-foreground" aria-hidden>
             {seconds} s
           </span>
         </div>
@@ -120,11 +120,11 @@ export function ScanProgress({
         </div>
 
         {visionEnabled ? (
-          <p className="text-[13px] text-pretty text-muted-foreground">
+          <p className="text-[0.8125rem] text-pretty text-muted-foreground">
             GPT-4o usually takes 10 to 30 seconds per test. Keep this tab open.
           </p>
         ) : (
-          <p className="flex items-start gap-2 text-[13px] text-pretty text-muted-foreground">
+          <p className="flex items-start gap-2 text-[0.8125rem] text-pretty text-muted-foreground">
             <FlaskConical className="mt-0.5 size-3.5 shrink-0" aria-hidden />
             Demo scanner: keyword matching against the answer key. No AI reads the photo.
           </p>

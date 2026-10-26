@@ -1,4 +1,4 @@
-import { Check, FileSpreadsheet, Minus } from "lucide-react";
+import { Check, FileSpreadsheet, Minus } from "@/components/icons";
 
 import { LandingContainer, SectionIntro } from "@/components/landing/section-intro";
 

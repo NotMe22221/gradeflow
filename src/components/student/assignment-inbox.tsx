@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, CircleCheck, Inbox, MousePointerClick, PartyPopper } from "lucide-react";
+import { ChevronRight, CircleCheck, Inbox, MousePointerClick, PartyPopper } from "@/components/icons";
 import { toast } from "sonner";
 
 import { logStudySession } from "@/app/(student)/student/actions";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { FlaskConical, Loader2 } from "lucide-react";
+import { FlaskConical, Loader2 } from "@/components/icons";
 import { toast } from "sonner";
 
 import { loadSamplePapers } from "@/app/(teacher)/assignments/actions";

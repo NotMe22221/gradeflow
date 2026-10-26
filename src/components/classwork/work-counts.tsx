@@ -37,11 +37,11 @@ export function WorkCounts({
             size === "lg" ? "px-5 sm:px-7" : "px-4 sm:px-5"
           )}
         >
-          <dt className="text-[13px] whitespace-nowrap text-muted-foreground">{labels[key]}</dt>
+          <dt className="text-[0.8125rem] whitespace-nowrap text-muted-foreground">{labels[key]}</dt>
           <dd
             className={cn(
               "tabular font-display leading-none font-normal text-foreground",
-              size === "lg" ? "text-[34px] sm:text-[40px]" : "text-[28px]"
+              size === "lg" ? "text-[2.125rem] sm:text-[2.5rem]" : "text-[1.75rem]"
             )}
           >
             {counts[key]}
