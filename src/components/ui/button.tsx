@@ -4,23 +4,31 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * Material 3 buttons, as in Google Classroom: pill-shaped, 40px tall.
+ * default = filled (primary actions), tonal = secondary container,
+ * outline = outlined, ghost = icon/text button on neutral surfaces,
+ * text = primary-colored text button.
+ */
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,background-color,border-color,box-shadow] outline-none select-none focus-visible:ring-[3px] focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-medium tracking-[0.01em] transition-[color,background-color,border-color,box-shadow] outline-none select-none focus-visible:ring-[3px] focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[18px]",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-card hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground shadow-card hover:bg-destructive/90",
-        outline: "border border-border bg-card text-foreground shadow-card hover:bg-accent",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/70",
-        ghost: "text-muted-foreground hover:bg-accent hover:text-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        default: "bg-primary text-primary-foreground hover:bg-primary/92 hover:shadow-hover",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/92 hover:shadow-hover",
+        tonal: "bg-primary-soft text-primary-soft-foreground hover:shadow-hover hover:bg-primary-soft/85",
+        outline: "border border-input/60 bg-card text-primary hover:bg-primary/[0.06]",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-primary/[0.08]",
+        ghost: "text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground",
+        text: "text-primary hover:bg-primary/[0.08]",
+        link: "rounded-md text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        sm: "h-8 gap-1.5 rounded-md px-3 text-[13px] has-[>svg]:px-2.5",
-        lg: "h-11 rounded-lg px-6 text-[15px] has-[>svg]:px-4",
-        icon: "size-9",
+        default: "h-10 px-6 has-[>svg]:pl-4 has-[>svg]:pr-5",
+        sm: "h-8 gap-1.5 px-4 text-[13px] has-[>svg]:pl-3 has-[>svg]:pr-3.5",
+        lg: "h-12 px-7 text-[15px] has-[>svg]:pl-5 has-[>svg]:pr-6",
+        icon: "size-10",
         "icon-sm": "size-8",
       },
     },

@@ -4,64 +4,74 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * GradeSmart AI design tokens.
- * One accent (--primary, an ink indigo) for primary actions only.
- * Neutral grays for everything else. Semantic colors (success / warning /
- * danger) are reserved for status: confidence badges, flags, published state.
- * Spacing follows Tailwind's 4px grid used in 8pt steps (2, 4, 6, 8, 12...).
+ * GradeSmart AI design tokens, in the style of Google Classroom (Material 3):
+ * a light blue-gray canvas, white surfaces with soft borders, Google blue for
+ * primary actions, tonal "container" colors for selected and secondary
+ * states, and a set of class theme colors for banners and class avatars.
+ * Semantic colors (success / warning / danger) are reserved for status.
+ * Spacing follows Tailwind's 4px grid used in 8pt steps.
  */
 :root {
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 
-  --background: oklch(0.985 0.002 264);
-  --foreground: oklch(0.21 0.012 264);
+  --background: oklch(0.982 0.004 255); /* #f8fafd canvas */
+  --foreground: oklch(0.235 0 0); /* #1f1f1f */
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.012 264);
+  --card-foreground: oklch(0.235 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.012 264);
+  --popover-foreground: oklch(0.235 0 0);
 
-  --primary: oklch(0.5 0.19 270);
-  --primary-foreground: oklch(0.99 0.004 270);
-  --primary-soft: oklch(0.96 0.025 270);
-  --primary-soft-foreground: oklch(0.42 0.17 270);
+  --primary: oklch(0.49 0.19 258); /* #0b57d0 Google blue */
+  --primary-foreground: oklch(1 0 0);
+  --primary-soft: oklch(0.92 0.045 258); /* #d3e3fd secondary container */
+  --primary-soft-foreground: oklch(0.27 0.1 260); /* #041e49 */
 
-  --secondary: oklch(0.965 0.003 264);
-  --secondary-foreground: oklch(0.27 0.012 264);
-  --muted: oklch(0.965 0.003 264);
-  --muted-foreground: oklch(0.52 0.014 264);
-  --accent: oklch(0.955 0.004 264);
-  --accent-foreground: oklch(0.21 0.012 264);
+  --secondary: oklch(0.955 0.008 255); /* #eef2f8 tonal surface */
+  --secondary-foreground: oklch(0.3 0.01 255);
+  --muted: oklch(0.955 0.006 255);
+  --muted-foreground: oklch(0.47 0.008 160); /* #444746 */
+  --accent: oklch(0.95 0.01 255);
+  --accent-foreground: oklch(0.235 0 0);
 
-  --destructive: oklch(0.56 0.2 25);
-  --destructive-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.52 0.19 27); /* #b3261e */
+  --destructive-foreground: oklch(1 0 0);
 
-  --success: oklch(0.56 0.13 155);
-  --success-soft: oklch(0.96 0.04 155);
-  --success-soft-foreground: oklch(0.4 0.1 155);
-  --warning: oklch(0.72 0.15 75);
-  --warning-soft: oklch(0.97 0.05 85);
-  --warning-soft-foreground: oklch(0.47 0.11 60);
-  --danger: oklch(0.58 0.2 25);
-  --danger-soft: oklch(0.965 0.025 25);
-  --danger-soft-foreground: oklch(0.47 0.17 25);
+  --success: oklch(0.5 0.13 150); /* #146c2e */
+  --success-soft: oklch(0.93 0.06 152); /* #c4eed0 */
+  --success-soft-foreground: oklch(0.36 0.09 150);
+  --warning: oklch(0.7 0.16 70);
+  --warning-soft: oklch(0.96 0.06 90); /* #fef7e0 */
+  --warning-soft-foreground: oklch(0.45 0.11 60);
+  --danger: oklch(0.55 0.2 27);
+  --danger-soft: oklch(0.93 0.035 25); /* #f9dedc */
+  --danger-soft-foreground: oklch(0.42 0.16 27);
 
-  --border: oklch(0.915 0.005 264);
-  --input: oklch(0.89 0.006 264);
-  --ring: oklch(0.5 0.19 270 / 0.45);
+  --border: oklch(0.89 0.005 255); /* #dadce0 */
+  --input: oklch(0.6 0.005 160); /* #747775 outline */
+  --ring: oklch(0.49 0.19 258 / 0.4);
 
-  --sidebar: oklch(0.99 0.002 264);
-  --sidebar-foreground: oklch(0.36 0.014 264);
-  --sidebar-border: oklch(0.925 0.005 264);
-  --sidebar-accent: oklch(0.955 0.005 264);
-  --sidebar-accent-foreground: oklch(0.21 0.012 264);
+  --sidebar: oklch(0.982 0.004 255);
+  --sidebar-foreground: oklch(0.3 0.006 160);
+  --sidebar-border: oklch(0.89 0.005 255);
+  --sidebar-accent: oklch(0.92 0.045 258); /* active nav pill */
+  --sidebar-accent-foreground: oklch(0.27 0.1 260);
 
   --highlight: oklch(0.94 0.08 95);
   --highlight-strong: oklch(0.88 0.13 92);
+
+  /* Class theme colors (banners, class avatars). */
+  --class-blue: #1967d2;
+  --class-green: #137333;
+  --class-orange: #c26401;
+  --class-purple: #8430ce;
+  --class-teal: #007b83;
+  --class-pink: #b80672;
 }
 
 @theme inline {
-  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Roboto Variable", "Roboto", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Figtree Variable", "Roboto Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
 
   --color-background: var(--background);
@@ -101,6 +111,12 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-highlight: var(--highlight);
   --color-highlight-strong: var(--highlight-strong);
+  --color-class-blue: var(--class-blue);
+  --color-class-green: var(--class-green);
+  --color-class-orange: var(--class-orange);
+  --color-class-purple: var(--class-purple);
+  --color-class-teal: var(--class-teal);
+  --color-class-pink: var(--class-pink);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -108,8 +124,10 @@
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
 
-  --shadow-card: 0 1px 2px 0 rgb(16 24 40 / 0.04), 0 1px 3px 0 rgb(16 24 40 / 0.05);
-  --shadow-raised: 0 4px 12px -2px rgb(16 24 40 / 0.08), 0 2px 4px -2px rgb(16 24 40 / 0.04);
+  /* Material elevation: level 0 cards rely on borders; level 1 on hover, level 2 for menus. */
+  --shadow-card: 0 0 0 0 transparent;
+  --shadow-hover: 0 1px 2px 0 rgb(60 64 67 / 0.3), 0 1px 3px 1px rgb(60 64 67 / 0.15);
+  --shadow-raised: 0 1px 3px 0 rgb(60 64 67 / 0.3), 0 4px 8px 3px rgb(60 64 67 / 0.15);
 
   --animate-flash: flash 1.4s ease-out;
   @keyframes flash {
@@ -129,7 +147,13 @@
   }
   body {
     @apply bg-background text-foreground font-sans;
-    font-feature-settings: "cv11", "ss01";
+  }
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.005em;
   }
   ::selection {
     background: var(--primary-soft);

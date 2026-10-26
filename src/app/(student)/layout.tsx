@@ -1,24 +1,39 @@
-import { UserMenu } from "@/components/app-shell/user-menu";
-import { Logo } from "@/components/brand/logo";
+import { AppShell } from "@/components/app-shell/app-shell";
 import { requireStudentPage } from "@/lib/auth/session";
 import { demoLoginEnabled } from "@/lib/constants";
+import { db } from "@/lib/db";
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
   const user = await requireStudentPage();
+
+  const enrollments = await db.enrollment.findMany({
+    where: { studentId: user.id },
+    orderBy: { class: { createdAt: "asc" } },
+    select: { class: { select: { id: true, name: true, section: true } } },
+  });
+
+  // To-do count: assignments in the student's classes with nothing turned in yet.
+  const todo = await db.assignment.count({
+    where: {
+      class: { enrollments: { some: { studentId: user.id } } },
+      kind: { not: "TEST" },
+      submissions: { none: { studentId: user.id } },
+    },
+  });
+
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card/90 px-4 backdrop-blur supports-[backdrop-filter]:bg-card/75">
-        <Logo href="/student" />
-        <span className="hidden rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground sm:inline">
-          Student
-        </span>
-        <div className="ml-auto">
-          <UserMenu user={user} demoLogin={demoLoginEnabled()} />
-        </div>
-      </header>
-      <main id="main" className="min-w-0 flex-1">
-        {children}
-      </main>
-    </div>
+    <AppShell
+      user={user}
+      nav="student"
+      counts={{ todo }}
+      classes={enrollments.map((enrollment) => enrollment.class)}
+      classesLabel="Enrolled"
+      classesHref="/student"
+      classHrefBase="/student/classes/"
+      homeHref="/student"
+      demoLogin={demoLoginEnabled()}
+    >
+      {children}
+    </AppShell>
   );
 }

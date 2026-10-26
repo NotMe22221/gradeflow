@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/inter";
+import "@fontsource-variable/roboto";
+import "@fontsource-variable/figtree";
 
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
