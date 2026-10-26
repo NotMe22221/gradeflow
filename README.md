@@ -118,12 +118,11 @@ The click path for judges. Times are a guide.
 **More to show:**
 - **Make it yours.** Open the account menu → **Customize**: switch to **Dark**,
   pick an accent, try **Larger** text or **Compact** density. Changes apply at
-  once and are saved to your account. Then click **Customize** on Home to
-  arrange it: drag a section by its handle (or use the move buttons, which
+  once and are saved to your account. Then click **Arrange** on Home: drag a section by its handle (or use the move buttons, which
   also work from the keyboard), move it to the side column, hide what you don't
   need, and press **Done**. Class cards can be reordered the same way, and the
   drawer follows.
-- **Search.** Press Ctrl/⌘ K (or `/`) anywhere, type "Ava", and press Enter to
+- **Search.** Press Ctrl/⌘ K anywhere, type "Ava", and press Enter to
   open her profile. Students search their own classes and assignments only.
 - **On a phone.** The bottom bar has Home, Classes, To review, and Gradebook
   for teachers; Home, To-do, Classes, and Goals for students.

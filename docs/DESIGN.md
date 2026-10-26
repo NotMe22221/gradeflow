@@ -43,8 +43,8 @@ flash on load.
 - **Density:** Comfortable or Compact. Compact tightens list, table, and
   gradebook rows only, never dialogs or forms, and never shrinks a target below
   24px.
-- **Arrange Home:** an explicit edit mode (the **Customize** button on Home, or
-  **Customize → Arrange Home**). Sections sit in a main and a side column; each
+- **Arrange Home:** an explicit edit mode (the **Arrange** button on Home, or
+  **Customize → Arrange Home** in the account menu). Sections sit in a main and a side column; each
   has a drag handle plus Move up / Move down / Move to the other column / Hide
   buttons (the single-pointer and keyboard path that WCAG 2.5.7 requires).
   Hidden sections wait in a tray with **Show**. Essential sections (the
@@ -94,8 +94,8 @@ flash on load.
   under 600px, a rail from 600px, and the collapsible drawer with the class
   list from 840px. The active destination has a filled icon, a tonal pill, and
   `aria-current`.
-- Search (`src/components/command-palette/`): Ctrl/⌘ K or `/` (never while
-  typing). Results are grouped as Classes, Assignments, Students (teachers
+- Search (`src/components/command-palette/`): Ctrl/⌘ K (no single-key
+  shortcut, per WCAG 2.1.4). Results are grouped as Classes, Assignments, Students (teachers
   only), Pages, and Actions, built on the server for the signed-in user only.
 - Layout editor (`src/components/layout-editor/`): `CustomizableSections` and
   `ArrangeableClassGrid` (dnd-kit with pointer, touch, and keyboard sensors and
