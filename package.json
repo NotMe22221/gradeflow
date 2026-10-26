@@ -7,12 +7,15 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/local-db.mjs && next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "node scripts/local-db.mjs && next start",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
-    "seed": "prisma db push && tsx prisma/seed.ts",
+    "seed": "node scripts/local-db.mjs && prisma db push && tsx prisma/seed.ts",
+    "db:start": "node scripts/local-db.mjs",
+    "db:stop": "prisma dev stop gradesmart",
+    "vercel-build": "node scripts/local-db.mjs && prisma db push && tsx prisma/seed.ts --if-empty && next build",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -22,7 +25,7 @@
     "@dnd-kit/utilities": "3.2.2",
     "@fontsource-variable/figtree": "^5.3.0",
     "@fontsource-variable/roboto": "^5.3.0",
-    "@prisma/adapter-better-sqlite3": "^7.10.1",
+    "@prisma/adapter-pg": "7.10.1",
     "@prisma/client": "^7.10.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -30,6 +33,7 @@
     "dotenv": "^18.0.9",
     "next": "^16.4.3",
     "openai": "^7.43.0",
+    "pg": "8.23.1",
     "radix-ui": "^1.8.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -42,6 +46,7 @@
     "@material-symbols/svg-400": "0.47.6",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.20.5",
+    "@types/pg": "8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "prisma": "^7.10.1",

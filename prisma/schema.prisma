@@ -8,8 +8,9 @@
 //   PublishedGrade     the gradebook record; written only by lib/grades/publish
 //                      after a teacher approval, never by the grader
 //
-// SQLite has no native enums, so string "enums" are validated in
-// src/lib/constants.ts.
+// Statuses and roles are plain strings validated in src/lib/constants.ts, so
+// the schema stays simple to change. Postgres everywhere: hosted (DATABASE_URL)
+// or Prisma's local server (see src/lib/db-url.ts).
 
 generator client {
   provider = "prisma-client"
@@ -17,7 +18,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model User {

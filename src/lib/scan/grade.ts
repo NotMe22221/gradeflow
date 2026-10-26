@@ -7,7 +7,7 @@ import { getOwnedAssignment } from "@/lib/access";
 import { modelFor, openAiConfigured } from "@/lib/ai/openai";
 import { AuthError } from "@/lib/auth/session";
 import { parseAssignmentKind, type SubmissionStatus } from "@/lib/constants";
-import { db } from "@/lib/db";
+import { db, transaction } from "@/lib/db";
 import { describeFlag, serializeFlags, type FlagCriterion } from "@/lib/grading/flags";
 import type { GradingInput, RawGradingResult, ValidatedGrading } from "@/lib/grading/types";
 import { normalizePaperText } from "@/lib/paper";
@@ -164,7 +164,7 @@ async function saveScan(args: {
   result: ValidatedGrading;
 }): Promise<string> {
   const { assignmentId, studentId, result } = args;
-  return db.$transaction(async (tx) => {
+  return transaction(async (tx) => {
     const submissionData = {
       content: args.transcription,
       fileName: photoLabel(args.pages.length),

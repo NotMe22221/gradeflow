@@ -1,6 +1,6 @@
 import "server-only";
 
-import { db } from "@/lib/db";
+import { db, transaction } from "@/lib/db";
 import type { SubmissionStatus } from "@/lib/constants";
 import {
   MAX_PAPER_CHARS,
@@ -93,7 +93,7 @@ export async function upsertSubmission(input: {
   }
 
   try {
-    await db.$transaction(async (tx) => {
+    await transaction(async (tx) => {
       const claimed = await tx.submission.updateMany({
         where: { id: existing.id, status: { in: input.replaceable } },
         data: {

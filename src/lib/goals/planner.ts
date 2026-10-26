@@ -3,7 +3,7 @@ import "server-only";
 import { zodResponseFormat } from "openai/helpers/zod";
 
 import { describeOpenAiError, getOpenAI, modelFor, openAiConfigured, openAiRequestOptions } from "@/lib/ai/openai";
-import { db } from "@/lib/db";
+import { transaction } from "@/lib/db";
 import { awardXp } from "@/lib/gamification/award";
 import { XP_RULES } from "@/lib/gamification/rules";
 import {
@@ -156,7 +156,7 @@ export async function planStudentGoal(input: {
   const tipSource = extraction.tip ? "model" : "template";
   const coachingTip = extraction.tip ?? demoCoachingTip(goalClass.weakest, plan.status);
 
-  const { saved, xpAwarded } = await db.$transaction(async (tx) => {
+  const { saved, xpAwarded } = await transaction(async (tx) => {
     const saved = await tx.studentGoal.upsert({
       where: { studentId_classId: { studentId: input.studentId, classId: goalClass.id } },
       create: {

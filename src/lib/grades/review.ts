@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
 import { getOwnedAssignment, getOwnedSubmission } from "@/lib/access";
 import { AuthError, requireTeacher } from "@/lib/auth/session";
-import { db } from "@/lib/db";
+import { db, transaction } from "@/lib/db";
 import { awardXp } from "@/lib/gamification/award";
 import { xpForPublishedGrade } from "@/lib/gamification/rules";
 import { publishApprovedGrade } from "@/lib/grades/publish";
@@ -243,7 +243,7 @@ export async function saveReviewDraft(submissionId: unknown, payload: unknown) {
   const submission = await getReviewableSubmission(teacher.id, id);
   validateScores(input.scores, submission.assignment.criteria, { requireAll: false });
 
-  await db.$transaction(async (tx) => {
+  await transaction(async (tx) => {
     // Re-check the status inside the transaction so a draft can never land
     // on a paper that was approved or sent back a moment ago.
     const claimed = await tx.submission.updateMany({
@@ -269,7 +269,7 @@ export async function approveAndPublish(submissionId: unknown, payload: unknown)
   validateScores(input.scores, submission.assignment.criteria, { requireAll: true });
 
   const now = new Date();
-  const published = await db.$transaction(async (tx) => {
+  const published = await transaction(async (tx) => {
     await writeFinalValues(tx, id, input.scores);
 
     // Claim the approval. Only one approval can ever win for a submission.

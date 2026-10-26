@@ -9,7 +9,7 @@ import {
   type GraderKind,
   type SubmissionStatus,
 } from "@/lib/constants";
-import { db } from "@/lib/db";
+import { db, transaction } from "@/lib/db";
 import { getGrader } from "@/lib/grading";
 import type { Grader, GradingInput, ValidatedGrading } from "@/lib/grading/types";
 import { GradingError, validateGrading } from "@/lib/grading/validate";
@@ -119,7 +119,7 @@ async function saveGrading(
   grader: { kind: GraderKind; model: string | null },
   result: ValidatedGrading
 ): Promise<void> {
-  await db.$transaction(async (tx) => {
+  await transaction(async (tx) => {
     // Only finish a run that still holds the claim; anything else rolls back.
     // Clearing teacherFeedback drops the draft overall note from a previous run.
     const finished = await tx.submission.updateMany({

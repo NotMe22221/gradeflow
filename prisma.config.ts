@@ -5,7 +5,7 @@ import { defineConfig } from "prisma/config";
 config({ path: ".env.local", quiet: true });
 config({ quiet: true });
 
-const { DATABASE_URL } = await import("./src/lib/db-url");
+const { DIRECT_DATABASE_URL } = await import("./src/lib/db-url");
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -14,7 +14,8 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    // Zero-setup default: a local SQLite file next to the schema.
-    url: DATABASE_URL,
+    // Schema changes use a direct (unpooled) connection when the host offers
+    // one; with nothing configured, Prisma's local Postgres (npm run db:start).
+    url: DIRECT_DATABASE_URL,
   },
 });

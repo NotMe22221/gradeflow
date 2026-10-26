@@ -1,4 +1,4 @@
-// String "enums" for SQLite. Keep in sync with prisma/schema.prisma comments.
+// String "enums" (stored as plain strings). Keep in sync with prisma/schema.prisma comments.
 
 export const ROLES = ["TEACHER", "STUDENT"] as const;
 export type Role = (typeof ROLES)[number];

@@ -7,7 +7,7 @@ import { getEnrolledAssignment } from "@/lib/access";
 import { AuthError, requireStudent } from "@/lib/auth/session";
 import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import { parseAssignmentKind } from "@/lib/constants";
-import { db } from "@/lib/db";
+import { db, transaction } from "@/lib/db";
 import { awardXp } from "@/lib/gamification/award";
 import { XP_RULES } from "@/lib/gamification/rules";
 import { awardSubmissionXp } from "@/lib/gamification/submission-xp";
@@ -170,7 +170,7 @@ export async function logStudySession(assignmentId: string): Promise<LogStudySes
     if (!id.success) return { ok: false, error: "Assignment not found." };
     const assignment = await getEnrolledAssignment(student.id, id.data);
 
-    xpAwarded = await db.$transaction((tx) =>
+    xpAwarded = await transaction((tx) =>
       awardXp(tx, {
         studentId: student.id,
         kind: "STUDY_SESSION",

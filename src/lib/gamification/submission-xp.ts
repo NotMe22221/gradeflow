@@ -1,7 +1,7 @@
 import "server-only";
 
 import { isPastDue } from "@/components/student/student-status";
-import { db } from "@/lib/db";
+import { transaction } from "@/lib/db";
 import { awardXp } from "@/lib/gamification/award";
 import { submissionXpAwards, type XpAward } from "@/lib/gamification/rules";
 
@@ -29,7 +29,7 @@ export async function awardSubmissionXp(input: {
   // spread of real zones (about a day); XP is engagement only.
   const onTime = input.dueDate !== null && !isPastDue(input.dueDate, now, input.timeZone);
 
-  return db.$transaction(async (tx) => {
+  return transaction(async (tx) => {
     const existing = await tx.studyActivity.findMany({
       where: { studentId: input.studentId, refId: input.submissionId, kind: { in: SUBMISSION_KINDS } },
       select: { kind: true },

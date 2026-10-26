@@ -30,3 +30,6 @@ next-env.d.ts
 npm-debug.log*
 /test-results/
 /playwright-report/
+
+# Address of the local Postgres dev server (written by scripts/local-db.mjs)
+/prisma/.local-database-url

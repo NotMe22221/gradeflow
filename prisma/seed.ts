@@ -1,4 +1,6 @@
 // GradeSmart AI demo seed: `npm run seed` (prisma db push, then this script).
+// With --if-empty (used by the Vercel build), it only seeds a database that has
+// no users yet, so redeploying never wipes a live demo.
 //
 // Idempotent and self-resetting. It deletes every row, children first, and
 // inserts the fully synthetic demo dataset in one transaction, so running it
@@ -6,9 +8,9 @@
 // Every person, school, place, survey, quiz answer, and story in the dataset
 // is fictional.
 
-import "dotenv/config";
+import "./load-env";
 
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 import { PrismaClient, type Prisma } from "../src/generated/prisma/client";
 import { DEMO_STUDENT_EMAIL, DEMO_TEACHER_EMAIL } from "../src/lib/constants";
@@ -33,8 +35,10 @@ import { ASSIGNMENTS, type AssignmentKey } from "./seed-data/rubrics";
 import { engagementFor, questionAverage, validateDataset } from "./seed-data/validate";
 
 const prisma = new PrismaClient({
-  adapter: new PrismaBetterSqlite3({ url: DATABASE_URL }),
+  adapter: new PrismaPg({ connectionString: DATABASE_URL }),
 });
+
+const IF_EMPTY = process.argv.includes("--if-empty");
 
 type Tx = Prisma.TransactionClient;
 
@@ -411,14 +415,19 @@ async function seed() {
       await seedActivities(tx, ids, activities);
       await seedGoals(tx, clock, ids);
     },
-    { maxWait: 10_000, timeout: 60_000 }
+    // Generous: a hosted database is a network hop away for every insert.
+    { maxWait: 30_000, timeout: 180_000 }
   );
 
   await printSummary(clock, activities);
 }
 
 try {
-  await seed();
+  if (IF_EMPTY && (await prisma.user.count()) > 0) {
+    console.log("The database already has data, so the demo seed was skipped. Run `npm run seed` to reset it.");
+  } else {
+    await seed();
+  }
 } catch (error) {
   console.error("\nSeeding failed. The previous data was left unchanged.\n");
   console.error(error);
