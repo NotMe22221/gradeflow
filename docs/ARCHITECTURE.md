@@ -61,9 +61,9 @@ Submission ──AI first pass──▶ AiGrade + CriterionScore (suggestion, dr
 
 | Route | Who | Purpose |
 | --- | --- | --- |
-| `/` | public | Marketing landing; "View the demo" signs in as the demo teacher |
-| `/dashboard` | teacher | Home: greeting, stat strip, teaching tools, class cards with upcoming work and "N to review" |
-| `/classes` | teacher | Class cards; create a class |
+| `/` | public | Landing page with real screenshots; "View the demo" signs in as the demo teacher |
+| `/dashboard` | teacher | Home: greeting and "what needs you" notice, then arrangeable sections (stats, tools, classes, recent, missed); `?customize=1` opens arrange mode |
+| `/classes` | teacher | Class cards in the saved order; create a class; `?customize=1` arranges cards |
 | `/classes/[classId]` | teacher | Stream: class banner, Upcoming, activity feed (`src/lib/classroom/stream.ts`) |
 | `/classes/[classId]/classwork` | teacher | Classwork: "+ Create" menu, expandable assignment rows with Turned in / Assigned / Graded counts |
 | `/classes/[classId]/people` | teacher | People: teacher and roster (add student); rows link to student profiles |
@@ -75,12 +75,14 @@ Submission ──AI first pass──▶ AiGrade + CriterionScore (suggestion, dr
 | `/scan` | teacher | Paper Scanner (`?assignment=<id>`) |
 | `/gradebook` | teacher | Cross-class gradebook (`?class=<id>`), CSV export |
 | `/insights` | teacher | Class heatmap and most-missed questions (`?class=<id>`) |
-| `/student` | student | Home: streak + XP strip, class cards, assignment inbox, goal planner |
+| `/student` | student | Home: arrangeable sections (streak + XP, class cards, assignment inbox, goal planner); `?customize=1` opens arrange mode |
+| `/student/classes` | student | The student's class cards in the saved order |
 | `/student/todo` | student | To-do: Assigned / Missing / Done, grouped by due date (`?tab=`, `?class=`) |
 | `/student/classes/[classId]` (+ `/classwork`, `/people`) | student | The class Stream, their work in the class, teacher + classmates (names only) |
 | `/student/assignments/[assignmentId]` | student | Instructions and rubric; Your work card (paste or .txt, Turn in) / returned grade + feedback |
 | `POST /api/submissions/[submissionId]/grade` | teacher | Run the AI first pass for one submission |
 | `GET /api/classes/[classId]/gradebook/export` | teacher | Gradebook CSV download |
+| `GET /api/search` | signed in | The user's search index for Ctrl/⌘ K (`Cache-Control: private, no-store`). Teachers: their own classes, assignments, and enrolled students. Students: their enrolled classes and those classes' assignments only. Never AI drafts, scores, or classmates' emails. |
 
 ### `POST /api/submissions/[submissionId]/grade`
 
@@ -95,6 +97,20 @@ rubric criteria, `502` when the grader failed (the paper becomes
 `GRADING_FAILED` and can be retried). Error messages are always safe to show. Gradable states: `SUBMITTED`,
 `GRADING_FAILED`, `NEEDS_REVIEW` (re-run replaces the previous suggestion and
 draft edits). The batch UI calls this endpoint sequentially, one paper at a time.
+
+## Preferences
+
+`UserPreferences` stores one validated JSON document per user
+(`src/lib/preferences/schema.ts`): theme, accent, text size, density, the Home
+section layout per role (`main` / `side` columns plus `hidden`), class card
+order, and the To review paper side. The server actions in
+`src/lib/preferences/actions.ts` (`updatePreferences`, `resetSectionLayout`,
+`resetAllPreferences`) accept only the fields in `preferencesPatchSchema` from
+the signed-in user. Everything read back goes through `normalizePreferences`,
+so stale or unknown ids are dropped, new sections land in their default column,
+and essential sections can never be hidden. The root layout renders the
+appearance as `data-*` attributes on `<html>`; layout order never changes what
+data a page loads, only where it is shown.
 
 ## Modules
 
