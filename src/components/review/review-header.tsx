@@ -1,7 +1,16 @@
 "use client";
 
 import { useId } from "react";
-import { ArrowUpDown, ChevronDown, ChevronLeft, ChevronRight, Keyboard, ListFilter } from "@/components/icons";
+import {
+  ArrowUpDown,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Keyboard,
+  ListFilter,
+  PanelLeft,
+  PanelRight,
+} from "@/components/icons";
 
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -10,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { QueueList } from "@/components/review/queue-list";
+import type { PaperSide } from "@/lib/preferences/schema";
 import { pluralize } from "@/lib/format";
 import type { QueueSort, ReviewFilterOption, ReviewItem } from "@/lib/review/types";
 import { cn } from "@/lib/utils";
@@ -53,6 +63,8 @@ export function ReviewHeader({
   queueOpen,
   onQueueOpenChange,
   onShowShortcuts,
+  paperSide = "left",
+  onSwapPaperSide,
 }: {
   totalCount: number;
   visibleCount: number;
@@ -76,7 +88,12 @@ export function ReviewHeader({
   queueOpen: boolean;
   onQueueOpenChange: (open: boolean) => void;
   onShowShortcuts: () => void;
+  /** Where the paper sits beside the grade panel on wide screens (a saved preference). */
+  paperSide?: PaperSide;
+  /** Swap paper and grade panel; omitted while there is no paper to show. */
+  onSwapPaperSide?: () => void;
 }) {
+  const swapLabel = paperSide === "left" ? "Move the paper to the right" : "Move the paper to the left";
   const titleCounts = new Map<string, number>();
   for (const option of filterOptions) titleCounts.set(option.title, (titleCounts.get(option.title) ?? 0) + 1);
   const selectedOption = filterOptions.find((option) => option.id === filter);
@@ -186,6 +203,25 @@ export function ReviewHeader({
               open={queueOpen}
               onOpenChange={onQueueOpenChange}
             />
+          ) : null}
+
+          {onSwapPaperSide ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/* Side by side only exists from lg up, so the control does too. */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={onSwapPaperSide}
+                  className="hidden shrink-0 lg:inline-flex"
+                  aria-label={swapLabel}
+                >
+                  {paperSide === "left" ? <PanelRight className="size-5" aria-hidden /> : <PanelLeft className="size-5" aria-hidden />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{swapLabel}. Saved to your layout.</TooltipContent>
+            </Tooltip>
           ) : null}
 
           <Tooltip>

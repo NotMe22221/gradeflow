@@ -13,8 +13,9 @@ import { cn } from "@/lib/utils";
 /**
  * The student's returned grades in this class, newest first (PublishedGrade
  * only), as Classroom-style rows: the class-colored assignment icon, the
- * title and return date, then the score and percent. The whole row opens the
- * assignment.
+ * title and return date, then the score and percent (the chip uses the
+ * heatmap's scale and prints its value). The whole row opens the assignment.
+ * Rows tighten with the compact density.
  */
 export function PublishedGradesCard({
   grades,
@@ -57,7 +58,7 @@ export function PublishedGradesCard({
             <li key={grade.submissionId}>
               <Link
                 href={`/assignments/${encodeURIComponent(grade.assignmentId)}`}
-                className="group flex min-h-16 items-center gap-3 px-5 py-2.5 transition-colors outline-none hover:bg-foreground/[0.04] focus-visible:bg-foreground/[0.04] focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset sm:gap-4 sm:px-6"
+                className="group flex min-h-16 items-center gap-3 px-5 py-2.5 transition-colors outline-none hover:bg-foreground/[0.04] focus-visible:bg-foreground/[0.04] focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset compact:min-h-13 compact:py-1.5 sm:gap-4 sm:px-6"
               >
                 <AssignmentIcon isTest={tests.has(grade.assignmentId)} color={classColor} className="size-9 [&_svg]:size-[18px]" />
                 <span className="min-w-0 flex-1">

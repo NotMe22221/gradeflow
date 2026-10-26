@@ -31,7 +31,8 @@ function PeopleHeading({
   );
 }
 
-const rowClass = "flex min-h-14 items-center gap-4 px-2 py-2 sm:px-4";
+/** One person per row; compact density tightens the rows (targets stay 48px+). */
+const rowClass = "flex min-h-row-min items-center gap-4 px-2 py-2 compact:py-1 sm:px-4";
 
 export function TeachersSection({ teacherName }: { teacherName: string }) {
   return (
@@ -39,7 +40,7 @@ export function TeachersSection({ teacherName }: { teacherName: string }) {
       <PeopleHeading id="people-teachers-heading" title="Teachers" />
       <ul className="mt-2">
         <li className={rowClass}>
-          <Avatar name={teacherName} className="size-9 bg-primary-soft text-primary-soft-foreground ring-0" />
+          <Avatar name={teacherName} className="size-9 bg-primary-soft text-primary-soft-foreground ring-0 compact:size-8" />
           <span className="min-w-0 truncate text-sm font-medium text-foreground">{teacherName}</span>
         </li>
       </ul>
@@ -98,13 +99,13 @@ export function StudentsSection({
                   "group rounded-lg transition-colors outline-none hover:bg-foreground/[0.04] focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset"
                 )}
               >
-                <Avatar name={student.name} className="size-9" />
+                <Avatar name={student.name} className="size-9 compact:size-8" />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{student.name}</span>
                 <span aria-hidden className="hidden text-xs text-muted-foreground sm:group-hover:inline sm:group-focus-visible:inline">
                   View profile
                 </span>
                 <ChevronRight
-                  className="size-5 shrink-0 text-muted-foreground/70 transition-colors group-hover:text-foreground"
+                  className="size-5 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground"
                   aria-hidden
                 />
               </Link>

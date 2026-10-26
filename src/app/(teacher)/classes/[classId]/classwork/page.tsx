@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { ClipboardCheck, FileText, ScanLine } from "@/components/icons";
+import { FactCheck, FileText, ScanLine } from "@/components/icons";
 
 import { classReviewHref } from "@/components/classes/class-card";
 import { summarizeStatuses } from "@/components/classes/status-summary";
@@ -99,7 +99,7 @@ export default async function ClassworkPage({ params }: { params: Params }) {
         {toReview > 0 ? (
           <Button variant="text" asChild>
             <Link href={reviewHref}>
-              <ClipboardCheck aria-hidden />
+              <FactCheck aria-hidden />
               {pluralize(toReview, "paper")} waiting for your review
             </Link>
           </Button>

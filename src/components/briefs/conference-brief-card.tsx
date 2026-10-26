@@ -22,16 +22,47 @@ const GENERIC_ERROR = "The brief could not be drafted. Try again.";
  * Printing: the brief is also rendered into a portal on <body>, hidden on
  * screen. While a brief exists, this print stylesheet hides every other child
  * of <body> (the whole app shell) so only the brief prints, on one page.
+ * Paper is light whatever the screen theme: usePrintInLightTheme() switches
+ * <html> to the light theme for the print pass (beforeprint) and restores the
+ * viewer's theme afterwards, so the brief prints with the light tokens.
  */
 const PRINT_CSS = `
 @media print {
   @page { margin: 12mm 14mm; }
-  html, body { background: #fff !important; }
+  html, body { background: var(--card) !important; color-scheme: light; }
   body > *:not([data-brief-print-root]) { display: none !important; }
   [data-brief-print-root] { display: block !important; }
   [data-brief-print-root] * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 `;
+
+/** Switch <html> to the light theme while the page prints, then put the viewer's theme back. */
+function usePrintInLightTheme(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+    const root = document.documentElement;
+    // null: not printing. { theme }: the attribute to restore (null = absent).
+    let saved: { theme: string | null } | null = null;
+    const before = () => {
+      if (saved) return;
+      saved = { theme: root.getAttribute("data-theme") };
+      root.setAttribute("data-theme", "light");
+    };
+    const after = () => {
+      if (!saved) return;
+      if (saved.theme === null) root.removeAttribute("data-theme");
+      else root.setAttribute("data-theme", saved.theme);
+      saved = null;
+    };
+    window.addEventListener("beforeprint", before);
+    window.addEventListener("afterprint", after);
+    return () => {
+      window.removeEventListener("beforeprint", before);
+      window.removeEventListener("afterprint", after);
+      after();
+    };
+  }, [active]);
+}
 
 function isSuccess(data: unknown): data is ConferenceBriefSuccess {
   if (!data || typeof data !== "object") return false;
@@ -130,6 +161,7 @@ export function ConferenceBriefCard({
   const headingId = useId();
 
   useEffect(() => () => abortRef.current?.abort(), []);
+  usePrintInLightTheme(result !== null);
 
   // Move focus to the new brief's headline so screen readers announce it.
   useEffect(() => {
@@ -305,7 +337,7 @@ export function ConferenceBriefCard({
 
       {result && typeof document !== "undefined"
         ? createPortal(
-            <div data-brief-print-root className="hidden bg-white text-black">
+            <div data-brief-print-root className="hidden bg-card text-foreground">
               <style>{PRINT_CSS}</style>
               <BriefDocument
                 brief={result.brief}

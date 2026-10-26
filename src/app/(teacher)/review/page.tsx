@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { ReviewWorkspace } from "@/components/review/review-workspace";
 import { requireTeacherPage } from "@/lib/auth/session";
 import { getOwnedAssignmentTitle, getReviewQueue } from "@/lib/grades/review";
+import { getPreferences } from "@/lib/preferences/server";
 
 export const metadata: Metadata = { title: "To review" };
 
@@ -21,7 +22,7 @@ export default async function ReviewPage({
   const requestedAssignment = single(params.assignment);
   const requestedSubmission = single(params.s);
 
-  const items = await getReviewQueue(teacher.id);
+  const [items, preferences] = await Promise.all([getReviewQueue(teacher.id), getPreferences(teacher.id)]);
 
   // Only honour an assignment filter the teacher owns; anything else shows
   // the whole queue.
@@ -44,6 +45,7 @@ export default async function ReviewPage({
       initialAssignmentId={assignmentId}
       initialSelectedId={selectedId}
       filterTitle={assignmentTitle}
+      paperSide={preferences.layout.reviewPaperSide}
     />
   );
 }

@@ -1,13 +1,15 @@
 import { BadgeCheck, Check, ClipboardList } from "@/components/icons";
 
-import { WORK_TONE_CLASS, type WorkStatus } from "@/components/student/todo-model";
+import type { WorkStatus } from "@/components/student/todo-model";
+import { WorkStatusChip } from "@/components/student/work-status-chip";
 import { formatDate, formatDueDate, formatPercent, formatPoints } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /*
  * The right-hand "Your work" card on a student's assignment page, as in
- * Google Classroom: the status in the top-right corner, then the returned
- * grade, the student's paper, and what they can do next.
+ * Google Classroom: the status (icon and word) in the top-right corner, then
+ * the returned grade, the student's paper, and what they can do next. Turn
+ * in is the page's one filled button.
  */
 
 export function YourWorkCard({
@@ -24,13 +26,12 @@ export function YourWorkCard({
       aria-labelledby="your-work-heading"
       className={cn("rounded-xl border border-border bg-card p-5", className)}
     >
-      <div className="mb-4 flex items-baseline justify-between gap-3">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <h2 id="your-work-heading" className="text-[1.375rem] leading-7 font-normal text-foreground">
           Your work
         </h2>
-        <p className={cn("shrink-0 text-sm font-medium", WORK_TONE_CLASS[status.tone])}>
-          <span className="sr-only">Status: </span>
-          {status.label}
+        <p className="shrink-0">
+          <WorkStatusChip status={status} srPrefix />
         </p>
       </div>
       <div className="space-y-4">{children}</div>
@@ -69,7 +70,7 @@ export function ReturnedGrade({
           {formatPercent(totalScore, maxScore)}
         </span>
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">
+      <p className="mt-2 text-[0.8125rem] text-muted-foreground">
         Approved by <span className="font-medium text-foreground">{approvedByName}</span> on{" "}
         <span className="tabular">{formatDate(approvedAt, timeZone)}</span>
       </p>
@@ -109,12 +110,12 @@ export function TurnedInSteps({ doneLabel, at, timeZone }: { doneLabel: string; 
             )}
           >
             {step.state === "done" ? <Check className="size-3.5" strokeWidth={3} /> : null}
-            {step.state === "current" ? <span className="size-2 animate-pulse rounded-full bg-primary" /> : null}
+            {step.state === "current" ? <span className="size-2 rounded-full bg-primary" /> : null}
           </span>
           <span className="min-w-0 pt-0.5">
             <span
               className={cn(
-                "block text-sm leading-5 font-medium",
+                "block text-[0.875rem] leading-5 font-medium",
                 step.state === "upcoming" ? "text-muted-foreground" : "text-foreground"
               )}
             >
@@ -123,7 +124,7 @@ export function TurnedInSteps({ doneLabel, at, timeZone }: { doneLabel: string; 
                 {step.state === "done" ? ", done" : step.state === "current" ? ", in progress" : ", not yet"}
               </span>
             </span>
-            {step.detail ? <span className="tabular block text-xs text-muted-foreground">{step.detail}</span> : null}
+            {step.detail ? <span className="tabular block text-[0.8125rem] text-muted-foreground">{step.detail}</span> : null}
           </span>
         </li>
       ))}
@@ -154,7 +155,7 @@ export function PaperTestNotice({
         <ClipboardList className="size-[18px]" aria-hidden />
       </span>
       <div className="min-w-0 space-y-1">
-        <p className="text-sm font-medium text-foreground">
+        <p className="text-[0.875rem] font-medium text-foreground">
           {sentBack ? "Talk with your teacher about next steps" : "Your teacher scans this test"}
         </p>
         <p className="text-[0.8125rem] text-pretty text-muted-foreground">

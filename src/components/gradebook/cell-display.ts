@@ -26,8 +26,8 @@ export type CellDisplay = {
 /**
  * How each gradebook cell looks, in Google Classroom's words. The cells and
  * the legend both read this map, so the legend cannot drift from the cells.
- * Only approved grades ever show a score: an AI draft is a "Needs review"
- * chip, never a number.
+ * Only approved grades ever show a score: a draft (the AI's suggested score)
+ * is a "Needs review" chip with the edit-note icon, never a number.
  */
 export const CELL_DISPLAY: Record<CellDisplayKey, CellDisplay> = {
   published: {
@@ -39,8 +39,8 @@ export const CELL_DISPLAY: Record<CellDisplayKey, CellDisplay> = {
   in_review: {
     label: "Needs review",
     look: { kind: "chip", variant: "warning" },
-    hint: "An AI draft is waiting for your approval. It is not a grade and is not counted.",
-    legend: "AI draft waiting for your approval; not counted",
+    hint: "A suggested score is waiting for your approval. It is not a grade and is not counted.",
+    legend: "Suggested score waiting for your approval; not counted",
   },
   ready: {
     label: "Turned in",

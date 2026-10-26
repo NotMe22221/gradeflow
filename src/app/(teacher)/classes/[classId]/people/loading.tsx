@@ -11,7 +11,7 @@ function HeadingSkeleton({ withAction = false }: { withAction?: boolean }) {
 
 function RowSkeleton() {
   return (
-    <div className="flex min-h-14 items-center gap-4 px-2 py-2 sm:px-4">
+    <div className="flex min-h-row-min items-center gap-4 px-2 py-2 compact:py-1 sm:px-4">
       <Skeleton className="size-9 rounded-full" />
       <Skeleton className="h-4 w-40" />
     </div>

@@ -32,9 +32,9 @@ function SkillList({
       ) : (
         <ul className="mt-1.5">
           {items.map((skill) => (
-            <li key={skill.title} className="flex items-start justify-between gap-3 px-5 py-2 sm:px-6">
+            <li key={skill.title} className="flex items-start justify-between gap-3 px-5 py-2 compact:py-1.5 sm:px-6">
               <div className="min-w-0">
-                <p className="text-sm break-words text-foreground">{skill.title}</p>
+                <p className="text-[0.875rem] break-words text-foreground">{skill.title}</p>
                 <p className="line-clamp-2 text-xs text-muted-foreground" title={skill.assignments.join(", ")}>
                   {skill.assignments.join(", ")}
                 </p>

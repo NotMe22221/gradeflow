@@ -19,7 +19,7 @@ function PeopleHeading({ id, title, aside }: { id: string; title: string; aside?
   );
 }
 
-const rowClass = "flex min-h-14 items-center gap-4 px-2 py-2 sm:px-4";
+const rowClass = "flex min-h-row-min items-center gap-4 px-2 py-2 sm:px-4";
 
 export function StudentPeople({
   teacherName,
@@ -35,7 +35,7 @@ export function StudentPeople({
         <ul className="mt-2">
           <li className={rowClass}>
             <Avatar name={teacherName} className="size-9 bg-primary-soft text-primary-soft-foreground ring-0" />
-            <span className="min-w-0 truncate text-sm font-medium text-foreground">{teacherName}</span>
+            <span className="min-w-0 truncate text-[0.9375rem] font-medium text-foreground">{teacherName}</span>
           </li>
         </ul>
       </section>
@@ -45,7 +45,7 @@ export function StudentPeople({
           id="people-classmates-heading"
           title="Classmates"
           aside={
-            <span className="tabular text-sm font-medium text-primary">{pluralize(classmates.length, "student")}</span>
+            <span className="tabular text-[0.875rem] font-medium text-primary">{pluralize(classmates.length, "student")}</span>
           }
         />
         {classmates.length === 0 ? (
@@ -54,7 +54,7 @@ export function StudentPeople({
               <Users className="size-6" aria-hidden />
             </span>
             <p className="font-display text-base font-medium text-foreground">Your classmates show up here.</p>
-            <p className="mt-1 max-w-sm text-sm text-pretty text-muted-foreground">
+            <p className="mt-1 max-w-sm text-[0.875rem] text-pretty text-muted-foreground">
               Your teacher adds students to the class.
             </p>
           </div>
@@ -63,8 +63,12 @@ export function StudentPeople({
             {classmates.map((person) => (
               <li key={person.id} className={rowClass}>
                 <Avatar name={person.name} className="size-9 ring-0" />
-                <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{person.name}</span>
-                {person.isYou ? <span className="shrink-0 text-xs text-muted-foreground">You</span> : null}
+                <span className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium text-foreground">{person.name}</span>
+                {person.isYou ? (
+                  <span className="inline-flex h-6 shrink-0 items-center rounded-md bg-secondary px-2 text-[0.75rem] font-medium text-secondary-foreground">
+                    You
+                  </span>
+                ) : null}
               </li>
             ))}
           </ul>

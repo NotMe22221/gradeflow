@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import { isAwaitingScan, isOverdue, studentStateFor } from "@/components/student/student-status";
-import { relativeDue, type StudentWorkRow } from "@/components/student/todo-model";
+import { dueWhen, relativeDue, type DueWhen, type StudentWorkRow } from "@/components/student/todo-model";
 import { parseAssignmentKind } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { demoCoachingTip } from "@/lib/goals/coaching";
@@ -23,12 +23,16 @@ export type StudentClass = {
 };
 
 /**
- * One assignment from the student's side, with its relative due label
- * ("Due tomorrow", "Test on Friday") computed here with the request's `now`
- * in the viewer's time zone, so every list reads the same and the browser
- * never recomputes it.
+ * One assignment from the student's side, with its due labels ("Due
+ * tomorrow", "Test on Friday", and "Tue, Oct 27") computed here with the
+ * request's `now` in the viewer's time zone, so every list reads the same and
+ * the browser never recomputes them.
  */
-export type StudentWorkItem = StudentWorkRow & { dueText: string };
+export type StudentWorkItem = StudentWorkRow & {
+  dueText: string;
+  /** The same due date said two ways: "Due in 9 days" and "Mon, Nov 9". */
+  due: DueWhen;
+};
 
 export type StudentWorkData = {
   classes: StudentClass[];
@@ -128,6 +132,7 @@ export async function loadStudentWork(
         kind,
         dueDate,
         dueText: relativeDue({ dueDate, kind }, now, timeZone),
+        due: dueWhen({ dueDate, kind }, now, timeZone),
         submittedAt: iso(submission?.submittedAt),
         publishedAt: iso(published?.publishedAt),
         // A paper test is never overdue: the student can't submit one.

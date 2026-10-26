@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { ChevronRight } from "@/components/icons";
 
 import { AssignmentActions } from "@/components/assignments/assignment-actions";
+import { AssignmentBreadcrumbs, ClassAccentBar } from "@/components/assignments/assignment-breadcrumbs";
 import { AssignmentTabs, type AssignmentTab } from "@/components/assignments/assignment-tabs";
 import { BatchGradingProvider } from "@/components/assignments/batch-grading";
 import { BatchProgressCard } from "@/components/assignments/batch-progress-card";
@@ -12,7 +11,6 @@ import { PromptCard, RubricCard } from "@/components/assignments/rubric-card";
 import { SubmissionsTable } from "@/components/assignments/submissions-table";
 import type { EligibleStudent, SubmissionFlag, SubmissionRowData } from "@/components/assignments/types";
 import { summarizeStatuses, workCounts } from "@/components/classes/status-summary";
-import { ClassAvatar } from "@/components/classroom/class-avatar";
 import { AssignmentIcon } from "@/components/classwork/assignment-icon";
 import { isPastDueDay } from "@/components/classwork/due";
 import { WorkCounts } from "@/components/classwork/work-counts";
@@ -152,7 +150,6 @@ export default async function AssignmentPage({ params, searchParams }: { params:
 
   const totalPoints = assignment.criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0);
   const counts = workCounts(summarizeStatuses(submissions.map((submission) => submission.status), roster.length));
-  const classworkHref = `/classes/${encodeURIComponent(assignment.classId)}/classwork`;
   const meta = [
     assignment.dueDate ? `Due ${formatDueDate(assignment.dueDate)}` : "No due date",
     pluralize(totalPoints, "point"),
@@ -162,33 +159,14 @@ export default async function AssignmentPage({ params, searchParams }: { params:
 
   return (
     <BatchGradingProvider assignmentId={assignment.id} graderInfo={getGraderInfo()} rows={rows}>
+      <ClassAccentBar classTitle={assignment.class.name} />
       <PageContainer>
-        <nav aria-label="Breadcrumb" className="mb-4">
-          <ol className="flex min-w-0 items-center gap-1 text-[0.8125rem] font-medium text-muted-foreground">
-            <li className="min-w-0">
-              <Link
-                href={`/classes/${encodeURIComponent(assignment.classId)}`}
-                className="flex min-w-0 items-center gap-2 rounded-full py-1 pr-2 outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
-              >
-                <ClassAvatar name={assignment.class.name} className="size-6 text-[0.6875rem]" />
-                <span className="truncate">
-                  {[assignment.class.name, assignment.class.section].filter(Boolean).join(" · ")}
-                </span>
-              </Link>
-            </li>
-            <li aria-hidden>
-              <ChevronRight className="size-3.5 shrink-0" />
-            </li>
-            <li>
-              <Link
-                href={classworkHref}
-                className="rounded-sm py-1 outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
-              >
-                Classwork
-              </Link>
-            </li>
-          </ol>
-        </nav>
+        <AssignmentBreadcrumbs
+          classId={assignment.classId}
+          classTitle={assignment.class.name}
+          section={assignment.class.section}
+          title={assignment.title}
+        />
 
         <header className="mb-2 flex items-start gap-4">
           <AssignmentIcon
@@ -208,7 +186,8 @@ export default async function AssignmentPage({ params, searchParams }: { params:
           initialTab={initialTab}
           studentWork={
             <div className="space-y-6">
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              {/* Side by side only when the content area is wide enough for both (a container query, so the drawer counts). */}
+              <div className="flex flex-col gap-6 @6xl:flex-row @6xl:items-end @6xl:justify-between">
                 <WorkCounts counts={counts} isTest={test} size="lg" />
                 <AssignmentActions
                   classId={assignment.classId}

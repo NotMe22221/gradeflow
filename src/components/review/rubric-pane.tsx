@@ -5,6 +5,7 @@ import { FlaskConical, Info, PenLine, TriangleAlert } from "@/components/icons";
 
 import { ConfidenceBadge } from "@/components/grading/confidence-badge";
 import { GraderBadge } from "@/components/grading/grader-badge";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CriterionCard } from "@/components/review/criterion-card";
@@ -23,11 +24,11 @@ import type { ReviewItem } from "@/lib/review/types";
 import { cn } from "@/lib/utils";
 
 /**
- * The grade panel, like the right side of Classroom's grading tool: the big
- * grade with the AI suggestion beside it, a one-line demo note and any flags,
- * then one card per rubric criterion (or test question) with its score field,
- * evidence, and feedback, then the suggested summary and the overall note.
- * The action footer is pinned below on desktop.
+ * The grade panel, like the grading side of Classroom's grading tool: the big
+ * grade with the suggested score beside it, a one-line demo note and any
+ * flags, then one row per rubric criterion (or test question) with its score
+ * field, evidence, and feedback, then the overall note with the grader's
+ * draft feedback above it. The action footer is pinned below on desktop.
  */
 export function RubricPane({
   item,
@@ -54,11 +55,12 @@ export function RubricPane({
 }) {
   const feedbackId = useId();
   const feedbackHintId = useId();
+  const noteHeadingId = useId();
   const fallback = createDraft(item);
   const ai = item.ai;
+  const summaryInNote = Boolean(ai?.overallComment && draft.feedback.includes(ai.overallComment));
   // Demo output is never called "AI" so nobody mistakes it for a real model.
   const demo = ai?.grader === "demo";
-  const source = demo ? "Demo grader" : "AI";
   const unscored = summary.missingIds.length + summary.invalidIds.length;
   const kind = item.assignment.kind;
   const scanned = isScanned(item);
@@ -90,7 +92,7 @@ export function RubricPane({
               </div>
             ) : null}
           </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-1">
             <p className="flex items-baseline gap-1.5" aria-live="polite">
               <span className="tabular font-display text-[2.125rem] leading-none font-medium text-foreground">
                 {formatPoints(summary.total)}
@@ -99,19 +101,12 @@ export function RubricPane({
               <span className="sr-only">points</span>
             </p>
             {summary.aiTotal !== null ? (
-              <span
-                className={cn(
-                  "tabular inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-xs font-medium",
-                  demo
-                    ? "border border-dashed border-input/50 text-muted-foreground"
-                    : "bg-primary-soft text-primary-soft-foreground"
-                )}
-              >
-                {demo ? <FlaskConical className="size-3.5" aria-hidden /> : <PenLine className="size-3.5" aria-hidden />}
+              <p className="tabular inline-flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground">
+                {demo ? <FlaskConical className="size-4" aria-hidden /> : <PenLine className="size-4" aria-hidden />}
                 {summary.aiTotal === summary.total
-                  ? `Matches the ${demo ? "demo" : "AI"} suggestion`
-                  : `${demo ? "Demo" : "AI"} suggested ${formatPoints(summary.aiTotal)}`}
-              </span>
+                  ? `Matches the ${demo ? "demo suggestion" : "suggested score"}`
+                  : `${demo ? "Demo suggestion" : "Suggested score"} ${formatPoints(summary.aiTotal)}`}
+              </p>
             ) : null}
           </div>
           <p className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
@@ -124,11 +119,11 @@ export function RubricPane({
           </p>
         </div>
 
-        <div className="space-y-4 px-4 py-5 sm:px-5">
+        <div className="space-y-5 px-4 py-5 sm:px-5">
           {/* One line, not a box, so the scores being approved start near the top of the panel. */}
           {demo ? (
-            <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
-              <FlaskConical className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+            <p className="flex items-start gap-2 text-[0.8125rem] leading-relaxed text-muted-foreground">
+              <FlaskConical className="mt-0.5 size-4 shrink-0" aria-hidden />
               <span>
                 <span className="font-medium text-foreground">Demo grader output:</span> a local heuristic, not real
                 AI. Check each score before you return the grade.
@@ -137,9 +132,9 @@ export function RubricPane({
           ) : null}
 
           {!ai ? (
-            <div className="flex gap-3 rounded-xl bg-secondary p-4 text-[0.8125rem] leading-relaxed text-secondary-foreground">
+            <div className="flex gap-3 rounded-xl bg-secondary p-4 text-[0.875rem] leading-relaxed text-secondary-foreground">
               <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-              <p>There is no AI suggestion on file for this paper. Score each {unit.one} yourself.</p>
+              <p>There is no suggested score on file for this paper. Score each {unit.one} yourself.</p>
             </div>
           ) : null}
 
@@ -151,66 +146,95 @@ export function RubricPane({
             />
           ) : null}
 
-          <section aria-label={kind === "TEST" ? "Questions" : "Rubric"} className="space-y-3 pt-1">
+          <section aria-label={kind === "TEST" ? "Questions" : "Rubric"}>
             <div className="flex items-baseline justify-between gap-3">
               <h2 className="text-base font-medium text-foreground">{kind === "TEST" ? "Questions" : "Rubric"}</h2>
               <p className="tabular text-xs text-muted-foreground">
                 {pluralize(item.criteria.length, unit.one, unit.many)} · {pluralize(summary.maxTotal, "point")}
               </p>
             </div>
-            {item.criteria.map((criterion, index) => {
-              const entry = draft.scores[criterion.id] ?? fallback.scores[criterion.id];
-              return (
-                <CriterionCard
-                  key={criterion.id}
-                  submissionId={item.id}
-                  criterion={criterion}
-                  number={index + 1}
-                  draft={entry}
-                  grader={ai?.grader ?? null}
-                  kind={kind}
-                  scanned={scanned}
-                  evidenceVerified={layout.markForCriterion[criterion.id] !== undefined}
-                  onScoreChange={(raw) => updateCriterion(criterion.id, { raw })}
-                  onCommentChange={(comment) => updateCriterion(criterion.id, { comment })}
-                  onResetScore={() => updateCriterion(criterion.id, { raw: scoreToInput(criterion.aiScore) })}
-                  onShowEvidence={() => onShowEvidence(criterion.id)}
-                />
-              );
-            })}
+            <div className="divide-y divide-border">
+              {item.criteria.map((criterion, index) => {
+                const entry = draft.scores[criterion.id] ?? fallback.scores[criterion.id];
+                return (
+                  <CriterionCard
+                    key={criterion.id}
+                    submissionId={item.id}
+                    criterion={criterion}
+                    number={index + 1}
+                    draft={entry}
+                    grader={ai?.grader ?? null}
+                    kind={kind}
+                    scanned={scanned}
+                    evidenceVerified={layout.markForCriterion[criterion.id] !== undefined}
+                    onScoreChange={(raw) => updateCriterion(criterion.id, { raw })}
+                    onCommentChange={(comment) => updateCriterion(criterion.id, { comment })}
+                    onResetScore={() => updateCriterion(criterion.id, { raw: scoreToInput(criterion.aiScore) })}
+                    onShowEvidence={() => onShowEvidence(criterion.id)}
+                  />
+                );
+              })}
+            </div>
           </section>
 
-          {/* The suggested summary sits below the scores, right before the overall note it informs. */}
-          {ai?.overallComment ? (
-            <div className="rounded-xl bg-secondary px-4 py-3 text-[0.8125rem] leading-relaxed break-words text-secondary-foreground">
-              <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-foreground">
-                {demo ? <FlaskConical className="size-3.5" aria-hidden /> : <PenLine className="size-3.5" aria-hidden />}
-                {source} summary
-                <span className="sr-only">: </span>
-              </p>
-              {ai.overallComment}
-            </div>
-          ) : null}
+          <section aria-labelledby={noteHeadingId} className="space-y-3 border-t border-border pt-5">
+            <h2 id={noteHeadingId} className="text-base font-medium text-foreground">
+              Overall note
+            </h2>
 
-          <div className="space-y-2 rounded-xl border border-border p-4 sm:p-5">
-            <Label htmlFor={feedbackId}>Overall note to student</Label>
-            <p id={feedbackHintId} className="text-[0.8125rem] text-muted-foreground">
-              Optional. {firstName(item.student.name)} sees it with the returned grade.
-            </p>
-            <Textarea
-              id={feedbackId}
-              value={draft.feedback}
-              onChange={(event) => {
-                const feedback = event.target.value;
-                onDraftChange((current) => ({ ...current, feedback }));
-              }}
-              maxLength={MAX_FEEDBACK_CHARS}
-              rows={4}
-              aria-describedby={feedbackHintId}
-              placeholder="A sentence or two on the paper as a whole."
-              className="mt-1 min-h-24 text-[0.8125rem] leading-relaxed"
-            />
-          </div>
+            {/* The grader's summary is a draft: shown above the note it informs, used only if the teacher says so. */}
+            {ai?.overallComment ? (
+              <div className="rounded-xl bg-secondary px-4 py-3 text-[0.875rem] leading-relaxed break-words text-secondary-foreground">
+                <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                    {demo ? <FlaskConical className="size-4" aria-hidden /> : <PenLine className="size-4" aria-hidden />}
+                    {demo ? "Demo draft feedback" : "Draft feedback"}
+                    <span className="sr-only">: </span>
+                  </p>
+                  <Button
+                    type="button"
+                    variant="text"
+                    size="sm"
+                    className="-my-1 -mr-2 h-7 px-2.5"
+                    disabled={summaryInNote}
+                    onClick={() => {
+                      const comment = ai.overallComment ?? "";
+                      onDraftChange((current) => ({
+                        ...current,
+                        feedback: (current.feedback.trim()
+                          ? `${current.feedback.trimEnd()}\n\n${comment}`
+                          : comment
+                        ).slice(0, MAX_FEEDBACK_CHARS),
+                      }));
+                    }}
+                  >
+                    {summaryInNote ? "In your note" : "Use in note"}
+                  </Button>
+                </div>
+                {ai.overallComment}
+              </div>
+            ) : null}
+
+            <div className="space-y-2">
+              <Label htmlFor={feedbackId}>Note to {firstName(item.student.name)}</Label>
+              <p id={feedbackHintId} className="text-[0.8125rem] text-muted-foreground">
+                Optional. {firstName(item.student.name)} sees it with the returned grade.
+              </p>
+              <Textarea
+                id={feedbackId}
+                value={draft.feedback}
+                onChange={(event) => {
+                  const feedback = event.target.value;
+                  onDraftChange((current) => ({ ...current, feedback }));
+                }}
+                maxLength={MAX_FEEDBACK_CHARS}
+                rows={4}
+                aria-describedby={feedbackHintId}
+                placeholder="A sentence or two on the paper as a whole."
+                className="mt-1 min-h-24 text-[0.875rem] leading-relaxed"
+              />
+            </div>
+          </section>
         </div>
       </div>
       {footer}
@@ -249,7 +273,7 @@ function FlagsBanner({
         <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning-soft-foreground" aria-hidden />
         <div className="min-w-0 space-y-2">
           <p className="text-sm font-medium text-warning-soft-foreground">Check before you return this grade</p>
-          <ul className="list-disc space-y-1.5 pl-4 text-[0.8125rem] leading-relaxed break-words text-warning-soft-foreground marker:text-warning">
+          <ul className="list-disc space-y-1.5 pl-4 text-[0.875rem] leading-relaxed break-words text-warning-soft-foreground marker:text-warning">
             {lines.map((line, index) => (
               <li key={index}>
                 {line.criterionLabel ? <span className="font-medium">{line.criterionLabel}: </span> : null}

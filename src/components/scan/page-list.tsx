@@ -6,7 +6,10 @@ import type { ScanPage } from "@/components/scan/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/** Thumbnails of the scan's pages, in upload order, with reorder and remove. */
+/**
+ * Thumbnails of the scan's pages, in upload order, with reorder and remove.
+ * Photos sit on the paper fill and are never inverted in dark mode.
+ */
 export function PageList({
   pages,
   maxPages,
@@ -30,19 +33,19 @@ export function PageList({
         const number = index + 1;
         return (
           <li key={page.id} className="group min-w-0">
-            <div className="relative aspect-[3/4] overflow-hidden rounded-xl border border-border bg-muted">
+            <div className="relative aspect-[3/4] overflow-hidden rounded-xl border border-border bg-paper">
               {/* Plain <img>: a local object URL, so next/image does not apply. */}
               <img src={page.url} alt={`Page ${number} of the test`} className="size-full object-cover" />
-              <span className="tabular absolute top-2 left-2 rounded-full bg-card px-2.5 py-0.5 text-[0.6875rem] font-medium text-foreground shadow-hover">
+              <span className="tabular absolute top-2 left-2 rounded-full bg-card px-2.5 py-0.5 text-[0.75rem] font-medium text-foreground shadow-hover">
                 Page {number}
               </span>
               {page.sampleId ? (
-                <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full border border-dashed border-border bg-card/90 px-2 py-0.5 text-[0.6875rem] font-medium text-muted-foreground">
+                <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full border border-dashed border-input/60 bg-card/95 px-2 py-0.5 text-[0.75rem] font-medium text-muted-foreground">
                   <FlaskConical className="size-3" aria-hidden />
                   Sample
                 </span>
               ) : page.resized ? (
-                <span className="absolute bottom-2 left-2 rounded-full bg-card/90 px-2 py-0.5 text-[0.6875rem] font-medium text-muted-foreground">
+                <span className="absolute bottom-2 left-2 rounded-full bg-card/95 px-2 py-0.5 text-[0.75rem] font-medium text-muted-foreground">
                   Resized
                 </span>
               ) : null}
@@ -69,7 +72,7 @@ export function PageList({
               >
                 <ChevronLeft />
               </Button>
-              <span className="truncate text-[0.6875rem] text-muted-foreground" title={page.name}>
+              <span className="truncate text-[0.75rem] text-muted-foreground" title={page.name}>
                 {page.width > 0 ? (
                   <span className="tabular">
                     {page.width}×{page.height}

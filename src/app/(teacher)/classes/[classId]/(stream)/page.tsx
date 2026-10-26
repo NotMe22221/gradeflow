@@ -67,7 +67,7 @@ export default async function ClassStreamPage({ params }: { params: Params }) {
           <StreamFeed
             items={stream.items}
             teacherName={teacher.name}
-            classColor={classTheme(klass).color}
+            classAccent={classTheme(klass).accent}
             now={now}
             timeZone={timeZone}
           />

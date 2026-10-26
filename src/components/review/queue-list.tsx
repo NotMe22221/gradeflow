@@ -9,34 +9,45 @@ import { hasFlags } from "@/lib/review/model";
 import type { ReviewItem } from "@/lib/review/types";
 import { cn } from "@/lib/utils";
 
-const DOT: Record<Confidence, { className: string; label: string }> = {
-  high: { className: "bg-success", label: "High" },
-  medium: { className: "bg-warning", label: "Medium" },
-  low: { className: "bg-danger", label: "Low" },
+const LEVELS: Record<Confidence, { bars: 1 | 2 | 3; label: string }> = {
+  high: { bars: 3, label: "High" },
+  medium: { bars: 2, label: "Medium" },
+  low: { bars: 1, label: "Low" },
 };
 
+/** Bar heights in em, so the meter grows with the text size preference. */
+const BAR_HEIGHTS = ["h-[0.375em]", "h-[0.5625em]", "h-[0.75em]"] as const;
+
 /**
- * A small status dot for the model's confidence. It is the model's own,
- * uncalibrated self-report, so the label says so: a sorting signal, not a
+ * A small three-bar meter for the model's confidence: the number of filled
+ * bars is the level, so it reads without color. It is the model's own,
+ * uncalibrated self-report, and the label says so: a sorting signal, not a
  * probability that the grade is right.
  */
-export function ConfidenceDot({ confidence, className }: { confidence: Confidence; className?: string }) {
-  const dot = DOT[confidence];
+export function ConfidenceMeter({ confidence, className }: { confidence: Confidence; className?: string }) {
+  const level = LEVELS[confidence];
   return (
     <span
       role="img"
-      aria-label={`${dot.label} self-reported confidence`}
-      title={`${dot.label} confidence (self-reported, uncalibrated)`}
-      className={cn("inline-block size-2.5 shrink-0 rounded-full", dot.className, className)}
-    />
+      aria-label={`${level.label} self-reported confidence`}
+      title={`${level.label} confidence (self-reported, uncalibrated)`}
+      className={cn("inline-flex h-[0.75em] shrink-0 items-end gap-[0.125em] text-[0.875rem]", className)}
+    >
+      {BAR_HEIGHTS.map((height, index) => (
+        <span
+          key={height}
+          className={cn("w-[0.1875em] rounded-[1px] bg-current", height, index >= level.bars && "opacity-25")}
+        />
+      ))}
+    </span>
   );
 }
 
 /**
  * The grading list, as in Classroom's grading tool: one row per paper with
  * the student's avatar, name, assignment, the working draft grade, and the
- * confidence dot and flag icon. Used in the wide-screen rail and in the
- * student switcher's popover.
+ * confidence meter and flag icon. Used in the wide-screen rail and in the
+ * student switcher's popover. Rows tighten with the compact density.
  */
 export function QueueList({
   items,
@@ -86,7 +97,7 @@ export function QueueList({
               aria-current={active ? "true" : undefined}
               title={`${item.student.name} · ${item.assignment.title}`}
               className={cn(
-                "flex min-h-14 w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring",
+                "flex min-h-14 w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring compact:min-h-12 compact:py-1.5",
                 active ? "bg-primary-soft text-primary-soft-foreground" : "hover:bg-foreground/[0.04]"
               )}
             >
@@ -117,7 +128,7 @@ export function QueueList({
               </span>
               <span className="flex shrink-0 flex-col items-end gap-1.5">
                 {total ? (
-                  <span className="tabular text-[0.8125rem] italic">
+                  <span className="tabular text-[0.8125rem] italic" title="Draft grade, not returned yet">
                     <span className="sr-only">, draft grade </span>
                     {total}
                   </span>
@@ -126,11 +137,16 @@ export function QueueList({
                   {flagged ? (
                     <Flag
                       role="img"
-                      className="size-3.5 text-warning-soft-foreground"
+                      className={cn("size-4", active ? "text-primary-soft-foreground" : "text-warning-soft-foreground")}
                       aria-label={`${flagCount} flag${flagCount === 1 ? "" : "s"} to check`}
                     />
                   ) : null}
-                  {item.ai ? <ConfidenceDot confidence={item.ai.confidence} /> : null}
+                  {item.ai ? (
+                    <ConfidenceMeter
+                      confidence={item.ai.confidence}
+                      className={active ? "text-primary-soft-foreground" : "text-muted-foreground"}
+                    />
+                  ) : null}
                 </span>
               </span>
             </button>

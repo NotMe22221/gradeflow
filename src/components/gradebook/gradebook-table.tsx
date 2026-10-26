@@ -19,10 +19,12 @@ import { cn } from "@/lib/utils";
  * The table uses the separate border model so the sticky first column keeps
  * its borders while the rest scrolls horizontally underneath it; sticky cells
  * carry solid backgrounds that match their row, and cast a shadow once cells
- * have scrolled under them (GradebookScroll sets data-more-left).
+ * have scrolled under them (GradebookScroll sets data-more-left). The shadow
+ * is a tint of the theme's scrim, so it stays a shadow in dark mode too.
+ * Rows follow the density preference (h-row-min, py-cell).
  */
 const stickyCell =
-  "sticky left-0 transition-shadow after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border after:content-[''] group-data-[more-left=true]/grades:shadow-[6px_0_8px_-6px_rgb(0_0_0/0.14)]";
+  "sticky left-0 transition-shadow after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border after:content-[''] group-data-[more-left=true]/grades:shadow-[6px_0_8px_-6px_color-mix(in_srgb,var(--scrim)_40%,transparent)] group-data-[more-left=true]/grades:after:bg-input/60";
 
 export function GradebookTable({
   data,
@@ -62,14 +64,14 @@ export function GradebookTable({
                 scope="col"
                 className={cn(
                   stickyCell,
-                  "z-20 min-w-40 border-b border-border bg-card px-4 py-3 text-left align-bottom text-xs font-medium text-muted-foreground sm:min-w-52 sm:pl-6 xl:min-w-60"
+                  "z-20 min-w-40 border-b border-border bg-card px-4 py-3 text-left align-bottom text-xs font-medium text-muted-foreground compact:py-2 sm:min-w-52 sm:pl-6 xl:min-w-60"
                 )}
               >
                 Students
               </th>
               <th
                 scope="col"
-                className="min-w-28 border-b border-l border-border bg-card px-4 py-3 text-left align-bottom font-normal"
+                className="min-w-28 border-b border-l border-border bg-card px-4 py-3 text-left align-bottom font-normal compact:py-2"
               >
                 <span className="block text-xs text-muted-foreground">Approved grades</span>
                 <span className="mt-1 block text-sm font-medium text-foreground">Average</span>
@@ -78,7 +80,7 @@ export function GradebookTable({
                 <th
                   key={assignment.id}
                   scope="col"
-                  className="w-44 min-w-44 border-b border-l border-border bg-card px-4 py-3 text-left align-bottom font-normal"
+                  className="w-44 min-w-44 border-b border-l border-border bg-card px-4 py-3 text-left align-bottom font-normal compact:py-2"
                 >
                   <span className="block text-xs text-muted-foreground">
                     {assignment.dueDate ? `Due ${formatDueDate(assignment.dueDate)}` : "No due date"}
@@ -105,18 +107,18 @@ export function GradebookTable({
                 scope="row"
                 className={cn(
                   stickyCell,
-                  "z-10 h-12 border-b border-border bg-background px-4 text-left text-[0.8125rem] font-medium text-foreground sm:pl-6"
+                  "z-10 h-12 border-b border-border bg-background px-4 text-left text-[0.8125rem] font-medium text-foreground compact:h-10 sm:pl-6"
                 )}
               >
                 Class average
               </th>
-              <td className="tabular h-12 border-b border-l border-border bg-background px-4 text-sm font-medium text-foreground">
+              <td className="tabular h-12 border-b border-l border-border bg-background px-4 text-sm font-medium text-foreground compact:h-10">
                 {formatAverage(data.classAverage)}
               </td>
               {columns.map((assignment) => (
                 <td
                   key={assignment.id}
-                  className="tabular h-12 border-b border-l border-border bg-background px-4 text-sm text-foreground"
+                  className="tabular h-12 border-b border-l border-border bg-background px-4 text-sm text-foreground compact:h-10"
                 >
                   {formatAverage(data.assignmentAverages[assignment.id] ?? null)}
                 </td>
@@ -129,11 +131,11 @@ export function GradebookTable({
                   scope="row"
                   className={cn(
                     stickyCell,
-                    "z-10 h-14 border-b border-border bg-card px-4 text-left font-normal group-last:border-b-0 group-hover:bg-background sm:pl-6"
+                    "z-10 h-row-min border-b border-border bg-card px-4 text-left font-normal group-last:border-b-0 group-hover:bg-background sm:pl-6"
                   )}
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <Avatar name={row.student.name} className="hidden sm:inline-flex" />
+                    <Avatar name={row.student.name} className="hidden sm:inline-flex compact:size-7" />
                     <Link
                       href={studentProfileHref(data.class.id, row.student.id)}
                       title={`${row.student.name} (${row.student.email}): profile and conference brief`}
@@ -143,7 +145,7 @@ export function GradebookTable({
                     </Link>
                   </div>
                 </th>
-                <td className="tabular h-14 border-b border-l border-border bg-card px-4 text-sm font-medium text-foreground group-last:border-b-0 group-hover:bg-background">
+                <td className="tabular h-row-min border-b border-l border-border bg-card px-4 text-sm font-medium text-foreground group-last:border-b-0 group-hover:bg-background">
                   {formatAverage(row.averagePercent)}
                 </td>
                 {order.map((cellIndex, position) => {
@@ -153,7 +155,7 @@ export function GradebookTable({
                   return (
                     <td
                       key={cell.assignmentId}
-                      className="h-14 border-b border-l border-border bg-card px-4 group-last:border-b-0 group-hover:bg-background"
+                      className="h-row-min border-b border-l border-border bg-card px-4 group-last:border-b-0 group-hover:bg-background"
                     >
                       <GradebookCellView
                         cell={cell}

@@ -7,7 +7,7 @@
 // "Done" is "Submitted" + "Graded". So the dashboard summary (inboxSummary)
 // still names exactly what is waiting on the student.
 
-import { daysUntil, DUE_SOON_DAYS, dueLabel as relativeDueLabel, weekdayIndex } from "@/lib/classroom/due";
+import { daysUntil, DUE_SOON_DAYS, dueLabel as relativeDueLabel, weekdayIndex, zonedDayNumber } from "@/lib/classroom/due";
 import { formatScore } from "@/lib/format";
 import { tabFor, type InboxAssignment } from "@/components/student/inbox-model";
 
@@ -66,12 +66,17 @@ export type WorkStatus = {
   tone: WorkTone;
 };
 
-/** Text colors for each tone. Status colors are used for status only. */
+/**
+ * Text colors for each tone, for a status word on an ordinary surface.
+ * Status colors are used for status only, and always next to the word (see
+ * WorkStatusChip, which adds an icon too). Only what needs the student
+ * (Missing, Sent back) or answers them (Returned) is colored.
+ */
 export const WORK_TONE_CLASS: Record<WorkTone, string> = {
-  assigned: "text-success",
-  missing: "text-danger",
+  assigned: "text-muted-foreground",
+  missing: "text-danger-soft-foreground",
   done: "text-muted-foreground",
-  returned: "text-foreground",
+  returned: "text-success-soft-foreground",
   attention: "text-warning-soft-foreground",
   neutral: "text-muted-foreground",
 };
@@ -131,6 +136,68 @@ export function relativeDue(row: Pick<InboxAssignment, "dueDate" | "kind">, now:
   if (days === 0 || days === 1) return label.replace(/^Due/, "Test");
   if (days > 1 && days < 7) return label.replace(/^Due/, "Test on");
   return label.replace(/^Due/, "Test day");
+}
+
+/** A due date said two ways: how far away it is, and the calendar day. */
+export type DueWhen = {
+  /** "Due tomorrow", "Due Friday", "Due in 9 days", "Due 3 days ago", "Test on Friday", "No due date". */
+  relative: string;
+  /** "Mon, Nov 9" (with the year when it isn't the viewer's current year), or null with no date. */
+  absolute: string | null;
+};
+
+const ABSOLUTE_DAY = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+const ABSOLUTE_DAY_YEAR = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  timeZone: "UTC",
+});
+const DUE_WEEKDAY = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "UTC" });
+
+/**
+ * "Mon, Nov 9": a due date's calendar day (the UTC date it is stored on), so
+ * it reads the same in every zone and on the server and in the browser. The
+ * year is added when it differs from `now`'s year (UTC; undefined `now`: never).
+ */
+export function absoluteDue(dueDate: string | Date | null | undefined, now?: Date): string | null {
+  if (!dueDate) return null;
+  const due = new Date(dueDate);
+  if (Number.isNaN(due.getTime())) return null;
+  const otherYear = now !== undefined && due.getUTCFullYear() !== now.getUTCFullYear();
+  return (otherYear ? ABSOLUTE_DAY_YEAR : ABSOLUTE_DAY).format(due);
+}
+
+/**
+ * A due date as students scan for it: relative first ("Due tomorrow", "Due
+ * in 9 days", "Due 3 days ago"), then the calendar day ("Tue, Oct 27"). A
+ * paper test has a test day instead ("Test on Friday", "Test was 2 days
+ * ago"). "Today" is the viewer's day in `timeZone` (undefined: the server's
+ * zone), the same day boundary as relativeDue() and the past-due rule.
+ */
+export function dueWhen(row: Pick<InboxAssignment, "dueDate" | "kind">, now: Date, timeZone?: string): DueWhen {
+  const due = parse(row.dueDate);
+  const test = row.kind === "TEST";
+  if (!due) return { relative: test ? "No test date" : "No due date", absolute: null };
+  const days = daysUntil(due, now, timeZone);
+  // The year comes from the viewer's calendar, so Dec 31 / Jan 1 read right in every zone.
+  const today = new Date(zonedDayNumber(now, timeZone) * 86_400_000);
+  const absolute = absoluteDue(due, today);
+  const weekday = DUE_WEEKDAY.format(due);
+  let relative: string;
+  if (days === 0) relative = test ? "Test today" : "Due today";
+  else if (days === 1) relative = test ? "Test tomorrow" : "Due tomorrow";
+  else if (days > 1 && days < 7) relative = test ? `Test on ${weekday}` : `Due ${weekday}`;
+  else if (days >= 7) relative = test ? `Test in ${days} days` : `Due in ${days} days`;
+  else if (days === -1) relative = test ? "Test was yesterday" : "Due yesterday";
+  else relative = test ? `Test was ${-days} days ago` : `Due ${-days} days ago`;
+  return { relative, absolute };
+}
+
+/** "Due tomorrow · Tue, Oct 27", for one-line places and accessible names. */
+export function dueWhenText(when: DueWhen): string {
+  return when.absolute ? `${when.relative} · ${when.absolute}` : when.relative;
 }
 
 // --- Groups ----------------------------------------------------------------------
@@ -204,6 +271,8 @@ export type TodoItem = {
   sortKey: number;
   /** "Due tomorrow", "Test Nov 9", "No due date". */
   dueText: string;
+  /** The due date said two ways ("Due in 9 days" / "Mon, Nov 9"). */
+  due: DueWhen;
   status: WorkStatus;
   /** "18/25" once returned. */
   score: string | null;
@@ -224,6 +293,7 @@ export function toTodoItem(row: InboxAssignment, now: Date, timeZone?: string): 
     group: todoGroupFor(row, tab, now, timeZone),
     sortKey: todoSortKey(row, tab),
     dueText: relativeDue(row, now, timeZone),
+    due: dueWhen(row, now, timeZone),
     status: workStatus(row),
     score: scoreText(row),
     note: isTest && row.state === "not_submitted" ? PAPER_TEST_NOTE : null,

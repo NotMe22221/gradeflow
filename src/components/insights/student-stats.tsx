@@ -7,10 +7,11 @@ import { cn } from "@/lib/utils";
 
 type Tone = "neutral" | "warning" | "danger";
 
+/** Status color appears only when a tile needs attention, and always next to a word. */
 const TONE: Record<Tone, { icon: string; value: string }> = {
-  neutral: { icon: "bg-primary-soft text-primary-soft-foreground", value: "text-foreground" },
-  warning: { icon: "bg-warning-soft text-warning-soft-foreground", value: "text-foreground" },
-  danger: { icon: "bg-danger-soft text-danger-soft-foreground", value: "text-danger" },
+  neutral: { icon: "text-muted-foreground", value: "text-foreground" },
+  warning: { icon: "text-warning-soft-foreground", value: "text-foreground" },
+  danger: { icon: "text-danger", value: "text-danger" },
 };
 
 function StatTile({
@@ -29,18 +30,16 @@ function StatTile({
   tone?: Tone;
 }) {
   return (
-    <div className="flex min-w-0 flex-col items-start gap-2.5 bg-card p-4 sm:flex-row sm:gap-4 sm:p-5">
-      <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-full sm:size-10", TONE[tone].icon)}>
-        <Icon className="size-[18px] sm:size-5" aria-hidden />
-      </span>
-      <div className="min-w-0">
-        <h2 className="font-sans text-[0.8125rem] font-medium text-muted-foreground">{label}</h2>
-        <p className={cn("tabular font-display text-2xl leading-8 font-medium", TONE[tone].value)}>
-          <span aria-hidden={srValue ? true : undefined}>{value}</span>
-          {srValue ? <span className="sr-only">{srValue}</span> : null}
-        </p>
-        <p className="text-xs leading-5 text-pretty text-muted-foreground">{hint}</p>
-      </div>
+    <div className="flex min-w-0 flex-col gap-1 bg-card p-4 sm:p-5">
+      <h2 className="flex items-center gap-2 font-sans text-[0.8125rem] font-medium text-muted-foreground">
+        <Icon className={cn("size-4 shrink-0", TONE[tone].icon)} filled={tone !== "neutral"} aria-hidden />
+        {label}
+      </h2>
+      <p className={cn("tabular font-display text-[1.75rem] leading-9 font-medium", TONE[tone].value)}>
+        <span aria-hidden={srValue ? true : undefined}>{value}</span>
+        {srValue ? <span className="sr-only">{srValue}</span> : null}
+      </p>
+      <p className="text-xs leading-5 text-pretty text-muted-foreground">{hint}</p>
     </div>
   );
 }
@@ -49,7 +48,8 @@ function StatTile({
  * The student's standing in this class, as one strip of tiles (two by two
  * when the content area is narrower than 48rem, e.g. a phone or the open
  * drawer at 1024px). Scores come from approved grades only. Status colors appear only
- * when something needs attention (work waiting for review, missing work).
+ * when something needs attention (work waiting for review, missing work), with
+ * a filled icon beside the label so the state never rests on color alone.
  */
 export function StudentStats({ profile, assignmentCount }: { profile: StudentProfile; assignmentCount: number }) {
   const { stats } = profile;

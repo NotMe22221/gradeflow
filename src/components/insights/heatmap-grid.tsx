@@ -31,14 +31,17 @@ import { cn } from "@/lib/utils";
  * From sm up the Average column is pinned to the right edge, so every
  * student's average stays in view, and the card header shows scroll buttons.
  * The pinned columns cast a soft shadow while cells are scrolled beneath them.
+ *
+ * Tiles use the diverging orange/blue scale in heat-tone.ts and always print
+ * their percent; rows tighten with the compact density.
  */
 
 const stickyCell =
-  "sticky left-0 after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border after:content-[''] group-data-[more-left=true]/heatmap:shadow-[6px_0_8px_-6px_rgb(0_0_0/0.14)]";
+  "sticky left-0 after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border after:content-[''] group-data-[more-left=true]/heatmap:shadow-[6px_0_8px_-6px_color-mix(in_srgb,var(--scrim)_35%,transparent)]";
 
 /** The Average column: pinned right from sm up (phones are too narrow to pin two columns). */
 const stickyEndCell =
-  "sm:sticky sm:right-0 sm:group-data-[more-right=true]/heatmap:shadow-[-6px_0_8px_-6px_rgb(0_0_0/0.14)]";
+  "sm:sticky sm:right-0 sm:group-data-[more-right=true]/heatmap:shadow-[-6px_0_8px_-6px_color-mix(in_srgb,var(--scrim)_35%,transparent)]";
 
 /** Index of the first column of every group, for the group dividers. */
 function groupStarts(heatmap: ClassHeatmap): Set<number> {
@@ -149,7 +152,7 @@ export function HeatmapGrid({ heatmap }: { heatmap: ClassHeatmap }) {
                 <Link
                   href={studentProfileHref(classId, row.student.id)}
                   title={`${row.student.name}: profile and conference brief`}
-                  className="flex min-w-0 items-center gap-2 rounded-sm py-1 text-sm font-medium text-foreground outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring"
+                  className="flex min-w-0 items-center gap-2 rounded-sm py-1 text-sm font-medium text-foreground outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring compact:py-0.5"
                 >
                   <Avatar name={row.student.name} className="hidden size-6 text-[0.625rem] sm:inline-flex" />
                   <span className="max-w-[8.5rem] truncate sm:max-w-[13rem]">{row.student.name}</span>
@@ -168,7 +171,7 @@ export function HeatmapGrid({ heatmap }: { heatmap: ClassHeatmap }) {
                     <span
                       aria-hidden
                       className={cn(
-                        "tabular flex h-8 items-center justify-center rounded-md text-xs font-medium transition-shadow hover:ring-2 hover:ring-foreground/25",
+                        "tabular flex h-8 items-center justify-center rounded-md text-xs font-medium transition-shadow hover:ring-2 hover:ring-foreground/30 compact:h-7",
                         HEAT_TONE[heatBand(value)].cell
                       )}
                     >

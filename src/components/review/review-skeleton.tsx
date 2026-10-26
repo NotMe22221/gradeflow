@@ -1,9 +1,14 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import type { PaperSide } from "@/lib/preferences/schema";
+import { cn } from "@/lib/utils";
 
 const PAPER_LINES = ["w-full", "w-11/12", "w-full", "w-4/5", "w-full", "w-10/12", "w-3/5"];
 
-/** Loading state that mirrors the grading tool: header, grading list, paper, grade panel. */
-export function ReviewSkeleton() {
+/**
+ * Loading state that mirrors the grading tool: header, grading list, paper,
+ * grade panel, with the paper on the teacher's saved side.
+ */
+export function ReviewSkeleton({ paperSide = "left" }: { paperSide?: PaperSide }) {
   return (
     <div
       className="@container relative flex min-h-[calc(100dvh-4rem)] flex-col lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:overflow-hidden"
@@ -46,7 +51,7 @@ export function ReviewSkeleton() {
           ))}
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row">
+        <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col", paperSide === "left" ? "lg:flex-row" : "lg:flex-row-reverse")}>
           <div className="min-w-0 flex-1 bg-background lg:overflow-hidden">
             <div className="mx-auto w-full max-w-3xl px-4 py-5 sm:px-6 lg:py-6">
               <div className="mb-5 flex items-start gap-3">
@@ -57,17 +62,16 @@ export function ReviewSkeleton() {
                   <Skeleton className="h-3.5 w-32" />
                 </div>
               </div>
-              <div className="overflow-hidden rounded-xl border border-border bg-card">
-                <div className="flex items-center gap-3 border-b border-border px-5 py-2.5">
-                  <Skeleton className="size-8 rounded-full" />
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="ml-auto h-3 w-16" />
-                </div>
-                <div className="space-y-6 px-5 py-7 sm:px-10 sm:py-10">
+              <div className="mb-2 flex items-center gap-2 px-1">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="ml-auto h-3.5 w-16" />
+              </div>
+              <div className="rounded-xl border border-border bg-paper px-5 py-7 @xl:px-12 @xl:py-12">
+                <div className="space-y-6">
                   {[0, 1, 2].map((paragraph) => (
                     <div key={paragraph} className="mx-auto max-w-prose space-y-3">
                       {PAPER_LINES.map((width, index) => (
-                        <Skeleton key={index} className={`h-3.5 ${width}`} />
+                        <Skeleton key={index} className={`h-3.5 bg-paper-foreground/10 ${width}`} />
                       ))}
                     </div>
                   ))}
@@ -76,7 +80,12 @@ export function ReviewSkeleton() {
             </div>
           </div>
 
-          <div className="hidden min-h-0 flex-col border-l border-border bg-card lg:flex lg:w-[min(30rem,48%)]">
+          <div
+            className={cn(
+              "hidden min-h-0 flex-col border-border bg-card lg:flex lg:w-[min(30rem,48%)]",
+              paperSide === "left" ? "border-l" : "border-r"
+            )}
+          >
             <div className="space-y-2.5 border-b border-border px-5 pt-3 pb-4">
               <div className="flex items-center justify-between gap-3">
                 <Skeleton className="h-3.5 w-12" />
@@ -85,28 +94,32 @@ export function ReviewSkeleton() {
                   <Skeleton className="h-5 w-24 rounded-md" />
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <Skeleton className="h-9 w-24" />
-                <Skeleton className="h-7 w-28 rounded-full" />
+                <Skeleton className="h-4 w-36" />
               </div>
               <Skeleton className="h-3 w-56 max-w-full" />
             </div>
-            <div className="flex-1 space-y-3 overflow-hidden px-5 py-5">
-              <Skeleton className="h-4 w-20" />
-              {[0, 1, 2].map((card) => (
-                <div key={card} className="space-y-4 rounded-xl border border-border bg-card p-5">
-                  <div className="flex items-start gap-3">
-                    <Skeleton className="size-7 shrink-0 rounded-full" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-40" />
-                      <Skeleton className="h-6 w-28 rounded-full" />
+            <div className="flex-1 overflow-hidden px-5 py-5">
+              <Skeleton className="mb-1 h-4 w-20" />
+              <div className="divide-y divide-border">
+                {[0, 1, 2].map((row) => (
+                  <div key={row} className="space-y-4 py-5">
+                    <div className="flex items-start gap-3">
+                      <Skeleton className="size-7 shrink-0 rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-40" />
+                        <Skeleton className="h-3.5 w-32" />
+                      </div>
+                      <Skeleton className="h-11 w-24 rounded-full" />
                     </div>
-                    <Skeleton className="h-11 w-24 rounded-full" />
+                    <div className="space-y-3 pl-10">
+                      <Skeleton className="h-16 w-full rounded-xl" />
+                      <Skeleton className="h-20 w-full" />
+                    </div>
                   </div>
-                  <Skeleton className="h-16 w-full rounded-xl" />
-                  <Skeleton className="h-20 w-full" />
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
             <div className="flex items-center gap-3 border-t border-border px-5 py-3">
               <Skeleton className="h-4 w-28" />

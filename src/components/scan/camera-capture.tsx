@@ -29,6 +29,15 @@ function describeCameraError(error: unknown): string {
   }
 }
 
+/*
+ * The viewfinder is always a dark surface (like any camera app), built from
+ * theme tokens: the inverse of the page in light mode (foreground as the
+ * fill, background as the ink) and the deepest surface in dark mode.
+ */
+const VIEWFINDER = "bg-foreground dark:bg-background";
+const ON_VIEWFINDER = "text-background dark:text-foreground";
+const SCRIM = "bg-foreground/60 dark:bg-background/70";
+
 /**
  * Live camera preview with a shutter button. Each capture is drawn to a
  * canvas (no larger than MAX_SCAN_EDGE_PX) and handed back as a JPEG. The
@@ -127,7 +136,7 @@ export function CameraCapture({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-foreground/95">
+    <div className={cn("overflow-hidden rounded-xl border border-border", VIEWFINDER)}>
       <div className="relative aspect-[3/4] w-full sm:aspect-[4/3]">
         <video
           ref={videoRef}
@@ -140,13 +149,13 @@ export function CameraCapture({
         <div
           aria-hidden
           className={cn(
-            "pointer-events-none absolute inset-0 bg-white transition-opacity duration-150",
+            "pointer-events-none absolute inset-0 bg-background transition-opacity duration-150 motion-reduce:transition-none dark:bg-foreground",
             flash ? "opacity-70" : "opacity-0"
           )}
         />
 
         {state.status === "starting" ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm text-white/80">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm text-background/80 dark:text-foreground/80">
             <LoaderCircle className="size-5 animate-spin" aria-hidden />
             Starting camera…
           </div>
@@ -154,34 +163,34 @@ export function CameraCapture({
 
         {state.status === "error" ? (
           <div role="alert" className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
-            <div className="flex size-10 items-center justify-center rounded-full bg-white/10 text-white">
+            <div className={cn("flex size-10 items-center justify-center rounded-full bg-background/10 dark:bg-foreground/10", ON_VIEWFINDER)}>
               <CameraOff className="size-5" aria-hidden />
             </div>
-            <p className="max-w-sm text-sm text-pretty text-white/85">{state.message}</p>
+            <p className="max-w-sm text-sm text-pretty text-background/90 dark:text-foreground/90">{state.message}</p>
           </div>
         ) : null}
 
         {state.status === "live" ? (
           <>
             <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-3">
-              <span className="tabular rounded-full bg-black/55 px-3 py-1 text-xs font-medium text-white">
+              <span className={cn("tabular rounded-full px-3 py-1 text-xs font-medium", SCRIM, ON_VIEWFINDER)}>
                 {canCapture ? `Page ${pageNumber}` : "All pages added"}
               </span>
             </div>
             {/* Framing guide: fill it with the page. */}
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-6 rounded-lg border border-dashed border-white/40 sm:inset-x-[22%] sm:inset-y-6"
+              className="pointer-events-none absolute inset-6 rounded-lg border border-dashed border-background/50 sm:inset-x-[22%] sm:inset-y-6 dark:border-foreground/50"
             />
-            <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-black/35 py-4">
+            <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-foreground/35 py-4 dark:bg-background/45">
               <button
                 type="button"
                 onClick={capture}
                 disabled={!canCapture || capturing || disabled}
                 aria-label={canCapture ? `Capture page ${pageNumber}` : "All pages added"}
-                className="group flex size-16 items-center justify-center rounded-full bg-white/25 ring-4 ring-white/70 transition outline-none hover:bg-white/35 focus-visible:ring-[6px] focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40"
+                className="group flex size-16 items-center justify-center rounded-full bg-background/25 ring-4 ring-background/70 transition outline-none hover:bg-background/35 focus-visible:ring-[6px] focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40 dark:bg-foreground/25 dark:ring-foreground/70 dark:hover:bg-foreground/35"
               >
-                <span className="size-12 rounded-full bg-white shadow-raised transition group-active:scale-90" />
+                <span className="size-12 rounded-full bg-background shadow-raised transition group-active:scale-90 motion-reduce:transition-none dark:bg-foreground" />
               </button>
             </div>
           </>
@@ -193,12 +202,12 @@ export function CameraCapture({
           size="icon"
           onClick={close}
           aria-label="Close camera"
-          className="absolute top-2 right-2 bg-black/55 text-white hover:bg-black/70 hover:text-white"
+          className={cn("absolute top-2 right-2 hover:bg-foreground/75 dark:hover:bg-background/85", SCRIM, ON_VIEWFINDER, "hover:text-background dark:hover:text-foreground")}
         >
           <X />
         </Button>
       </div>
-      <p className="border-t border-white/10 px-4 py-2.5 text-xs text-white/70" aria-live="polite">
+      <p className="border-t border-background/15 px-4 py-2.5 text-xs text-background/80 dark:border-foreground/15 dark:text-foreground/80" aria-live="polite">
         {state.status === "live"
           ? canCapture
             ? "Fill the frame with one page, flat and in good light, then tap the shutter."

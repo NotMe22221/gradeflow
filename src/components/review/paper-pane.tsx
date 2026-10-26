@@ -3,6 +3,18 @@
 import { Camera, Clock, FileText, Flag, FlaskConical, ImageIcon, ScrollText, ScanSearch, Undo2 } from "@/components/icons";
 
 import { ClassAvatar } from "@/components/classroom/class-avatar";
+import {
+  DIMMED,
+  DimPageToggle,
+  FLAG_FILL,
+  FLAG_FOCUS_RING,
+  FLAG_INK,
+  FLAG_RING,
+  MARK_CHIP,
+  SHEET,
+  SHEET_SCOPE,
+  usePaperDim,
+} from "@/components/review/paper-sheet";
 import { PhotoPages } from "@/components/review/photo-pages";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDate, formatDateTime, formatRelative, pluralize } from "@/lib/format";
@@ -20,15 +32,16 @@ import { cn } from "@/lib/utils";
 export type PaperView = "transcription" | "photo";
 
 /**
- * The student's paper as a white document on the canvas, with verified
- * evidence quotes highlighted and grader-directed text flagged in place. The
- * paper is untrusted input: it is only ever rendered as React text nodes,
- * never as HTML.
+ * The student's paper as a light sheet on the canvas (in both themes: student
+ * work is never inverted), with verified evidence quotes highlighted and
+ * grader-directed text flagged in place. The paper is untrusted input: it is
+ * only ever rendered as React text nodes, never as HTML.
  *
  * A scanned test adds a "Transcription" | "Photo (N)" toggle so the teacher
- * can check the AI transcription against the original pages. The view is
+ * can check the transcription against the original pages. The view is
  * controlled by the workspace, so "Show in paper" can switch back to the
- * transcription before scrolling to a quote.
+ * transcription before scrolling to a quote. In dark mode a "Dim page" toggle
+ * softens the sheet and the photos.
  *
  * The root is `relative` so absolutely positioned screen-reader text stays
  * inside this pane (it is the scroll container on desktop) instead of
@@ -47,6 +60,7 @@ export function PaperPane({
   onViewChange: (view: PaperView) => void;
   className?: string;
 }) {
+  const [dim] = usePaperDim();
   const markCount = Object.keys(layout.markForCriterion).length;
   const previousReturn = item.previousReturn;
   const scanned = isScanned(item);
@@ -56,6 +70,7 @@ export function PaperPane({
   const documentName = scanned
     ? `Transcription${photos ? ` of ${pluralize(item.images.length, "page")}` : ""}`
     : (item.fileName ?? "Typed paper");
+  const source = item.ai?.grader === "demo" ? "demo grader" : "grader";
 
   const renderInline = (segment: InlineSegment, key: number) =>
     segment.kind === "text" ? (
@@ -64,7 +79,7 @@ export function PaperPane({
       <mark
         key={key}
         id={markDomId(item.id, segment.markIndex)}
-        className="scroll-my-24 rounded-sm bg-highlight box-decoration-clone px-0.5 text-foreground"
+        className="scroll-my-24 rounded-sm bg-highlight box-decoration-clone px-0.5 text-paper-foreground"
       >
         <span className="sr-only">
           {`Evidence for ${segment.criteria
@@ -76,7 +91,10 @@ export function PaperPane({
             key={ref.id}
             aria-hidden
             title={ref.title}
-            className="tabular mr-1 inline-flex h-4 min-w-4 -translate-y-px items-center justify-center rounded-full bg-highlight-strong px-1 align-middle text-[0.625rem] leading-none font-semibold text-foreground select-none"
+            className={cn(
+              "tabular mr-1 inline-flex h-4 min-w-4 -translate-y-px items-center justify-center rounded-full px-1 align-middle text-[0.625rem] leading-none font-semibold select-none",
+              MARK_CHIP
+            )}
           >
             {ref.number}
           </span>
@@ -90,91 +108,97 @@ export function PaperPane({
       {caption ? (
         <p
           className={cn(
-            "mb-3 flex items-start gap-2 rounded-xl px-4 py-2.5 text-[0.8125rem] leading-relaxed",
-            caption.tone === "demo"
-              ? "border border-dashed border-input/50 text-muted-foreground"
-              : "bg-secondary text-secondary-foreground"
+            "mb-4 flex items-start gap-2 text-[0.8125rem] leading-relaxed text-muted-foreground",
+            caption.tone === "demo" && "rounded-lg border border-dashed border-input/50 px-3 py-2"
           )}
         >
           {caption.tone === "demo" ? (
-            <FlaskConical className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+            <FlaskConical className="mt-0.5 size-4 shrink-0" aria-hidden />
           ) : caption.tone === "ai" ? (
-            <ScanSearch className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+            <ScanSearch className="mt-0.5 size-4 shrink-0" aria-hidden />
           ) : (
-            <ScrollText className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+            <ScrollText className="mt-0.5 size-4 shrink-0" aria-hidden />
           )}
           {caption.text}
         </p>
       ) : null}
 
       {markCount > 0 || layout.flaggedCount > 0 ? (
-        <div className="mb-3 space-y-1.5 px-1 text-xs text-muted-foreground">
+        <div className="mb-4 space-y-1.5 text-[0.8125rem] text-muted-foreground">
           {markCount > 0 ? (
             <p className="flex items-center gap-2">
               <span className="h-3 w-5 shrink-0 rounded-sm bg-highlight ring-1 ring-highlight-strong" aria-hidden />
-              Highlights are quotes the {item.ai?.grader === "demo" ? "demo grader" : "AI"} used as evidence,
-              verified in the {paperNoun}. Numbers match the rubric.
+              Highlights are quotes the {source} cited, found in the {paperNoun}. Numbers match the{" "}
+              {item.assignment.kind === "TEST" ? "questions" : "rubric"}.
             </p>
           ) : null}
           {layout.flaggedCount > 0 ? (
             <p className="flex items-center gap-2">
-              <span className="h-3 w-5 shrink-0 rounded-sm bg-danger-soft ring-1 ring-danger/40" aria-hidden />
-              Red marks show text addressed to the grader, flagged for your review.
+              <span className={cn("h-3 w-5 shrink-0 rounded-sm ring-1", FLAG_FILL, FLAG_RING)} aria-hidden />
+              Marked text is addressed to the grader. Check it before you return the grade.
             </p>
           ) : null}
         </div>
       ) : null}
 
+      {/* What the sheet is, above it: UI chrome stays off the student's page. */}
+      <div className="mb-2 flex items-center gap-2 px-1 text-[0.8125rem] text-muted-foreground">
+        {scanned ? <ScrollText className="size-4 shrink-0" aria-hidden /> : <FileText className="size-4 shrink-0" aria-hidden />}
+        <span className="min-w-0 flex-1 truncate">
+          {!scanned && item.fileName ? <span className="sr-only">File: </span> : null}
+          {documentName}
+        </span>
+        <span className="tabular shrink-0">{pluralize(item.wordCount, "word")}</span>
+        {/* With photos, the toggle sits beside the view tabs instead. */}
+        {photos ? null : <DimPageToggle className="-my-1 -mr-1" />}
+      </div>
+
       <article
         aria-label={scanned ? `Transcription of ${item.student.name}'s test` : `Paper by ${item.student.name}`}
-        className="overflow-hidden rounded-xl border border-border bg-card"
+        className={cn(
+          "rounded-xl border border-border px-5 py-7 shadow-hover transition-[filter] @xl:px-12 @xl:py-12",
+          SHEET,
+          dim && DIMMED
+        )}
       >
-        {/* Document bar, like Classroom's file viewer. */}
-        <div className="flex items-center gap-3 border-b border-border px-4 py-2.5 sm:px-5">
-          <span
-            aria-hidden
-            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary-soft-foreground"
-          >
-            {scanned ? <ScrollText className="size-4" /> : <FileText className="size-4" />}
-          </span>
-          <span className="relative min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-            {!scanned && item.fileName ? <span className="sr-only">File: </span> : null}
-            {documentName}
-          </span>
-          <span className="tabular shrink-0 text-xs text-muted-foreground">{pluralize(item.wordCount, "word")}</span>
-        </div>
-        <div className="px-5 py-7 @xl:px-10 @xl:py-10">
-          <div className="mx-auto max-w-prose text-[0.9375rem] leading-7 break-words whitespace-pre-wrap text-foreground">
-            {layout.segments.map((segment, index) =>
-              segment.kind === "flagged" ? (
-                <mark
-                  key={index}
-                  id={flaggedDomId(item.id, segment.flagIndex)}
-                  tabIndex={-1}
-                  className="scroll-my-24 rounded-sm bg-danger-soft box-decoration-clone px-0.5 text-foreground ring-1 ring-danger/30 outline-none focus:ring-2 focus:ring-danger/60"
+        <div className="mx-auto max-w-prose text-base leading-7 break-words whitespace-pre-wrap">
+          {layout.segments.map((segment, index) =>
+            segment.kind === "flagged" ? (
+              <mark
+                key={index}
+                id={flaggedDomId(item.id, segment.flagIndex)}
+                tabIndex={-1}
+                className={cn(
+                  "scroll-my-24 rounded-sm box-decoration-clone px-0.5 text-paper-foreground ring-1 outline-none focus:ring-2",
+                  FLAG_FILL,
+                  FLAG_RING,
+                  FLAG_FOCUS_RING
+                )}
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    "mr-1 inline-flex -translate-y-px items-center gap-1 rounded-sm px-1 align-middle text-[0.6875rem] leading-4 font-semibold whitespace-nowrap select-none",
+                    FLAG_INK
+                  )}
                 >
-                  <span
-                    aria-hidden
-                    className="mr-1 inline-flex -translate-y-px items-center gap-1 rounded-sm bg-danger/10 px-1 align-middle text-[0.625rem] leading-4 font-semibold whitespace-nowrap text-danger-soft-foreground select-none"
-                  >
-                    <Flag className="size-2.5" />
-                    Addressed to the grader
-                  </span>
-                  <span className="sr-only">Flagged, addressed to the grader: </span>
-                  {segment.children.map(renderInline)}
-                </mark>
-              ) : (
-                renderInline(segment, index)
-              )
-            )}
-          </div>
+                  <Flag className="size-3" />
+                  Addressed to the grader
+                </span>
+                <span className="sr-only">Flagged, addressed to the grader: </span>
+                {segment.children.map(renderInline)}
+              </mark>
+            ) : (
+              renderInline(segment, index)
+            )
+          )}
         </div>
       </article>
     </>
   );
 
   return (
-    <div className={cn("@container relative bg-background", className)}>
+    <div className={cn("@container relative bg-background", SHEET_SCOPE, className)}>
       <div className="mx-auto w-full max-w-3xl px-4 py-5 sm:px-6 lg:py-6">
         <header className="mb-5 flex items-start gap-3">
           <ClassAvatar name={item.assignment.className} className="mt-0.5 size-10 text-base" />
@@ -191,21 +215,21 @@ export function PaperPane({
             </p>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.8125rem] text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
-                <Clock className="size-3.5" aria-hidden />
+                <Clock className="size-4" aria-hidden />
                 <span title={formatDateTime(item.submittedAt)} suppressHydrationWarning>
                   {previousReturn ? "Turned in again" : "Turned in"} {formatRelative(item.submittedAt)}
                 </span>
               </span>
               {scanned ? (
                 <span className="tabular inline-flex items-center gap-1.5">
-                  <Camera className="size-3.5" aria-hidden />
+                  <Camera className="size-4" aria-hidden />
                   Scanned{photos ? ` · ${pluralize(item.images.length, "page")}` : ""}
                 </span>
               ) : null}
             </div>
             {previousReturn ? (
               <p className="mt-2 flex items-start gap-1.5 text-[0.8125rem] text-muted-foreground">
-                <Undo2 className="mt-[3px] size-3.5 shrink-0" aria-hidden />
+                <Undo2 className="mt-0.5 size-4 shrink-0" aria-hidden />
                 <span className="min-w-0 break-words whitespace-pre-line">
                   <span title={formatDateTime(previousReturn.at)} suppressHydrationWarning>
                     You sent this back {formatDate(previousReturn.at)}
@@ -219,16 +243,19 @@ export function PaperPane({
 
         {photos ? (
           <Tabs value={view} onValueChange={(value) => onViewChange(value as PaperView)} className="gap-4">
-            <TabsList className="grid h-12 w-full grid-cols-2 sm:h-10 sm:w-80" aria-label="Paper view">
-              <TabsTrigger value="transcription">
-                <ScrollText aria-hidden />
-                Transcription
-              </TabsTrigger>
-              <TabsTrigger value="photo">
-                <ImageIcon aria-hidden />
-                <span className="tabular">Photo ({item.images.length})</span>
-              </TabsTrigger>
-            </TabsList>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <TabsList className="grid h-12 w-full grid-cols-2 sm:h-10 sm:w-80" aria-label="Paper view">
+                <TabsTrigger value="transcription">
+                  <ScrollText aria-hidden />
+                  Transcription
+                </TabsTrigger>
+                <TabsTrigger value="photo">
+                  <ImageIcon aria-hidden />
+                  <span className="tabular">Photo ({item.images.length})</span>
+                </TabsTrigger>
+              </TabsList>
+              <DimPageToggle />
+            </div>
             <TabsContent value="transcription" className="outline-none">
               {transcription}
             </TabsContent>

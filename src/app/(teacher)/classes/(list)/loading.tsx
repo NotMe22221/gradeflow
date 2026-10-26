@@ -16,7 +16,10 @@ export default function ClassesLoading() {
           <Skeleton className="h-8 w-36" />
           <Skeleton className="h-4 w-72 max-w-full" />
         </div>
-        <Skeleton className="h-10 w-40 rounded-full" />
+        <div className="flex gap-2">
+          <Skeleton className="h-8 w-28 rounded-full" />
+          <Skeleton className="h-10 w-40 rounded-full" />
+        </div>
       </div>
       <ClassCardGridSkeleton count={3} />
     </PageContainer>

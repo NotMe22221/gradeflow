@@ -1,30 +1,32 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
-import Link from "next/link";
+import { useId, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, CircleCheck, Inbox, MousePointerClick, PartyPopper } from "@/components/icons";
+import { ChevronRight, CircleCheck, ClipboardList, Inbox, MousePointerClick } from "@/components/icons";
 import { toast } from "sonner";
 
 import { logStudySession } from "@/app/(student)/student/actions";
 import { AssignmentIcon } from "@/components/classwork/assignment-icon";
 import { EmptyState } from "@/components/empty-state";
+import { SectionHeading } from "@/components/layout-editor/section-heading";
 import type { InboxRow as InboxRowData } from "@/components/student/inbox-model";
 import { InboxPanel } from "@/components/student/inbox-panel";
 import { usePlannerBridge } from "@/components/student/planner-bridge";
 import {
   defaultTodoTab,
+  dueWhenText,
   scoreText,
   TODO_TABS,
   todoCounts,
   todoSortKey,
   todoTabFor,
-  WORK_TONE_CLASS,
   workStatus,
+  type DueWhen,
   type TodoTab,
 } from "@/components/student/todo-model";
 import { UnderlineTabsList, UnderlineTabsTrigger } from "@/components/student/underline-tabs";
 import { useMediaQuery } from "@/components/student/use-media-query";
+import { WorkStatusChip } from "@/components/student/work-status-chip";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -33,12 +35,12 @@ import { cn } from "@/lib/utils";
 
 const EMPTY_COPY: Record<TodoTab, { icon: typeof Inbox; title: string; description: string }> = {
   assigned: {
-    icon: CircleCheck,
+    icon: ClipboardList,
     title: "No work assigned right now.",
     description: "New work from your teachers shows up here.",
   },
   missing: {
-    icon: PartyPopper,
+    icon: CircleCheck,
     title: "Nothing missing. Nice work.",
     description: "Work you haven't turned in by its due date shows up here.",
   },
@@ -49,7 +51,7 @@ const EMPTY_COPY: Record<TodoTab, { icon: typeof Inbox; title: string; descripti
   },
 };
 
-/** Below this many rows the list ends with a summary footer (desktop), so it fills its pane. */
+/** Below this many rows the list ends with a short summary (split view), so it fills its pane. */
 const FOOTER_MAX_ROWS = 5;
 
 /** The end-of-list line for each tab. */
@@ -59,17 +61,27 @@ const END_OF_LIST: Record<TodoTab, string> = {
   done: "That’s everything you’ve turned in.",
 };
 
+/** Statuses a tab already implies, so a row doesn't repeat them. */
+const IMPLIED: Record<TodoTab, string[]> = { assigned: ["Assigned"], missing: ["Missing"], done: [] };
+
 function rowsFor(rows: readonly InboxRowData[], tab: TodoTab): InboxRowData[] {
   return rows
     .filter((row) => todoTabFor(row) === tab)
     .sort((a, b) => todoSortKey(a, tab) - todoSortKey(b, tab) || a.title.localeCompare(b.title));
 }
 
+/** The row's due date said two ways, or its relative label alone for older callers. */
+export function inboxDue(row: Pick<InboxRowData, "due" | "dueText">): DueWhen {
+  return row.due ?? { relative: row.dueText, absolute: null };
+}
+
 /**
- * Modular assignment inbox: the student's work on the left, filtered by
- * Classroom's To-do tabs (Assigned / Missing / Done), and quick-launch actions
- * for the selected assignment on the right. On phones the actions open in a
- * bottom sheet.
+ * Modular assignment inbox: the student's work filtered by Classroom's
+ * To-do tabs (Assigned / Missing / Done), and quick actions for the selected
+ * assignment beside it. The split view depends on the inbox's own width (a
+ * container query), not the window's, so it adapts wherever the student puts
+ * it on Home. Without room for the split, a row opens its actions in a sheet:
+ * from the bottom on phones, from the side on wider screens.
  */
 export function AssignmentInbox({
   rows,
@@ -77,13 +89,14 @@ export function AssignmentInbox({
   studyLoggedToday: initialStudyLogged,
 }: {
   rows: InboxRowData[];
-  /** One plain line about what's waiting on the student. */
+  /** One plain line under the title; defaults to what the inbox is for. */
   summary?: string;
   studyLoggedToday: boolean;
 }) {
   const router = useRouter();
   const bridge = usePlannerBridge();
-  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const wideWindow = useMediaQuery("(min-width: 768px)");
+  const headingId = useId();
 
   const [tab, setTab] = useState<TodoTab>(() => defaultTodoTab(rows));
   const [picked, setPicked] = useState<Partial<Record<TodoTab, string>>>({});
@@ -93,6 +106,7 @@ export function AssignmentInbox({
 
   const optionRefs = useRef(new Map<string, HTMLButtonElement>());
   const tabRefs = useRef(new Map<TodoTab, HTMLButtonElement>());
+  const panelRef = useRef<HTMLElement>(null);
   const panelHeadingRef = useRef<HTMLHeadingElement>(null);
   const keepFocusOnClose = useRef(false);
 
@@ -101,10 +115,15 @@ export function AssignmentInbox({
   const pickedId = picked[tab];
   const selected = tabRows.find((row) => row.id === pickedId) ?? tabRows[0] ?? null;
 
-  /** From the end-of-list footer: switch tabs and keep focus on the tab that's now showing. */
+  /** Whether the side-by-side actions pane is showing (CSS decides, from the inbox's width). */
+  function panelShown(): boolean {
+    return (panelRef.current?.getClientRects().length ?? 0) > 0;
+  }
+
+  /** From the end-of-list summary: switch tabs and keep focus on the tab that's now showing. */
   function showTab(next: TodoTab) {
     setTab(next);
-    // The footer button is about to unmount; the tab is always there.
+    // The summary's button is about to unmount; the tab is always there.
     tabRefs.current.get(next)?.focus();
   }
 
@@ -114,7 +133,7 @@ export function AssignmentInbox({
 
   function activate(id: string) {
     select(id);
-    if (!isDesktop) setSheetOpen(true);
+    if (!panelShown()) setSheetOpen(true);
   }
 
   function onListKeyDown(event: React.KeyboardEvent<HTMLUListElement>) {
@@ -135,8 +154,8 @@ export function AssignmentInbox({
         next = tabRows.length - 1;
         break;
       case "ArrowRight":
-        // Desktop: jump into the quick-launch panel.
-        if (isDesktop) {
+        // Split view: jump into the quick actions.
+        if (panelShown()) {
           event.preventDefault();
           panelHeadingRef.current?.focus();
         }
@@ -187,128 +206,125 @@ export function AssignmentInbox({
   };
 
   return (
-    <section aria-labelledby="inbox-heading" className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="flex items-start justify-between gap-4 px-4 pt-4 sm:px-5">
-        <div className="min-w-0">
-          <h2 id="inbox-heading" className="text-base font-semibold text-foreground">
-            Assignment inbox
-          </h2>
-          <p className="mt-0.5 text-sm text-pretty text-muted-foreground">
-            {summary ?? "Pick an assignment for quick actions."}
-          </p>
-        </div>
-        <Button asChild variant="text" size="sm" className="-mr-2 h-10 shrink-0">
-          <Link href="/student/todo">View all</Link>
-        </Button>
-      </div>
+    <section aria-labelledby={headingId} className="@container/inbox min-w-0">
+      <SectionHeading
+        id={headingId}
+        title="Assignment inbox"
+        description={summary ?? "Choose an assignment to open it, plan your grade, or log a study session."}
+        action={{ href: "/student/todo", label: "Open To-do" }}
+      />
 
-      <Tabs value={tab} onValueChange={(value) => setTab(value as TodoTab)} className="gap-0">
-        <div className="mt-2 border-b border-border px-2 sm:px-3">
-          <UnderlineTabsList aria-label="Filter your work">
-            {TODO_TABS.map((item) => (
-              <UnderlineTabsTrigger
-                key={item.value}
-                ref={(element: HTMLButtonElement | null) => {
-                  if (element) tabRefs.current.set(item.value, element);
-                  else tabRefs.current.delete(item.value);
-                }}
-                value={item.value}
-                count={counts[item.value]}
-              >
-                {item.label}
-              </UnderlineTabsTrigger>
-            ))}
-          </UnderlineTabsList>
-        </div>
-
-        <div className="grid lg:grid-cols-[minmax(0,7fr)_minmax(0,6fr)]">
-          {/* The list column is as tall as the quick-actions pane; a short list ends with a footer that fills it. */}
-          <div className="flex min-w-0 flex-col">
-            {TODO_TABS.map((item) => (
-              <TabsContent
-                key={item.value}
-                value={item.value}
-                className="min-w-0 data-[state=active]:flex data-[state=active]:flex-col"
-              >
-                {item.value !== tab ? null : tabRows.length === 0 ? (
-                  <EmptyState
-                    icon={EMPTY_COPY[item.value].icon}
-                    title={EMPTY_COPY[item.value].title}
-                    description={EMPTY_COPY[item.value].description}
-                    className="flex-1 border-0 bg-transparent py-12"
-                  />
-                ) : (
-                  <>
-                    <ul
-                      className="divide-y divide-border lg:max-h-[32rem] lg:overflow-y-auto"
-                      aria-label={`${item.label} work`}
-                      onKeyDown={onListKeyDown}
-                    >
-                      {tabRows.map((row) => (
-                        <li key={row.id}>
-                          <InboxRow
-                            row={row}
-                            active={row.id === selected?.id}
-                            onActivate={() => activate(row.id)}
-                            buttonRef={(element) => {
-                              if (element) optionRefs.current.set(row.id, element);
-                              else optionRefs.current.delete(row.id);
-                            }}
-                          />
-                        </li>
-                      ))}
-                    </ul>
-                    {tabRows.length < FOOTER_MAX_ROWS ? (
-                      <div className="hidden flex-1 flex-col items-center justify-center gap-3 border-t border-border bg-secondary/40 px-6 py-8 text-center lg:flex">
-                        <p className="text-sm text-muted-foreground">{END_OF_LIST[item.value]}</p>
-                        <div className="flex flex-wrap justify-center gap-2">
-                          {TODO_TABS.filter((other) => other.value !== item.value && counts[other.value] > 0).map(
-                            (other) => (
-                              <Button
-                                key={other.value}
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => showTab(other.value)}
-                              >
-                                Show {other.label.toLowerCase()}
-                                <span className="tabular text-muted-foreground">{counts[other.value]}</span>
-                              </Button>
-                            )
-                          )}
-                          <Button asChild variant="text" size="sm">
-                            <Link href={item.value === "assigned" ? "/student/todo" : `/student/todo?tab=${item.value}`}>
-                              Open To-do
-                            </Link>
-                          </Button>
-                        </div>
-                      </div>
-                    ) : null}
-                  </>
-                )}
-              </TabsContent>
-            ))}
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <Tabs value={tab} onValueChange={(value) => setTab(value as TodoTab)} className="gap-0">
+          <div className="border-b border-border px-2 sm:px-3">
+            <UnderlineTabsList aria-label="Filter your work">
+              {TODO_TABS.map((item) => (
+                <UnderlineTabsTrigger
+                  key={item.value}
+                  ref={(element: HTMLButtonElement | null) => {
+                    if (element) tabRefs.current.set(item.value, element);
+                    else tabRefs.current.delete(item.value);
+                  }}
+                  value={item.value}
+                  count={counts[item.value]}
+                  countTone={item.value === "missing" ? "attention" : "neutral"}
+                >
+                  {item.label}
+                </UnderlineTabsTrigger>
+              ))}
+            </UnderlineTabsList>
           </div>
 
-          <section aria-label="Quick actions" className="hidden min-w-0 border-l border-border p-6 lg:block">
-            {selected ? (
-              <InboxPanel key={selected.id} row={selected} headingRef={panelHeadingRef} {...panelProps} />
-            ) : (
-              <EmptyState
-                icon={MousePointerClick}
-                title="Quick actions show up here."
-                description="Choose an assignment to turn it in, plan your grade, or log a study session."
-                className="h-full border-0 bg-transparent"
-              />
-            )}
-          </section>
-        </div>
-      </Tabs>
+          <div className="grid @min-[48rem]/inbox:grid-cols-[minmax(0,7fr)_minmax(0,6fr)]">
+            {/* The list column is as tall as the quick-actions pane; a short list ends with a summary that fills it. */}
+            <div className="flex min-w-0 flex-col">
+              {TODO_TABS.map((item) => (
+                <TabsContent
+                  key={item.value}
+                  value={item.value}
+                  className="min-w-0 data-[state=active]:flex data-[state=active]:flex-col"
+                >
+                  {item.value !== tab ? null : tabRows.length === 0 ? (
+                    <EmptyState
+                      icon={EMPTY_COPY[item.value].icon}
+                      title={EMPTY_COPY[item.value].title}
+                      description={EMPTY_COPY[item.value].description}
+                      className="flex-1 border-0 bg-transparent py-12"
+                    />
+                  ) : (
+                    <>
+                      <ul
+                        className="divide-y divide-border @min-[48rem]/inbox:max-h-[32rem] @min-[48rem]/inbox:overflow-y-auto"
+                        aria-label={`${item.label} work`}
+                        onKeyDown={onListKeyDown}
+                      >
+                        {tabRows.map((row) => (
+                          <li key={row.id}>
+                            <InboxRow
+                              row={row}
+                              tab={item.value}
+                              active={row.id === selected?.id}
+                              onActivate={() => activate(row.id)}
+                              buttonRef={(element) => {
+                                if (element) optionRefs.current.set(row.id, element);
+                                else optionRefs.current.delete(row.id);
+                              }}
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                      {tabRows.length < FOOTER_MAX_ROWS ? (
+                        <div className="hidden flex-1 flex-col items-center justify-center gap-2 border-t border-border px-6 py-8 text-center @min-[48rem]/inbox:flex">
+                          <p className="text-[0.875rem] text-muted-foreground">{END_OF_LIST[item.value]}</p>
+                          <div className="flex flex-wrap justify-center gap-1">
+                            {TODO_TABS.filter((other) => other.value !== item.value && counts[other.value] > 0).map(
+                              (other) => (
+                                <Button
+                                  key={other.value}
+                                  type="button"
+                                  variant="text"
+                                  size="sm"
+                                  className="h-10"
+                                  onClick={() => showTab(other.value)}
+                                >
+                                  Show {other.label.toLowerCase()}
+                                  <span className="tabular font-normal text-muted-foreground">{counts[other.value]}</span>
+                                </Button>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
+                </TabsContent>
+              ))}
+            </div>
 
-      <Sheet open={sheetOpen && !isDesktop && selected !== null} onOpenChange={setSheetOpen}>
+            <section
+              ref={panelRef}
+              aria-label="Quick actions"
+              className="hidden min-w-0 border-l border-border p-6 @min-[48rem]/inbox:block"
+            >
+              {selected ? (
+                <InboxPanel key={selected.id} row={selected} headingRef={panelHeadingRef} {...panelProps} />
+              ) : (
+                <EmptyState
+                  icon={MousePointerClick}
+                  title="Quick actions show up here."
+                  description="Choose an assignment to turn it in, plan your grade, or log a study session."
+                  className="h-full border-0 bg-transparent"
+                />
+              )}
+            </section>
+          </div>
+        </Tabs>
+      </div>
+
+      <Sheet open={sheetOpen && selected !== null} onOpenChange={setSheetOpen}>
         <SheetContent
-          side="bottom"
-          className="gap-0 overflow-y-auto"
+          side={wideWindow ? "right" : "bottom"}
+          className={cn("gap-0 overflow-y-auto", wideWindow && "w-full sm:max-w-md")}
           onCloseAutoFocus={(event) => {
             if (keepFocusOnClose.current) {
               keepFocusOnClose.current = false;
@@ -319,11 +335,11 @@ export function AssignmentInbox({
           {selected ? (
             <>
               <SheetHeader className="px-5 pt-5 pr-12 pb-4">
-                <SheetTitle className="text-base leading-snug font-medium text-balance break-words">
+                <SheetTitle className="text-[1.0625rem] leading-snug font-medium text-balance break-words">
                   {selected.title}
                 </SheetTitle>
                 <SheetDescription className="tabular">
-                  {selected.className} · {selected.dueText}
+                  {selected.className} · {dueWhenText(inboxDue(selected))}
                 </SheetDescription>
               </SheetHeader>
               <div className="px-5 pb-8">
@@ -339,17 +355,21 @@ export function AssignmentInbox({
 
 function InboxRow({
   row,
+  tab,
   active,
   onActivate,
   buttonRef,
 }: {
   row: InboxRowData;
+  tab: TodoTab;
   active: boolean;
   onActivate: () => void;
   buttonRef: (element: HTMLButtonElement | null) => void;
 }) {
   const status = workStatus(row);
   const score = scoreText(row);
+  const due = inboxDue(row);
+  const showStatus = !IMPLIED[tab].includes(status.label);
   return (
     <button
       ref={buttonRef}
@@ -358,33 +378,57 @@ function InboxRow({
       aria-current={active ? "true" : undefined}
       tabIndex={active ? 0 : -1}
       className={cn(
-        "group flex min-h-16 w-full items-center gap-4 px-4 py-3 text-left transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset sm:px-5",
-        active ? "bg-primary-soft/45" : "hover:bg-foreground/[0.04]"
+        "group relative flex min-h-16 w-full items-center gap-3 px-4 py-row text-left transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset compact:min-h-14 sm:gap-4 sm:px-5 motion-reduce:transition-none",
+        // Selection only shows in the split view, where the pane beside the list follows it.
+        active
+          ? "hover:bg-foreground/[0.04] @min-[48rem]/inbox:bg-primary-soft/45 @min-[48rem]/inbox:hover:bg-primary-soft/45"
+          : "hover:bg-foreground/[0.04]"
       )}
     >
+      {/* The selected row's marker, visible in the split view where the pane beside it changes. */}
+      <span
+        aria-hidden
+        className={cn(
+          "absolute inset-y-2 left-0 hidden w-[3px] rounded-r-full bg-primary @min-[48rem]/inbox:block",
+          !active && "opacity-0"
+        )}
+      />
       <AssignmentIcon
         isTest={row.kind === "TEST"}
         color={classTheme({ name: row.className }).color}
-        className="size-9 [&_svg]:size-[18px]"
+        className="size-9 [&_svg]:size-[1.125rem] compact:size-8"
       />
       <span className="min-w-0 flex-1">
-        <span className="line-clamp-2 text-sm font-medium break-words text-pretty text-foreground">{row.title}</span>
-        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-          {row.className}
-          <span aria-hidden> · </span>
-          <span className={cn("tabular", row.pastDue && "font-medium text-danger")}>{row.dueText}</span>
+        <span className="line-clamp-2 text-[0.9375rem] leading-6 font-medium break-words text-pretty text-foreground">
+          {row.title}
         </span>
+        <span className="block truncate text-[0.8125rem] leading-5 text-muted-foreground">{row.className}</span>
       </span>
-      <span className="flex shrink-0 flex-col items-end gap-0.5 text-right">
-        {score ? (
-          <span className="tabular text-sm font-medium text-foreground">
-            <span className="sr-only">Score: </span>
-            {score}
-          </span>
-        ) : null}
-        <span className={cn("text-xs font-medium", WORK_TONE_CLASS[status.tone])}>{status.label}</span>
+      <span className="flex max-w-[45%] shrink-0 flex-col items-end gap-1 text-right">
+        {tab === "done" ? (
+          <>
+            {score ? (
+              <span className="tabular text-[0.9375rem] leading-5 font-semibold text-foreground">
+                <span className="sr-only">Score: </span>
+                {score}
+              </span>
+            ) : null}
+            <WorkStatusChip status={status} />
+          </>
+        ) : (
+          <>
+            <span className="tabular text-[0.8125rem] leading-5 font-medium text-foreground">{due.relative}</span>
+            {due.absolute ? (
+              <span className="tabular text-[0.75rem] leading-4 text-muted-foreground">{due.absolute}</span>
+            ) : null}
+            {showStatus ? <WorkStatusChip status={status} className="mt-0.5" /> : null}
+          </>
+        )}
       </span>
-      <ChevronRight className="size-4 shrink-0 text-muted-foreground/70 lg:hidden" aria-hidden />
+      <ChevronRight
+        className="size-5 shrink-0 text-muted-foreground @min-[48rem]/inbox:hidden"
+        aria-hidden
+      />
     </button>
   );
 }

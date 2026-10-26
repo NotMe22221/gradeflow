@@ -19,7 +19,7 @@ export function PrivateComments({ comments, timeZone }: { comments: PrivateComme
   if (comments.length === 0) return null;
   return (
     <section aria-labelledby="private-comments-heading" className="rounded-xl border border-border bg-card p-5">
-      <h2 id="private-comments-heading" className="text-sm font-medium text-foreground">
+      <h2 id="private-comments-heading" className="text-[0.9375rem] font-medium text-foreground">
         Private comments
       </h2>
       <ul className="mt-4 space-y-5">
@@ -31,10 +31,10 @@ export function PrivateComments({ comments, timeZone }: { comments: PrivateComme
                 <span className="font-medium text-foreground">{comment.author}</span>
                 {comment.at ? <span className="tabular text-muted-foreground"> · {formatDate(comment.at, timeZone)}</span> : null}
                 {comment.context ? (
-                  <span className="block text-xs text-muted-foreground">{comment.context}</span>
+                  <span className="block text-[0.75rem] text-muted-foreground">{comment.context}</span>
                 ) : null}
               </figcaption>
-              <blockquote className="mt-1 text-sm leading-6 break-words whitespace-pre-line text-foreground">
+              <blockquote className="mt-1 text-[0.9375rem] leading-6 break-words whitespace-pre-line text-foreground">
                 {comment.text}
               </blockquote>
             </figure>

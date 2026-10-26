@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, ExternalLink, ImageOff, ZoomIn, ZoomOut } from "@/components/icons";
 
+import { DIMMED, usePaperDim } from "@/components/review/paper-sheet";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { pageImageAlt, submissionImageUrl } from "@/lib/review/media";
@@ -22,6 +23,9 @@ function isPhoneViewport(): boolean {
  * The zoom dialog has two sizes: fit to width, and magnified to twice the
  * width, panned by scrolling or dragging inside the frame. On a phone it
  * opens magnified, since the fit-width page is smaller than the inline photo.
+ *
+ * Photos sit on the paper fill and are never inverted; in dark mode the
+ * viewer's "Dim page" setting lowers their brightness, here and in the zoom.
  */
 export function PhotoPages({
   submissionId,
@@ -32,6 +36,7 @@ export function PhotoPages({
   studentName: string;
   images: ReviewImage[];
 }) {
+  const [dim] = usePaperDim();
   const [zoomIndex, setZoomIndex] = useState<number | null>(null);
   const [magnified, setMagnified] = useState(false);
   const [failed, setFailed] = useState<ReadonlySet<string>>(() => new Set());
@@ -74,7 +79,7 @@ export function PhotoPages({
             <li key={image.id}>
               <figure className="space-y-2">
                 {broken ? (
-                  <div className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/50 px-6 text-center text-sm text-muted-foreground">
+                  <div className="flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-input/50 bg-muted/50 px-6 text-center text-sm text-muted-foreground">
                     <ImageOff className="size-5" aria-hidden />
                     Page {pageNumber} could not be loaded. Reload to try again.
                   </div>
@@ -86,7 +91,7 @@ export function PhotoPages({
                     }}
                     type="button"
                     onClick={(event) => openZoom(index, event.currentTarget)}
-                    className="group relative block w-full overflow-hidden rounded-xl border border-border bg-card transition-shadow outline-none hover:shadow-hover focus-visible:ring-[3px] focus-visible:ring-ring"
+                    className="group relative block w-full overflow-hidden rounded-xl border border-border bg-paper shadow-hover transition-shadow outline-none hover:shadow-raised focus-visible:ring-[3px] focus-visible:ring-ring"
                     aria-label={`Zoom in on page ${pageNumber}`}
                   >
                     {/* Plain <img>: the image route checks access and sets private caching. */}
@@ -96,7 +101,7 @@ export function PhotoPages({
                       loading="lazy"
                       decoding="async"
                       onError={() => markFailed(image.id)}
-                      className="block h-auto w-full bg-muted/40"
+                      className={cn("block h-auto w-full bg-paper transition-[filter]", dim && DIMMED)}
                     />
                     <span className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-xs font-medium text-foreground shadow-raised transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100">
                       <ZoomIn className="size-3.5" aria-hidden />
@@ -148,13 +153,13 @@ export function PhotoPages({
               onKeyDown={(event) => {
                 if (magnified && (event.key === "ArrowLeft" || event.key === "ArrowRight")) event.stopPropagation();
               }}
-              className="max-h-[calc(100dvh-16rem)] overflow-auto overscroll-contain rounded-xl border border-border bg-muted/40 outline-none focus-visible:ring-[3px] focus-visible:ring-ring sm:max-h-[calc(100dvh-13rem)]"
+              className="max-h-[calc(100dvh-16rem)] overflow-auto overscroll-contain rounded-xl border border-border bg-paper outline-none focus-visible:ring-[3px] focus-visible:ring-ring sm:max-h-[calc(100dvh-13rem)]"
             >
               <img
                 src={submissionImageUrl(submissionId, zoomed.id)}
                 alt={pageImageAlt(studentName, zoomIndex + 1)}
                 decoding="async"
-                className={cn("block h-auto", magnified ? "w-[200%] max-w-none" : "mx-auto w-full")}
+                className={cn("block h-auto", magnified ? "w-[200%] max-w-none" : "mx-auto w-full", dim && DIMMED)}
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">

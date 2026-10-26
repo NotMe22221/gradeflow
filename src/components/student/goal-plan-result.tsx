@@ -1,3 +1,4 @@
+import { useId } from "react";
 import {
   CircleCheck,
   CircleSlash,
@@ -55,10 +56,10 @@ const STANDING_NOTE =
 const TILE =
   "min-w-0 rounded-lg bg-secondary px-3 py-3 max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:items-center max-sm:gap-x-4 sm:px-4";
 const TILE_LABEL =
-  "text-xs leading-snug font-medium text-muted-foreground max-sm:col-start-1 max-sm:row-start-1 sm:min-h-[2lh]";
+  "text-[0.8125rem] leading-snug font-medium text-muted-foreground max-sm:col-start-1 max-sm:row-start-1 sm:min-h-[2lh]";
 const TILE_VALUE =
   "tabular text-lg font-semibold break-words text-foreground max-sm:col-start-2 max-sm:row-span-2 max-sm:row-start-1 max-sm:text-right sm:mt-1 sm:text-xl";
-const TILE_HINT = "tabular text-xs leading-snug text-muted-foreground max-sm:col-start-1 max-sm:row-start-2";
+const TILE_HINT = "tabular text-[0.75rem] leading-snug text-muted-foreground max-sm:col-start-1 max-sm:row-start-2";
 
 /**
  * A computed goal plan. Every number comes from code (src/lib/goals/plan.ts)
@@ -75,6 +76,7 @@ export function GoalPlanResult({
   engine: GoalEngine | null;
   model: string | null;
 }) {
+  const tasksHeadingId = useId();
   const required = plan.requiredPercentOnRemaining;
   const showTasks = plan.status !== "no_remaining" && plan.tasks.length > 0;
   // Not possible: the list shows the best the student can do, which falls short.
@@ -85,7 +87,7 @@ export function GoalPlanResult({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1">
           <p className="text-[0.8125rem] font-medium text-muted-foreground">Your target</p>
-          <p className="font-display text-xl font-medium text-balance text-foreground">{plan.interpretation}</p>
+          <p className="font-display text-[1.25rem] leading-7 font-medium text-balance text-foreground">{plan.interpretation}</p>
           <p className="text-[0.8125rem] break-words text-muted-foreground">
             You wrote &ldquo;{plan.goalText}&rdquo;
             <span className="tabular"> · Saved {formatDate(plan.savedAt)}</span>
@@ -97,7 +99,7 @@ export function GoalPlanResult({
         </div>
       </div>
 
-      <p className="text-sm text-pretty text-foreground/90">{plan.statusMessage}</p>
+      <p className="max-w-[65ch] text-[0.9375rem] leading-6 text-pretty text-foreground">{plan.statusMessage}</p>
 
       {/* Phones: one row per stat (label and hint left, number right). sm+: three tiles whose numbers line up. */}
       <dl className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">
@@ -156,8 +158,8 @@ export function GoalPlanResult({
       </dl>
 
       {showTasks ? (
-        <section aria-labelledby="plan-tasks-heading">
-          <h3 id="plan-tasks-heading" className="text-sm font-semibold text-foreground">
+        <section aria-labelledby={tasksHeadingId}>
+          <h3 id={tasksHeadingId} className="text-[0.9375rem] font-medium text-foreground">
             {reachable ? "Score to aim for on each remaining assignment" : "Best you can do on each remaining assignment"}
           </h3>
           <ul className="mt-3 divide-y divide-border overflow-hidden rounded-lg border border-border">
@@ -166,25 +168,25 @@ export function GoalPlanResult({
               return (
                 <li key={task.assignmentId} className="flex items-center gap-3 bg-card px-3 py-3 sm:px-4">
                   <div className="min-w-0 flex-1">
-                    <p className="line-clamp-2 text-sm font-medium break-words text-foreground">{task.title}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
+                    <p className="line-clamp-2 text-[0.9375rem] font-medium break-words text-foreground">{task.title}</p>
+                    <p className="mt-0.5 text-[0.8125rem] text-muted-foreground">
                       <span className="tabular">{taskDateLabel(task)}</span>
-                      {task.pastDue ? <span className="font-medium text-danger-soft-foreground"> · Overdue</span> : null}
+                      {task.pastDue ? <span className="font-medium text-danger-soft-foreground"> · Missing</span> : null}
                       {task.awaitingScan ? <span> · Waiting for your teacher to scan it</span> : null}
                       {task.submitted ? <span> · Submitted, waiting for a grade</span> : null}
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
                     {anyScore ? (
-                      <p className="text-sm font-semibold text-success-soft-foreground">Any score</p>
+                      <p className="text-[0.875rem] font-semibold text-success-soft-foreground">Any score</p>
                     ) : (
                       <>
-                        <p className="tabular text-sm font-semibold text-foreground">
+                        <p className="tabular text-[0.9375rem] font-semibold text-foreground">
                           {formatPoints(task.neededScore)}
                           <span className="font-normal text-muted-foreground"> / {formatPoints(task.maxScore)}</span>
                           <span className="sr-only">{reachable ? " points needed" : " points possible"}</span>
                         </p>
-                        <p className="tabular text-xs text-muted-foreground">
+                        <p className="tabular text-[0.75rem] text-muted-foreground">
                           {task.neededScore >= task.maxScore ? "Full marks" : `${formatPercentValue(task.neededPercent)}%`}
                         </p>
                       </>
@@ -194,7 +196,7 @@ export function GoalPlanResult({
               );
             })}
           </ul>
-          <p className="mt-2 text-xs text-muted-foreground">
+          <p className="mt-2 text-[0.8125rem] text-pretty text-muted-foreground">
             {reachable
               ? "Each score is rounded up to the nearest half point, so hitting every one reaches your goal."
               : `Full marks on all of these brings you to ${formatPercentValue(plan.bestPossiblePercent)}%, short of this goal.`}
@@ -207,17 +209,17 @@ export function GoalPlanResult({
           <Lightbulb className="size-4" aria-hidden />
         </span>
         <div className="min-w-0 space-y-1">
-          <p className="text-sm font-medium text-foreground">
+          <p className="text-[0.875rem] font-medium text-foreground">
             Study tip
             {engine === "openai" && plan.tipSource === "template" ? (
               <span className="font-normal text-muted-foreground"> · built-in</span>
             ) : null}
           </p>
-          <p className="text-sm text-pretty text-muted-foreground">{plan.coachingTip}</p>
+          <p className="max-w-[65ch] text-[0.875rem] leading-6 text-pretty text-foreground">{plan.coachingTip}</p>
         </div>
       </div>
 
-      <div className="space-y-1.5 border-t border-border pt-4 text-xs text-muted-foreground">
+      <div className="space-y-1.5 border-t border-border pt-4 text-[0.8125rem] text-muted-foreground">
         <p className="flex items-start gap-1.5">
           <ShieldCheck className="mt-px size-3.5 shrink-0 text-success" aria-hidden />
           Scores are calculated from your teacher-approved grades.

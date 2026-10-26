@@ -1,5 +1,3 @@
-import { Clock, FileCheck2, Scale, type IconComponent } from "@/components/icons";
-
 import { ILLUSTRATIVE_MINUTES_SAVED_PER_PAPER } from "@/lib/constants";
 import { formatPoints, pluralize } from "@/lib/format";
 import type { DashboardStats } from "@/lib/stats";
@@ -15,109 +13,87 @@ export function formatTimeSaved(minutes: number): { value: string; unit: string 
 
 function Stat({
   label,
-  icon: Icon,
   value,
   unit,
   srValue,
-  badge,
   children,
 }: {
   label: string;
-  icon: IconComponent;
   value: string;
   unit?: string;
   /** Spoken form of value + unit when the visual form reads poorly. */
   srValue?: string;
-  badge?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    // Phones: label and note on the left, the number on the right. From md: stacked columns.
-    <div className="flex min-w-0 items-center gap-4 px-4 py-3 md:items-start md:px-5 md:py-4">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary-soft-foreground md:mt-0.5">
-        <Icon className="size-5" aria-hidden />
-      </span>
-      <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 [grid-template-areas:'label_value'_'note_value'] md:grid-cols-1 md:[grid-template-areas:'label'_'value'_'note']">
-        <h3 className="font-sans text-[0.8125rem] font-medium text-muted-foreground [grid-area:label]">{label}</h3>
-        <div className="flex flex-col items-end gap-1 [grid-area:value] md:mt-0.5 md:flex-row md:flex-wrap md:items-center md:gap-x-2.5">
-          <p className="flex items-baseline gap-1">
-            <span
-              className="tabular font-display text-2xl leading-8 font-medium text-foreground"
-              aria-hidden={srValue ? true : undefined}
-            >
-              {value}
-            </span>
-            {unit ? (
-              <span className="text-sm text-muted-foreground" aria-hidden={srValue ? true : undefined}>
-                {unit}
-              </span>
-            ) : null}
-            {srValue ? <span className="sr-only">{srValue}</span> : null}
-          </p>
-          {badge}
-        </div>
-        <p className="mt-0.5 text-xs leading-5 text-pretty text-muted-foreground [grid-area:note]">{children}</p>
-      </div>
+    // Narrow: label and note on the left, the number on the right. Wider: a column per figure.
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 px-4 py-3 [grid-template-areas:'label_value'_'note_value'] @min-[36rem]:grid-cols-1 @min-[36rem]:items-start @min-[36rem]:px-5 @min-[36rem]:py-4 @min-[36rem]:[grid-template-areas:'label'_'value'_'note']">
+      <h3 className="font-sans text-[0.8125rem] leading-5 font-medium text-muted-foreground [grid-area:label]">{label}</h3>
+      <p className="flex items-baseline gap-1 [grid-area:value] @min-[36rem]:mt-1">
+        <span
+          className="tabular font-display text-[1.5rem] leading-8 font-medium text-foreground"
+          aria-hidden={srValue ? true : undefined}
+        >
+          {value}
+        </span>
+        {unit ? (
+          <span className="text-[0.875rem] text-muted-foreground" aria-hidden={srValue ? true : undefined}>
+            {unit}
+          </span>
+        ) : null}
+        {srValue ? <span className="sr-only">{srValue}</span> : null}
+      </p>
+      <p className="text-[0.75rem] leading-5 text-pretty text-muted-foreground [grid-area:note] @min-[36rem]:mt-0.5">
+        {children}
+      </p>
     </div>
   );
 }
 
 /**
- * Home's at-a-glance strip: papers graded this week, how far approved grades
- * moved from the AI draft, and the time-saved figure, which is always labelled
- * as an illustrative estimate (never a measurement).
+ * Home's "This week" strip: papers approved and returned, how far approved
+ * grades moved from the AI draft, and the time-saved figure, which is always
+ * labelled as an illustrative estimate (never a measurement). Plain figures
+ * on one quiet card; the notice above it carries anything urgent.
  */
 export function StatRow({ stats, className }: { stats: DashboardStats; className?: string }) {
   const diff = stats.avgAiFinalDiff;
-  const diffUnit = diff === 1 ? "pt" : "pts";
   const timeSaved = formatTimeSaved(stats.timeSavedMinutes);
 
   return (
-    <section
-      aria-labelledby="dashboard-stats-heading"
+    <div
       className={cn(
-        "grid grid-cols-1 divide-y divide-border rounded-xl border border-border bg-card md:grid-cols-3 md:divide-x md:divide-y-0",
+        "grid grid-cols-1 divide-y divide-border rounded-xl border border-border bg-card @min-[36rem]:grid-cols-3 @min-[36rem]:divide-x @min-[36rem]:divide-y-0",
         className
       )}
     >
-      <h2 id="dashboard-stats-heading" className="sr-only">
-        Grading at a glance
-      </h2>
-
-      <Stat label="Papers graded this week" icon={FileCheck2} value={String(stats.gradedThisWeek)}>
-        Published with your approval
+      <Stat label="Papers returned" value={String(stats.gradedThisWeek)}>
+        Approved by you in the last 7 days
       </Stat>
 
       {diff === null ? (
-        <Stat label="Avg. AI vs. final difference" icon={Scale} value="–" srValue="No data yet">
-          Approve a grade to see this.
+        <Stat label="AI draft vs. your grade" value="–" srValue="No data yet">
+          Shows after you approve a grade
         </Stat>
       ) : (
         <Stat
-          label="Avg. AI vs. final difference"
-          icon={Scale}
+          label="AI draft vs. your grade"
           value={`±${formatPoints(diff)}`}
-          unit={diffUnit}
-          srValue={`Plus or minus ${formatPoints(diff)} ${diff === 1 ? "point" : "points"}`}
+          unit={diff === 1 ? "pt" : "pts"}
+          srValue={`Plus or minus ${formatPoints(diff)} ${diff === 1 ? "point" : "points"} on average`}
         >
-          Across {pluralize(stats.avgAiFinalDiffSample, "approved grade")}. Lower means fewer edits.
+          Average change, across all {pluralize(stats.avgAiFinalDiffSample, "approved grade")} so far
         </Stat>
       )}
 
       <Stat
-        label="Time saved"
-        icon={Clock}
+        label="Time saved (estimate)"
         value={timeSaved.value}
         unit={timeSaved.unit}
         srValue={`About ${timeSaved.value.replace("~", "")} ${timeSaved.unit}, an illustrative estimate`}
-        badge={
-          <span className="inline-flex h-6 items-center rounded-full border border-dashed border-input/50 px-2 text-[0.6875rem] font-medium whitespace-nowrap text-muted-foreground">
-            Illustrative estimate
-          </span>
-        }
       >
-        Assumes ~{ILLUSTRATIVE_MINUTES_SAVED_PER_PAPER} minutes saved per paper. Not a measurement.
+        Illustrative: assumes ~{ILLUSTRATIVE_MINUTES_SAVED_PER_PAPER} min saved per paper, not a measurement
       </Stat>
-    </section>
+    </div>
   );
 }

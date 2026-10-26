@@ -1,64 +1,43 @@
-import { Check, FileSpreadsheet, Minus } from "@/components/icons";
+import { LandingContainer } from "@/components/landing/section-intro";
 
-import { LandingContainer, SectionIntro } from "@/components/landing/section-intro";
-
-const DOES = [
-  "Rubrics with points, or answer keys for paper tests",
-  "Papers by pasted text or .txt, and handwritten tests by photo",
-  "An AI first pass with quoted evidence",
-  "A review queue built for speed, with keyboard shortcuts",
-  "A gradebook with CSV export and a class heatmap",
-  "Conference briefs written from approved grades",
-  "A student inbox with a goal planner, streaks, and XP",
-];
-
+/** What GradeSmart AI leaves to the tools a school already has. */
 const SKIPS = ["Discussion boards", "Messaging", "Calendars", "Video", "Attendance", "Course marketplaces"];
 
+/**
+ * A short scope note after the teacher tools: it covers the stretch from a
+ * paper on your desk to a returned grade, and nothing else.
+ */
 export function DeliberatelySmall() {
   return (
-    <section aria-labelledby="small-heading" className="border-y border-border bg-card py-20 sm:py-28">
+    <section aria-labelledby="scope-heading" className="bg-card pb-16 sm:pb-24">
       <LandingContainer>
-        <SectionIntro
-          id="small-heading"
-          eyebrow="Deliberately small"
-          title="Easier than an LMS because it does less."
-          description="GradeSmart AI covers the stretch from a paper on your desk to a published grade, plus the insight that comes from it. Everything else stays with the tools your school already uses."
-        />
-
-        <div className="mt-12 grid gap-6 md:grid-cols-2">
-          <div className="rounded-xl border border-border bg-card p-6 sm:p-8">
-            <h3 className="text-lg font-medium text-foreground">What GradeSmart AI does</h3>
-            <ul className="mt-6 space-y-4">
-              {DOES.map((item) => (
-                <li key={item} className="flex items-start gap-3 text-sm text-foreground">
-                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                    <Check className="size-3.5" strokeWidth={3} aria-hidden />
-                  </span>
-                  <span className="pt-0.5">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="rounded-xl border border-dashed border-input/50 bg-background p-6 sm:p-8">
-            <h3 className="text-lg font-medium text-muted-foreground">What it deliberately skips</h3>
-            <ul className="mt-6 space-y-4">
+        <div className="grid gap-6 border-t border-border pt-10 lg:grid-cols-12 lg:gap-12">
+          <h2
+            id="scope-heading"
+            className="text-[1.25rem] leading-snug font-medium text-balance text-foreground lg:col-span-4"
+          >
+            Deliberately small, so there is less to learn
+          </h2>
+          <div className="lg:col-span-8">
+            <p className="max-w-[65ch] text-base leading-7 text-pretty text-muted-foreground">
+              GradeSmart AI covers the stretch from a paper on your desk to a grade back with the student. Everything
+              else stays with the tools your school already uses, and approved grades export as CSV.
+            </p>
+            <p className="mt-5 text-[0.875rem] font-medium text-foreground" id="scope-skips">
+              Not included, on purpose
+            </p>
+            <ul aria-labelledby="scope-skips" className="mt-3 flex flex-wrap gap-2">
               {SKIPS.map((item) => (
-                <li key={item} className="flex items-start gap-3 text-sm text-muted-foreground">
-                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-secondary">
-                    <Minus className="size-3.5" aria-hidden />
-                  </span>
-                  <span className="pt-0.5">{item}</span>
+                <li
+                  key={item}
+                  className="rounded-lg border border-border px-3 py-1.5 text-[0.875rem] text-muted-foreground"
+                >
+                  {item}
                 </li>
               ))}
             </ul>
           </div>
         </div>
-
-        <p className="mt-8 flex items-center gap-2 text-sm text-muted-foreground">
-          <FileSpreadsheet className="size-4 shrink-0" aria-hidden />
-          Works alongside your LMS via CSV export.
-        </p>
       </LandingContainer>
     </section>
   );

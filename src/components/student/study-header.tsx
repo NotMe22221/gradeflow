@@ -1,113 +1,77 @@
-import { Flame, ShieldCheck, Trophy } from "@/components/icons";
+import { Check, Flame, ShieldCheck, Trophy } from "@/components/icons";
 
+import { calmStreak } from "@/components/student/streak-text";
 import { XpBar } from "@/components/student/xp-bar";
 import type { XpEvent } from "@/lib/gamification/engagement";
-import { streakSummary, type LevelProgress, type StreakInfo } from "@/lib/gamification/rules";
-import { cn } from "@/lib/utils";
+import type { LevelProgress, StreakInfo } from "@/lib/gamification/rules";
+
+export { calmStreak };
 
 /**
- * The slim strip at the top of the student Home: greeting, study streak,
- * level and XP progress, and recent XP. Engagement only, and it says so: XP
- * never changes a grade.
+ * The student's study streak and level as one quiet card (the Home
+ * "progress" section): neutral icons, no warning or danger colors, a thin XP
+ * bar, and a reminder that XP never touches a grade. Its layout follows its
+ * own width (container queries), so it fits the main or the side column.
  */
-export function StudyHeader({
-  firstName,
-  summary,
+export function StudyProgress({
   streak,
   level,
   recent,
 }: {
-  firstName: string;
-  summary: string;
   streak: StreakInfo;
   level: LevelProgress;
   recent: XpEvent[];
 }) {
-  const streakText = streakSummary(streak);
-  const hasStreak = streak.current > 0;
-
+  const text = calmStreak(streak);
+  const latest = recent[0];
   return (
-    <section aria-labelledby="home-heading" className="@container rounded-xl border border-border bg-card">
-      {/* The greeting sits beside the stats only when the strip itself is 48rem+ wide (the drawer takes 18rem at lg). */}
-      <div className="flex flex-col gap-4 px-4 py-4 sm:px-5 @3xl:flex-row @3xl:items-center @3xl:gap-6">
-        <div className="min-w-0 flex-1 @3xl:min-w-[16rem]">
-          <h1 id="home-heading" className="text-[1.375rem] leading-7 font-medium text-balance text-foreground">
-            Welcome back, {firstName}
-          </h1>
-          <p className="mt-0.5 text-sm text-pretty text-muted-foreground">{summary}</p>
+    <div className="@container/progress rounded-xl border border-border bg-card">
+      <div className="grid grid-cols-1 divide-y divide-border @min-[34rem]/progress:grid-cols-2 @min-[34rem]/progress:divide-x @min-[34rem]/progress:divide-y-0">
+        <div role="group" aria-label="Study streak" className="flex min-w-0 items-center gap-3 px-4 py-4 @min-[34rem]/progress:px-5">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground">
+            <Flame className="size-5" filled={streak.activeToday} aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <p className="tabular text-[0.9375rem] leading-6 font-medium text-foreground">{text.headline}</p>
+            <p className="flex items-start gap-1 text-[0.8125rem] leading-5 text-pretty text-muted-foreground">
+              {streak.activeToday ? <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden /> : null}
+              {text.detail}
+            </p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 md:flex md:shrink-0 md:items-center md:gap-0">
-          <div aria-label="Study streak" role="group" className="flex min-w-0 items-center gap-3 md:pr-6">
-            <span
-              className={cn(
-                "flex size-10 shrink-0 items-center justify-center rounded-full",
-                hasStreak ? "bg-warning-soft text-warning-soft-foreground" : "bg-secondary text-muted-foreground",
-                streak.activeToday && "animate-in duration-500 zoom-in-90 fade-in-0"
-              )}
-            >
-              <Flame className="size-5" aria-hidden />
-            </span>
-            <div className="min-w-0">
-              <p className="tabular truncate text-sm font-medium text-foreground">{streakText.headline}</p>
-              <p
-                className={cn(
-                  "text-xs leading-4",
-                  streak.activeToday ? "font-medium text-success-soft-foreground" : "text-muted-foreground"
-                )}
-              >
-                {streakText.detail}
+        <div role="group" aria-label="Level and XP" className="flex min-w-0 items-center gap-3 px-4 py-4 @min-[34rem]/progress:px-5">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground">
+            <Trophy className="size-5" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+              <p className="tabular text-[0.9375rem] leading-6 font-medium text-foreground">Level {level.level}</p>
+              <p className="tabular text-[0.8125rem] leading-5 text-muted-foreground">
+                {level.intoLevel} / {level.levelSize} XP to level {level.level + 1}
               </p>
             </div>
-          </div>
-
-          <div
-            aria-label="Level and XP"
-            role="group"
-            className="flex min-w-0 items-center gap-3 md:border-l md:border-border md:pl-6"
-          >
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary-soft-foreground">
-              <Trophy className="size-5" aria-hidden />
-            </span>
-            <div className="min-w-0 flex-1 md:w-44 md:flex-none">
-              <p className="tabular text-sm font-medium whitespace-nowrap text-foreground">Level {level.level}</p>
-              <XpBar level={level} className="mt-1.5" />
-              <p className="tabular mt-1 text-xs leading-4 text-muted-foreground md:truncate">
-                {level.intoLevel} / {level.levelSize} XP to Level {level.level + 1}
-              </p>
-            </div>
+            <XpBar level={level} className="mt-2" />
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 border-t border-border px-4 py-2.5 sm:px-5 md:flex-row md:items-center md:justify-between md:gap-6">
-        {recent.length > 0 ? (
-          <ul
-            className="hidden min-w-0 flex-wrap items-center gap-2 md:flex md:max-h-7 md:overflow-hidden"
-            aria-label="Recent XP"
-          >
-            {recent.map((event) => (
-              <li
-                key={event.id}
-                className="inline-flex h-7 max-w-[16rem] items-center gap-1.5 rounded-full bg-secondary px-3 text-xs"
-                title={event.label}
-              >
-                <span className="tabular font-semibold text-primary-soft-foreground">+{event.xp}</span>
-                <span className="truncate text-muted-foreground">{event.label}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="hidden items-center gap-1.5 text-xs text-muted-foreground md:flex">
-            <Trophy className="size-3.5" aria-hidden />
-            Earn XP by turning in work, logging study sessions, and setting goals.
-          </p>
-        )}
-        <p className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
-          <ShieldCheck className="size-3.5 text-success" aria-hidden />
+      <div className="flex flex-col gap-1 border-t border-border px-4 py-2.5 @min-[34rem]/progress:px-5 @min-[48rem]/progress:flex-row @min-[48rem]/progress:items-center @min-[48rem]/progress:justify-between @min-[48rem]/progress:gap-6">
+        <p className="min-w-0 truncate text-[0.8125rem] leading-5 text-muted-foreground">
+          {latest ? (
+            <>
+              Latest: <span className="tabular font-medium text-foreground">+{latest.xp} XP</span> · {latest.label}
+            </>
+          ) : (
+            "Earn XP by turning in work, logging study sessions, and setting goals."
+          )}
+        </p>
+        <p className="flex shrink-0 items-center gap-1.5 text-[0.8125rem] leading-5 text-muted-foreground">
+          <ShieldCheck className="size-4 shrink-0 text-success" aria-hidden />
           XP tracks effort. It never changes your grades.
         </p>
       </div>
-    </section>
+    </div>
   );
 }
+

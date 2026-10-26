@@ -37,7 +37,7 @@ export function PromptText({ text }: { text: string }) {
         className={cn(
           "text-sm leading-relaxed break-words whitespace-pre-line text-foreground",
           !expanded && "max-h-96 overflow-hidden lg:max-h-none",
-          clipped && "[mask-image:linear-gradient(to_bottom,black_70%,transparent)]"
+          clipped && "[mask-image:linear-gradient(to_bottom,var(--foreground)_70%,transparent)]"
         )}
       >
         {text}

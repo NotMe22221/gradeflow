@@ -12,7 +12,8 @@ import { cn } from "@/lib/utils";
  * Classroom-style rows: a neutral tonal circle holding the rank, the
  * criterion and where it was asked, and the class average on the right. Each
  * row links to its assignment (or, with `linkTo="insights"`, to the class
- * heatmap). The bar is the class average; the percent is always printed.
+ * heatmap). The bar is the class average in the heatmap's scale; the percent
+ * is always printed. Rows tighten with the compact density.
  *
  * `dense` is for a narrow rail (the dashboard): a smaller circle, the
  * question wraps to two lines, and the assignment and class get a line each,
@@ -52,13 +53,13 @@ export function MostMissedList({
               aria-label={`${index + 1}. ${item.title}, ${context}: class average ${average} across ${pluralize(item.sampleSize, "student")}`}
               className={cn(
                 "flex items-center transition-colors outline-none hover:bg-foreground/[0.04] focus-visible:bg-foreground/[0.04] focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset",
-                dense ? "gap-3 px-5 py-3" : "gap-4 px-4 py-3.5 sm:px-6"
+                dense ? "gap-3 px-5 py-3 compact:py-2" : "gap-4 px-4 py-3.5 compact:py-2.5 sm:px-6"
               )}
             >
               <span
                 aria-hidden
                 className={cn(
-                  "tabular flex shrink-0 items-center justify-center self-start rounded-full bg-primary-soft font-medium text-primary-soft-foreground",
+                  "tabular flex shrink-0 items-center justify-center self-start rounded-full bg-secondary font-medium text-secondary-foreground",
                   dense ? "mt-0.5 size-8 text-[0.8125rem]" : "size-10 text-sm"
                 )}
               >

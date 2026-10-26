@@ -362,7 +362,7 @@ export function TurnInForm({
           <div
             id={errorId}
             role="alert"
-            className="flex items-start gap-2 rounded-lg bg-danger-soft px-3 py-2.5 text-sm text-danger-soft-foreground"
+            className="flex items-start gap-2 rounded-lg bg-danger-soft px-3 py-2.5 text-[0.875rem] text-danger-soft-foreground"
           >
             <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span className="min-w-0">{error}</span>
@@ -374,15 +374,15 @@ export function TurnInForm({
           {pending ? (resubmit ? "Resubmitting…" : "Turning in…") : resubmit ? "Resubmit" : "Turn in"}
         </Button>
 
-        <p id={fileHelpId} className="text-xs text-pretty text-muted-foreground">
+        <p id={fileHelpId} className="text-[0.8125rem] leading-5 text-pretty text-muted-foreground">
           {work
             ? resubmit
               ? "Edit your paper if you need to, then resubmit it."
               : "Check your paper, then turn it in. You can turn it in once."
             : `Paste your paper or upload a plain-text .txt file (up to ${formatBytes(MAX_PAPER_FILE_BYTES)}). You can also drop a file here.`}
         </p>
-        <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
-          <ShieldCheck className="mt-px size-3.5 shrink-0 text-success" aria-hidden />
+        <p className="flex items-start gap-1.5 text-[0.8125rem] leading-5 text-muted-foreground">
+          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
           Your teacher reviews every grade before it&apos;s returned.
         </p>
       </form>

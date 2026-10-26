@@ -1,18 +1,18 @@
-import Link from "next/link";
+import { CircleAlert, Clock } from "@/components/icons";
 
-import { ClassAvatar } from "@/components/classroom/class-avatar";
 import { AssignmentIcon } from "@/components/classwork/assignment-icon";
 import { PageContainer } from "@/components/page-header";
+import { StudentAssignmentBreadcrumbs, StudentClassAccentBar } from "@/components/student/assignment-breadcrumbs";
 import { AssignmentRubric, type StudentRubricCriterion } from "@/components/student/assignment-rubric";
 import { PaperTile } from "@/components/student/paper-tile";
 import { PrivateComments, type PrivateComment } from "@/components/student/private-comments";
 import { isAwaitingScan, isOverdue, studentStateFor } from "@/components/student/student-status";
 import { SubmissionText } from "@/components/student/submission-text";
-import { workStatus } from "@/components/student/todo-model";
+import { dueWhen, workStatus } from "@/components/student/todo-model";
 import { TurnInForm } from "@/components/student/turn-in-form";
 import { PaperTestNotice, ReturnedGrade, TurnedInSteps, YourWorkCard } from "@/components/student/your-work";
 import { parseAssignmentKind } from "@/lib/constants";
-import { formatDate, formatDueDate, pluralize, wordCount } from "@/lib/format";
+import { formatDate, pluralize, wordCount } from "@/lib/format";
 import { parseBreakdown } from "@/lib/grades/breakdown";
 import { classTheme } from "@/lib/ui/class-theme";
 import { cn } from "@/lib/utils";
@@ -76,13 +76,11 @@ export function StudentAssignmentView({ assignment, teacherName, submission, now
   const paperFileName = scanned ? null : (submission?.fileName ?? null);
   const teacher = teacherName ?? "Your teacher";
 
-  const dueText = isTest
-    ? assignment.dueDate
-      ? `Test day ${formatDueDate(assignment.dueDate)}`
-      : "No test date"
-    : assignment.dueDate
-      ? `Due ${formatDueDate(assignment.dueDate)}`
-      : "No due date";
+  // Relative and absolute: "Due in 9 days" and "Mon, Nov 9" (a test: "Test on Friday").
+  const due = dueWhen({ dueDate: assignment.dueDate?.toISOString() ?? null, kind }, now, timeZone);
+  // Only open work counts down: once it's turned in, graded, or a paper test is
+  // waiting for its scan, the date is just a date.
+  const open = (state === "not_submitted" || state === "returned") && !awaitingScan;
 
   // The teacher's notes, oldest first, like a private comment thread.
   const comments: PrivateComment[] = [];
@@ -166,80 +164,117 @@ export function StudentAssignmentView({ assignment, teacherName, submission, now
   } else if (isTest) {
     yourWork = <PaperTestNotice teacherName={teacherName} testDay={assignment.dueDate} awaitingScan={awaitingScan} />;
   } else {
-    yourWork = <TurnInForm assignmentId={assignment.id} />;
+    yourWork = (
+      <>
+        {pastDue ? (
+          <p className="text-[0.875rem] text-pretty text-muted-foreground">
+            You can still turn this in. Add your paper, then turn it in when it&apos;s ready.
+          </p>
+        ) : null}
+        <TurnInForm assignmentId={assignment.id} />
+      </>
+    );
   }
 
   return (
-    <PageContainer className="max-w-5xl">
-      <Link
-        href={`/student/classes/${encodeURIComponent(assignment.class.id)}/classwork`}
-        className="mb-6 -ml-2 inline-flex min-h-10 max-w-full items-center gap-2.5 rounded-full px-2 text-sm text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
-      >
-        <ClassAvatar name={assignment.class.name} className="size-7 text-xs" />
-        <span className="truncate">
-          <span className="font-medium text-foreground">{assignment.class.name}</span>
-          {assignment.class.section ? <span> · {assignment.class.section}</span> : null}
-        </span>
-      </Link>
+    <>
+      <StudentClassAccentBar classTitle={assignment.class.name} />
+      <PageContainer className="max-w-5xl">
+        <StudentAssignmentBreadcrumbs
+          classId={assignment.class.id}
+          classTitle={assignment.class.name}
+          section={assignment.class.section}
+          title={assignment.title}
+        />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-10 lg:gap-y-6">
-        <header className="min-w-0 lg:col-start-1 lg:row-start-1">
-          <div className="flex gap-4">
-            <AssignmentIcon isTest={isTest} color={theme.color} className="mt-1 max-sm:hidden" />
-            <div className="min-w-0 flex-1">
-              <h1
-                className="text-[1.625rem] leading-tight font-normal text-balance break-words sm:text-[2rem] sm:leading-10"
-                style={{ color: theme.color }}
-              >
-                {assignment.title}
-              </h1>
-              <p className="tabular mt-1 text-sm text-muted-foreground">
-                {teacher} · {formatDate(assignment.createdAt, timeZone)}
-              </p>
-              <div className="tabular mt-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm font-medium">
-                <span className="text-foreground">
-                  {totalPoints > 0 ? pluralize(totalPoints, "point") : "No points"}
-                </span>
-                <span className={cn(pastDue ? "text-danger" : "text-foreground")}>{dueText}</span>
+        {/* Two columns once the page itself (not the window) has room: <main> is a container. */}
+        <div className="grid grid-cols-1 gap-8 @min-[52rem]:grid-cols-[minmax(0,1fr)_20rem] @min-[52rem]:grid-rows-[auto_1fr] @min-[52rem]:items-start @min-[52rem]:gap-x-10">
+          <header className="min-w-0 @min-[52rem]:col-start-1 @min-[52rem]:row-start-1">
+            <div className="flex gap-4">
+              <AssignmentIcon isTest={isTest} color={theme.color} className="mt-1 max-sm:hidden" />
+              <div className="min-w-0 flex-1">
+                {/* The class accent (not the banner fill), so the title keeps its contrast in dark mode too. */}
+                <h1
+                  className="text-[1.625rem] leading-tight font-normal text-balance break-words sm:text-[2rem] sm:leading-10"
+                  style={{ color: theme.accent }}
+                >
+                  {assignment.title}
+                </h1>
+                <p className="tabular mt-1 text-[0.875rem] text-muted-foreground">
+                  {teacher} · Posted {formatDate(assignment.createdAt, timeZone)}
+                </p>
+                <div className="tabular mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[0.875rem]">
+                  <span className="font-medium text-foreground">
+                    {totalPoints > 0 ? pluralize(totalPoints, "point") : "No points"}
+                  </span>
+                  {pastDue ? (
+                    <span className="inline-flex flex-wrap items-center gap-x-1.5 text-muted-foreground">
+                      <CircleAlert className="size-4 shrink-0 text-danger-soft-foreground" aria-hidden />
+                      <span className="font-medium text-danger-soft-foreground">Missing</span>
+                      <span>
+                        · {due.relative}
+                        {due.absolute ? ` · ${due.absolute}` : ""}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-foreground">
+                      <Clock className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                      {open ? (
+                        <>
+                          <span className="font-medium">{due.relative}</span>
+                          {due.absolute ? <span className="text-muted-foreground"> · {due.absolute}</span> : null}
+                        </>
+                      ) : (
+                        <span>
+                          {due.absolute
+                            ? `${isTest ? "Test day" : "Due"} ${due.absolute}`
+                            : isTest
+                              ? "No test date"
+                              : "No due date"}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
+            <div aria-hidden className="mt-4 h-px" style={{ backgroundColor: theme.accent }} />
+          </header>
+
+          <aside
+            aria-label="Your work and comments"
+            className="min-w-0 space-y-4 @min-[52rem]:col-start-2 @min-[52rem]:row-span-2 @min-[52rem]:row-start-1"
+          >
+            <YourWorkCard status={status}>{yourWork}</YourWorkCard>
+            <PrivateComments comments={comments} timeZone={timeZone} />
+          </aside>
+
+          <div className="min-w-0 space-y-6 @min-[52rem]:col-start-1 @min-[52rem]:row-start-2">
+            <section aria-labelledby="instructions-heading">
+              <h2 id="instructions-heading" className="sr-only">
+                Instructions
+              </h2>
+              {assignment.instructions.trim() ? (
+                <div className="max-w-prose text-[0.9375rem] leading-7 break-words whitespace-pre-line text-foreground">
+                  {assignment.instructions}
+                </div>
+              ) : (
+                <p className="text-[0.9375rem] text-muted-foreground">Your teacher didn&apos;t add instructions.</p>
+              )}
+            </section>
+
+            <AssignmentRubric
+              criteria={assignment.criteria}
+              variant={isTest ? "questions" : "rubric"}
+              breakdown={published ? parseBreakdown(published.breakdown) : undefined}
+            />
+
+            {showPaper && submission ? (
+              <SubmissionText content={submission.content} fileName={paperFileName} label={paperLabel} />
+            ) : null}
           </div>
-          <div aria-hidden className="mt-4 h-px" style={{ backgroundColor: theme.color }} />
-        </header>
-
-        <aside
-          aria-label="Your work and comments"
-          className="min-w-0 space-y-4 lg:col-start-2 lg:row-span-2 lg:row-start-1"
-        >
-          <YourWorkCard status={status}>{yourWork}</YourWorkCard>
-          <PrivateComments comments={comments} timeZone={timeZone} />
-        </aside>
-
-        <div className="min-w-0 space-y-6 lg:col-start-1 lg:row-start-2">
-          <section aria-labelledby="instructions-heading">
-            <h2 id="instructions-heading" className="sr-only">
-              Instructions
-            </h2>
-            {assignment.instructions.trim() ? (
-              <div className="max-w-prose text-[0.9375rem] leading-7 break-words whitespace-pre-line text-foreground">
-                {assignment.instructions}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Your teacher didn&apos;t add instructions.</p>
-            )}
-          </section>
-
-          <AssignmentRubric
-            criteria={assignment.criteria}
-            variant={isTest ? "questions" : "rubric"}
-            breakdown={published ? parseBreakdown(published.breakdown) : undefined}
-          />
-
-          {showPaper && submission ? (
-            <SubmissionText content={submission.content} fileName={paperFileName} label={paperLabel} />
-          ) : null}
         </div>
-      </div>
-    </PageContainer>
+      </PageContainer>
+    </>
   );
 }

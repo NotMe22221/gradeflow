@@ -49,16 +49,22 @@ export default function ClassStreamLoading() {
             <Skeleton className="size-10 rounded-full" />
             <Skeleton className="h-4 w-52 max-w-[50%]" />
           </div>
-          <div className="space-y-3">
-            {Array.from({ length: 5 }, (_, index) => (
-              <div key={index} className="flex items-start gap-4 rounded-xl border border-border bg-card px-4 py-3.5 sm:px-5">
-                <Skeleton className="size-10 shrink-0 rounded-full" />
-                <div className="min-w-0 flex-1 space-y-2 pt-1">
-                  <Skeleton className="h-4 w-4/5" />
-                  <Skeleton className="h-3 w-16" />
+          {/* One card with divided rows, like the feed. */}
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <div className="px-4 pt-4 pb-2 sm:px-5">
+              <Skeleton className="h-4 w-24" />
+            </div>
+            <div className="divide-y divide-border">
+              {Array.from({ length: 5 }, (_, index) => (
+                <div key={index} className="flex items-start gap-4 px-4 py-row sm:px-5">
+                  <Skeleton className="size-9 shrink-0 rounded-full" />
+                  <div className="min-w-0 flex-1 space-y-2 pt-1">
+                    <Skeleton className="h-4 w-4/5" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>

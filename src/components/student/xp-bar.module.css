@@ -1,5 +1,6 @@
-/* A tasteful fill when the dashboard loads. Pure CSS, so the bar is correct
-   before (and without) JavaScript, and it stays still for reduced motion. */
+/* A short fill when the page loads (transform only, within the 150-300ms
+   motion range). Pure CSS, so the bar is correct before (and without)
+   JavaScript, and it stays still for reduced motion. */
 @keyframes xp-fill {
   from {
     transform: scaleX(0);
@@ -11,7 +12,7 @@
 
 .fill {
   transform-origin: left center;
-  animation: xp-fill 900ms cubic-bezier(0.22, 0.8, 0.24, 1) 150ms both;
+  animation: xp-fill 300ms cubic-bezier(0.2, 0, 0, 1) 100ms both;
 }
 
 @media (prefers-reduced-motion: reduce) {

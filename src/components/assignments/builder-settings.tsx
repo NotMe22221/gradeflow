@@ -80,7 +80,7 @@ export function BuilderSettings({
 
       <p className="flex items-start gap-2 p-5 text-[0.8125rem] leading-relaxed text-muted-foreground">
         <ShieldCheck className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
-        AI scores are suggestions. A grade reaches the student only when you choose Approve &amp; return.
+        Suggested scores are drafts. A grade reaches the student only when you choose Approve &amp; return.
       </p>
     </div>
   );

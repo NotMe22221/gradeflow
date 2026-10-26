@@ -1,38 +1,39 @@
 import { cn } from "@/lib/utils";
 
-/** Eyebrow, title, and lede shared by the landing page sections. */
+/** Heading and lede shared by the landing page sections. Reading text stays under 65ch. */
 export function SectionIntro({
   id,
-  eyebrow,
   title,
   description,
-  align = "left",
   className,
 }: {
+  /** Id of the heading, for the section's aria-labelledby. */
   id: string;
-  eyebrow: string;
   title: React.ReactNode;
   description?: React.ReactNode;
-  align?: "left" | "center";
   className?: string;
 }) {
   return (
-    <div className={cn("max-w-2xl", align === "center" && "mx-auto text-center", className)}>
-      <p className="text-sm font-medium text-primary">{eyebrow}</p>
+    <div className={cn("max-w-2xl", className)}>
       <h2
         id={id}
-        className="mt-3 text-[1.875rem] leading-[1.2] font-medium tracking-[-0.01em] text-balance text-foreground sm:text-[2.5rem] sm:leading-[1.15]"
+        className="text-[1.75rem] leading-[1.2] font-medium tracking-[-0.015em] text-balance text-foreground sm:text-[2.25rem] sm:leading-[1.15]"
       >
         {title}
       </h2>
       {description ? (
-        <p className="mt-4 text-base leading-7 text-pretty text-muted-foreground sm:text-[1.0625rem]">{description}</p>
+        <p className="mt-4 max-w-[65ch] text-base leading-7 text-pretty text-muted-foreground sm:text-[1.0625rem] sm:leading-8">
+          {description}
+        </p>
       ) : null}
     </div>
   );
 }
 
-/** Shared horizontal frame for landing sections. */
+/** Shared horizontal frame for landing sections: a 16px gutter on phones. */
 export function LandingContainer({ className, ...props }: React.ComponentProps<"div">) {
   return <div className={cn("mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8", className)} {...props} />;
 }
+
+/** Vertical rhythm for a landing section (8pt scale). */
+export const SECTION_SPACING = "py-16 sm:py-24";

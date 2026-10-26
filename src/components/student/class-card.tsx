@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FolderOpen, SquareUserRound, type IconComponent } from "@/components/icons";
 
 import { ClassCardBanner } from "@/components/classroom/class-banner";
+import { CLASS_GRID } from "@/components/layout-editor/grid";
 import { dueSoon, relativeDue, todoTabFor, type StudentWorkRow } from "@/components/student/todo-model";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,7 @@ export function StudentClassCard({ data, className }: { data: StudentClassCardDa
     <article
       aria-label={data.name}
       className={cn(
-        "relative flex h-full min-h-60 min-w-0 flex-col min-[600px]:min-h-[18.5rem] overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-hover",
+        "relative flex h-full min-h-60 min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-hover min-[600px]:min-h-[18.5rem]",
         className
       )}
     >
@@ -114,14 +115,12 @@ export function StudentClassCard({ data, className }: { data: StudentClassCardDa
   );
 }
 
-/** The responsive class-card grid on the student Home. */
+/**
+ * The class-card grid: as many 17rem+ columns as fit the space it gets (one
+ * on a phone). Arranging uses ArrangeableClassGrid, which lays out the same grid.
+ */
 export function StudentClassCardGrid({ className, ...props }: React.ComponentProps<"ul">) {
-  return (
-    <ul
-      className={cn("grid grid-cols-1 gap-6 min-[600px]:grid-cols-[repeat(auto-fill,minmax(17rem,1fr))]", className)}
-      {...props}
-    />
-  );
+  return <ul className={cn(CLASS_GRID, className)} {...props} />;
 }
 
 /**

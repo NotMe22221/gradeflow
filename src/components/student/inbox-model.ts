@@ -4,6 +4,7 @@
 import type { AssignmentKind } from "@/lib/constants";
 import { formatDate, formatDueDate, formatPercent, formatScore, pluralize } from "@/lib/format";
 import type { StudentAssignmentState } from "@/components/student/student-status";
+import type { DueWhen } from "@/components/student/todo-model";
 
 /**
  * The inbox's original three buckets. The UI now shows Classroom's To-do
@@ -51,6 +52,12 @@ export type InboxAssignment = {
 export type InboxRow = InboxAssignment & {
   /** Classroom's relative due label (todo-model's relativeDue): "Due tomorrow", "Test on Friday", "Due Nov 9". */
   dueText: string;
+  /**
+   * The due date said two ways (todo-model's dueWhen): "Due in 9 days" and
+   * "Mon, Nov 9". Optional so older callers still type-check; the inbox falls
+   * back to dueText without it.
+   */
+  due?: DueWhen;
 };
 
 /**

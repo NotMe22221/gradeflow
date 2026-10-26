@@ -39,7 +39,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-10 px-4 text-left align-middle text-xs font-medium whitespace-nowrap text-muted-foreground",
+        "h-cell-head px-4 text-left align-middle text-xs font-medium whitespace-nowrap text-muted-foreground",
         className
       )}
       {...props}
@@ -51,7 +51,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
   return (
     <td
       data-slot="table-cell"
-      className={cn("px-4 py-3 align-middle whitespace-nowrap", className)}
+      className={cn("px-4 py-cell align-middle whitespace-nowrap", className)}
       {...props}
     />
   );

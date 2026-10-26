@@ -7,11 +7,11 @@ import {
   CircleAlert,
   CircleCheck,
   FlaskConical,
-  Pencil,
   RotateCcw,
   PenLine,
 } from "@/components/icons";
 
+import { MARK_CHIP } from "@/components/review/paper-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +32,13 @@ import { SCORE_STEP } from "@/lib/review/scores";
 import type { ReviewCriterion } from "@/lib/review/types";
 import { cn } from "@/lib/utils";
 
+/**
+ * One rubric criterion (or test question) in the grade panel: the score
+ * field beside the title, the suggested score in plain words, the guide or
+ * answer key, the cited evidence, and the feedback the student will read.
+ * Rows are separated by dividers in the panel rather than boxed, so the
+ * scores carry the visual weight.
+ */
 export function CriterionCard({
   submissionId,
   criterion,
@@ -67,6 +74,7 @@ export function CriterionCard({
   const descriptionId = useId();
   const errorId = useId();
   const commentId = useId();
+  const draftNoteId = useId();
   const inputId = scoreInputId(submissionId, criterion.id);
 
   const check = checkScore(draft.raw, criterion.maxPoints);
@@ -77,66 +85,57 @@ export function CriterionCard({
   const nearCommentLimit = draft.comment.length > MAX_COMMENT_CHARS - 200;
   const demo = grader === "demo";
   const test = kind === "TEST";
+  // The feedback field starts with the grader's draft; say so until the teacher changes it.
+  const draftFeedback =
+    criterion.finalComment === null &&
+    Boolean(criterion.aiJustification) &&
+    draft.comment === criterion.aiJustification;
 
   return (
-    <div
-      id={criterionCardId(submissionId, criterion.id)}
-      className={cn(
-        "scroll-mt-32 rounded-xl border border-border bg-card lg:scroll-mt-40",
-        check.error && "border-destructive/60",
-        criterion.aiScore === null && blank && "border-danger/40"
-      )}
-    >
-      <div className="flex items-start gap-3 px-4 pt-4 sm:px-5">
+    <div id={criterionCardId(submissionId, criterion.id)} className="scroll-mt-32 py-5 lg:scroll-mt-40">
+      <div className="flex items-start gap-3">
         <span
-          className="tabular mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary-soft-foreground"
+          className="tabular mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground"
           aria-hidden
         >
           {number}
         </span>
-        <div className="min-w-0 flex-1 space-y-1.5">
+        <div className="min-w-0 flex-1 space-y-1">
           <h3 className="pt-0.5 text-[0.9375rem] leading-6 font-semibold break-words text-foreground">
             <span className="sr-only">
               {test ? "Question" : "Criterion"} {number}:{" "}
             </span>
             {criterion.title}
           </h3>
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex min-h-7 flex-wrap items-center gap-x-2 gap-y-1 text-[0.8125rem]">
             {criterion.aiScore !== null ? (
-              <span
-                className={cn(
-                  "tabular inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-xs font-medium",
-                  demo
-                    ? "border border-dashed border-input/50 text-muted-foreground"
-                    : "bg-primary-soft text-primary-soft-foreground"
-                )}
-              >
-                {demo ? <FlaskConical className="size-3" aria-hidden /> : <PenLine className="size-3" aria-hidden />}
-                {demo ? "Demo suggested" : "AI suggested"} {formatPoints(criterion.aiScore)}
+              <span className="tabular inline-flex items-center gap-1.5 text-muted-foreground">
+                {demo ? <FlaskConical className="size-4" aria-hidden /> : <PenLine className="size-4" aria-hidden />}
+                {demo ? "Demo suggestion" : "Suggested score"} {formatPoints(criterion.aiScore)}
               </span>
             ) : (
-              <span className="inline-flex h-6 max-w-full items-center gap-1 rounded-full bg-danger-soft px-2.5 text-xs font-medium text-danger-soft-foreground">
-                <CircleAlert className="size-3" aria-hidden />
-                No valid AI score
+              <span className="inline-flex max-w-full items-center gap-1.5 font-medium text-danger-soft-foreground">
+                <CircleAlert className="size-4 shrink-0" aria-hidden />
+                No suggested score: enter one
               </span>
             )}
             {edited ? (
               <>
-                <span className="inline-flex h-6 items-center gap-1 rounded-full bg-secondary px-2.5 text-xs font-medium text-secondary-foreground">
-                  <Pencil className="size-3" aria-hidden />
-                  Edited
+                <span aria-hidden className="text-muted-foreground">
+                  ·
                 </span>
+                <span className="font-medium text-foreground">Edited</span>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon-sm"
-                      className="size-7"
+                      className="-my-1 size-7"
                       onClick={onResetScore}
                       aria-label={`Reset ${criterion.title} to the suggested score of ${formatPoints(criterion.aiScore)}`}
                     >
-                      <RotateCcw className="size-3.5" />
+                      <RotateCcw className="size-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Reset to {formatPoints(criterion.aiScore)}</TooltipContent>
@@ -170,10 +169,10 @@ export function CriterionCard({
         </div>
       </div>
 
-      <div className="space-y-4 px-4 pt-3 pb-4 sm:px-5 sm:pb-5">
+      <div className="mt-3 space-y-4 sm:pl-10">
         {check.error ? (
           <p id={errorId} className="flex items-center gap-1.5 text-[0.8125rem] text-danger-soft-foreground">
-            <CircleAlert className="size-3.5 shrink-0" aria-hidden />
+            <CircleAlert className="size-4 shrink-0" aria-hidden />
             {check.error}
           </p>
         ) : blank ? (
@@ -192,14 +191,14 @@ export function CriterionCard({
           >
             {criterionGuideLabel(kind)}
             <ChevronDown
-              className={cn("size-4 transition-transform", showDescription && "rotate-180")}
+              className={cn("size-4 transition-transform motion-reduce:transition-none", showDescription && "rotate-180")}
               aria-hidden
             />
           </button>
           <p
             id={descriptionId}
             hidden={!showDescription}
-            className="mt-1.5 border-l-2 border-border pl-3 text-[0.8125rem] leading-relaxed break-words whitespace-pre-line text-muted-foreground"
+            className="mt-1.5 border-l-2 border-border pl-3 text-[0.875rem] leading-relaxed break-words whitespace-pre-line text-muted-foreground"
           >
             {criterion.description}
           </p>
@@ -215,9 +214,20 @@ export function CriterionCard({
         />
 
         <div className="space-y-2">
-          <Label htmlFor={commentId} className="text-[0.8125rem]">
-            Feedback for student
-          </Label>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <Label htmlFor={commentId} className="text-[0.8125rem]">
+              Feedback for student
+            </Label>
+            {draftFeedback ? (
+              <span
+                id={draftNoteId}
+                className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground"
+              >
+                {demo ? <FlaskConical className="size-3.5" aria-hidden /> : <PenLine className="size-3.5" aria-hidden />}
+                {demo ? "Demo draft feedback, edit before returning" : "Draft feedback, edit before returning"}
+              </span>
+            ) : null}
+          </div>
           <Textarea
             id={commentId}
             value={draft.comment}
@@ -230,7 +240,8 @@ export function CriterionCard({
                 : "What did this paper do well, and what would earn full credit?"
             }
             aria-invalid={commentTooLong ? true : undefined}
-            className="min-h-20 text-[0.8125rem] leading-relaxed"
+            aria-describedby={draftFeedback ? draftNoteId : undefined}
+            className="min-h-20 text-[0.875rem] leading-relaxed"
           />
           {nearCommentLimit ? (
             <p
@@ -249,9 +260,9 @@ export function CriterionCard({
 }
 
 /**
- * The quote the grader cited, as a tonal card. A verified quote links to its
- * highlight in the paper (the number chip matches the paper's marks); one
- * that was not found in the paper is shown in red and is not clickable.
+ * The quote the grader cited. A verified quote links to its highlight in the
+ * paper (the number chip matches the paper's marks); one that was not found
+ * in the paper says so in words and is not clickable.
  */
 function EvidenceQuote({
   number,
@@ -282,23 +293,31 @@ function EvidenceQuote({
         onClick={onShow}
         className="group block w-full rounded-xl bg-secondary px-4 py-3 text-left transition-colors outline-none hover:bg-primary-soft/50 focus-visible:ring-[3px] focus-visible:ring-ring"
       >
-        <span className="mb-1.5 flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success-soft-foreground">
+        <span className="mb-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-secondary-foreground">
             <span
               aria-hidden
-              className="tabular inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-highlight-strong px-1 text-[0.625rem] leading-none font-semibold text-foreground"
+              className={cn(
+                "tabular inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[0.625rem] leading-none font-semibold",
+                MARK_CHIP,
+                // The chip matches the light highlight on the paper sheet in both themes.
+                "dark:bg-[color-mix(in_oklab,var(--warning)_78%,var(--paper))]"
+              )}
             >
               {number}
             </span>
-            <CircleCheck className="size-3.5" aria-hidden />
-            Verified in {paperNoun}
+            <CircleCheck className="size-4 text-success" aria-hidden />
+            Found in {paperNoun}
           </span>
           <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
             Show in {paperNoun}
-            <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden />
+            <ArrowRight
+              className="size-4 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
+              aria-hidden
+            />
           </span>
         </span>
-        <q className="block text-[0.8125rem] leading-relaxed break-words text-foreground italic">
+        <q className="block text-[0.875rem] leading-relaxed break-words text-foreground italic">
           {evidence}
           {ellipsis}
         </q>
@@ -307,12 +326,12 @@ function EvidenceQuote({
   }
 
   return (
-    <div className="rounded-xl bg-danger-soft/70 px-4 py-3">
+    <div className="rounded-xl border border-dashed border-danger/50 px-4 py-3">
       <span className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-medium text-danger-soft-foreground">
-        <CircleAlert className="size-3.5" aria-hidden />
+        <CircleAlert className="size-4" aria-hidden />
         Not found in {paperNoun}
       </span>
-      <q className="block text-[0.8125rem] leading-relaxed break-words text-muted-foreground italic">
+      <q className="block text-[0.875rem] leading-relaxed break-words text-muted-foreground italic">
         {evidence}
         {ellipsis}
       </q>

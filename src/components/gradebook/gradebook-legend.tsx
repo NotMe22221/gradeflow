@@ -1,3 +1,5 @@
+import { PenLine } from "@/components/icons";
+
 import { CELL_DISPLAY, LEGEND_KEYS } from "@/components/gradebook/cell-display";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -22,7 +24,10 @@ export function GradebookLegend({ className }: { className?: string }) {
                 21<span className="text-muted-foreground">/25</span>
               </span>
             ) : look.kind === "chip" ? (
-              <Badge variant={look.variant}>{display.label}</Badge>
+              <Badge variant={look.variant}>
+                {key === "in_review" ? <PenLine aria-hidden /> : null}
+                {display.label}
+              </Badge>
             ) : look.kind === "danger" ? (
               <span className="font-medium text-danger">{display.label}</span>
             ) : look.kind === "muted" ? (

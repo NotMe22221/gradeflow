@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ClipboardCheck, FolderOpen, Table2, type IconComponent } from "@/components/icons";
 
 import { ClassCardBanner } from "@/components/classroom/class-banner";
+import { CLASS_GRID } from "@/components/layout-editor/grid";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -164,15 +165,11 @@ export function ClassCard({
   );
 }
 
-/** The responsive class-card grid shared by Home and Classes. */
+/**
+ * The class-card grid shared by Home and Classes: as many 17rem+ columns as
+ * fit the space it gets (one on a phone), whichever column it sits in.
+ * Arranging uses ArrangeableClassGrid, which lays out the same grid.
+ */
 export function ClassCardGrid({ className, ...props }: React.ComponentProps<"ul">) {
-  return (
-    <ul
-      className={cn(
-        "grid grid-cols-1 gap-6 min-[600px]:grid-cols-[repeat(auto-fill,minmax(17rem,1fr))]",
-        className
-      )}
-      {...props}
-    />
-  );
+  return <ul className={cn(CLASS_GRID, className)} {...props} />;
 }

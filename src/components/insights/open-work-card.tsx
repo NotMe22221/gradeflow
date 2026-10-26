@@ -14,7 +14,7 @@ function stateDisplay(item: OpenWorkItem): { status: React.ReactNode; meta: stri
   const map: Record<OpenWorkState, { status: React.ReactNode; meta: string }> = {
     missing: { status: <span className="font-medium text-danger">Missing</span>, meta: due },
     returned: { status: <span className="font-medium text-foreground">Sent back</span>, meta: "Waiting on student" },
-    in_review: { status: <Badge variant="warning">Needs review</Badge>, meta: "AI draft, not returned" },
+    in_review: { status: <Badge variant="warning">Needs review</Badge>, meta: "Draft, not returned" },
     ready: { status: <span className="font-medium text-success">Turned in</span>, meta: "Ready for AI pass" },
     awaiting_scan: {
       status: <span className="text-muted-foreground">Not scanned yet</span>,
@@ -28,7 +28,7 @@ function stateDisplay(item: OpenWorkItem): { status: React.ReactNode; meta: stri
 
 /**
  * Assignments not returned to this student yet, most urgent first, as
- * Classroom-style rows. The card is a container: in a narrow side column
+ * Classroom-style rows (tighter with the compact density). The card is a container: in a narrow side column
  * (under 20rem) the status drops under the due line, so the title keeps
  * enough width to be read instead of shrinking to a letter or two.
  */
@@ -65,7 +65,7 @@ export function OpenWorkCard({
               <li key={item.assignmentId}>
                 <Link
                   href={`/assignments/${encodeURIComponent(item.assignmentId)}`}
-                  className="flex min-h-16 items-center gap-3 px-5 py-2.5 transition-colors outline-none hover:bg-foreground/[0.04] focus-visible:bg-foreground/[0.04] focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset sm:px-6"
+                  className="flex min-h-16 items-center gap-3 px-5 py-2.5 transition-colors outline-none hover:bg-foreground/[0.04] focus-visible:bg-foreground/[0.04] focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset compact:min-h-13 compact:py-1.5 sm:px-6"
                 >
                   <AssignmentIcon isTest={tests.has(item.assignmentId)} color={classColor} className="size-9 [&_svg]:size-[18px]" />
                   <span className="min-w-0 flex-1">

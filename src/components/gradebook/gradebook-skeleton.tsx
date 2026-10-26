@@ -45,7 +45,7 @@ export function GradesSkeleton({ withClassHeader = false }: { withClassHeader?: 
             ))}
           </div>
           {ROWS.map((row) => (
-            <div key={row} className="flex h-14 items-center border-b border-border last:border-0">
+            <div key={row} className="flex h-row-min items-center border-b border-border last:border-0">
               <div className="flex w-40 shrink-0 items-center gap-3 px-4 sm:w-52 sm:pl-6 xl:w-60">
                 <Skeleton className="hidden size-8 rounded-full sm:block" />
                 <Skeleton className="h-4 w-28" />

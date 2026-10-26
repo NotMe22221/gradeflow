@@ -7,7 +7,6 @@ import {
   CircleCheck,
   FlaskConical,
   ImagePlus,
-  Images,
   KeyRound,
   LoaderCircle,
   ScanLine,
@@ -420,12 +419,6 @@ export function ScanWorkspace({
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
       <Card className="min-w-0">
         <div className="flex items-start gap-4 px-4 pt-5 sm:px-6 sm:pt-6">
-          <span
-            aria-hidden
-            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary-soft-foreground"
-          >
-            <Images className="size-5" />
-          </span>
           <div className="min-w-0 flex-1 space-y-0.5">
             <CardTitle>
               <h2>Test pages</h2>
@@ -485,7 +478,7 @@ export function ScanWorkspace({
                   <ImagePlus className="size-6" aria-hidden />
                 </div>
                 <p className="font-display text-lg font-medium text-foreground">Add photos of one student&apos;s test</p>
-                <p className="mt-1 max-w-md text-sm text-pretty text-muted-foreground">
+                <p className="mt-1 max-w-md text-[0.9375rem] text-pretty text-muted-foreground">
                   Drop photos here, or choose how to add them. Up to {MAX_SCAN_PAGES} pages, in order. JPEG, PNG, or
                   WebP, 5 MB each.
                 </p>
@@ -526,12 +519,7 @@ export function ScanWorkspace({
         <div className="space-y-3 border-t border-border px-4 py-5 sm:px-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-start gap-3">
-              <span
-                aria-hidden
-                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground"
-              >
-                <KeyRound className="size-4" />
-              </span>
+              <KeyRound className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
               <div className="min-w-0 space-y-0.5">
                 <p className="text-sm font-medium text-foreground">
                   Answer key photo <span className="font-normal text-muted-foreground">(optional)</span>
@@ -562,7 +550,7 @@ export function ScanWorkspace({
               <img
                 src={answerKey.url}
                 alt="Answer key photo"
-                className="h-14 w-11 shrink-0 rounded-md border border-border object-cover"
+                className="h-14 w-11 shrink-0 rounded-md border border-border bg-paper object-cover"
               />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-foreground">{answerKey.name}</p>

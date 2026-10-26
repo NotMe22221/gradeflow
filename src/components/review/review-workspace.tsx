@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useMemo, useOptimistic, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FileText, ListChecks } from "@/components/icons";
 import { toast } from "sonner";
@@ -23,6 +23,8 @@ import { ShortcutsDialog } from "@/components/review/shortcuts-dialog";
 import { useReviewDrafts } from "@/components/review/use-review-drafts";
 import { useReviewShortcuts } from "@/components/review/use-review-shortcuts";
 import { viewAsStudent } from "@/lib/auth/actions";
+import { updatePreferences } from "@/lib/preferences/actions";
+import type { PaperSide } from "@/lib/preferences/schema";
 import { firstName, formatPoints, formatScore } from "@/lib/format";
 import { scrollBehavior } from "@/lib/motion";
 import {
@@ -39,6 +41,7 @@ import {
 } from "@/lib/review/model";
 import { isEditableTarget } from "@/lib/review/shortcuts";
 import type { QueueSort, ReviewFilterOption, ReviewItem } from "@/lib/review/types";
+import { cn } from "@/lib/utils";
 
 type PaneTab = "paper" | "rubric";
 type AssignmentFilter = { id: string; title: string | null } | null;
@@ -113,16 +116,22 @@ export function ReviewWorkspace({
   initialAssignmentId,
   initialSelectedId,
   filterTitle,
+  paperSide: savedPaperSide = "left",
 }: {
   items: ReviewItem[];
   initialAssignmentId: string | null;
   initialSelectedId: string | null;
   /** Title for the ?assignment filter, when the teacher owns that assignment. */
   filterTitle: string | null;
+  /** The teacher's saved layout: which side the paper sits on when paper and grade are side by side. */
+  paperSide?: PaperSide;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const drafts = useReviewDrafts(items);
+  // Swapping sides shows at once; the saved preference comes back from the
+  // server (updatePreferences revalidates the page). A failed save reverts.
+  const [paperSide, setOptimisticPaperSide] = useOptimistic(savedPaperSide);
 
   const [filter, setFilter] = useState<AssignmentFilter>(
     initialAssignmentId ? { id: initialAssignmentId, title: filterTitle } : null
@@ -419,6 +428,19 @@ export function ReviewWorkspace({
     });
   }, [current, layout]);
 
+  const swapPaperSide = useCallback(() => {
+    const next: PaperSide = paperSide === "left" ? "right" : "left";
+    startTransition(async () => {
+      setOptimisticPaperSide(next);
+      try {
+        const result = await updatePreferences({ layout: { reviewPaperSide: next } });
+        if (!result.ok) toast.error("Couldn't save your layout", { description: result.error });
+      } catch {
+        toast.error("Couldn't save your layout", { description: "Check your connection and try again." });
+      }
+    });
+  }, [paperSide, setOptimisticPaperSide]);
+
   const overlayOpen = approveItem !== null || sendBackItem !== null || shortcutsOpen || queueOpen;
 
   useReviewShortcuts(!overlayOpen, {
@@ -460,6 +482,49 @@ export function ReviewWorkspace({
       blockedReason,
       busy,
     };
+
+    const paperPane = (
+      <TabsContent
+        key="paper"
+        ref={paperPaneRef}
+        value="paper"
+        forceMount
+        className="flex min-w-0 flex-1 flex-col focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset data-[state=inactive]:hidden lg:min-h-0 lg:data-[state=inactive]:flex"
+      >
+        <PaperPane
+          key={current.id}
+          item={current}
+          layout={layout}
+          view={currentPaperView}
+          onViewChange={(view) => setPaperView({ id: current.id, view })}
+          className="flex-1 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
+        />
+      </TabsContent>
+    );
+    const gradePane = (
+      <TabsContent
+        key="rubric"
+        value="rubric"
+        forceMount
+        className={cn(
+          "flex min-w-0 flex-col border-border focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset data-[state=inactive]:hidden lg:min-h-0 lg:w-[min(30rem,48%)] lg:flex-none lg:data-[state=inactive]:flex",
+          paperSide === "left" ? "lg:border-l" : "lg:border-r"
+        )}
+      >
+        <RubricPane
+          key={current.id}
+          item={current}
+          draft={draft}
+          summary={summary}
+          layout={layout}
+          onDraftChange={(update) => drafts.updateDraft(current, update)}
+          onShowEvidence={showEvidence}
+          onShowFlagged={showFlagged}
+          footer={<DesktopActionBar {...actionProps} />}
+          className="flex-1"
+        />
+      </TabsContent>
+    );
 
     body = (
       <div className="flex min-h-0 flex-1">
@@ -508,40 +573,10 @@ export function ReviewWorkspace({
             </TabsList>
           </div>
 
+          {/* Paper and grade side by side from lg up, in the order the teacher chose.
+              The DOM follows the visual order, so Tab moves left to right. */}
           <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-            <TabsContent
-              ref={paperPaneRef}
-              value="paper"
-              forceMount
-              className="flex min-w-0 flex-1 flex-col focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset data-[state=inactive]:hidden lg:min-h-0 lg:data-[state=inactive]:flex"
-            >
-              <PaperPane
-                key={current.id}
-                item={current}
-                layout={layout}
-                view={currentPaperView}
-                onViewChange={(view) => setPaperView({ id: current.id, view })}
-                className="flex-1 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
-              />
-            </TabsContent>
-            <TabsContent
-              value="rubric"
-              forceMount
-              className="flex min-w-0 flex-col border-border focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset data-[state=inactive]:hidden lg:min-h-0 lg:w-[min(30rem,48%)] lg:flex-none lg:border-l lg:data-[state=inactive]:flex"
-            >
-              <RubricPane
-                key={current.id}
-                item={current}
-                draft={draft}
-                summary={summary}
-                layout={layout}
-                onDraftChange={(update) => drafts.updateDraft(current, update)}
-                onShowEvidence={showEvidence}
-                onShowFlagged={showFlagged}
-                footer={<DesktopActionBar {...actionProps} />}
-                className="flex-1"
-              />
-            </TabsContent>
+            {paperSide === "left" ? [paperPane, gradePane] : [gradePane, paperPane]}
           </div>
 
           <MobileActionBar {...actionProps} total={summary.total} maxTotal={summary.maxTotal} />
@@ -585,6 +620,8 @@ export function ReviewWorkspace({
         queueOpen={queueOpen}
         onQueueOpenChange={setQueueOpen}
         onShowShortcuts={() => openShortcuts("button")}
+        paperSide={paperSide}
+        onSwapPaperSide={current ? swapPaperSide : undefined}
       />
 
       {body}

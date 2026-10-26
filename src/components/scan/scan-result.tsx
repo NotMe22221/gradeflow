@@ -24,7 +24,10 @@ export function reviewHref(result: Pick<ScanGradeSuccess, "assignmentId" | "subm
   return `/review?${params.toString()}`;
 }
 
-/** The graded draft, waiting in To review. Nothing here is published. */
+/**
+ * The graded draft, waiting in To review. Nothing here is published: the
+ * score is a suggestion, named as one, until the teacher approves it.
+ */
 export function ScanResult({ result, onScanAnother }: { result: ScanGradeSuccess; onScanAnother: () => void }) {
   const moreLines = result.transcriptionLineCount - result.transcriptionPreview.length;
   const hiddenFlags = result.flags.length - MAX_FLAGS_SHOWN;
@@ -37,7 +40,7 @@ export function ScanResult({ result, onScanAnother }: { result: ScanGradeSuccess
         </div>
         <div className="min-w-0 space-y-0.5">
           <h2 id="scan-result-title" className="text-lg leading-7 font-medium text-foreground">
-            Draft ready for review
+            Draft ready in To review
           </h2>
           <p className="text-sm text-pretty text-muted-foreground">
             {result.studentName} · {result.assignmentTitle}
@@ -62,7 +65,7 @@ export function ScanResult({ result, onScanAnother }: { result: ScanGradeSuccess
         {/* Classroom-style counts. Values sit on one baseline even when a label wraps. */}
         <dl className="grid grid-cols-3 divide-x divide-border rounded-xl border border-border">
           <div className="flex min-w-0 flex-col-reverse justify-end gap-0.5 px-3 py-3 sm:px-4">
-            <dt className="text-xs text-muted-foreground">Draft grade</dt>
+            <dt className="text-xs text-muted-foreground">Suggested score</dt>
             <dd className="tabular truncate font-display text-xl font-medium text-foreground">
               {result.draftScore === null ? (
                 "None"

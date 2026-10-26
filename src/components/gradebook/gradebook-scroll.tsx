@@ -13,7 +13,8 @@ import { cn } from "@/lib/utils";
  * server component; this wrapper measures whether it is wider than the card.
  * When it is, a hint bar says so (with previous / next buttons from sm up),
  * the sticky Students column casts a shadow over cells scrolled under it, and
- * the right edge fades while more columns are hidden there. Trackpads and
+ * the right edge fades (a mask, not an overlay color) while more columns are
+ * hidden there. Trackpads and
  * macOS hide the scrollbar, so these are the visible cues on a laptop.
  *
  * The scroller sets data-more-left / data-more-right for the table's sticky
@@ -110,7 +111,12 @@ export function GradebookScroll({ label, children }: { label: string; children: 
           tabIndex={overflowing ? 0 : undefined}
           data-more-left={moreLeft ? "true" : "false"}
           data-more-right={moreRight ? "true" : "false"}
-          className="peer group/grades relative w-full overflow-x-auto outline-none"
+          className={cn(
+            "peer group/grades relative w-full overflow-x-auto outline-none",
+            // Right-edge fade while columns are hidden there. A mask (only its alpha counts; --foreground is opaque),
+            // so every row, card or canvas colored, fades the same way in both themes.
+            moreRight && "[mask-image:linear-gradient(to_left,transparent,var(--foreground)_2.5rem)]"
+          )}
         >
           {children}
         </div>
@@ -118,14 +124,6 @@ export function GradebookScroll({ label, children }: { label: string; children: 
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 z-30 hidden ring-[3px] ring-ring ring-inset peer-focus-visible:block"
-        />
-        {/* Right-edge fade while columns are hidden to the right. */}
-        <div
-          aria-hidden
-          className={cn(
-            "pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l from-black/[0.08] to-transparent transition-opacity duration-200",
-            moreRight ? "opacity-100" : "opacity-0"
-          )}
         />
       </div>
     </>

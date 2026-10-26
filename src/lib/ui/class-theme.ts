@@ -3,17 +3,75 @@
 // subject. Pure: safe for server and client components.
 
 /**
- * Banner and avatar colors. Every one carries white and white/90 text at
- * 4.5:1 or better (WCAG AA for the small banner lines). The hex values mirror
- * the --class-* tokens in src/app/globals.css: keep the two in sync.
+ * Class colors, as CSS variables that switch with the theme (no JavaScript,
+ * so server-rendered banners are right on first paint):
+ *
+ * - `color`: a fill for banners, avatars and icon circles that carries white
+ *   text at 4.5:1 or better. Light uses the classic Classroom tone; dark uses a
+ *   darker, calmer tone 30 (never an inverted pastel).
+ * - `accent` / `onAccent`: the class color for dots, rules, links and text on
+ *   ordinary surfaces (4.5:1 on cards in both themes), and the text to put on
+ *   an `accent` fill. In light they equal `color` / white; in dark `accent` is
+ *   tone 80 and `onAccent` tone 20.
+ *
+ * The hex values mirror the --class-* tokens in src/app/globals.css
+ * (tests/theme.test.ts checks the two stay in sync and measures contrast).
  */
 export const CLASS_THEMES = [
-  { key: "blue", color: "var(--class-blue)", hex: "#1967d2" },
-  { key: "green", color: "var(--class-green)", hex: "#137333" },
-  { key: "purple", color: "var(--class-purple)", hex: "#8430ce" },
-  { key: "teal", color: "var(--class-teal)", hex: "#00707a" },
-  { key: "orange", color: "var(--class-orange)", hex: "#a35200" },
-  { key: "pink", color: "var(--class-pink)", hex: "#b80672" },
+  {
+    key: "blue",
+    color: "var(--class-blue)",
+    accent: "var(--class-blue-accent)",
+    onAccent: "var(--class-blue-on-accent)",
+    hex: "#1967d2",
+    darkHex: "#2b4678",
+    darkAccentHex: "#adc6ff",
+  },
+  {
+    key: "green",
+    color: "var(--class-green)",
+    accent: "var(--class-green-accent)",
+    onAccent: "var(--class-green-on-accent)",
+    hex: "#137333",
+    darkHex: "#1c5128",
+    darkAccentHex: "#87d991",
+  },
+  {
+    key: "purple",
+    color: "var(--class-purple)",
+    accent: "var(--class-purple-accent)",
+    onAccent: "var(--class-purple-on-accent)",
+    hex: "#8430ce",
+    darkHex: "#563a70",
+    darkAccentHex: "#deb7ff",
+  },
+  {
+    key: "teal",
+    color: "var(--class-teal)",
+    accent: "var(--class-teal-accent)",
+    onAccent: "var(--class-teal-on-accent)",
+    hex: "#00707a",
+    darkHex: "#004f56",
+    darkAccentHex: "#81d3de",
+  },
+  {
+    key: "orange",
+    color: "var(--class-orange)",
+    accent: "var(--class-orange-accent)",
+    onAccent: "var(--class-orange-on-accent)",
+    hex: "#a35200",
+    darkHex: "#6d390c",
+    darkAccentHex: "#ffb784",
+  },
+  {
+    key: "pink",
+    color: "var(--class-pink)",
+    accent: "var(--class-pink-accent)",
+    onAccent: "var(--class-pink-on-accent)",
+    hex: "#b80672",
+    darkHex: "#6e334e",
+    darkAccentHex: "#ffb0cf",
+  },
 ] as const;
 
 export type ClassTheme = (typeof CLASS_THEMES)[number];

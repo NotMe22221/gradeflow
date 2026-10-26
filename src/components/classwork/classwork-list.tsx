@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Camera, ChevronDown, Inbox } from "@/components/icons";
+import { ArrowRight, Camera, ChevronDown, FactCheck, PenLine } from "@/components/icons";
 
 import { workCounts } from "@/components/classes/status-summary";
 import { AssignmentIcon } from "@/components/classwork/assignment-icon";
@@ -18,11 +18,12 @@ const TOPICS: { key: "essays" | "tests"; title: string; isTest: boolean }[] = [
   { key: "tests", title: "Handwritten tests", isTest: true },
 ];
 
-/** The short status hint on a collapsed row: what needs you next, if anything. */
+/** The short status hint on a collapsed row: what needs you next, if anything. Icon and word, never color alone. */
 function StatusHint({ item }: { item: ClassworkItem }) {
   if (item.summary.review > 0) {
     return (
-      <span className="tabular inline-flex h-6 items-center rounded-full bg-primary-soft px-2.5 text-xs font-medium whitespace-nowrap text-primary-soft-foreground">
+      <span className="tabular inline-flex h-6 items-center gap-1 rounded-md bg-primary-soft pr-2 pl-1.5 text-xs font-medium whitespace-nowrap text-primary-soft-foreground">
+        <PenLine className="size-3.5" aria-hidden />
         {item.summary.review} to review
       </span>
     );
@@ -57,10 +58,11 @@ function ClassworkRow({
     : pluralize(item.criteriaCount, "criterion", "criteria");
 
   return (
+    // Classroom's rows: flat on the page with a hover tint; the open one lifts into a card.
     <li
       className={cn(
-        "rounded-xl border border-border bg-card transition-shadow",
-        expanded ? "shadow-hover" : "hover:shadow-hover"
+        "rounded-xl transition-[background-color,box-shadow] motion-reduce:transition-none",
+        expanded ? "my-3 bg-card shadow-hover ring-1 ring-border" : "hover:bg-foreground/[0.04]"
       )}
     >
       <h3 className="font-sans">
@@ -69,9 +71,9 @@ function ClassworkRow({
           onClick={onToggle}
           aria-expanded={expanded}
           aria-controls={detailsId}
-          className="flex min-h-16 w-full items-center gap-4 rounded-xl px-4 py-3 text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
+          className="flex min-h-row-min w-full items-center gap-4 rounded-xl px-3 py-row text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset sm:px-4"
         >
-          <AssignmentIcon isTest={item.isTest} color={color} />
+          <AssignmentIcon isTest={item.isTest} color={color} className="compact:size-9" />
           <span className="min-w-0 flex-1">
             <span className="line-clamp-2 text-[0.9375rem] font-medium break-words text-foreground sm:line-clamp-1">{item.title}</span>
             {/* Phones: due date and status under the title. */}
@@ -85,7 +87,10 @@ function ClassworkRow({
             <span className="w-28 text-right text-[0.8125rem] whitespace-nowrap text-muted-foreground">{dueText}</span>
           </span>
           <ChevronDown
-            className={cn("size-5 shrink-0 text-muted-foreground transition-transform", expanded && "rotate-180")}
+            className={cn(
+              "size-5 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none",
+              expanded && "rotate-180"
+            )}
             aria-hidden
           />
         </button>
@@ -98,7 +103,7 @@ function ClassworkRow({
               {item.postedLabel} · {pluralize(item.totalPoints, "point")} · {noun}
             </p>
             {item.excerpt ? (
-              <p className="line-clamp-3 text-sm leading-relaxed break-words whitespace-pre-line text-foreground/90">
+              <p className="line-clamp-3 max-w-[70ch] text-sm leading-relaxed break-words whitespace-pre-line text-foreground">
                 {item.excerpt}
               </p>
             ) : null}
@@ -133,7 +138,7 @@ function ClassworkRow({
             {item.summary.review > 0 ? (
               <Button variant="tonal" size="sm" asChild>
                 <Link href={reviewHref}>
-                  <Inbox aria-hidden />
+                  <FactCheck aria-hidden />
                   Review {pluralize(item.summary.review, "paper")}
                 </Link>
               </Button>
@@ -147,21 +152,21 @@ function ClassworkRow({
 
 /**
  * The Classwork list, grouped into topics like Classroom ("Essays",
- * "Handwritten tests"). Clicking a row expands it in place with the posted
- * date, a prompt excerpt, the Turned in / Assigned / Graded numbers, and
- * links to the assignment and its review queue.
+ * "Handwritten tests"). Rows sit flat on the page; clicking one expands it
+ * in place into a card with the posted date, a prompt excerpt, the Turned in /
+ * Assigned / Graded numbers, and links to the assignment and its review queue.
  */
 export function ClassworkList({ items, color }: { items: ClassworkItem[]; color: string }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-10 compact:space-y-8">
       {TOPICS.map((topic) => {
         const topicItems = items.filter((item) => item.isTest === topic.isTest);
         if (topicItems.length === 0) return null;
         return (
           <section key={topic.key} aria-labelledby={`topic-${topic.key}`}>
-            <div className="mb-4 flex items-end justify-between gap-4 border-b border-primary pb-2">
+            <div className="mb-2 flex items-end justify-between gap-4 border-b border-primary pb-2">
               <h2 id={`topic-${topic.key}`} className="text-[1.375rem] leading-tight font-normal text-primary sm:text-2xl">
                 {topic.title}
               </h2>
@@ -169,7 +174,7 @@ export function ClassworkList({ items, color }: { items: ClassworkItem[]; color:
                 {pluralize(topicItems.length, topic.isTest ? "test" : "assignment")}
               </span>
             </div>
-            <ul className="space-y-2">
+            <ul className="space-y-0.5">
               {topicItems.map((item) => (
                 <ClassworkRow
                   key={item.id}

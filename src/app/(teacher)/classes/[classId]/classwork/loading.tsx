@@ -10,13 +10,14 @@ export default function ClassworkLoading() {
       </div>
       {[3, 1].map((count, group) => (
         <div key={group} className="mb-10">
-          <div className="mb-4 flex items-end justify-between border-b border-border pb-2">
+          <div className="mb-2 flex items-end justify-between border-b border-border pb-2">
             <Skeleton className="h-7 w-40" />
             <Skeleton className="h-4 w-24" />
           </div>
-          <div className="space-y-2">
+          {/* Flat rows, like the list: no card until a row is opened. */}
+          <div className="space-y-0.5">
             {Array.from({ length: count }, (_, index) => (
-              <div key={index} className="flex min-h-16 items-center gap-4 rounded-xl border border-border bg-card px-4 py-3">
+              <div key={index} className="flex min-h-row-min items-center gap-4 px-3 py-row sm:px-4">
                 <Skeleton className="size-10 shrink-0 rounded-full" />
                 <div className="min-w-0 flex-1 space-y-1.5">
                   <Skeleton className="h-4 w-3/4 max-w-md" />

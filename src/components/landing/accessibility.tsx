@@ -1,0 +1,80 @@
+import { ScreenshotFrame } from "@/components/landing/screenshot";
+import { SCREENSHOTS } from "@/components/landing/screenshots";
+import { LandingContainer, SECTION_SPACING, SectionIntro } from "@/components/landing/section-intro";
+import type { Theme } from "@/lib/preferences/schema";
+
+const SETTINGS: { title: string; body: string }[] = [
+  {
+    title: "Light, dark, or match your device",
+    body: "Dark mode uses soft grays, not pure black. Student work stays on a light page, so it still reads like paper. Pick an accent color too.",
+  },
+  {
+    title: "Text as big as you need",
+    body: "Four text sizes, from 87.5% to 125%. The whole app grows with it, menus and tables included.",
+  },
+  {
+    title: "Your home page, your order",
+    body: "Move sections up, down or to the other column, and hide the ones you don't use. Teachers and students each get their own layout.",
+  },
+  {
+    title: "Compact when you want more on screen",
+    body: "Lists and tables tighten up. Buttons stay just as easy to hit.",
+  },
+  {
+    title: "Keyboard all the way",
+    body: "Every action works from the keyboard, with a visible focus ring. In To review, press ? to see the shortcuts.",
+  },
+  {
+    title: "Never color alone",
+    body: "Status always comes with a word, like Missing, Late or Returned, so it reads the same for everyone.",
+  },
+];
+
+/** Accessibility and personal settings, shown as features (they are). */
+export function Accessibility({ theme }: { theme: Theme }) {
+  return (
+    <section id="accessibility" aria-labelledby="accessibility-heading" className={SECTION_SPACING}>
+      <LandingContainer className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <div className="lg:col-span-7">
+          <SectionIntro
+            id="accessibility-heading"
+            title="Easy on the eyes, easy to get around"
+            description="Everyone sets the app up the way they read best. Settings are saved to your account, so they follow you to any device."
+          />
+          <dl className="mt-10 grid gap-x-10 sm:grid-cols-2">
+            {SETTINGS.map((setting) => (
+              <div key={setting.title} className="border-t border-border py-5">
+                <dt className="text-base font-medium text-foreground">{setting.title}</dt>
+                <dd className="mt-1.5 max-w-[60ch] text-[0.9375rem] leading-6 text-pretty text-muted-foreground">
+                  {setting.body}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <figure className="lg:col-span-5 lg:pt-2">
+          <div className="grid grid-cols-2 gap-3 rounded-2xl bg-secondary p-3 sm:gap-6 sm:p-6">
+            {(["light", "dark"] as const).map((variant) => (
+              <div key={variant} className="flex min-w-0 flex-col items-center gap-3">
+                <ScreenshotFrame
+                  id="teacherHome"
+                  theme={theme}
+                  variant={variant}
+                  alt={`${SCREENSHOTS.teacherHome.alt} ${variant === "light" ? "Light" : "Dark"} theme.`}
+                  shape="phone"
+                  className="rounded-[1rem] sm:rounded-[1.5rem]"
+                />
+                <span className="text-[0.875rem] font-medium text-secondary-foreground">
+                  {variant === "light" ? "Light" : "Dark"}
+                </span>
+              </div>
+            ))}
+          </div>
+          <figcaption className="mt-3 text-[0.875rem] text-muted-foreground">
+            The same teacher Home on a phone, in light and dark.
+          </figcaption>
+        </figure>
+      </LandingContainer>
+    </section>
+  );
+}

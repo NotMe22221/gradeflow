@@ -1,23 +1,25 @@
+import { ArrowRight } from "@/components/icons";
+
 import { DemoSignInForm } from "@/components/landing/demo-sign-in";
 import { cn } from "@/lib/utils";
 
 /**
- * The pair of demo buttons used in the hero and the closing band: one click
- * into the seeded teacher account (the filled primary action), or into a
- * seeded student's view (outlined).
+ * The two ways into the demo: the seeded teacher account (the one filled
+ * button) or a seeded student's view (outlined). Each is a form that signs in
+ * and redirects, so it works before hydration.
  */
 export function DemoCtas({
   demoLogin,
-  primaryLabel,
+  note = "Opens a sample class with made-up students. No sign-up, and no API key needed.",
   className,
 }: {
   demoLogin: boolean;
-  primaryLabel: React.ReactNode;
+  note?: React.ReactNode;
   className?: string;
 }) {
   if (!demoLogin) {
     return (
-      <p className={cn("text-sm text-muted-foreground", className)}>
+      <p className={cn("text-[0.875rem] text-muted-foreground", className)}>
         One-click demo sign-in is turned off for this deployment.
       </p>
     );
@@ -25,15 +27,16 @@ export function DemoCtas({
 
   return (
     <div className={className}>
-      <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:justify-center">
-        <DemoSignInForm role="teacher" size="lg" buttonClassName="w-full sm:w-auto">
-          {primaryLabel}
+      <div className="flex flex-col gap-3 min-[30rem]:flex-row min-[30rem]:flex-wrap">
+        <DemoSignInForm role="teacher" size="lg" buttonClassName="w-full min-[30rem]:w-auto">
+          View the demo
+          <ArrowRight aria-hidden />
         </DemoSignInForm>
-        <DemoSignInForm role="student" size="lg" variant="outline" buttonClassName="w-full sm:w-auto">
+        <DemoSignInForm role="student" size="lg" variant="outline" buttonClassName="w-full min-[30rem]:w-auto">
           See the student view
         </DemoSignInForm>
       </div>
-      <p className="mt-4 text-[0.8125rem] text-muted-foreground">Demo uses synthetic students and papers only.</p>
+      {note ? <p className="mt-4 text-[0.875rem] leading-6 text-muted-foreground">{note}</p> : null}
     </div>
   );
 }

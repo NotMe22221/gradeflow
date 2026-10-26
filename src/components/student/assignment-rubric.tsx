@@ -72,7 +72,7 @@ export function AssignmentRubric({
     >
       <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-3.5 sm:px-5">
         <h2 id="rubric-heading" className="flex items-center gap-2 text-base font-semibold text-foreground">
-          <ListChecks className="size-5 text-primary" aria-hidden />
+          <ListChecks className="size-5 text-muted-foreground" aria-hidden />
           {title}
         </h2>
         {items.length > 0 ? (
@@ -99,7 +99,7 @@ export function AssignmentRubric({
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-3">
-                  <h3 className="text-sm leading-6 font-medium text-foreground">{item.title}</h3>
+                  <h3 className="font-sans text-[0.9375rem] leading-6 font-medium text-foreground">{item.title}</h3>
                   <span className="tabular shrink-0 text-sm leading-6 text-muted-foreground">
                     {item.score !== null ? (
                       <>
@@ -120,13 +120,13 @@ export function AssignmentRubric({
                   </div>
                 ) : null}
                 {item.comment ? (
-                  <p className="mt-2.5 text-sm leading-6 break-words whitespace-pre-line text-foreground/90">
+                  <p className="mt-2.5 max-w-[65ch] text-[0.9375rem] leading-6 break-words whitespace-pre-line text-foreground">
                     {item.comment}
                   </p>
                 ) : null}
                 {!questions && item.description ? (
-                  <p className="mt-1.5 text-[0.8125rem] leading-relaxed break-words whitespace-pre-line text-muted-foreground">
-                    <span className="font-medium text-foreground/80">Full credit: </span>
+                  <p className="mt-1.5 max-w-[65ch] text-[0.875rem] leading-relaxed break-words whitespace-pre-line text-muted-foreground">
+                    <span className="font-medium text-foreground">Full credit: </span>
                     {item.description}
                   </p>
                 ) : null}
@@ -136,7 +136,7 @@ export function AssignmentRubric({
         </ol>
       )}
       {questions && items.length > 0 && !graded ? (
-        <p className="border-t border-border px-4 py-3 text-xs text-muted-foreground sm:px-5">
+        <p className="border-t border-border px-4 py-3 text-[0.8125rem] text-pretty text-muted-foreground sm:px-5">
           Your teacher keeps the answer key. Feedback on a returned test may point to what each question was looking
           for.
         </p>

@@ -214,7 +214,7 @@ export function AddSubmissionDialog({
                 <p className="flex flex-wrap items-center gap-1.5 text-[0.8125rem] text-muted-foreground">
                   {firstName(selected?.name ?? "")} already has a paper here
                   <StatusBadge status={replacing} />
-                  Adding a new one replaces it and clears any AI suggestion.
+                  Adding a new one replaces it and clears any suggested score.
                 </p>
               ) : null}
             </div>

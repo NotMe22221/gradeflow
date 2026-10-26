@@ -41,7 +41,9 @@ function Scrim({ color, fade }: { color: string; fade?: "top" | "bottom" }) {
 /**
  * The themed header of a class page (Stream tab), like Classroom's class
  * banner: class name and section in white on the class color, with a subject
- * illustration on the right.
+ * illustration on the right. In dark mode the class color is a darker tone 30
+ * and the art is dimmed (--banner-art-opacity), all in CSS, so the
+ * server-rendered banner is right on first paint.
  */
 export function ClassBanner({
   name,
@@ -65,7 +67,7 @@ export function ClassBanner({
     >
       <BannerArt
         motif={bannerMotif({ name, subject })}
-        className="pointer-events-none absolute right-0 bottom-0 -z-10 h-full w-auto max-w-[70%] text-white opacity-90 sm:max-w-[55%]"
+        className="pointer-events-none absolute right-0 bottom-0 -z-10 h-full w-auto max-w-[70%] text-white opacity-[calc(0.9*var(--banner-art-opacity))] sm:max-w-[55%]"
       />
       {/* Full height and as wide as the text. On phones it wraps at 80%, so the art keeps the right edge. */}
       <div className="relative flex min-h-40 w-fit max-w-[80%] flex-col justify-end py-6 pr-10 pl-6 sm:min-h-52 sm:max-w-full sm:py-8 sm:pr-12 sm:pl-8">
@@ -101,12 +103,12 @@ export function ClassCardBanner({
   return (
     // A size container, so the title link's overlay can match the banner's width (100cqw).
     <div
-      className="@container relative isolate flex h-[104px] flex-col overflow-hidden text-white"
+      className="@container relative isolate flex h-[6.5rem] flex-col overflow-hidden text-white"
       style={{ backgroundColor: theme.color }}
     >
       <BannerArt
         motif={bannerMotif({ name, subject })}
-        className="pointer-events-none absolute -right-2 -bottom-2 -z-10 h-[112px] w-auto max-w-[70%] text-white opacity-80"
+        className="pointer-events-none absolute -right-2 -bottom-2 -z-10 h-[7rem] w-auto max-w-[70%] text-white opacity-[calc(0.8*var(--banner-art-opacity))]"
       />
       {/* Each text block is only as wide as its text. A block may overhang the right edge by
           1rem (clipped), so a full-width line keeps the banner's 1rem side padding. */}
@@ -116,7 +118,7 @@ export function ClassCardBanner({
             the whole banner is one click target. */}
         <Link
           href={href}
-          className="block truncate rounded-sm text-[1.375rem] leading-7 font-medium outline-none after:absolute after:top-0 after:left-0 after:z-10 after:h-[104px] after:w-[100cqw] hover:underline focus-visible:after:ring-2 focus-visible:after:ring-white focus-visible:after:ring-inset"
+          className="block truncate rounded-sm text-[1.375rem] leading-7 font-medium outline-none after:absolute after:top-0 after:left-0 after:z-10 after:h-[6.5rem] after:w-[100cqw] hover:underline focus-visible:after:ring-2 focus-visible:after:ring-white focus-visible:after:ring-inset"
         >
           <span className="font-display">{name}</span>
         </Link>

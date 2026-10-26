@@ -5,30 +5,35 @@ import { Logo } from "@/components/brand/logo";
 import { DemoSignInForm } from "@/components/landing/demo-sign-in";
 import { Button } from "@/components/ui/button";
 
-const NAV_LINKS = [
-  { href: "#features", label: "Features" },
+export const SECTION_LINKS = [
   { href: "#how-it-works", label: "How it works" },
-  { href: "#approval-gate", label: "Approval gate" },
+  { href: "#students", label: "For students" },
+  { href: "#trust", label: "Trust" },
+  { href: "#faq", label: "FAQ" },
 ];
 
-/** A white 64px app bar, like the product's: logo, section links, and one filled action. */
+/**
+ * The 64px bar, like the product's: wordmark, section links, and the two ways
+ * in. "View the demo" is the one filled button; signed-in visitors get
+ * "Open app" instead.
+ */
 export function SiteHeader({ appHref, demoLogin }: { appHref: string | null; demoLogin: boolean }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card">
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-3 sm:px-4 lg:gap-8 lg:px-6">
-        <Logo className="ml-1" />
-        <nav aria-label="Page sections" className="hidden items-center gap-1 md:flex">
-          {NAV_LINKS.map((link) => (
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-4 sm:px-6 lg:gap-6 lg:px-8">
+        <Logo />
+        <nav aria-label="Page sections" className="hidden items-center lg:flex">
+          {SECTION_LINKS.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="inline-flex h-10 items-center rounded-full px-4 text-sm font-medium text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
+              className="inline-flex h-10 items-center rounded-full px-3.5 text-[0.875rem] font-medium text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
             >
               {link.label}
             </a>
           ))}
         </nav>
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
           {appHref ? (
             <Button asChild>
               <Link href={appHref}>
@@ -37,9 +42,14 @@ export function SiteHeader({ appHref, demoLogin }: { appHref: string | null; dem
               </Link>
             </Button>
           ) : demoLogin ? (
-            <DemoSignInForm role="teacher" buttonClassName="px-5 max-[359px]:px-4">
-              View the demo
-            </DemoSignInForm>
+            <>
+              <DemoSignInForm role="student" variant="text" className="hidden md:block">
+                See the student view
+              </DemoSignInForm>
+              <DemoSignInForm role="teacher" buttonClassName="px-5 max-[22.4rem]:px-4">
+                View the demo
+              </DemoSignInForm>
+            </>
           ) : null}
         </div>
       </div>

@@ -57,6 +57,9 @@ export type ReadyForAiAssignment = {
   count: number;
 };
 
+/** An assignment with papers waiting on the teacher (in To review) or on an AI first pass. */
+export type WaitingAssignment = ReadyForAiAssignment;
+
 export type RecentlyPublished = {
   submissionId: string;
   studentName: string;
@@ -201,14 +204,14 @@ export async function getClassSummaries(teacherId: string, now: Date = new Date(
   });
 }
 
-/** Assignments with papers waiting on an AI first pass, most papers first. */
-export async function getReadyForAiAssignments(
+/** Per-assignment counts for a submission filter, with titles, most papers first. */
+async function countByAssignment(
   teacherId: string,
-  now: Date = new Date()
-): Promise<ReadyForAiAssignment[]> {
+  where: Prisma.SubmissionWhereInput
+): Promise<WaitingAssignment[]> {
   const counts = await db.submission.groupBy({
     by: ["assignmentId"],
-    where: { OR: readyForAiConditions(now), ...ownedBy(teacherId) },
+    where: { ...where, ...ownedBy(teacherId) },
     _count: { _all: true },
   });
   if (counts.length === 0) return [];
@@ -228,6 +231,19 @@ export async function getReadyForAiAssignments(
     }))
     .filter((assignment) => assignment.count > 0)
     .sort((a, b) => b.count - a.count || a.title.localeCompare(b.title));
+}
+
+/** Assignments with papers waiting on an AI first pass, most papers first. */
+export async function getReadyForAiAssignments(
+  teacherId: string,
+  now: Date = new Date()
+): Promise<ReadyForAiAssignment[]> {
+  return countByAssignment(teacherId, { OR: readyForAiConditions(now) });
+}
+
+/** Assignments with AI drafts waiting in To review, most papers first. */
+export async function getReviewQueueAssignments(teacherId: string): Promise<WaitingAssignment[]> {
+  return countByAssignment(teacherId, { status: "NEEDS_REVIEW" });
 }
 
 export async function getRecentlyPublished(teacherId: string, limit = 5): Promise<RecentlyPublished[]> {

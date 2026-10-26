@@ -1,7 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { Camera, Clock, Flag, Info, Loader2, RotateCw, ListChecks, UserPlus } from "@/components/icons";
+import {
+  AlertCircle,
+  Camera,
+  Check,
+  CheckCheck,
+  Clock,
+  Flag,
+  Info,
+  ListChecks,
+  Loader2,
+  PenLine,
+  RotateCw,
+  UserPlus,
+} from "@/components/icons";
 
 import { AddSubmissionDialog } from "@/components/assignments/add-submission-dialog";
 import { useBatchGrading, type LiveRowState } from "@/components/assignments/batch-grading";
@@ -116,7 +129,11 @@ function FlagsIndicator({ flags }: { flags: SubmissionFlag[] | number }) {
   );
 }
 
-/** Status words in Google Classroom's style; status colors only where they mean something. */
+/**
+ * Status words in Google Classroom's style. Color only where it means
+ * something, and always next to a word (and an icon on chips). A draft reads
+ * "Needs review" with the edit-note icon: a suggestion, never a grade.
+ */
 function RowStatus({
   row,
   view,
@@ -152,7 +169,10 @@ function RowStatus({
   if (view.kind === "graded") {
     return (
       <span className="flex flex-wrap items-center gap-2">
-        <Badge variant="warning">Needs review</Badge>
+        <Badge variant="warning">
+          <PenLine aria-hidden />
+          Needs review
+        </Badge>
         {view.confidence ? <ConfidenceBadge confidence={view.confidence} /> : null}
         <FlagsIndicator flags={view.flags} />
         {showGrader && grader ? <span className="text-xs text-muted-foreground">{GRADER_LABELS[grader]}</span> : null}
@@ -162,7 +182,10 @@ function RowStatus({
   if (view.kind === "failed") {
     return (
       <span className="inline-flex items-center gap-1.5">
-        <Badge variant="danger">AI pass failed</Badge>
+        <Badge variant="danger">
+          <AlertCircle aria-hidden />
+          AI pass failed
+        </Badge>
         {view.error ? (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -182,11 +205,14 @@ function RowStatus({
   }
   if (row.published) {
     return (
-      <span className="flex flex-wrap items-baseline gap-x-2">
+      <span className="flex flex-wrap items-center gap-x-2">
         <span className="tabular text-sm font-medium text-foreground">
           {formatScore(row.published.total, row.published.max)}
         </span>
-        <span className="text-xs text-muted-foreground">Returned</span>
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+          <CheckCheck className="size-3.5 text-success" aria-hidden />
+          Returned
+        </span>
       </span>
     );
   }
@@ -206,9 +232,19 @@ function RowStatus({
         </span>
       );
     case "APPROVED":
-      return <Badge variant="success">Approved</Badge>;
+      return (
+        <Badge variant="success">
+          <Check aria-hidden />
+          Approved
+        </Badge>
+      );
     case "NEEDS_REVIEW":
-      return <Badge variant="warning">Needs review</Badge>;
+      return (
+        <Badge variant="warning">
+          <PenLine aria-hidden />
+          Needs review
+        </Badge>
+      );
     default:
       return <span className="text-[0.8125rem] text-muted-foreground">{row.status}</span>;
   }
@@ -310,7 +346,7 @@ function GraderNote({
     grader === firstPass.kind ? firstPass.model : grader === graderInfo.kind ? graderInfo.model : null;
   return (
     <div className="flex flex-wrap items-center gap-2 text-[0.8125rem] text-muted-foreground">
-      <span>{hasOutput ? "Suggestions by" : "First pass by"}</span>
+      <span>{hasOutput ? "Suggested scores by" : "First pass by"}</span>
       {shown.map((grader) => (
         <GraderBadge key={grader} grader={grader} model={modelFor(grader)} />
       ))}
@@ -320,25 +356,25 @@ function GraderNote({
 
 /**
  * Row grid: avatar | name | (status) | action. On phones the status drops under the name.
+ * Rows follow the density preference (min-h-row-min, py-row).
  * The name track has a 12rem floor: a capped track like minmax(0,20rem) grows to its cap
  * before a 1fr track gets any space, so without the floor the status column took 320px
  * and names were cut to a few letters at 1024px with the drawer open.
  */
 const ROW =
-  "grid min-h-16 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-4 py-3 md:grid-cols-[auto_minmax(12rem,1fr)_minmax(0,20rem)_9.5rem] md:gap-x-4 md:px-6";
+  "grid min-h-row-min grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-4 py-row md:grid-cols-[auto_minmax(12rem,1fr)_minmax(0,20rem)_9.5rem] md:gap-x-4 md:px-6";
 const STATUS_CELL = "col-span-3 row-start-2 min-w-0 pl-11 md:col-span-1 md:col-start-3 md:row-start-1 md:pl-0";
 const ACTION_CELL = "col-start-3 row-start-1 flex items-center justify-end gap-1 md:col-start-4";
 
+/** A quiet band between groups: the group's name and how many rows it holds. */
 function GroupHeading({ id, title, count }: { id: string; title: string; count: number }) {
   return (
     <h3
       id={id}
-      className="flex items-center gap-2 border-y border-border bg-background px-4 py-2 font-sans text-[0.8125rem] font-medium text-muted-foreground md:px-6"
+      className="flex items-baseline gap-1.5 border-y border-border bg-background px-4 py-2 font-sans text-[0.8125rem] font-medium text-foreground compact:py-1.5 md:px-6"
     >
       {title}
-      <span className="tabular rounded-full bg-secondary px-2 py-0.5 text-[0.6875rem] font-semibold text-secondary-foreground">
-        {count}
-      </span>
+      <span className="tabular font-normal text-muted-foreground">· {count}</span>
     </h3>
   );
 }
@@ -421,7 +457,7 @@ export function SubmissionsTable({
     const canScan = scannable.has(row.student.id);
     return (
       <li key={row.id} className={cn(ROW, busy && "bg-primary-soft/40")} aria-busy={busy || undefined}>
-        <Avatar name={row.student.name} className="size-8" />
+        <Avatar name={row.student.name} className="size-8 compact:size-7" />
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-foreground">{row.student.name}</p>
           <p className="truncate text-xs text-muted-foreground">
@@ -511,7 +547,7 @@ export function SubmissionsTable({
             {sentBack.map(renderRow)}
             {notSubmitted.map((student) => (
               <li key={student.id} className={ROW}>
-                <Avatar name={student.name} className="size-8 opacity-70" />
+                <Avatar name={student.name} className="size-8 opacity-70 compact:size-7" />
                 <div className="min-w-0">
                   <p className="truncate text-sm text-foreground">{student.name}</p>
                 </div>
@@ -519,7 +555,10 @@ export function SubmissionsTable({
                   {test ? (
                     <span className="text-[0.8125rem] text-muted-foreground">Not scanned yet</span>
                   ) : pastDue ? (
-                    <span className="text-[0.8125rem] font-medium text-danger">Missing</span>
+                    <span className="inline-flex items-center gap-1 text-[0.8125rem] font-medium text-danger">
+                      <AlertCircle className="size-3.5" aria-hidden />
+                      Missing
+                    </span>
                   ) : (
                     <span className="text-[0.8125rem] text-muted-foreground">Assigned</span>
                   )}

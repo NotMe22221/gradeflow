@@ -1,6 +1,5 @@
 import { Target } from "@/components/icons";
-
-import { SideCard, SideCardEmpty } from "@/components/dashboard/recently-published";
+import { ListCard, ListCardEmpty } from "@/components/dashboard/recently-published";
 import { MostMissedList } from "@/components/insights/most-missed-list";
 import type { MostMissedItem } from "@/lib/insights/heatmap";
 
@@ -8,23 +7,29 @@ import type { MostMissedItem } from "@/lib/insights/heatmap";
  * The criteria students lose the most points on, across the teacher's
  * classes. Teacher-approved grades only; each row opens that class's heatmap.
  */
-export function MostMissedCard({ items, className }: { items: MostMissedItem[]; className?: string }) {
+export function MostMissedCard({
+  items,
+  hasClasses = true,
+  className,
+}: {
+  items: MostMissedItem[];
+  hasClasses?: boolean;
+  className?: string;
+}) {
   return (
-    <SideCard
-      id="most-missed-heading"
-      title="Most missed this term"
-      href="/insights"
-      linkLabel="Insights"
-      footnote={items.length > 0 ? "Lowest class averages, from approved grades only." : undefined}
+    <ListCard
+      footnote={items.length > 0 ? "Lowest class averages this term, from approved grades only." : undefined}
       className={className}
     >
       {items.length === 0 ? (
-        <SideCardEmpty icon={Target}>
-          Approve a few grades and the heatmap fills in with the criteria your class loses the most points on.
-        </SideCardEmpty>
+        <ListCardEmpty icon={Target}>
+          {hasClasses
+            ? "Approve a few grades and this fills in with the criteria your classes lose the most points on."
+            : "Once your classes have approved grades, the criteria they miss most show up here."}
+        </ListCardEmpty>
       ) : (
-        <MostMissedList items={items} showClass linkTo="insights" dense className="border-t border-border" />
+        <MostMissedList items={items} showClass linkTo="insights" dense />
       )}
-    </SideCard>
+    </ListCard>
   );
 }

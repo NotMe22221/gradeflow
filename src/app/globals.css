@@ -1,77 +1,448 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/*
+ * GradeSmart AI design tokens, in the style of Google Classroom (Material 3).
+ *
+ * HOW THEMING WORKS
+ * The root <html> carries four attributes, server-rendered from the viewer's
+ * saved preferences (src/lib/preferences/schema.ts, htmlAttributes()):
+ *   data-theme      system | light | dark   ("system" follows prefers-color-scheme)
+ *   data-accent     blue | teal | green | orange | pink | slate
+ *   data-text-size  small | default | large | larger  (root font size 87.5-125%)
+ *   data-density    comfortable | compact
+ * Every color below is a CSS variable, so server-rendered markup and portals
+ * (dialogs, menus, toasts) restyle without JavaScript. Use the token
+ * utilities, never hex / white / black / gray-* (white text on a class color
+ * fill is the one exception).
+ *
+ * SURFACES (light / dark)
+ *   bg-background   page canvas                      #f8fafd / #131314
+ *   bg-card         cards, app bar, panels           #ffffff / #1e1f20
+ *   bg-popover      raised: menus, dialogs, sheets   #ffffff / #282a2c
+ *   bg-secondary    tonal fill: info panels, chips   #edf0f6 / #333537
+ *   bg-muted        skeletons, tracks, selected rows #edf0f4 / #282a2c
+ *   bg-accent       neutral hover fill               #eaeff5 / #333537
+ *   bg-surface-bright  the selected segment of a segmented control
+ *   bg-paper / text-paper-foreground  student work (never inverted; slightly
+ *                   dimmed in dark so a white page doesn't glare)
+ *   bg-scrim        behind modal dialogs and sheets
+ * Text: text-foreground (body), text-muted-foreground (metadata; 4.5:1+ on
+ * every surface above). Lines: border-border (dividers, card edges),
+ * border-input (field outlines, 3:1+).
+ * Accent: bg-primary + text-primary-foreground (the one filled action),
+ * bg-primary-soft + text-primary-soft-foreground (selected / tonal), text-primary
+ * (links), ring-ring (focus). The accent preference swaps these only.
+ * Status: success / warning / danger, each with -foreground (text on the solid
+ * fill), -soft (container) and -soft-foreground (text on the container). Pair
+ * a status color with a word or an icon; color is never the only signal.
+ * Class colors: classTheme() in src/lib/ui/class-theme.ts. `color` is a fill
+ * that carries white text in both themes (tone 30 banners in dark); `accent` /
+ * `onAccent` are for dots, text and avatars on ordinary surfaces.
+ *
+ * DENSITY (data-density="compact" tightens lists and tables only; never
+ * dialogs, alerts or forms, and never a target below 24px)
+ *   py-row        list row block padding     0.75rem / 0.5rem
+ *   min-h-row-min list row minimum height    3.5rem  / 3rem
+ *   py-cell       table cell block padding   0.75rem / 0.375rem
+ *   h-cell-head   table header row height    2.75rem / 2.25rem
+ *   p-card        card body padding          1.5rem  / 1rem
+ *   gap-list / space-y-list  between rows    0.75rem / 0.5rem
+ *   gap-section   between page sections      2rem    / 1.5rem
+ * (each also works with any spacing utility: px-card, pt-row, ...). For a
+ * one-off, use the variant: `compact:py-1.5`. The raw variables are
+ * --row-pad-y, --row-min-h, --cell-pad-y, --cell-head-h, --card-pad,
+ * --list-gap, --section-gap.
+ *
+ * VARIANTS
+ *   dark:     data-theme="dark", or "system" while the OS is dark. Prefer
+ *             tokens; reach for dark: only where a token can't express it.
+ *   compact:  data-density="compact".
+ *
+ * TEXT SIZE scales the root font size, so size text (and anything that should
+ * grow with it) in rem: text-[0.8125rem], never px.
+ *
+ * STICKY BARS: html scroll-padding-top equals the app bar (--app-bar-h, plus
+ * the class tab bar on class pages), so a focused element is never hidden
+ * under them (WCAG 2.4.11). A fixed bottom bar should carry data-bottom-nav.
+ *
+ * Contrast for every token pair, accent and class color is checked by
+ * tests/theme.test.ts, which parses this file. Change a value, run npm test.
+ */
+
+/* dark: matches an explicit dark theme, and "system" (or no attribute) on a dark OS. */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(
+        :root:not([data-theme="light"], [data-theme="dark"]),
+        :root:not([data-theme="light"], [data-theme="dark"]) *
+      ) {
+      @slot;
+    }
+  }
+}
+
+@custom-variant compact (&:where([data-density="compact"], [data-density="compact"] *));
 
 /*
- * GradeSmart AI design tokens, in the style of Google Classroom (Material 3):
- * a light blue-gray canvas, white surfaces with soft borders, Google blue for
- * primary actions, tonal "container" colors for selected and secondary
- * states, and a set of class theme colors for banners and class avatars.
- * Semantic colors (success / warning / danger) are reserved for status.
- * Spacing follows Tailwind's 4px grid used in 8pt steps.
+ * Accent palettes: tones 10-90 of one hue (Material tonal palettes; HCT tone
+ * equals L*, so the same tone pairs give the same contrast for every hue).
+ * The themes below map tones to roles: light uses 40 / 100 / 90 / 10, dark
+ * uses 80 / 20 / 30 / 90. Any element with data-accent gets that palette,
+ * so a swatch can preview an accent with bg-[var(--primary-40)].
+ * Blue is Google's own palette; the others come from material-color-utilities
+ * with container tones (30, 90) at lower chroma so they stay calm.
  */
-:root {
+:where(:root),
+:where([data-accent="blue"]) {
+  --primary-10: #041e49;
+  --primary-20: #062e6f;
+  --primary-30: #0842a0;
+  --primary-40: #0b57d0;
+  --primary-80: #a8c7fa;
+  --primary-90: #d3e3fd;
+}
+:where([data-accent="teal"]) {
+  --primary-10: #00201e;
+  --primary-20: #003735;
+  --primary-30: #0c4f4c;
+  --primary-40: #006a66;
+  --primary-80: #73d7d0;
+  --primary-90: #c5ece8;
+}
+:where([data-accent="green"]) {
+  --primary-10: #002110;
+  --primary-20: #00391e;
+  --primary-30: #22503a;
+  --primary-40: #146c45;
+  --primary-80: #7fd9a4;
+  --primary-90: #c9ecd5;
+}
+:where([data-accent="orange"]) {
+  --primary-10: #341100;
+  --primary-20: #562000;
+  --primary-30: #6b3a20;
+  --primary-40: #984717;
+  --primary-80: #ffb692;
+  --primary-90: #ffdbcb;
+}
+:where([data-accent="pink"]) {
+  --primary-10: #3d0023;
+  --primary-20: #5d1139;
+  --primary-30: #68374c;
+  --primary-40: #964168;
+  --primary-80: #ffb0cf;
+  --primary-90: #ffd9e5;
+}
+:where([data-accent="slate"]) {
+  --primary-10: #121c28;
+  --primary-20: #27313e;
+  --primary-30: #3f4753;
+  --primary-40: #555f6e;
+  --primary-80: #bdc7d8;
+  --primary-90: #dbe3f1;
+}
+
+/* Light theme (the default). */
+:where(:root) {
+  color-scheme: light;
   --radius: 0.75rem;
 
-  --background: oklch(0.982 0.004 255); /* #f8fafd canvas */
-  --foreground: oklch(0.235 0 0); /* #1f1f1f */
+  --background: #f8fafd;
+  --foreground: #1f1f1f;
+  --card: #ffffff;
+  --card-foreground: #1f1f1f;
+  --popover: #ffffff;
+  --popover-foreground: #1f1f1f;
+  --surface-bright: #ffffff;
+  --paper: #ffffff;
+  --paper-foreground: #1f1f1f;
+  --scrim: rgb(0 0 0 / 0.4);
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.235 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.235 0 0);
+  --primary: var(--primary-40);
+  --primary-foreground: #ffffff;
+  --primary-soft: var(--primary-90);
+  --primary-soft-foreground: var(--primary-10);
 
-  --primary: oklch(0.49 0.19 258); /* #0b57d0 Google blue */
-  --primary-foreground: oklch(1 0 0);
-  --primary-soft: oklch(0.92 0.045 258); /* #d3e3fd secondary container */
-  --primary-soft-foreground: oklch(0.27 0.1 260); /* #041e49 */
+  --secondary: #edf0f6;
+  --secondary-foreground: #2a2e33;
+  --muted: #edf0f4;
+  --muted-foreground: #575c59;
+  --accent: #eaeff5;
+  --accent-foreground: #1f1f1f;
 
-  --secondary: oklch(0.955 0.008 255); /* #eef2f8 tonal surface */
-  --secondary-foreground: oklch(0.3 0.01 255);
-  --muted: oklch(0.955 0.006 255);
-  --muted-foreground: oklch(0.47 0.008 160); /* #444746 */
-  --accent: oklch(0.95 0.01 255);
-  --accent-foreground: oklch(0.235 0 0);
+  --destructive: #b3261e;
+  --destructive-foreground: #ffffff;
 
-  --destructive: oklch(0.52 0.19 27); /* #b3261e */
-  --destructive-foreground: oklch(1 0 0);
+  --success: #146c2e;
+  --success-foreground: #ffffff;
+  --success-soft: #c4eed0;
+  --success-soft-foreground: #0f5223;
+  --warning: #9d6300;
+  --warning-foreground: #ffffff;
+  --warning-soft: #fff1c4;
+  --warning-soft-foreground: #6e4600;
+  --danger: #b3261e;
+  --danger-foreground: #ffffff;
+  --danger-soft: #f9dedc;
+  --danger-soft-foreground: #8c1d18;
 
-  --success: oklch(0.5 0.13 150); /* #146c2e */
-  --success-soft: oklch(0.93 0.06 152); /* #c4eed0 */
-  --success-soft-foreground: oklch(0.36 0.09 150);
-  --warning: oklch(0.7 0.16 70);
-  --warning-soft: oklch(0.96 0.06 90); /* #fef7e0 */
-  --warning-soft-foreground: oklch(0.45 0.11 60);
-  --danger: oklch(0.55 0.2 27);
-  --danger-soft: oklch(0.93 0.035 25); /* #f9dedc */
-  --danger-soft-foreground: oklch(0.42 0.16 27);
-
-  --border: oklch(0.89 0.005 255); /* #dadce0 */
-  --input: oklch(0.6 0.005 160); /* #747775 outline */
+  --border: #dadce0;
+  /* Field outlines (M3 outline): 4.6:1 on white. */
+  --input: #747775;
   /* Focus rings: opaque primary, 6.4:1 on white and 5:1 on primary-soft (WCAG 1.4.11). */
-  --ring: oklch(0.49 0.19 258);
+  --ring: var(--primary-40);
 
-  --sidebar: oklch(0.982 0.004 255);
-  --sidebar-foreground: oklch(0.3 0.006 160);
-  --sidebar-border: oklch(0.89 0.005 255);
-  --sidebar-accent: oklch(0.92 0.045 258); /* active nav pill */
-  --sidebar-accent-foreground: oklch(0.27 0.1 260);
+  --sidebar: #f8fafd;
+  --sidebar-foreground: #2b2f2d;
+  --sidebar-border: #dadce0;
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--primary-soft); /* active nav pill */
+  --sidebar-accent-foreground: var(--primary-soft-foreground);
+  --sidebar-ring: var(--ring);
 
-  --highlight: oklch(0.94 0.08 95);
-  --highlight-strong: oklch(0.88 0.13 92);
+  --highlight: #fcebae;
+  --highlight-strong: #f6d56b;
+
+  /* Elevation: flat resting cards; level 1 on hover, level 2 for raised surfaces. */
+  --elevation-1: 0 1px 2px 0 rgb(60 64 67 / 0.3), 0 1px 3px 1px rgb(60 64 67 / 0.15);
+  --elevation-2: 0 1px 3px 0 rgb(60 64 67 / 0.3), 0 4px 8px 3px rgb(60 64 67 / 0.15);
 
   /*
-   * Class theme colors (banners, class avatars). Each one carries white and
-   * white/90 text at 4.5:1 or better. Keep in sync with CLASS_THEMES in
-   * src/lib/ui/class-theme.ts.
+   * Class colors. --class-X is a fill for banners and icon circles with white
+   * text (4.5:1+ in both themes); --class-X-accent is for dots, rules, text and
+   * avatars on ordinary surfaces, with --class-X-on-accent as the text on it.
+   * Keep in sync with CLASS_THEMES in src/lib/ui/class-theme.ts (a test checks).
    */
   --class-blue: #1967d2;
+  --class-blue-accent: #1967d2;
+  --class-blue-on-accent: #ffffff;
   --class-green: #137333;
-  --class-orange: #a35200;
+  --class-green-accent: #137333;
+  --class-green-on-accent: #ffffff;
   --class-purple: #8430ce;
+  --class-purple-accent: #8430ce;
+  --class-purple-on-accent: #ffffff;
   --class-teal: #00707a;
+  --class-teal-accent: #00707a;
+  --class-teal-on-accent: #ffffff;
+  --class-orange: #a35200;
+  --class-orange-accent: #a35200;
+  --class-orange-on-accent: #ffffff;
   --class-pink: #b80672;
+  --class-pink-accent: #b80672;
+  --class-pink-on-accent: #ffffff;
+  /* How strongly banner line art shows (dark adds the equivalent of a 40% scrim). */
+  --banner-art-opacity: 1;
+
+  /* Density: comfortable. */
+  --row-pad-y: 0.75rem;
+  --row-min-h: 3.5rem;
+  --cell-pad-y: 0.75rem;
+  --cell-head-h: 2.75rem;
+  --card-pad: 1.5rem;
+  --list-gap: 0.75rem;
+  --section-gap: 2rem;
+
+  /* Sticky bars, for scroll padding. */
+  --app-bar-h: 4rem;
+  --class-bar-h: 0rem;
+  --bottom-bar-h: 0rem;
+}
+
+/*
+ * Dark theme: Material 3 surface-container tones (no pure black, no pure
+ * white), tone 80 accents and status colors, tone 30 containers. The block
+ * appears twice (explicit dark; system on a dark OS) and the test checks the
+ * two stay identical.
+ */
+:where(:root[data-theme="dark"]) {
+  color-scheme: dark;
+  --background: #131314;
+  --foreground: #e3e3e3;
+  --card: #1e1f20;
+  --card-foreground: #e3e3e3;
+  --popover: #282a2c;
+  --popover-foreground: #e3e3e3;
+  --surface-bright: #46484a;
+  --paper: #e8e8e6;
+  --paper-foreground: #1f1f1f;
+  --scrim: rgb(0 0 0 / 0.6);
+  --primary: var(--primary-80);
+  --primary-foreground: var(--primary-20);
+  --primary-soft: var(--primary-30);
+  --primary-soft-foreground: var(--primary-90);
+  --secondary: #333537;
+  --secondary-foreground: #e3e3e3;
+  --muted: #282a2c;
+  --muted-foreground: #c4c7c5;
+  --accent: #333537;
+  --accent-foreground: #e3e3e3;
+  --destructive: #f2b8b5;
+  --destructive-foreground: #601410;
+  --success: #6dd58c;
+  --success-foreground: #0a3818;
+  --success-soft: #1f3d27;
+  --success-soft-foreground: #c4eed0;
+  --warning: #f2bf5e;
+  --warning-foreground: #3f2e00;
+  --warning-soft: #45340f;
+  --warning-soft-foreground: #ffdfa6;
+  --danger: #f2b8b5;
+  --danger-foreground: #601410;
+  --danger-soft: #4f2724;
+  --danger-soft-foreground: #f9dedc;
+  --border: #444746;
+  --input: #8e918f;
+  --ring: var(--primary-80);
+  --sidebar: #131314;
+  --sidebar-foreground: #c4c7c5;
+  --sidebar-border: #444746;
+  --highlight: #4a3f12;
+  --highlight-strong: #6b5917;
+  --elevation-1: 0 1px 2px 0 rgb(0 0 0 / 0.5), 0 1px 3px 1px rgb(0 0 0 / 0.3);
+  --elevation-2: 0 1px 3px 0 rgb(0 0 0 / 0.5), 0 4px 8px 3px rgb(0 0 0 / 0.3);
+  --class-blue: #2b4678;
+  --class-blue-accent: #adc6ff;
+  --class-blue-on-accent: #002e69;
+  --class-green: #1c5128;
+  --class-green-accent: #87d991;
+  --class-green-on-accent: #003914;
+  --class-purple: #563a70;
+  --class-purple-accent: #deb7ff;
+  --class-purple-on-accent: #44196a;
+  --class-teal: #004f56;
+  --class-teal-accent: #81d3de;
+  --class-teal-on-accent: #00363c;
+  --class-orange: #6d390c;
+  --class-orange-accent: #ffb784;
+  --class-orange-on-accent: #4f2500;
+  --class-pink: #6e334e;
+  --class-pink-accent: #ffb0cf;
+  --class-pink-on-accent: #5d1139;
+  --banner-art-opacity: 0.6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :where(:root:not([data-theme="light"], [data-theme="dark"])) {
+    color-scheme: dark;
+    --background: #131314;
+    --foreground: #e3e3e3;
+    --card: #1e1f20;
+    --card-foreground: #e3e3e3;
+    --popover: #282a2c;
+    --popover-foreground: #e3e3e3;
+    --surface-bright: #46484a;
+    --paper: #e8e8e6;
+    --paper-foreground: #1f1f1f;
+    --scrim: rgb(0 0 0 / 0.6);
+    --primary: var(--primary-80);
+    --primary-foreground: var(--primary-20);
+    --primary-soft: var(--primary-30);
+    --primary-soft-foreground: var(--primary-90);
+    --secondary: #333537;
+    --secondary-foreground: #e3e3e3;
+    --muted: #282a2c;
+    --muted-foreground: #c4c7c5;
+    --accent: #333537;
+    --accent-foreground: #e3e3e3;
+    --destructive: #f2b8b5;
+    --destructive-foreground: #601410;
+    --success: #6dd58c;
+    --success-foreground: #0a3818;
+    --success-soft: #1f3d27;
+    --success-soft-foreground: #c4eed0;
+    --warning: #f2bf5e;
+    --warning-foreground: #3f2e00;
+    --warning-soft: #45340f;
+    --warning-soft-foreground: #ffdfa6;
+    --danger: #f2b8b5;
+    --danger-foreground: #601410;
+    --danger-soft: #4f2724;
+    --danger-soft-foreground: #f9dedc;
+    --border: #444746;
+    --input: #8e918f;
+    --ring: var(--primary-80);
+    --sidebar: #131314;
+    --sidebar-foreground: #c4c7c5;
+    --sidebar-border: #444746;
+    --highlight: #4a3f12;
+    --highlight-strong: #6b5917;
+    --elevation-1: 0 1px 2px 0 rgb(0 0 0 / 0.5), 0 1px 3px 1px rgb(0 0 0 / 0.3);
+    --elevation-2: 0 1px 3px 0 rgb(0 0 0 / 0.5), 0 4px 8px 3px rgb(0 0 0 / 0.3);
+    --class-blue: #2b4678;
+    --class-blue-accent: #adc6ff;
+    --class-blue-on-accent: #002e69;
+    --class-green: #1c5128;
+    --class-green-accent: #87d991;
+    --class-green-on-accent: #003914;
+    --class-purple: #563a70;
+    --class-purple-accent: #deb7ff;
+    --class-purple-on-accent: #44196a;
+    --class-teal: #004f56;
+    --class-teal-accent: #81d3de;
+    --class-teal-on-accent: #00363c;
+    --class-orange: #6d390c;
+    --class-orange-accent: #ffb784;
+    --class-orange-on-accent: #4f2500;
+    --class-pink: #6e334e;
+    --class-pink-accent: #ffb0cf;
+    --class-pink-on-accent: #5d1139;
+    --banner-art-opacity: 0.6;
+  }
+}
+
+/* More contrast (OS setting): secondary text and dividers move up a step. */
+@media (prefers-contrast: more) {
+  :where(:root) {
+    --muted-foreground: var(--foreground);
+    --secondary-foreground: var(--foreground);
+    --sidebar-foreground: var(--foreground);
+    --border: var(--input);
+    --sidebar-border: var(--input);
+  }
+}
+
+/* Text size: everything is sized in rem, so the root font size scales it all. */
+:where(:root[data-text-size="small"]) {
+  font-size: 87.5%;
+}
+:where(:root[data-text-size="large"]) {
+  font-size: 112.5%;
+}
+:where(:root[data-text-size="larger"]) {
+  font-size: 125%;
+}
+
+/* Density: compact (about 4px less per step; targets stay 24px or more). */
+:where([data-density="compact"]) {
+  --row-pad-y: 0.5rem;
+  --row-min-h: 3rem;
+  --cell-pad-y: 0.375rem;
+  --cell-head-h: 2.25rem;
+  --card-pad: 1rem;
+  --list-gap: 0.5rem;
+  --section-gap: 1.5rem;
+}
+
+/* Class pages add the class tab bar under the app bar (two rows on phones, one from md). */
+:where(html:has([data-class-tab-bar])) {
+  --class-bar-h: 6rem;
+}
+@media (width >= 48rem) {
+  :where(html:has([data-class-tab-bar])) {
+    --class-bar-h: 3.3125rem;
+  }
+}
+/* The bottom bar is in the DOM at every width but only shows on phones. */
+@media (width < 37.5rem) {
+  :where(html:has([data-bottom-nav])) {
+    --bottom-bar-h: 5rem;
+  }
 }
 
 @theme inline {
@@ -85,6 +456,10 @@
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+  --color-surface-bright: var(--surface-bright);
+  --color-paper: var(--paper);
+  --color-paper-foreground: var(--paper-foreground);
+  --color-scrim: var(--scrim);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-soft: var(--primary-soft);
@@ -98,12 +473,15 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-success-soft: var(--success-soft);
   --color-success-soft-foreground: var(--success-soft-foreground);
   --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-warning-soft: var(--warning-soft);
   --color-warning-soft-foreground: var(--warning-soft-foreground);
   --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
   --color-danger-soft: var(--danger-soft);
   --color-danger-soft-foreground: var(--danger-soft-foreground);
   --color-border: var(--border);
@@ -112,8 +490,11 @@
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-ring: var(--sidebar-ring);
   --color-highlight: var(--highlight);
   --color-highlight-strong: var(--highlight-strong);
   --color-class-blue: var(--class-blue);
@@ -123,6 +504,15 @@
   --color-class-teal: var(--class-teal);
   --color-class-pink: var(--class-pink);
 
+  /* Density spacing: py-row, min-h-row-min, py-cell, h-cell-head, p-card, gap-list, gap-section. */
+  --spacing-row: var(--row-pad-y);
+  --spacing-row-min: var(--row-min-h);
+  --spacing-cell: var(--cell-pad-y);
+  --spacing-cell-head: var(--cell-head-h);
+  --spacing-card: var(--card-pad);
+  --spacing-list: var(--list-gap);
+  --spacing-section: var(--section-gap);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -131,13 +521,18 @@
 
   /* Material elevation: level 0 cards rely on borders; level 1 on hover, level 2 for menus. */
   --shadow-card: 0 0 0 0 transparent;
-  --shadow-hover: 0 1px 2px 0 rgb(60 64 67 / 0.3), 0 1px 3px 1px rgb(60 64 67 / 0.15);
-  --shadow-raised: 0 1px 3px 0 rgb(60 64 67 / 0.3), 0 4px 8px 3px rgb(60 64 67 / 0.15);
+  --shadow-hover: var(--elevation-1);
+  --shadow-raised: var(--elevation-2);
 
   --animate-flash: flash 1.4s ease-out;
   @keyframes flash {
-    0%, 30% { background-color: var(--highlight-strong); }
-    100% { background-color: var(--highlight); }
+    0%,
+    30% {
+      background-color: var(--highlight-strong);
+    }
+    100% {
+      background-color: var(--highlight);
+    }
   }
 }
 
@@ -149,6 +544,11 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    /* Native checkboxes, radios, range inputs and progress follow the accent. */
+    accent-color: var(--primary);
+    /* Focused or scrolled-to elements never land under the sticky bars (WCAG 2.4.11). */
+    scroll-padding-top: calc(var(--app-bar-h) + var(--class-bar-h) + 0.5rem);
+    scroll-padding-bottom: calc(var(--bottom-bar-h) + 0.5rem);
   }
   body {
     @apply bg-background text-foreground font-sans;
@@ -162,6 +562,7 @@
   }
   ::selection {
     background: var(--primary-soft);
+    color: var(--primary-soft-foreground);
   }
   /* The skip link focuses <main> itself; don't outline the whole page. */
   main[tabindex="-1"]:focus {
@@ -188,4 +589,11 @@
   [class*="animate-out"] {
     animation: none !important;
   }
+}
+
+/* Set for one frame while the theme changes, so colors swap at once instead of fading piecemeal. */
+[data-theme-switching] *,
+[data-theme-switching] *::before,
+[data-theme-switching] *::after {
+  transition: none !important;
 }

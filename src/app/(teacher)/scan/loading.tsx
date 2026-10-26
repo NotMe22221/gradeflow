@@ -15,7 +15,6 @@ export default function ScanLoading() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
         <div className="min-w-0 rounded-xl border border-border bg-card">
           <div className="flex items-start gap-4 px-4 pt-5 sm:px-6 sm:pt-6">
-            <Skeleton className="size-10 rounded-full" />
             <div className="min-w-0 flex-1 space-y-2">
               <Skeleton className="h-5 w-28" />
               <Skeleton className="h-4 w-72 max-w-full" />
@@ -35,7 +34,7 @@ export default function ScanLoading() {
             </div>
           </div>
           <div className="flex items-center gap-3 border-t border-border px-4 py-5 sm:px-6">
-            <Skeleton className="size-9 rounded-full" />
+            <Skeleton className="size-5 rounded-full" />
             <div className="min-w-0 flex-1 space-y-2">
               <Skeleton className="h-4 w-44" />
               <Skeleton className="h-3.5 w-64 max-w-full" />

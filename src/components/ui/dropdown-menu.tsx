@@ -27,7 +27,7 @@ function DropdownMenuContent({
         data-slot="dropdown-menu-content"
         sideOffset={sideOffset}
         className={cn(
-          "z-50 min-w-[12rem] overflow-hidden rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-raised data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
+          "z-50 min-w-[12rem] overflow-hidden rounded-xl border border-border/70 bg-popover py-1.5 text-popover-foreground shadow-raised data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
           className
         )}
         {...props}
@@ -55,7 +55,7 @@ function DropdownMenuItem({
       data-inset={inset}
       data-variant={variant}
       className={cn(
-        "relative flex cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none select-none data-[highlighted]:bg-primary-soft data-[highlighted]:text-primary-soft-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 data-[variant=destructive]:text-destructive data-[variant=destructive]:data-[highlighted]:text-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
+        "relative mx-1.5 flex min-h-10 cursor-default items-center gap-3 rounded-lg px-3 py-2 text-sm outline-none select-none data-[highlighted]:bg-primary-soft data-[highlighted]:text-primary-soft-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-10 data-[variant=destructive]:text-destructive data-[variant=destructive]:data-[highlighted]:text-destructive [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
         className
       )}
       {...props}
@@ -73,13 +73,13 @@ function DropdownMenuCheckboxItem({
     <DropdownMenuPrimitive.CheckboxItem
       data-slot="dropdown-menu-checkbox-item"
       className={cn(
-        "relative flex cursor-default items-center gap-2 rounded-md py-1.5 pr-2 pl-8 text-sm outline-none select-none data-[highlighted]:bg-primary-soft data-[highlighted]:text-primary-soft-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        "relative mx-1.5 flex min-h-10 cursor-default items-center gap-3 rounded-lg py-2 pr-3 pl-10 text-sm outline-none select-none data-[highlighted]:bg-primary-soft data-[highlighted]:text-primary-soft-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         className
       )}
       checked={checked}
       {...props}
     >
-      <span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+      <span className="pointer-events-none absolute left-3 flex size-4 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
           <CheckIcon className="size-4" />
         </DropdownMenuPrimitive.ItemIndicator>
@@ -98,7 +98,7 @@ function DropdownMenuLabel({
     <DropdownMenuPrimitive.Label
       data-slot="dropdown-menu-label"
       data-inset={inset}
-      className={cn("px-2 py-1.5 text-xs font-medium text-muted-foreground data-[inset]:pl-8", className)}
+      className={cn("px-4.5 pt-2 pb-1 text-xs font-medium text-muted-foreground data-[inset]:pl-10", className)}
       {...props}
     />
   );
@@ -111,7 +111,7 @@ function DropdownMenuSeparator({
   return (
     <DropdownMenuPrimitive.Separator
       data-slot="dropdown-menu-separator"
-      className={cn("-mx-1 my-1 h-px bg-border", className)}
+      className={cn("my-1.5 h-px bg-border", className)}
       {...props}
     />
   );

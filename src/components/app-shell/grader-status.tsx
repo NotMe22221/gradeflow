@@ -9,8 +9,9 @@ import { cn } from "@/lib/utils";
 
 /**
  * Top-bar pill that always says which AI engines are live and which features
- * run on labelled demo engines. Icon-only on phones. Click or tap it for the
- * engine behind each feature (a popover, so it works on touch screens).
+ * run on labelled demo engines. Icon-only below 840px (its name still says
+ * which). Click or tap it for the engine behind each feature (a popover, so
+ * it works on touch screens).
  */
 export function GraderStatus({ status, className }: { status: EngineStatus; className?: string }) {
   const rows = [
@@ -44,20 +45,21 @@ export function GraderStatus({ status, className }: { status: EngineStatus; clas
           type="button"
           aria-label={`AI engines: ${label}`}
           className={cn(
-            "inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full border px-2 text-xs font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring sm:px-2.5",
+            "inline-flex h-8 min-w-8 cursor-pointer items-center justify-center gap-1.5 rounded-full border px-2 text-[0.75rem] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring min-[52.5rem]:px-3",
             liveCount === rows.length
               ? "border-transparent bg-primary-soft text-primary-soft-foreground"
               : "border-dashed border-border bg-card text-muted-foreground",
             className
           )}
         >
-          <Icon className="size-3.5" aria-hidden />
-          <span className="hidden sm:inline" aria-hidden>
+          <Icon className="size-4" aria-hidden />
+          {/* Icon only on narrow windows (the name still says which). */}
+          <span className="hidden min-[52.5rem]:inline" aria-hidden>
             {label}
           </span>
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" aria-labelledby={headingId} className="w-[min(22rem,calc(100vw-2rem))] text-sm">
+      <PopoverContent align="end" aria-labelledby={headingId} className="w-[min(22rem,calc(100vw-2rem))] text-[0.875rem]">
         <p id={headingId} className="mb-2 font-medium text-foreground">
           AI engines
         </p>
@@ -75,7 +77,7 @@ export function GraderStatus({ status, className }: { status: EngineStatus; clas
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-xs text-pretty text-muted-foreground">
+        <p className="mt-3 text-[0.75rem] text-pretty text-muted-foreground">
           {allDemo
             ? "No API keys are set, so labelled local demo engines run. Their output is a placeholder, not real AI."
             : "Every AI result is a draft: nothing publishes until you approve it."}

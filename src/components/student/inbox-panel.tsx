@@ -15,6 +15,7 @@ import {
 
 import { AssignmentIcon } from "@/components/classwork/assignment-icon";
 import { statusSummary, type InboxAssignment, type InboxRow } from "@/components/student/inbox-model";
+import { dueWhenText } from "@/components/student/todo-model";
 import { Button } from "@/components/ui/button";
 import { formatPoints, pluralize } from "@/lib/format";
 import { classTheme } from "@/lib/ui/class-theme";
@@ -49,9 +50,9 @@ function PrimaryAction({ row, className }: { row: InboxAssignment; className?: s
 }
 
 /**
- * Quick-launch actions for one assignment: open it, plan a grade for its
- * class, log a study session, and preview the rubric. Rubric descriptions are
- * never shown here (a test's descriptions hold the answer key).
+ * Quick actions for one assignment: open it, plan a grade for its class, log
+ * a study session, and preview the rubric. Rubric descriptions are never
+ * shown here (a test's descriptions hold the answer key).
  */
 export function InboxPanel({
   row,
@@ -63,7 +64,7 @@ export function InboxPanel({
   headingRef,
 }: {
   row: InboxRow;
-  /** False inside the phone sheet, which shows the title in its own header. */
+  /** False inside the sheet, which shows the title in its own header. */
   showHeading?: boolean;
   /** Absent when the goal planner is not on the page. */
   onPlan?: (classId: string) => void;
@@ -75,9 +76,10 @@ export function InboxPanel({
   const shown = row.criteria.slice(0, PREVIEW_LIMIT);
   const more = row.criteria.length - shown.length;
   const isTest = row.kind === "TEST";
+  const due = row.due ?? { relative: row.dueText, absolute: null };
 
   // A container, so the actions sit side by side only when this panel (not the
-  // viewport) has room for both labels: the desktop pane is narrow at lg.
+  // window) has room for both labels.
   return (
     <div className="@container flex flex-col gap-5">
       {showHeading ? (
@@ -87,20 +89,20 @@ export function InboxPanel({
             <h3
               ref={headingRef}
               tabIndex={-1}
-              className="text-lg leading-snug font-medium text-balance break-words text-foreground outline-none"
+              className="rounded-sm text-[1.125rem] leading-snug font-medium text-balance break-words text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
             >
               {row.title}
             </h3>
-            <p className="mt-0.5 text-[0.8125rem] text-muted-foreground">
+            <p className="tabular mt-1 text-[0.8125rem] leading-5 text-muted-foreground">
               {row.className}
               <span aria-hidden> · </span>
-              <span className={cn("tabular", row.pastDue && "font-medium text-danger")}>{row.dueText}</span>
+              {dueWhenText(due)}
             </p>
           </div>
         </div>
       ) : null}
 
-      <p className="rounded-lg bg-secondary px-4 py-3 text-sm text-pretty text-foreground/90">{statusSummary(row)}</p>
+      <p className="max-w-[65ch] text-[0.9375rem] leading-6 text-pretty text-foreground">{statusSummary(row)}</p>
 
       <div className="grid gap-2 @min-[25rem]:grid-cols-2">
         <PrimaryAction row={row} className="@min-[25rem]:col-span-2" />
@@ -121,50 +123,47 @@ export function InboxPanel({
           Log a study session
         </Button>
       </div>
-      <p className="-mt-2 text-xs text-muted-foreground">
+      <p className="-mt-2 text-[0.8125rem] leading-5 text-pretty text-muted-foreground">
         {studyLoggedToday
           ? "Study session logged today. Your streak is safe."
-          : "Logging a study session earns 15 XP once a day and keeps your streak going."}
+          : "A study session earns 15 XP once a day and keeps your streak going."}
       </p>
 
-      <section
-        aria-label={isTest ? "Test questions" : "Rubric preview"}
-        className="overflow-hidden rounded-lg border border-border bg-card"
-      >
-        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5">
-          <h4 className="flex items-center gap-2 text-sm font-medium text-foreground">
+      <section aria-label={isTest ? "Test questions" : "Rubric preview"} className="rounded-lg bg-secondary/60">
+        <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-1">
+          <h4 className="flex items-center gap-2 text-[0.875rem] font-medium text-foreground">
             <ListChecks className="size-4 text-muted-foreground" aria-hidden />
             {isTest ? "Questions" : "Rubric"}
           </h4>
           {row.criteria.length > 0 ? (
-            <span className="tabular text-xs text-muted-foreground">
+            <span className="tabular text-[0.75rem] text-muted-foreground">
               {isTest ? `${pluralize(row.criteria.length, "question")} · ` : ""}
               {pluralize(row.totalPoints, "point")}
             </span>
           ) : null}
         </div>
         {row.criteria.length === 0 ? (
-          <p className="px-4 py-4 text-[0.8125rem] text-muted-foreground">
+          <p className="px-4 pt-1 pb-3 text-[0.8125rem] text-muted-foreground">
             Your teacher hasn&apos;t added rubric criteria yet.
           </p>
         ) : (
-          <ul className="divide-y divide-border">
+          <ul className="px-4 pb-2">
             {shown.map((criterion) => (
-              <li key={criterion.id} className="flex items-baseline justify-between gap-3 px-4 py-2">
+              <li key={criterion.id} className="flex items-baseline justify-between gap-3 py-1.5">
                 <span className="min-w-0 truncate text-[0.8125rem] text-foreground" title={criterion.title}>
                   {criterion.title}
                 </span>
-                <span className="tabular shrink-0 text-xs text-muted-foreground">
+                <span className="tabular shrink-0 text-[0.75rem] text-muted-foreground">
                   {formatPoints(criterion.maxPoints)} pts
                 </span>
               </li>
             ))}
             {more > 0 ? (
-              <li className="px-4 py-2 text-xs text-muted-foreground">
+              <li className="py-1.5 text-[0.75rem] text-muted-foreground">
                 +{more} more on the{" "}
                 <Link
                   href={`/student/assignments/${encodeURIComponent(row.id)}`}
-                  className="font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring"
+                  className="rounded-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring"
                 >
                   assignment page
                 </Link>

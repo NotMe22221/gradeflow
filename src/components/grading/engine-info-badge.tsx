@@ -20,7 +20,8 @@ const HOVER: Record<EngineBadgeVariant, string> = {
  * tooltip, so the explanation also opens on touch screens (Radix tooltips
  * ignore taps), and the trigger is a real button. The visible label stays
  * the accessible name, so a demo engine is labelled whether or not the
- * popover is ever opened.
+ * popover is ever opened. A plain label: the icon says what the engine does
+ * (a cloud service, a local demo), never an "AI" glyph.
  */
 export function EngineInfoBadge({
   variant = "default",
@@ -52,7 +53,8 @@ export function EngineInfoBadge({
           className={cn(
             "cursor-pointer transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring",
             HOVER[variant],
-            dashed && "border-dashed",
+            // Dashed marks a demo engine; the input tone keeps the dashes visible in dark mode too.
+            dashed && "border-dashed border-input/70",
             className
           )}
         >

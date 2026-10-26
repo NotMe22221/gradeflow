@@ -1,19 +1,19 @@
 import { ClassCardGridSkeleton } from "@/components/classes/class-card-skeleton";
+import { SectionsSkeleton } from "@/components/layout-editor/sections-skeleton";
 import { PageContainer } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+import { defaultSectionLayout, type SectionLayout } from "@/lib/preferences/schema";
 
-function SideCardSkeleton({ rows }: { rows: number }) {
+function ListCardSkeleton({ rows }: { rows: number }) {
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="flex min-h-14 items-center justify-between px-5 pt-2">
-        <Skeleton className="h-5 w-36" />
-        <Skeleton className="h-4 w-20" />
-      </div>
-      <div className="divide-y divide-border border-t border-border">
+      <div className="divide-y divide-border">
         {Array.from({ length: rows }, (_, row) => (
-          <div key={row} className="flex min-h-14 items-center gap-3 px-5 py-2.5">
-            <Skeleton className="size-9 rounded-full" />
+          <div
+            key={row}
+            className="flex min-h-row-min items-center gap-3 px-5 py-row"
+          >
+            <Skeleton className="size-9 rounded-full compact:size-8" />
             <div className="flex-1 space-y-1.5">
               <Skeleton className="h-4 w-28" />
               <Skeleton className="h-3 w-36 max-w-full" />
@@ -29,74 +29,84 @@ function SideCardSkeleton({ rows }: { rows: number }) {
   );
 }
 
-/** Loading state that mirrors Home's layout so nothing jumps on load. */
-export function DashboardSkeleton() {
+function StatsSkeleton() {
+  return (
+    <div className="grid grid-cols-1 divide-y divide-border rounded-xl border border-border bg-card @min-[36rem]:grid-cols-3 @min-[36rem]:divide-x @min-[36rem]:divide-y-0">
+      {[0, 1, 2].map((index) => (
+        <div
+          key={index}
+          className="flex items-center justify-between gap-4 px-4 py-3 @min-[36rem]:block @min-[36rem]:space-y-2 @min-[36rem]:px-5 @min-[36rem]:py-4"
+        >
+          <div className="space-y-2">
+            <Skeleton className="h-3.5 w-28" />
+            <Skeleton className="h-3 w-40 max-w-full @min-[36rem]:hidden" />
+          </div>
+          <Skeleton className="h-7 w-14" />
+          <Skeleton className="hidden h-3 w-40 max-w-full @min-[36rem]:block" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ToolsSkeleton() {
+  return (
+    <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border bg-border @min-[36rem]:grid-cols-2 @min-[58rem]:grid-cols-3">
+      {[0, 1, 2].map((index) => (
+        <div
+          key={index}
+          className={
+            index === 2
+              ? "bg-card p-4 @min-[36rem]:col-span-2 @min-[36rem]:p-5 @min-[58rem]:col-span-1"
+              : "bg-card p-4 @min-[36rem]:p-5"
+          }
+        >
+          <div className="flex items-start gap-4">
+            <Skeleton className="size-10 shrink-0 rounded-full" />
+            <div className="min-w-0 flex-1 space-y-2 pt-1">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-3.5 w-full" />
+              <Skeleton className="h-3.5 w-2/3" />
+            </div>
+          </div>
+          {index === 2 ? <Skeleton className="mt-3 h-10 w-full rounded-lg @min-[36rem]:ml-14 @min-[36rem]:w-auto" /> : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Loading state in the shape of the teacher's saved Home, so nothing jumps on load. */
+export function DashboardSkeleton({ layout = defaultSectionLayout("teacherHome") }: { layout?: SectionLayout }) {
   return (
     <PageContainer aria-busy aria-label="Loading Home">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-36" />
-          <Skeleton className="h-8 w-64 max-w-full" />
-          <Skeleton className="h-4 w-56 max-w-full" />
-        </div>
-        <Skeleton className="h-10 w-44 rounded-full" />
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2">
+        <Skeleton className="h-4 w-36" />
+        <Skeleton className="col-start-2 row-start-1 h-8 w-32 rounded-full sm:row-span-2 sm:self-end" />
+        <Skeleton className="col-span-2 h-8 w-64 max-w-full sm:col-span-1" />
       </div>
 
-      {/* Stat strip */}
-      <div className="mt-6 grid grid-cols-1 divide-y divide-border rounded-xl border border-border bg-card md:grid-cols-3 md:divide-x md:divide-y-0">
-        {[0, 1, 2].map((index) => (
-          <div key={index} className="flex items-start gap-4 px-5 py-4">
-            <Skeleton className="size-10 shrink-0 rounded-full" />
-            <div className="min-w-0 flex-1 space-y-2">
-              <Skeleton className="h-3.5 w-36 max-w-full" />
-              <Skeleton className="h-7 w-16" />
-              <Skeleton className="h-3 w-44 max-w-full" />
-            </div>
-          </div>
-        ))}
+      {/* The notice */}
+      <div className="mt-6 flex items-center gap-4 rounded-2xl border border-border bg-card p-4 sm:px-5">
+        <Skeleton className="size-10 shrink-0 rounded-full" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <Skeleton className="h-4 w-64 max-w-full" />
+          <Skeleton className="h-3.5 w-96 max-w-full" />
+        </div>
+        <Skeleton className="hidden h-10 w-36 rounded-full sm:block" />
       </div>
 
-      {/* Teaching tools */}
-      <div className="mt-10">
-        <div className="mb-4 flex min-h-10 items-center">
-          <Skeleton className="h-5 w-36" />
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {[0, 1, 2].map((index) => (
-            <div
-              key={index}
-              className={cn(
-                "flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:p-5",
-                index === 2 && "sm:col-span-2 xl:col-span-1"
-              )}
-            >
-              <div className="flex items-start gap-4">
-                <Skeleton className="size-10 shrink-0 rounded-full" />
-                <div className="min-w-0 flex-1 space-y-2">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3.5 w-full" />
-                  <Skeleton className="h-3.5 w-2/3" />
-                </div>
-              </div>
-              <Skeleton className="ml-14 h-5 w-28" />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="mt-10 grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="min-w-0">
-          <div className="mb-4 flex min-h-10 items-center justify-between">
-            <Skeleton className="h-5 w-32" />
-            <Skeleton className="h-4 w-20" />
-          </div>
-          <ClassCardGridSkeleton count={2} />
-        </div>
-        <div className="grid min-w-0 grid-cols-1 content-start gap-6 md:grid-cols-2 xl:grid-cols-1 xl:pt-14">
-          <SideCardSkeleton rows={5} />
-          <SideCardSkeleton rows={3} />
-        </div>
-      </div>
+      <SectionsSkeleton
+        className="mt-10"
+        layout={layout}
+        sections={{
+          stats: { node: <StatsSkeleton /> },
+          tools: { node: <ToolsSkeleton /> },
+          classes: { node: <ClassCardGridSkeleton count={2} />, action: true },
+          recent: { node: <ListCardSkeleton rows={5} />, action: true },
+          missed: { node: <ListCardSkeleton rows={3} />, action: true },
+        }}
+      />
     </PageContainer>
   );
 }

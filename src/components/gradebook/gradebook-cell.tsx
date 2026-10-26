@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PenLine } from "@/components/icons";
 
 import { CELL_DISPLAY, cellDisplayKey } from "@/components/gradebook/cell-display";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +53,7 @@ export function GradebookCellView({
       if (!cell.submissionId) {
         return (
           <Badge variant="warning" title={display.hint}>
+            <PenLine aria-hidden />
             {display.label}
           </Badge>
         );
@@ -64,6 +66,7 @@ export function GradebookCellView({
             title={display.hint}
             aria-label={`${display.label}: ${studentName}, ${assignmentTitle}. Open in To review.`}
           >
+            <PenLine aria-hidden />
             {display.label}
           </Link>
         </Badge>
