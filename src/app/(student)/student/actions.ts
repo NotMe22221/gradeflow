@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { getEnrolledAssignment } from "@/lib/access";
 import { AuthError, requireStudent } from "@/lib/auth/session";
+import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import { parseAssignmentKind } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { awardXp } from "@/lib/gamification/award";
@@ -131,6 +132,7 @@ export async function submitPaper(assignmentId: string, formData: FormData): Pro
         submissionId: result.submissionId,
         resubmission: existing?.status === "RETURNED",
         dueDate: assignment.dueDate,
+        timeZone: await viewerTimeZone(),
       });
       xpAwarded = xp.total;
       onTime = xp.awards.some((award) => award.kind === "ON_TIME");

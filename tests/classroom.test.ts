@@ -445,3 +445,17 @@ describe("student class stream", () => {
     assert.equal(openOf("graded"), false);
   });
 });
+
+describe("time zone cookie validation", () => {
+  it("rejects offset zones, junk, and over-long values", () => {
+    for (const value of ["+0530", "-2359", "+05:30", "-14:00", "Bogus/Zone", "../etc", "a".repeat(80), ""]) {
+      assert.equal(safeTimeZone(value), undefined, value);
+    }
+  });
+
+  it("accepts real zones and their aliases", () => {
+    assert.equal(safeTimeZone("Etc/GMT+5"), "Etc/GMT+5");
+    assert.ok(safeTimeZone("Asia/Kolkata"), "alias resolves to a canonical zone");
+    assert.equal(safeTimeZone("utc"), "UTC");
+  });
+});

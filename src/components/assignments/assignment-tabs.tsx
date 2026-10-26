@@ -62,10 +62,10 @@ export function AssignmentTabs({
           </TabsPrimitive.Trigger>
         ))}
       </TabsPrimitive.List>
-      <TabsPrimitive.Content value="student-work" className="outline-none">
+      <TabsPrimitive.Content value="student-work" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
         {studentWork}
       </TabsPrimitive.Content>
-      <TabsPrimitive.Content value="instructions" className="outline-none">
+      <TabsPrimitive.Content value="instructions" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
         {instructions}
       </TabsPrimitive.Content>
     </TabsPrimitive.Root>

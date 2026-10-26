@@ -24,6 +24,8 @@ export function pluralize(count: number, singular: string, plural = `${singular}
 // from their UTC date (formatDueDate) and read as the same day everywhere.
 
 const formatters = new Map<string, Intl.DateTimeFormat>();
+/** Cap on cached formatters, so no input can grow the cache without limit. */
+const MAX_FORMATTERS = 64;
 
 function formatter(kind: "date" | "dateTime", timeZone: string | undefined): Intl.DateTimeFormat {
   const key = `${kind}:${timeZone ?? ""}`;
@@ -35,6 +37,7 @@ function formatter(kind: "date" | "dateTime", timeZone: string | undefined): Int
       ...(kind === "dateTime" ? { hour: "numeric", minute: "2-digit" } : {}),
       timeZone,
     });
+    if (formatters.size >= MAX_FORMATTERS) formatters.delete(formatters.keys().next().value!);
     formatters.set(key, cached);
   }
   return cached;

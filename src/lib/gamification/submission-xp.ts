@@ -19,12 +19,15 @@ export async function awardSubmissionXp(input: {
   submissionId: string;
   resubmission: boolean;
   dueDate: Date | null;
+  /** The viewer's validated zone (viewerTimeZone()), so the bonus matches the "Due today" / Missing they saw. */
+  timeZone?: string;
   now?: Date;
 }): Promise<{ total: number; awards: XpAward[] }> {
   const now = input.now ?? new Date();
-  // The server's calendar day on purpose (no viewer time zone): XP rules use
-  // one day boundary for everyone, and the viewer's zone comes from a cookie.
-  const onTime = input.dueDate !== null && !isPastDue(input.dueDate, now);
+  // The shared past-due rule in the viewer's zone. safeTimeZone() accepts only
+  // real IANA zones, so a forged cookie can stretch "on time" by at most the
+  // spread of real zones (about a day); XP is engagement only.
+  const onTime = input.dueDate !== null && !isPastDue(input.dueDate, now, input.timeZone);
 
   return db.$transaction(async (tx) => {
     const existing = await tx.studyActivity.findMany({

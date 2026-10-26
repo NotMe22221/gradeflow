@@ -221,8 +221,9 @@ server only (`.env.local`), never logged, never sent to the client.
   data. Briefs are labelled as AI drafts to review before sharing.
 - XP and streaks (`StudyActivity`) are engagement only and never touch grades.
   Streaks count only the student's own actions (`streakDates()`): a teacher
-  publishing a grade earns XP but does not keep a streak alive. Calendar days
-  use the server's time zone (including the ON_TIME bonus).
+  publishing a grade earns XP but does not keep a streak alive. Streak days
+  and once-per-day limits use the server's time zone; the ON_TIME bonus uses
+  the viewer's validated zone, so it matches the "Due today" they saw.
 - Due dates are calendar days stored at noon UTC and always read from their
   UTC date. "Today" is the viewer's day: the browser's zone arrives in a `tz`
   cookie (`<TimeZoneCookie />`, validated by `viewerTimeZone()`), falling back

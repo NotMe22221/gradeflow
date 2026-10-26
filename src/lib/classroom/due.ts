@@ -25,6 +25,8 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export const DUE_SOON_DAYS = 14;
 
 const zonedFormatters = new Map<string, Intl.DateTimeFormat>();
+/** Cap on cached formatters, so no input can grow the cache without limit. */
+const MAX_ZONED_FORMATTERS = 64;
 
 function zonedFormatter(timeZone: string | undefined): Intl.DateTimeFormat {
   const key = timeZone ?? "";
@@ -37,6 +39,7 @@ function zonedFormatter(timeZone: string | undefined): Intl.DateTimeFormat {
       weekday: "short",
       timeZone,
     });
+    if (zonedFormatters.size >= MAX_ZONED_FORMATTERS) zonedFormatters.delete(zonedFormatters.keys().next().value!);
     zonedFormatters.set(key, cached);
   }
   return cached;

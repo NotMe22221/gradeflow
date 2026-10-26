@@ -110,10 +110,15 @@ export function GradebookScroll({ label, children }: { label: string; children: 
           tabIndex={overflowing ? 0 : undefined}
           data-more-left={moreLeft ? "true" : "false"}
           data-more-right={moreRight ? "true" : "false"}
-          className="group/grades relative w-full overflow-x-auto outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset"
+          className="peer group/grades relative w-full overflow-x-auto outline-none"
         >
           {children}
         </div>
+        {/* The scroller's focus ring, drawn above the opaque (and sticky z-10/z-20) cells that would cover an inset ring. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-30 hidden ring-[3px] ring-ring ring-inset peer-focus-visible:block"
+        />
         {/* Right-edge fade while columns are hidden to the right. */}
         <div
           aria-hidden
