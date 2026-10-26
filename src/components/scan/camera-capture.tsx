@@ -163,8 +163,8 @@ export function CameraCapture({
 
         {state.status === "live" ? (
           <>
-            <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/50 to-transparent px-4 pt-3 pb-8">
-              <span className="tabular rounded-full bg-black/40 px-2.5 py-1 text-xs font-medium text-white">
+            <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-3">
+              <span className="tabular rounded-full bg-black/55 px-3 py-1 text-xs font-medium text-white">
                 {canCapture ? `Page ${pageNumber}` : "All pages added"}
               </span>
             </div>
@@ -173,7 +173,7 @@ export function CameraCapture({
               aria-hidden
               className="pointer-events-none absolute inset-6 rounded-lg border border-dashed border-white/40 sm:inset-x-[22%] sm:inset-y-6"
             />
-            <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-gradient-to-t from-black/60 to-transparent pt-10 pb-5">
+            <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-black/35 py-4">
               <button
                 type="button"
                 onClick={capture}
@@ -190,10 +190,10 @@ export function CameraCapture({
         <Button
           type="button"
           variant="ghost"
-          size="icon-sm"
+          size="icon"
           onClick={close}
           aria-label="Close camera"
-          className="absolute top-2 right-2 bg-black/40 text-white hover:bg-black/60 hover:text-white"
+          className="absolute top-2 right-2 bg-black/55 text-white hover:bg-black/70 hover:text-white"
         >
           <X />
         </Button>

@@ -29,11 +29,11 @@ const STEPS: Step[] = [
   },
   {
     icon: ShieldCheck,
-    title: "You approve, it publishes",
+    title: "You approve and return it",
     body: "See the paper, or the test photo and its transcription, beside the suggestion. Edit any score or comment, send it back with a note, or approve it.",
     details: [
       "Edit anything before it counts",
-      "Send back with a note",
+      "Approve & return, or send back with a note",
       "Nothing reaches the gradebook without you",
     ],
   },
@@ -55,22 +55,19 @@ export function HowItWorks() {
         />
         <ol className="mt-12 grid gap-6 md:grid-cols-3">
           {STEPS.map((step, index) => (
-            <li key={step.title} className="flex flex-col rounded-xl border border-border bg-background p-6">
-              <div className="flex items-center justify-between">
-                <span className="flex size-10 items-center justify-center rounded-lg bg-card text-foreground shadow-card ring-1 ring-border">
+            <li key={step.title} className="flex min-w-0 flex-col rounded-xl border border-border bg-background p-5 sm:p-6">
+              <div className="flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
                   <step.icon className="size-5" aria-hidden />
                 </span>
-                <span className="tabular text-sm font-medium text-muted-foreground">
-                  <span className="sr-only">Step </span>
-                  {String(index + 1).padStart(2, "0")}
-                </span>
+                <span className="tabular text-sm font-medium text-primary">Step {index + 1}</span>
               </div>
-              <h3 className="mt-6 text-base font-semibold tracking-tight text-foreground">{step.title}</h3>
+              <h3 className="mt-5 text-lg leading-snug font-medium text-foreground">{step.title}</h3>
               <p className="mt-2 text-sm leading-6 text-pretty text-muted-foreground">{step.body}</p>
-              <ul className="mt-5 space-y-2 border-t border-border pt-5">
+              <ul className="mt-5 space-y-2.5 border-t border-border pt-5">
                 {step.details.map((detail) => (
-                  <li key={detail} className="flex items-start gap-2 text-sm text-foreground/90">
-                    <Check className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                  <li key={detail} className="flex items-start gap-2.5 text-sm text-foreground/90">
+                    <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
                     {detail}
                   </li>
                 ))}

@@ -225,12 +225,12 @@ describe("summarizeDraft and blockingReason", () => {
     assert.deepEqual(outOfRange.invalidIds, ["c1"]);
     assert.equal(outOfRange.savable, false);
     assert.equal(outOfRange.ready, false);
-    assert.equal(blockingReason(outOfRange), "Fix the highlighted score before publishing.");
+    assert.equal(blockingReason(outOfRange), "Fix the highlighted score before returning this grade.");
 
     const quarter = summarizeDraft(paper, draftWith(paper, { c1: "4.25", c2: "9.75" }));
     assert.deepEqual(quarter.invalidIds, ["c1", "c2"]);
     assert.equal(quarter.ready, false);
-    assert.equal(blockingReason(quarter), "Fix the 2 highlighted scores before publishing.");
+    assert.equal(blockingReason(quarter), "Fix the 2 highlighted scores before returning this grade.");
   });
 
   it("requires a valid score when the AI score was discarded", () => {

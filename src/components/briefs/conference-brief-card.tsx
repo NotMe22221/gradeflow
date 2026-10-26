@@ -66,7 +66,7 @@ async function copyText(text: string): Promise<boolean> {
 
 function BriefSkeleton() {
   return (
-    <div aria-hidden className="space-y-6 rounded-lg border border-border bg-card p-4 sm:p-8">
+    <div aria-hidden className="space-y-6 rounded-xl border border-border bg-card p-5 sm:p-8">
       <div className="space-y-3 border-b border-border pb-5">
         <Skeleton className="h-3 w-48" />
         <Skeleton className="h-6 w-full max-w-lg" />
@@ -194,8 +194,11 @@ export function ConferenceBriefCard({
 
   return (
     <Card className="min-w-0 overflow-hidden">
-      <CardHeader className="gap-3 pb-4 sm:flex-row sm:items-start sm:gap-4">
-        <div className="min-w-0 space-y-1.5">
+      <CardHeader className="flex-row flex-wrap items-start gap-x-4 gap-y-3 px-5 pt-5 pb-4 sm:flex-nowrap sm:px-6">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary-soft-foreground">
+          <FileText className="size-5" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1 basis-48 space-y-1">
           <CardTitle>
             <h2>Conference brief</h2>
           </CardTitle>
@@ -205,12 +208,12 @@ export function ConferenceBriefCard({
               : "A one-page summary for a parent-teacher conference, drafted from approved grades."}
           </CardDescription>
         </div>
-        <CardAction className="ml-0 shrink-0 sm:ml-auto">
+        <CardAction className="ml-14 shrink-0 sm:ml-auto">
           <BriefEngineBadge engine={shownEngine} model={shownModel} />
         </CardAction>
       </CardHeader>
 
-      <div className="px-6 pb-6">
+      <div className="px-5 pb-6 sm:px-6">
         <div aria-live="polite" className="sr-only">
           {pending ? "Drafting the brief." : result ? "Brief ready." : ""}
         </div>
@@ -218,7 +221,7 @@ export function ConferenceBriefCard({
         {error ? (
           <div
             role="alert"
-            className="mb-4 flex flex-col gap-3 rounded-lg border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger-soft-foreground sm:flex-row sm:items-center sm:justify-between"
+            className="mb-4 flex flex-col gap-3 rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger-soft-foreground sm:flex-row sm:items-center sm:justify-between"
           >
             <p className="flex items-start gap-2">
               <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -246,24 +249,24 @@ export function ConferenceBriefCard({
               <p className="tabular text-xs text-muted-foreground">
                 Generated <time dateTime={result.generatedAt}>{formatDateTime(result.generatedAt)}</time>
               </p>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={() => window.print()}>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="outline" onClick={() => window.print()}>
                   <Printer aria-hidden />
                   Print
                 </Button>
-                <Button variant="outline" size="sm" onClick={onCopy}>
+                <Button variant="outline" onClick={onCopy}>
                   <Copy aria-hidden />
                   Copy as text
                 </Button>
-                <Button variant="ghost" size="sm" onClick={generate}>
+                <Button variant="text" onClick={generate} className="px-4 has-[>svg]:pr-4 has-[>svg]:pl-3">
                   <RefreshCw aria-hidden />
                   Regenerate
                 </Button>
               </div>
             </div>
 
-            <p className="flex items-start gap-2 rounded-lg bg-secondary px-3 py-2 text-xs text-pretty text-secondary-foreground">
-              <Info className="mt-px size-3.5 shrink-0" aria-hidden />
+            <p className="flex items-start gap-2.5 rounded-xl bg-secondary px-4 py-3 text-[13px] text-pretty text-secondary-foreground">
+              <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
               <span>
                 <span className="font-medium">Review before sharing with families.</span>{" "}
                 {result.engine === "demo"
@@ -272,7 +275,7 @@ export function ConferenceBriefCard({
               </span>
             </p>
 
-            <div className="rounded-lg border border-border bg-card p-4 shadow-card sm:p-8">
+            <div className="rounded-xl border border-border bg-card p-5 sm:p-8">
               <BriefDocument
                 brief={result.brief}
                 basis={result.basis}
@@ -285,17 +288,12 @@ export function ConferenceBriefCard({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-start gap-4 rounded-lg border border-dashed border-border bg-background/60 p-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-card text-muted-foreground ring-1 ring-border">
-                <FileText className="size-4" aria-hidden />
-              </span>
-              <p className="text-sm text-pretty text-muted-foreground">
-                {canGenerate
-                  ? "Strengths, growth areas, talking points, next steps, and questions for the family. Built from approved grades, your comments, upcoming work, and engagement. Nothing is saved or sent."
-                  : `Approve a grade for ${firstName} to generate a brief. Briefs use teacher-approved grades only.`}
-              </p>
-            </div>
+          <div className="flex flex-col items-start gap-4 rounded-xl bg-secondary p-5 md:flex-row md:items-center md:justify-between md:gap-6">
+            <p className="text-sm leading-6 text-pretty text-secondary-foreground">
+              {canGenerate
+                ? "Strengths, growth areas, talking points, next steps, and questions for the family. Built from approved grades, your comments, upcoming work, and engagement. Nothing is saved or sent."
+                : `Approve and return a grade for ${firstName} to generate a brief. Briefs use teacher-approved grades only.`}
+            </p>
             <Button onClick={generate} disabled={!canGenerate} className="shrink-0">
               <Sparkles aria-hidden />
               Generate conference brief

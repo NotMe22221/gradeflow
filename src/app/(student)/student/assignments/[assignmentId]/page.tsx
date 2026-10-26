@@ -1,34 +1,23 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { ArrowLeft, CalendarDays, ChevronRight, ClipboardList } from "lucide-react";
 
-import { PageContainer, PageHeader } from "@/components/page-header";
-import { AssignmentRubric } from "@/components/student/assignment-rubric";
-import { GradeCard } from "@/components/student/grade-card";
-import { ReturnedNotice } from "@/components/student/returned-notice";
-import { StudentStateBadge } from "@/components/student/student-state-badge";
-import { isAwaitingScan, isPastDue, studentStateFor } from "@/components/student/student-status";
-import { SubmitPaperForm } from "@/components/student/submit-paper-form";
-import { SubmittedCard } from "@/components/student/submitted-card";
-import { Card } from "@/components/ui/card";
+import { StudentAssignmentView } from "@/components/student/assignment-view";
 import { getEnrolledAssignment } from "@/lib/access";
 import { AuthError, requireStudentPage } from "@/lib/auth/session";
-import { parseAssignmentKind } from "@/lib/constants";
 import { db } from "@/lib/db";
-import { formatDate, formatScore, pluralize } from "@/lib/format";
-import { parseBreakdown } from "@/lib/grades/breakdown";
-import { cn } from "@/lib/utils";
+import { idSchema } from "@/lib/validation/id";
 
 type PageProps = { params: Promise<{ assignmentId: string }> };
 
 /** Shared by generateMetadata and the page; enrollment is checked once per request. */
 const loadEnrolledAssignment = cache(async (assignmentId: string) => {
   const student = await requireStudentPage();
+  const id = idSchema.safeParse(assignmentId);
+  if (!id.success) notFound();
   let assignment: Awaited<ReturnType<typeof getEnrolledAssignment>>;
   try {
-    assignment = await getEnrolledAssignment(student.id, assignmentId);
+    assignment = await getEnrolledAssignment(student.id, id.data);
   } catch (error) {
     if (error instanceof AuthError) notFound();
     throw error;
@@ -74,239 +63,26 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
     db.user.findUnique({ where: { id: assignment.class.teacherId }, select: { name: true } }),
   ]);
 
-  const published = submission?.publishedGrade ?? null;
-  const state = studentStateFor(submission?.status, published !== null);
-  const now = new Date();
-  // A paper test is taken in class and scanned by the teacher: there is no
-  // upload, it is never past due, and its criteria descriptions are the
-  // answer key (never shown).
-  const isTest = parseAssignmentKind(assignment.kind) === "TEST";
-  const scanned = submission?.source === "SCAN";
-  const contentLabel = scanned ? "Transcription of your paper" : undefined;
-  const totalPoints = assignment.criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0);
-  const pastDue = !isTest && state === "not_submitted" && isPastDue(assignment.dueDate, now);
-  const awaitingScan = isAwaitingScan(assignment.kind, state, assignment.dueDate, now);
-  const classLabel = [assignment.class.name, assignment.class.section].filter(Boolean).join(" · ");
-  // Once a paper is in, its state (grade, progress, or send-back note) is what
-  // the student came for: it goes first, and the instructions fold away below.
-  const submitted = state !== "not_submitted";
-
-  const instructionsText = (
-    <div className="max-w-prose text-[15px] leading-7 break-words whitespace-pre-line text-foreground/90">
-      {assignment.instructions}
-    </div>
-  );
-
-  const instructions = (
-    <section
-      aria-labelledby="instructions-heading"
-      className={cn("min-w-0 lg:col-start-1", submitted ? "lg:row-start-2" : "lg:row-start-1")}
-    >
-      {submitted ? (
-        <Card className="overflow-hidden">
-          {/* Open while revising after a send-back; folded once the paper is with the teacher. */}
-          <details className="group" open={state === "returned"}>
-            <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-4 transition-colors outline-none select-none hover:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset sm:px-6 [&::-webkit-details-marker]:hidden">
-              <ChevronRight
-                className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
-                aria-hidden
-              />
-              <h2 id="instructions-heading" className="text-base font-semibold tracking-tight text-foreground">
-                Instructions
-              </h2>
-            </summary>
-            <div className="px-5 pb-6 sm:px-6">{instructionsText}</div>
-          </details>
-        </Card>
-      ) : (
-        <Card className="p-5 sm:p-6">
-          <h2 id="instructions-heading" className="text-base font-semibold tracking-tight text-foreground">
-            Instructions
-          </h2>
-          <div className="mt-3">{instructionsText}</div>
-        </Card>
-      )}
-    </section>
-  );
-
-  const rubric = (
-    <AssignmentRubric
-      criteria={assignment.criteria}
-      variant={isTest ? "questions" : "rubric"}
-      className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1"
+  return (
+    <StudentAssignmentView
+      assignment={{
+        id: assignment.id,
+        title: assignment.title,
+        instructions: assignment.instructions,
+        kind: assignment.kind,
+        dueDate: assignment.dueDate,
+        createdAt: assignment.createdAt,
+        criteria: assignment.criteria.map(({ id, title, description, maxPoints }) => ({
+          id,
+          title,
+          description,
+          maxPoints,
+        })),
+        class: { id: assignment.class.id, name: assignment.class.name, section: assignment.class.section },
+      }}
+      teacherName={teacher?.name ?? null}
+      submission={submission}
+      now={new Date()}
     />
-  );
-
-  return (
-    <PageContainer>
-      <Link
-        href="/student"
-        className="mb-6 -ml-1 inline-flex items-center gap-1.5 rounded-md px-1 text-[13px] font-medium text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
-      >
-        <ArrowLeft className="size-3.5" aria-hidden />
-        Your assignments
-      </Link>
-
-      <PageHeader
-        eyebrow={classLabel}
-        title={assignment.title}
-        description={
-          <>
-            <span className="tabular inline-flex items-center gap-1.5">
-              <CalendarDays className="size-3.5" aria-hidden />
-              {isTest
-                ? assignment.dueDate
-                  ? `Test day ${formatDate(assignment.dueDate)}`
-                  : "No test date"
-                : assignment.dueDate
-                  ? `Due ${formatDate(assignment.dueDate)}`
-                  : "No due date"}
-            </span>
-            {pastDue ? <span className="font-medium text-danger-soft-foreground"> · Past due</span> : null}
-            {totalPoints > 0 ? <span className="tabular"> · {pluralize(totalPoints, "point")}</span> : null}
-          </>
-        }
-        actions={
-          <div className="flex items-center gap-2">
-            <StudentStateBadge state={state} paperTest={isTest} awaitingScan={awaitingScan} />
-            {published ? (
-              <span className="tabular text-sm font-semibold text-foreground">
-                <span className="sr-only">Score: </span>
-                {formatScore(published.totalScore, published.maxScore)}
-              </span>
-            ) : null}
-          </div>
-        }
-      />
-
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        {submitted ? null : instructions}
-        {submitted ? null : rubric}
-
-        <section
-          aria-label="Your paper"
-          className={cn("min-w-0 space-y-6 lg:col-start-1", submitted ? "lg:row-start-1" : "lg:row-start-2")}
-        >
-          {state === "graded" && published && submission ? (
-            <GradeCard
-              totalScore={published.totalScore}
-              maxScore={published.maxScore}
-              breakdown={parseBreakdown(published.breakdown)}
-              feedback={published.feedback}
-              approvedByName={published.approvedBy.name}
-              approvedAt={published.approvedAt}
-              content={submission.content}
-              fileName={submission.fileName}
-              contentLabel={contentLabel}
-              kind={isTest ? "TEST" : "ESSAY"}
-            />
-          ) : state === "submitted" && submission && scanned ? (
-            // A scan's transcription is an unreviewed AI reading: the student
-            // sees it only with the approved grade.
-            <SubmittedCard variant="scanned" submittedAt={submission.submittedAt} />
-          ) : state === "submitted" && submission ? (
-            <SubmittedCard
-              submittedAt={submission.submittedAt}
-              returnedAt={submission.returnedAt}
-              content={submission.content}
-              fileName={submission.fileName}
-            />
-          ) : state === "returned" && submission && isTest ? (
-            <>
-              <ReturnedNotice
-                returnNote={submission.returnNote}
-                returnedAt={submission.returnedAt}
-                teacherName={teacher?.name ?? null}
-                instruction="Talk with your teacher about next steps. They scan any new paper for you."
-              />
-              <PaperTestCard teacherName={teacher?.name ?? null} />
-            </>
-          ) : state === "returned" && submission ? (
-            <>
-              <ReturnedNotice
-                returnNote={submission.returnNote}
-                returnedAt={submission.returnedAt}
-                teacherName={teacher?.name ?? null}
-              />
-              <Card className="p-5 sm:p-6">
-                <div className="mb-6 space-y-1.5">
-                  <h2 className="text-base font-semibold tracking-tight text-foreground">
-                    Resubmit your paper
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Your previous text is filled in below. Edit it, or upload a new .txt file.
-                  </p>
-                </div>
-                <SubmitPaperForm assignmentId={assignment.id} defaultText={submission.content} resubmit />
-              </Card>
-            </>
-          ) : isTest ? (
-            <PaperTestCard
-              teacherName={teacher?.name ?? null}
-              testDay={assignment.dueDate}
-              awaitingScan={awaitingScan}
-            />
-          ) : (
-            <Card className="p-5 sm:p-6">
-              <div className="mb-6 space-y-1.5">
-                <h2 className="text-base font-semibold tracking-tight text-foreground">Submit your paper</h2>
-                <p className="text-sm text-muted-foreground">
-                  Paste your paper or upload it as a .txt file. You can submit once; your teacher can send it
-                  back if it needs changes.
-                </p>
-              </div>
-              <SubmitPaperForm assignmentId={assignment.id} />
-            </Card>
-          )}
-        </section>
-
-        {submitted ? instructions : null}
-        {submitted ? rubric : null}
-      </div>
-    </PageContainer>
-  );
-}
-
-/**
- * Paper tests are taken in class; the teacher scans them, so there is nothing
- * to upload. Once the test day has passed without a scan, it's waiting on the
- * teacher, never overdue.
- */
-function PaperTestCard({
-  teacherName,
-  testDay = null,
-  awaitingScan = false,
-}: {
-  teacherName: string | null;
-  testDay?: Date | null;
-  awaitingScan?: boolean;
-}) {
-  const teacher = teacherName ?? "Your teacher";
-  return (
-    <Card className="p-5 sm:p-6">
-      <div className="flex gap-4">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground ring-1 ring-border">
-          <ClipboardList className="size-4" aria-hidden />
-        </span>
-        <div className="min-w-0 space-y-1.5">
-          <h2 className="text-base font-semibold tracking-tight text-foreground">
-            {awaitingScan ? "Waiting for your teacher to scan it" : "This is a paper test"}
-          </h2>
-          <p className="max-w-prose text-sm text-pretty text-muted-foreground">
-            {awaitingScan ? (
-              <>
-                The test was on <span className="tabular">{formatDate(testDay)}</span>. {teacher} scans the papers,
-                and your grade appears here once it&apos;s approved. There&apos;s nothing to upload.
-              </>
-            ) : (
-              <>
-                You take it in class on paper. {teacher} scans it afterward, and your grade appears here once
-                it&apos;s approved. There&apos;s nothing to upload.
-              </>
-            )}
-          </p>
-        </div>
-      </div>
-    </Card>
   );
 }

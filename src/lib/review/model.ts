@@ -250,15 +250,15 @@ export function summarizeDraft(item: ReviewItem, draft: ItemDraft): DraftSummary
 }
 
 /**
- * One plain sentence on why a paper cannot be published yet. A handwritten
+ * One plain sentence on why a paper cannot be approved and returned yet. A handwritten
  * test is scored by question, an essay by rubric criterion.
  */
 export function blockingReason(summary: DraftSummary, kind: AssignmentKind = "ESSAY"): string | null {
   const test = kind === "TEST";
   if (summary.invalidIds.length > 0) {
     return summary.invalidIds.length === 1
-      ? "Fix the highlighted score before publishing."
-      : `Fix the ${summary.invalidIds.length} highlighted scores before publishing.`;
+      ? "Fix the highlighted score before returning this grade."
+      : `Fix the ${summary.invalidIds.length} highlighted scores before returning this grade.`;
   }
   if (summary.missingIds.length > 0) {
     const count = summary.missingIds.length;

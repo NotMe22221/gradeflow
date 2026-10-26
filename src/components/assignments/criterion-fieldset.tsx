@@ -50,19 +50,19 @@ export function CriterionFieldset({
   const number = index + 1;
 
   return (
-    <li className="rounded-lg border border-border bg-background/60 p-4 sm:p-5">
+    <li className="rounded-xl border border-border bg-card p-4 transition-shadow focus-within:shadow-hover sm:p-6">
       <div className="mb-4 flex items-center justify-between gap-2">
-        <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-          <span className="tabular flex size-6 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground ring-1 ring-border">
+        <span className="flex items-center gap-3 font-display text-[15px] font-medium text-foreground">
+          <span className="tabular flex size-8 items-center justify-center rounded-full bg-primary-soft font-sans text-[13px] font-semibold text-primary-soft-foreground">
             {number}
           </span>
           {copy.itemLabel} {number}
         </span>
-        <div className="flex items-center gap-0.5">
+        <div className="-mr-2 flex items-center">
           <Button
             type="button"
             variant="ghost"
-            size="icon-sm"
+            size="icon"
             onClick={() => onMove(-1)}
             disabled={index === 0 || disabled}
             aria-label={`Move ${copy.noun} ${number} up`}
@@ -72,7 +72,7 @@ export function CriterionFieldset({
           <Button
             type="button"
             variant="ghost"
-            size="icon-sm"
+            size="icon"
             onClick={() => onMove(1)}
             disabled={index === count - 1 || disabled}
             aria-label={`Move ${copy.noun} ${number} down`}
@@ -82,7 +82,7 @@ export function CriterionFieldset({
           <Button
             type="button"
             variant="ghost"
-            size="icon-sm"
+            size="icon"
             onClick={onRemove}
             disabled={count <= limits.minCriteria || disabled}
             aria-label={`Remove ${copy.noun} ${number}`}

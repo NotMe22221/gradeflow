@@ -2,16 +2,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { Award, CalendarDays, ListChecks, PenLine } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 import { AssignmentActions } from "@/components/assignments/assignment-actions";
+import { AssignmentTabs, type AssignmentTab } from "@/components/assignments/assignment-tabs";
 import { BatchGradingProvider } from "@/components/assignments/batch-grading";
 import { BatchProgressCard } from "@/components/assignments/batch-progress-card";
 import { PromptCard, RubricCard } from "@/components/assignments/rubric-card";
 import { SubmissionsTable } from "@/components/assignments/submissions-table";
 import type { EligibleStudent, SubmissionFlag, SubmissionRowData } from "@/components/assignments/types";
-import { PageContainer, PageHeader } from "@/components/page-header";
-import { Badge } from "@/components/ui/badge";
+import { summarizeStatuses, workCounts } from "@/components/classes/status-summary";
+import { ClassAvatar } from "@/components/classroom/class-avatar";
+import { AssignmentIcon } from "@/components/classwork/assignment-icon";
+import { isPastDueDay } from "@/components/classwork/due";
+import { WorkCounts } from "@/components/classwork/work-counts";
+import { PageContainer } from "@/components/page-header";
 import { getOwnedAssignment } from "@/lib/access";
 import { modelFor, openAiConfigured } from "@/lib/ai/openai";
 import { AuthError, requireTeacherPage } from "@/lib/auth/session";
@@ -27,8 +32,10 @@ import { formatDate, formatDateTime, formatRelative, pluralize, wordCount } from
 import { getGraderInfo, type GraderInfo } from "@/lib/grading/config";
 import { describeFlag, parseFlags, type FlagCriterion } from "@/lib/grading/flags";
 import { parseSubmissionSource } from "@/lib/review/media";
+import { classTheme } from "@/lib/ui/class-theme";
 
 type Params = Promise<{ assignmentId: string }>;
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 /** The teacher's own assignment, or null. Shared by metadata and the page. */
 const loadOwnedAssignment = cache(async (assignmentId: string) => {
@@ -68,8 +75,10 @@ function scanGraderInfo(): GraderInfo {
     : { kind: "demo", label: GRADER_LABELS.demo, model: null };
 }
 
-export default async function AssignmentPage({ params }: { params: Params }) {
+export default async function AssignmentPage({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
   const assignment = await loadOwnedAssignment((await params).assignmentId);
+  const tabParam = (await searchParams).tab;
+  const initialTab: AssignmentTab = tabParam === "instructions" ? "instructions" : "student-work";
   if (!assignment) notFound();
   const kind = parseAssignmentKind(assignment.kind);
   const test = kind === "TEST";
@@ -140,72 +149,92 @@ export default async function AssignmentPage({ params }: { params: Params }) {
     .map((student) => ({ ...student, currentStatus: statusByStudent.get(student.id) ?? null }));
 
   const totalPoints = assignment.criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0);
-  const classLabel = [assignment.class.name, assignment.class.section].filter(Boolean).join(" · ");
+  const counts = workCounts(summarizeStatuses(submissions.map((submission) => submission.status), roster.length));
+  const classworkHref = `/classes/${encodeURIComponent(assignment.classId)}/classwork`;
+  const meta = [
+    assignment.dueDate ? `Due ${formatDate(assignment.dueDate)}` : "No due date",
+    pluralize(totalPoints, "point"),
+    test ? pluralize(assignment.criteria.length, "question") : pluralize(assignment.criteria.length, "criterion", "criteria"),
+    test ? "Handwritten test" : null,
+  ].filter(Boolean);
 
   return (
     <BatchGradingProvider assignmentId={assignment.id} graderInfo={getGraderInfo()} rows={rows}>
       <PageContainer>
-        <PageHeader
-          eyebrow={
-            <Link
-              href={`/classes/${assignment.classId}`}
-              className="rounded-sm transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
-            >
-              {classLabel}
-            </Link>
+        <nav aria-label="Breadcrumb" className="mb-4">
+          <ol className="flex min-w-0 items-center gap-1 text-[13px] font-medium text-muted-foreground">
+            <li className="min-w-0">
+              <Link
+                href={`/classes/${encodeURIComponent(assignment.classId)}`}
+                className="flex min-w-0 items-center gap-2 rounded-full py-1 pr-2 outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
+              >
+                <ClassAvatar name={assignment.class.name} className="size-6 text-[11px]" />
+                <span className="truncate">
+                  {[assignment.class.name, assignment.class.section].filter(Boolean).join(" · ")}
+                </span>
+              </Link>
+            </li>
+            <li aria-hidden>
+              <ChevronRight className="size-3.5 shrink-0" />
+            </li>
+            <li>
+              <Link
+                href={classworkHref}
+                className="rounded-sm py-1 outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
+              >
+                Classwork
+              </Link>
+            </li>
+          </ol>
+        </nav>
+
+        <header className="mb-2 flex items-start gap-4">
+          <AssignmentIcon
+            isTest={test}
+            color={classTheme(assignment.class).color}
+            className="mt-0.5 size-12 [&_svg]:size-6"
+          />
+          <div className="min-w-0 space-y-1.5">
+            <h1 className="text-[26px] leading-tight font-medium text-balance break-words text-foreground sm:text-[28px]">
+              {assignment.title}
+            </h1>
+            <p className="tabular text-sm text-muted-foreground">{meta.join(" · ")}</p>
+          </div>
+        </header>
+
+        <AssignmentTabs
+          initialTab={initialTab}
+          studentWork={
+            <div className="space-y-6">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                <WorkCounts counts={counts} isTest={test} size="lg" />
+                <AssignmentActions
+                  classId={assignment.classId}
+                  kind={kind}
+                  eligibleStudents={eligibleStudents}
+                  hasRoster={roster.length > 0}
+                  missingCount={notSubmitted.length}
+                />
+              </div>
+              <BatchProgressCard />
+              <SubmissionsTable
+                classId={assignment.classId}
+                kind={kind}
+                scanGrader={test ? scanGraderInfo() : null}
+                notSubmitted={notSubmitted}
+                eligibleStudents={eligibleStudents}
+                hasRoster={roster.length > 0}
+                pastDue={isPastDueDay(assignment.dueDate, now)}
+              />
+            </div>
           }
-          title={assignment.title}
-          description={
-            <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
-              {test ? (
-                <Badge variant="secondary">
-                  <PenLine aria-hidden />
-                  Handwritten test
-                </Badge>
-              ) : null}
-              <span className="inline-flex items-center gap-1.5">
-                <CalendarDays className="size-4" aria-hidden />
-                {assignment.dueDate ? `Due ${formatDate(assignment.dueDate)}` : "No due date"}
-              </span>
-              <span className="tabular inline-flex items-center gap-1.5">
-                <Award className="size-4" aria-hidden />
-                {pluralize(totalPoints, "point")}
-              </span>
-              <span className="tabular inline-flex items-center gap-1.5">
-                <ListChecks className="size-4" aria-hidden />
-                {test
-                  ? pluralize(assignment.criteria.length, "question")
-                  : pluralize(assignment.criteria.length, "criterion", "criteria")}
-              </span>
-            </span>
-          }
-          actions={
-            <AssignmentActions
-              classId={assignment.classId}
-              kind={kind}
-              eligibleStudents={eligibleStudents}
-              hasRoster={roster.length > 0}
-              missingCount={notSubmitted.length}
-            />
+          instructions={
+            <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+              <PromptCard instructions={assignment.instructions} kind={kind} />
+              <RubricCard criteria={assignment.criteria} kind={kind} />
+            </div>
           }
         />
-
-        <BatchProgressCard />
-
-        <div className="space-y-6">
-          <SubmissionsTable
-            classId={assignment.classId}
-            kind={kind}
-            scanGrader={test ? scanGraderInfo() : null}
-            notSubmitted={notSubmitted}
-            eligibleStudents={eligibleStudents}
-            hasRoster={roster.length > 0}
-          />
-          <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-            <RubricCard criteria={assignment.criteria} kind={kind} />
-            <PromptCard instructions={assignment.instructions} kind={kind} />
-          </div>
-        </div>
       </PageContainer>
     </BatchGradingProvider>
   );

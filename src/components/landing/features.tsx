@@ -91,7 +91,7 @@ export function Features() {
     <section
       id="features"
       aria-labelledby="features-heading"
-      className="scroll-mt-16 border-t border-border py-20 sm:py-28"
+      className="scroll-mt-16 py-20 sm:py-28"
     >
       <LandingContainer>
         <SectionIntro
@@ -116,7 +116,7 @@ export function Features() {
           gridClassName="lg:grid-cols-3"
         />
 
-        <p className="mt-10 flex items-start gap-2 text-sm text-muted-foreground">
+        <p className="mt-10 flex items-start gap-2.5 rounded-xl bg-secondary px-4 py-3 text-sm text-pretty text-secondary-foreground">
           <FlaskConical className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span>
             Uses Claude for essays and OpenAI GPT-4o for handwriting when API keys are set; without keys,
@@ -128,6 +128,7 @@ export function Features() {
   );
 }
 
+/** A group heading in the style of Classroom's People tab: primary-colored title over a primary rule. */
 function FeatureGroup({
   id,
   icon: Icon,
@@ -143,14 +144,11 @@ function FeatureGroup({
 }) {
   return (
     <div className="mt-14 sm:mt-16">
-      <div className="flex items-center gap-3">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-card text-foreground shadow-card ring-1 ring-border">
-          <Icon className="size-4" aria-hidden />
-        </span>
-        <h3 id={id} className="text-lg font-semibold tracking-tight text-foreground">
+      <div className="flex items-center gap-3 border-b border-primary pb-2.5">
+        <Icon className="size-6 shrink-0 text-primary" aria-hidden />
+        <h3 id={id} className="text-[24px] leading-8 font-normal text-primary sm:text-[28px] sm:leading-9">
           {label}
         </h3>
-        <span aria-hidden className="h-px flex-1 bg-border" />
       </div>
       <ul aria-labelledby={id} className={cn("mt-6 grid gap-6", gridClassName)}>
         {features.map((feature) => (
@@ -163,21 +161,23 @@ function FeatureGroup({
 
 function FeatureCard({ feature }: { feature: Feature }) {
   return (
-    <li className="flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-card">
-      <div className="p-6">
+    <li className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card">
+      <div className="p-5 sm:p-6">
         <div className="flex items-center justify-between gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground ring-1 ring-border">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary-soft-foreground">
             <feature.icon className="size-5" aria-hidden />
           </span>
           {feature.engine ? (
-            <span className="inline-flex min-w-0 items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-              <Sparkles className="size-3 shrink-0" aria-hidden />
+            <span className="inline-flex h-7 min-w-0 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground">
+              <Sparkles className="size-3.5 shrink-0" aria-hidden />
               <span className="sr-only">AI engine: </span>
               <span className="truncate">{feature.engine}</span>
             </span>
           ) : null}
         </div>
-        <h4 className="mt-5 text-base font-semibold tracking-tight text-balance text-foreground">{feature.title}</h4>
+        <h4 className="mt-5 font-display text-lg leading-snug font-medium text-balance text-foreground">
+          {feature.title}
+        </h4>
         <p className="mt-2 text-sm leading-6 text-pretty text-muted-foreground">{feature.body}</p>
       </div>
       {/* Decorative product preview; the text above describes the feature. */}

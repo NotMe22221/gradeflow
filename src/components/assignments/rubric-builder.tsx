@@ -8,8 +8,8 @@ import { toast } from "sonner";
 import { createAssignment } from "@/app/(teacher)/classes/actions";
 import { AnswerKeyImport } from "@/components/assignments/answer-key-import";
 import { getBuilderTemplate } from "@/components/assignments/builder-templates";
+import { BuilderSettings } from "@/components/assignments/builder-settings";
 import { CriterionFieldset } from "@/components/assignments/criterion-fieldset";
-import { KindPicker } from "@/components/assignments/kind-picker";
 import {
   BUILDER_COPY,
   DEFAULT_TEST_DIRECTIONS,
@@ -21,19 +21,16 @@ import {
   type CriterionDraft,
   type CriterionField,
 } from "@/components/assignments/rubric-draft";
-import { RubricSummary } from "@/components/assignments/rubric-summary";
-import { TemplatePicker } from "@/components/assignments/template-picker";
 import { FieldError, FormAlert } from "@/components/classes/form-feedback";
-import { Badge } from "@/components/ui/badge";
+import { AssignmentIcon } from "@/components/classwork/assignment-icon";
 import { Button } from "@/components/ui/button";
-import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { AssignmentKind } from "@/lib/constants";
-import { formatDate, pluralize } from "@/lib/format";
+import { pluralize } from "@/lib/format";
 import { answerKeyToCriteria, type AnswerKeyEngine, type AnswerKeySuccess } from "@/lib/scan/answer-key";
-import { parseAssignmentInput, parseDateOnly, rubricLimitsFor } from "@/lib/validation/assignment";
+import { parseAssignmentInput, rubricLimitsFor } from "@/lib/validation/assignment";
 import { fieldErrorsFromIssues, type FieldErrors } from "@/lib/validation/form";
 
 type Snapshot = {
@@ -44,7 +41,17 @@ type Snapshot = {
   templateId: string;
 };
 
-const KIND_LABELS: Record<AssignmentKind, string> = { ESSAY: "Essay", TEST: "Handwritten test" };
+const HEADINGS: Record<AssignmentKind, { title: string; description: string }> = {
+  ESSAY: {
+    title: "New assignment",
+    description: "Write the prompt and the rubric. The AI grades against exactly what you write here, and you approve every grade.",
+  },
+  TEST: {
+    title: "New handwritten test",
+    description:
+      "Write the directions and the answer key, or import the key from a photo. The AI reads each scanned test against it, and you approve every grade.",
+  },
+};
 
 /** Points on the first, empty item: an essay criterion is worth more than one question. */
 const INITIAL_POINTS: Record<AssignmentKind, string> = { ESSAY: "10", TEST: "2" };
@@ -56,17 +63,24 @@ function withoutKeys(errors: FieldErrors, predicate: (key: string) => boolean): 
 }
 
 /**
- * Assignment + rubric form. Holds all form state; the kind picker, template
- * picker, answer-key import, each criterion, and the summary aside are
- * presentational children. For a handwritten test (kind TEST) the criteria
- * read as questions, and the description is the answer key.
+ * Assignment + rubric form, laid out like Google Classroom's create screen:
+ * the title and instructions card, a settings panel on the right (points,
+ * due date, type, template), and the rubric (or questions and answer key)
+ * below. "Create assignment" sits top right on wider screens and at the
+ * bottom on phones. Holds all form state; the settings panel, answer-key
+ * import, and each criterion are presentational children. For a handwritten
+ * test (kind TEST) the criteria read as questions, and the description is
+ * the answer key.
  */
 export function RubricBuilder({
   classId,
+  classColor,
   initialKind = "ESSAY",
   answerKeyEngine,
 }: {
   classId: string;
+  /** The class color for the header icon (classTheme(klass).color). */
+  classColor: string;
   initialKind?: AssignmentKind;
   /** Which reader the answer-key import uses on the server (no secrets). */
   answerKeyEngine: AnswerKeyEngine;
@@ -92,7 +106,8 @@ export function RubricBuilder({
   const totalPoints = criteria.reduce((sum, criterion) => sum + validPoints(criterion.maxPoints), 0);
   const atMax = criteria.length >= limits.maxCriteria;
   const writtenCount = criteria.filter((criterion) => !isBlankCriterion(criterion)).length;
-  const dueLabel = dueDate && parseDateOnly(dueDate) ? formatDate(parseDateOnly(dueDate)) : null;
+  const heading = HEADINGS[kind];
+  const classworkHref = `/classes/${encodeURIComponent(classId)}/classwork`;
 
   // Move focus to a newly added criterion, or to the one that took a removed
   // criterion's place, once it is in the DOM.
@@ -267,174 +282,168 @@ export function RubricBuilder({
     });
   }
 
+  const submitLabel = pending ? "Creating…" : "Create assignment";
+  const submitIcon = pending ? <Loader2 className="animate-spin" aria-hidden /> : null;
+
   return (
-    <form
-      ref={formRef}
-      onSubmit={handleSubmit}
-      noValidate
-      className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start"
-    >
-      <div className="min-w-0 space-y-6">
-        {formError ? <FormAlert>{formError}</FormAlert> : null}
+    <form ref={formRef} onSubmit={handleSubmit} noValidate>
+      <div className="mb-6 flex items-start gap-4 sm:mb-8">
+        <AssignmentIcon isTest={kind === "TEST"} color={classColor} className="mt-0.5 size-12 [&_svg]:size-6" />
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <h1 className="text-[26px] leading-tight font-medium text-balance text-foreground sm:text-[28px]">
+            {heading.title}
+          </h1>
+          <p className="max-w-2xl text-[15px] text-pretty text-muted-foreground">{heading.description}</p>
+        </div>
+        {/* Tablets and up: Cancel and Create at the top right. Phones get them at the bottom. */}
+        <div className="hidden shrink-0 items-center gap-2 md:flex">
+          <Button type="button" variant="text" asChild>
+            <Link href={classworkHref}>Cancel</Link>
+          </Button>
+          <Button type="submit" disabled={pending}>
+            {submitIcon}
+            {submitLabel}
+          </Button>
+        </div>
+      </div>
 
-        <TemplatePicker value={templateId} kind={kind} onApply={applyTemplate} disabled={pending} />
+      {formError ? <FormAlert className="mb-6">{formError}</FormAlert> : null}
 
-        <Card>
-          <CardHeader className="pb-0">
-            <CardTitle>
-              <h2>Assignment</h2>
-            </CardTitle>
-            <CardDescription>
-              {kind === "TEST"
-                ? "Students see the title and directions with their graded test."
-                : "Students see the title and prompt when they submit."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-6">
-            <KindPicker value={kind} onChange={changeKind} disabled={pending} />
-            <div className="grid gap-2">
-              <Label htmlFor="assignment-title">Title</Label>
-              <Input
-                id="assignment-title"
-                value={title}
-                onChange={(event) => {
-                  setTitle(event.target.value);
-                  clearError("title");
-                }}
-                placeholder={copy.assignmentTitlePlaceholder}
-                maxLength={limits.titleMax}
-                autoComplete="off"
-                {...fieldA11y(errors, "title")}
-              />
-              <FieldError id={errorId("title")} message={errors.title} />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="assignment-instructions">{copy.instructionsLabel}</Label>
-              <p id="assignment-instructions-hint" className="-mt-1 text-[13px] text-muted-foreground">
-                {copy.instructionsHint}
-              </p>
-              <Textarea
-                id="assignment-instructions"
-                value={instructions}
-                onChange={(event) => {
-                  setInstructions(event.target.value);
-                  clearError("instructions");
-                }}
-                placeholder={copy.instructionsPlaceholder}
-                maxLength={limits.instructionsMax}
-                className={kind === "TEST" ? "max-h-[28rem] min-h-24" : "max-h-[28rem] min-h-36"}
-                aria-invalid={errors.instructions ? true : undefined}
-                aria-describedby={["assignment-instructions-hint", errors.instructions ? errorId("instructions") : null]
-                  .filter(Boolean)
-                  .join(" ")}
-              />
-              <FieldError id={errorId("instructions")} message={errors.instructions} />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="assignment-due">
-                Due date <span className="font-normal text-muted-foreground">(optional)</span>
-              </Label>
-              <Input
-                id="assignment-due"
-                type="date"
-                value={dueDate}
-                onChange={(event) => {
-                  setDueDate(event.target.value);
-                  clearError("dueDate");
-                }}
-                className="w-full sm:w-52"
-                {...fieldA11y(errors, "dueDate")}
-              />
-              <FieldError id={errorId("dueDate")} message={errors.dueDate} />
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-8">
+        <div className="grid min-w-0 gap-6 rounded-xl border border-border bg-card p-4 sm:p-6 lg:col-start-1 lg:row-start-1">
+          <div className="grid gap-2">
+            <Label htmlFor="assignment-title">Title</Label>
+            <Input
+              id="assignment-title"
+              value={title}
+              onChange={(event) => {
+                setTitle(event.target.value);
+                clearError("title");
+              }}
+              placeholder={copy.assignmentTitlePlaceholder}
+              maxLength={limits.titleMax}
+              autoComplete="off"
+              className="h-12 text-base"
+              {...fieldA11y(errors, "title")}
+            />
+            <FieldError id={errorId("title")} message={errors.title} />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="assignment-instructions">{copy.instructionsLabel}</Label>
+            <p id="assignment-instructions-hint" className="-mt-1 text-[13px] text-muted-foreground">
+              {copy.instructionsHint}
+            </p>
+            <Textarea
+              id="assignment-instructions"
+              value={instructions}
+              onChange={(event) => {
+                setInstructions(event.target.value);
+                clearError("instructions");
+              }}
+              placeholder={copy.instructionsPlaceholder}
+              maxLength={limits.instructionsMax}
+              className={kind === "TEST" ? "max-h-[28rem] min-h-28" : "max-h-[28rem] min-h-40"}
+              aria-invalid={errors.instructions ? true : undefined}
+              aria-describedby={["assignment-instructions-hint", errors.instructions ? errorId("instructions") : null]
+                .filter(Boolean)
+                .join(" ")}
+            />
+            <FieldError id={errorId("instructions")} message={errors.instructions} />
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="flex-row items-start gap-4 pb-0">
-            <div className="min-w-0 space-y-1.5">
-              <CardTitle>
-                <h2>{copy.sectionTitle}</h2>
-              </CardTitle>
-              <CardDescription className="text-pretty">{copy.sectionDescription}</CardDescription>
+        {/* Below the tab bar (sticky at top-16, about 48px tall), so it sticks at top-32. */}
+        <aside
+          aria-label="Assignment settings"
+          className="min-w-0 lg:sticky lg:top-32 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start"
+        >
+          <BuilderSettings
+            kind={kind}
+            onKindChange={changeKind}
+            templateId={templateId}
+            onApplyTemplate={applyTemplate}
+            dueDate={dueDate}
+            onDueDateChange={(value) => {
+              setDueDate(value);
+              clearError("dueDate");
+            }}
+            errors={errors}
+            totalPoints={totalPoints}
+            itemCount={criteria.length}
+            copy={copy}
+            disabled={pending}
+          />
+        </aside>
+
+        <section aria-labelledby="rubric-heading" className="min-w-0 space-y-4 lg:col-start-1 lg:row-start-2">
+          <div className="flex items-end justify-between gap-4 px-1 pt-2">
+            <div className="min-w-0 space-y-1">
+              <h2 id="rubric-heading" className="text-[22px] leading-tight font-normal text-foreground">
+                {copy.sectionTitle}
+              </h2>
+              <p className="max-w-2xl text-sm text-pretty text-muted-foreground">{copy.sectionDescription}</p>
             </div>
-            <CardAction>
-              <Badge variant="secondary" className="tabular">
-                {criteria.length}/{limits.maxCriteria}
-              </Badge>
-            </CardAction>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {kind === "TEST" ? (
-              <AnswerKeyImport
-                engine={answerKeyEngine}
-                existingCount={writtenCount}
+            <span className="tabular shrink-0 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">
+              {criteria.length}/{limits.maxCriteria}
+            </span>
+          </div>
+
+          {kind === "TEST" ? (
+            <AnswerKeyImport
+              engine={answerKeyEngine}
+              existingCount={writtenCount}
+              disabled={pending}
+              onApply={applyAnswerKey}
+            />
+          ) : null}
+
+          <ol className="space-y-4" aria-label={kind === "TEST" ? "Questions" : "Rubric criteria"}>
+            {criteria.map((criterion, index) => (
+              <CriterionFieldset
+                key={criterion.key}
+                index={index}
+                count={criteria.length}
+                criterion={criterion}
+                errors={errors}
                 disabled={pending}
-                onApply={applyAnswerKey}
+                copy={copy}
+                limits={limits}
+                onChange={(field, value) => updateCriterion(index, field, value)}
+                onMove={(direction) => moveCriterion(index, direction)}
+                onRemove={() => removeCriterion(index)}
               />
-            ) : null}
-            <ol className="space-y-4" aria-label={kind === "TEST" ? "Questions" : "Rubric criteria"}>
-              {criteria.map((criterion, index) => (
-                <CriterionFieldset
-                  key={criterion.key}
-                  index={index}
-                  count={criteria.length}
-                  criterion={criterion}
-                  errors={errors}
-                  disabled={pending}
-                  copy={copy}
-                  limits={limits}
-                  onChange={(field, value) => updateCriterion(index, field, value)}
-                  onMove={(direction) => moveCriterion(index, direction)}
-                  onRemove={() => removeCriterion(index)}
-                />
-              ))}
-            </ol>
-            <FieldError id="criteria-error" message={errors.criteria} />
-            <Button
-              type="button"
-              variant="outline"
-              onClick={addCriterion}
-              disabled={atMax || pending}
-              className="w-full border-dashed shadow-none"
-            >
+            ))}
+          </ol>
+          <FieldError id="criteria-error" message={errors.criteria} />
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <Button type="button" variant="tonal" onClick={addCriterion} disabled={atMax || pending} className="self-start">
               <Plus aria-hidden />
               {copy.addLabel}
             </Button>
-            <p className="text-center text-[13px] text-muted-foreground">
+            <p className="px-1 text-[13px] text-muted-foreground">
               {criteria.length > limits.maxCriteria
                 ? `Remove ${pluralize(criteria.length - limits.maxCriteria, copy.noun, copy.nounPlural)} to save: the limit is ${limits.maxCriteria}.`
                 : atMax
                   ? `That's the maximum of ${limits.maxCriteria} ${copy.nounPlural}.`
                   : `Up to ${limits.maxCriteria} ${copy.nounPlural}, ${limits.minPoints} to ${limits.maxPoints} points each.`}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="tabular text-sm text-muted-foreground lg:invisible">
+        {/* Phones: the primary action at the bottom, full width. */}
+        <div className="flex flex-col gap-2 border-t border-border pt-6 md:hidden">
+          <p className="tabular text-center text-sm text-muted-foreground">
             {pluralize(criteria.length, copy.noun, copy.nounPlural)} · {pluralize(totalPoints, "point")}
           </p>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row">
-            <Button type="button" variant="outline" asChild>
-              <Link href={`/classes/${classId}`}>Cancel</Link>
-            </Button>
-            <Button type="submit" disabled={pending}>
-              {pending ? <Loader2 className="animate-spin" aria-hidden /> : null}
-              {pending ? "Creating…" : "Create assignment"}
-            </Button>
-          </div>
+          <Button type="submit" disabled={pending} className="w-full">
+            {submitIcon}
+            {submitLabel}
+          </Button>
+          <Button type="button" variant="text" asChild className="w-full">
+            <Link href={classworkHref}>Cancel</Link>
+          </Button>
         </div>
       </div>
-
-      <RubricSummary
-        criteria={criteria}
-        totalPoints={totalPoints}
-        dueLabel={dueLabel}
-        templateName={getBuilderTemplate(templateId)?.name ?? null}
-        kindLabel={KIND_LABELS[kind]}
-        copy={copy}
-      />
     </form>
   );
 }

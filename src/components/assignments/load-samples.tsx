@@ -38,7 +38,7 @@ export function LoadSamplesButton({
 }: {
   assignmentId: string;
   disabled?: boolean;
-  variant?: "outline" | "secondary";
+  variant?: "outline" | "secondary" | "tonal";
 }) {
   const { load, pending } = useLoadSamples(assignmentId);
   return (

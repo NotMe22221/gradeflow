@@ -4,7 +4,7 @@ import { ReviewWorkspace } from "@/components/review/review-workspace";
 import { requireTeacherPage } from "@/lib/auth/session";
 import { getOwnedAssignmentTitle, getReviewQueue } from "@/lib/grades/review";
 
-export const metadata: Metadata = { title: "Review queue" };
+export const metadata: Metadata = { title: "To review" };
 
 function single(value: string | string[] | undefined): string | null {
   const first = Array.isArray(value) ? value[0] : value;

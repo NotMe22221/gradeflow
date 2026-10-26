@@ -267,7 +267,7 @@ export function BatchGradingProvider({
         }
         if (failed > 0) {
           toast.error(`${pluralize(failed, "paper")} could not be graded`, {
-            description: "Use Retry in the submissions table to try again.",
+            description: "Use Retry in the student list to try again.",
           });
         }
         if (stopped) {

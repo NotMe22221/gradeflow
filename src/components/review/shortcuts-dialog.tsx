@@ -12,7 +12,7 @@ import { Kbd } from "@/components/ui/kbd";
 const SHORTCUTS: { keys: string[][]; label: string }[] = [
   { keys: [["J"], ["→"]], label: "Next paper" },
   { keys: [["K"], ["←"]], label: "Previous paper" },
-  { keys: [["A"]], label: "Approve & publish (asks you to confirm)" },
+  { keys: [["A"]], label: "Approve & return (asks you to confirm)" },
   { keys: [["S"]], label: "Send back with a note" },
   { keys: [["?"]], label: "Show these shortcuts" },
   { keys: [["Esc"]], label: "Close a dialog" },
@@ -27,16 +27,17 @@ export function ShortcutsDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Keyboard shortcuts</DialogTitle>
           <DialogDescription>
-            Shortcuts pause while you type in a field, so a stray key never publishes a grade.
+            Shortcuts pause while you type in a field. A only opens the confirmation, so a stray key never
+            returns a grade.
           </DialogDescription>
         </DialogHeader>
-        <ul className="divide-y divide-border rounded-lg border border-border">
+        <ul className="divide-y divide-border rounded-xl border border-border">
           {SHORTCUTS.map((shortcut) => (
-            <li key={shortcut.label} className="flex items-center justify-between gap-4 px-3 py-2.5 text-sm">
+            <li key={shortcut.label} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
               <span className="text-foreground">{shortcut.label}</span>
               <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
                 {shortcut.keys.map((combo, index) => (

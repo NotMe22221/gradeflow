@@ -10,7 +10,6 @@ import { GoalEngineBadge } from "@/components/student/goal-engine-badge";
 import { GoalPlanResult } from "@/components/student/goal-plan-result";
 import { usePlannerBridge } from "@/components/student/planner-bridge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -158,117 +157,129 @@ export function GoalPlanner({
   }
 
   return (
-    <section ref={sectionRef} id="goal-planner" aria-labelledby={headingId} className="scroll-mt-20">
-      <Card className="overflow-hidden">
-        <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-6">
-          <div className="min-w-0 space-y-1">
-            <h2 id={headingId} className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground">
-              <Target className="size-4 text-muted-foreground" aria-hidden />
+    <section
+      ref={sectionRef}
+      id="goal-planner"
+      aria-labelledby={headingId}
+      className="scroll-mt-24 overflow-hidden rounded-xl border border-border bg-card"
+    >
+      <div className="flex flex-col gap-3 px-4 pt-4 sm:flex-row sm:items-start sm:justify-between sm:px-5">
+        <div className="flex min-w-0 items-start gap-4">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary-soft-foreground">
+            <Target className="size-5" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <h2 id={headingId} className="text-base font-semibold text-foreground">
               Goal planner
             </h2>
-            <p className="text-sm text-pretty text-muted-foreground">
+            <p className="mt-0.5 text-sm text-pretty text-muted-foreground">
               Type the grade you want. GradeSmart works out the exact score you need on everything left.
             </p>
           </div>
-          <GoalEngineBadge engine={engine.engine} model={engine.model} className="self-start" />
         </div>
+        <GoalEngineBadge engine={engine.engine} model={engine.model} className="self-start max-sm:ml-14" />
+      </div>
 
-        <form onSubmit={plan} noValidate className="space-y-3 px-5 py-5 sm:px-6" aria-describedby={error ? errorId : undefined}>
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)_auto] sm:items-end">
-            <div className="min-w-0 space-y-1.5">
-              <Label htmlFor={classSelectId}>Class</Label>
-              <Select
-                value={classId}
-                onValueChange={(value) => {
-                  setClassId(value);
-                  setError(null);
-                  setNote(null);
-                }}
-              >
-                <SelectTrigger ref={selectRef} id={classSelectId} className="w-full">
-                  {/* The class name alone, so it fits; the list shows the section too. */}
-                  <SelectValue placeholder="Pick a class">{selectedClass?.name}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((klass) => (
-                    <SelectItem key={klass.id} value={klass.id}>
-                      {klass.name}
-                      {klass.section ? <span className="text-muted-foreground"> · {klass.section}</span> : null}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="min-w-0 space-y-1.5">
-              <Label htmlFor={goalInputId}>What&apos;s your goal?</Label>
-              <Input
-                ref={inputRef}
-                id={goalInputId}
-                value={goal}
-                onChange={(event) => {
-                  setGoal(event.target.value);
-                  if (error) setError(null);
-                }}
-                placeholder={`I need an A in ${selectedClass?.name ?? "this class"}`}
-                maxLength={MAX_GOAL_CHARS}
-                autoComplete="off"
-                enterKeyHint="go"
-                readOnly={pending}
-                aria-invalid={error ? true : undefined}
-              />
-            </div>
-            <Button type="submit" disabled={pending} className="w-full sm:w-auto">
-              {pending ? <LoaderCircle className="animate-spin" aria-hidden /> : <Wand2 aria-hidden />}
-              {pending ? "Planning…" : "Plan it"}
-            </Button>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-muted-foreground">Try</span>
-            {EXAMPLES.map((example) => (
-              <button
-                key={example}
-                type="button"
-                onClick={() => applyExample(example)}
-                disabled={pending}
-                className="rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground shadow-card transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring disabled:opacity-50"
-              >
-                {example}
-              </button>
-            ))}
-          </div>
-
-          {error ? (
-            <div
-              id={errorId}
-              role="alert"
-              className="flex items-start gap-2 rounded-lg border border-danger/20 bg-danger-soft px-3 py-2.5 text-sm text-danger-soft-foreground"
+      <form
+        onSubmit={plan}
+        noValidate
+        className="space-y-3 px-4 pt-5 pb-5 sm:px-5"
+        aria-describedby={error ? errorId : undefined}
+      >
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)_auto] sm:items-end">
+          <div className="min-w-0 space-y-1.5">
+            <Label htmlFor={classSelectId}>Class</Label>
+            <Select
+              value={classId}
+              onValueChange={(value) => {
+                setClassId(value);
+                setError(null);
+                setNote(null);
+              }}
             >
-              <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-              <span className="min-w-0">{error}</span>
-            </div>
-          ) : null}
-        </form>
-
-        <div className={cn("border-t border-border px-5 py-6 sm:px-6", pending && "opacity-60")} aria-busy={pending}>
-          <p className="sr-only" role="status" aria-live="polite">
-            {announcement}
-          </p>
-          {note ? <p className="mb-4 text-[13px] font-medium text-foreground/80">{note}</p> : null}
-          {pending && !current ? (
-            <PlanSkeleton />
-          ) : current ? (
-            <GoalPlanResult plan={current.plan} engine={current.engine} model={current.model} />
-          ) : (
-            <EmptyState
-              icon={Target}
-              title={selectedClass ? `No goal set for ${selectedClass.name} yet.` : "Pick a class to plan a goal."}
-              description="Tell the planner what you're aiming for and it shows the exact score you need on each remaining assignment."
-              className="py-10"
+              <SelectTrigger ref={selectRef} id={classSelectId} className="w-full">
+                {/* The class name alone, so it fits; the list shows the section too. */}
+                <SelectValue placeholder="Pick a class">{selectedClass?.name}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {classes.map((klass) => (
+                  <SelectItem key={klass.id} value={klass.id}>
+                    {klass.name}
+                    {klass.section ? <span className="text-muted-foreground"> · {klass.section}</span> : null}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="min-w-0 space-y-1.5">
+            <Label htmlFor={goalInputId}>What&apos;s your goal?</Label>
+            <Input
+              ref={inputRef}
+              id={goalInputId}
+              value={goal}
+              onChange={(event) => {
+                setGoal(event.target.value);
+                if (error) setError(null);
+              }}
+              placeholder={`I need an A in ${selectedClass?.name ?? "this class"}`}
+              maxLength={MAX_GOAL_CHARS}
+              autoComplete="off"
+              enterKeyHint="go"
+              readOnly={pending}
+              aria-invalid={error ? true : undefined}
             />
-          )}
+          </div>
+          <Button type="submit" disabled={pending} className="w-full sm:w-auto">
+            {pending ? <LoaderCircle className="animate-spin" aria-hidden /> : <Wand2 aria-hidden />}
+            {pending ? "Planning…" : "Plan it"}
+          </Button>
         </div>
-      </Card>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">Try</span>
+          {EXAMPLES.map((example) => (
+            <button
+              key={example}
+              type="button"
+              onClick={() => applyExample(example)}
+              disabled={pending}
+              className="inline-flex h-8 items-center rounded-lg border border-input/40 bg-card px-3 text-[13px] font-medium text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring disabled:opacity-50"
+            >
+              {example}
+            </button>
+          ))}
+        </div>
+
+        {error ? (
+          <div
+            id={errorId}
+            role="alert"
+            className="flex items-start gap-2 rounded-lg border border-danger/20 bg-danger-soft px-3 py-2.5 text-sm text-danger-soft-foreground"
+          >
+            <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span className="min-w-0">{error}</span>
+          </div>
+        ) : null}
+      </form>
+
+      <div className={cn("border-t border-border px-4 py-6 sm:px-5", pending && "opacity-60")} aria-busy={pending}>
+        <p className="sr-only" role="status" aria-live="polite">
+          {announcement}
+        </p>
+        {note ? <p className="mb-4 text-[13px] font-medium text-foreground/80">{note}</p> : null}
+        {pending && !current ? (
+          <PlanSkeleton />
+        ) : current ? (
+          <GoalPlanResult plan={current.plan} engine={current.engine} model={current.model} />
+        ) : (
+          <EmptyState
+            icon={Target}
+            title={selectedClass ? `No goal set for ${selectedClass.name} yet.` : "Pick a class to plan a goal."}
+            description="Tell the planner what you're aiming for and it shows the exact score you need on each remaining assignment."
+            className="border-0 bg-transparent py-8"
+          />
+        )}
+      </div>
     </section>
   );
 }

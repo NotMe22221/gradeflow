@@ -36,13 +36,13 @@ export function BriefStudentPicker({ classes }: { classes: BriefPickerClass[] })
   const href = classId && selected ? studentProfileHref(classId, selected.id) : null;
 
   return (
-    // Wraps to two lines in a narrow tile (768-1100px), one line from 1280 up and on phones.
+    // Wraps to two lines in a narrow card (768-1100px), one line from 1280 up and on phones.
     <div className="flex min-w-0 flex-wrap items-center gap-2">
       <label htmlFor={selectId} className="sr-only">
         Student for the conference brief
       </label>
       <Select value={value} onValueChange={setValue}>
-        <SelectTrigger id={selectId} size="sm" className="w-auto min-w-36 flex-1">
+        <SelectTrigger id={selectId} className="w-auto min-w-36 flex-1">
           <SelectValue placeholder="Choose a student" />
         </SelectTrigger>
         <SelectContent className="max-w-[calc(100vw-2rem)]">
@@ -61,14 +61,14 @@ export function BriefStudentPicker({ classes }: { classes: BriefPickerClass[] })
         </SelectContent>
       </Select>
       {href ? (
-        <Button asChild variant="outline" size="sm" className="shrink-0">
+        <Button asChild variant="tonal" className="shrink-0 has-[>svg]:pl-5 has-[>svg]:pr-4">
           <Link href={href} aria-label={`Open brief for ${selected?.name ?? "this student"}`}>
             Open brief
             <ArrowRight aria-hidden />
           </Link>
         </Button>
       ) : (
-        <Button variant="outline" size="sm" className="shrink-0" disabled>
+        <Button variant="tonal" className="shrink-0" disabled>
           Open brief
         </Button>
       )}

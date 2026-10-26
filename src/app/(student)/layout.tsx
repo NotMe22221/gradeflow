@@ -1,6 +1,8 @@
 import { AppShell } from "@/components/app-shell/app-shell";
+import { isAwaitingScan, studentStateFor } from "@/components/student/student-status";
+import { todoTabFor } from "@/components/student/todo-model";
 import { requireStudentPage } from "@/lib/auth/session";
-import { demoLoginEnabled } from "@/lib/constants";
+import { demoLoginEnabled, parseAssignmentKind } from "@/lib/constants";
 import { db } from "@/lib/db";
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
@@ -12,14 +14,28 @@ export default async function StudentLayout({ children }: { children: React.Reac
     select: { class: { select: { id: true, name: true, section: true } } },
   });
 
-  // To-do count: assignments in the student's classes with nothing turned in yet.
-  const todo = await db.assignment.count({
-    where: {
-      class: { enrollments: { some: { studentId: user.id } } },
-      kind: { not: "TEST" },
-      submissions: { none: { studentId: user.id } },
+  // To-do count: the same rule as the To-do page (Assigned + Missing), so the
+  // drawer badge and the page always agree. Includes papers sent back for
+  // revision; a paper test waiting for its scan is with the teacher, not here.
+  const assignments = await db.assignment.findMany({
+    where: { class: { enrollments: { some: { studentId: user.id } } } },
+    select: {
+      kind: true,
+      dueDate: true,
+      submissions: {
+        where: { studentId: user.id },
+        take: 1,
+        select: { status: true, publishedGrade: { select: { publishedAt: true } } },
+      },
     },
   });
+  const now = new Date();
+  const todo = assignments.filter((assignment) => {
+    const submission = assignment.submissions[0];
+    const state = studentStateFor(submission?.status, Boolean(submission?.publishedGrade));
+    const awaitingScan = isAwaitingScan(parseAssignmentKind(assignment.kind), state, assignment.dueDate, now);
+    return todoTabFor({ state, awaitingScan, pastDue: false }) !== "done";
+  }).length;
 
   return (
     <AppShell

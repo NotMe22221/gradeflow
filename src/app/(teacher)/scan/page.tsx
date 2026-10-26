@@ -3,8 +3,8 @@ import Link from "next/link";
 import { Camera } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
-import { PageContainer, PageHeader } from "@/components/page-header";
-import { ScanEngineBadge } from "@/components/scan/engine-badge";
+import { PageContainer } from "@/components/page-header";
+import { ScanPageHeader } from "@/components/scan/scan-page-header";
 import { ScanWorkspace } from "@/components/scan/scan-workspace";
 import {
   paperKey,
@@ -74,6 +74,7 @@ export default async function ScanPage({
 
   const classes: ScanClassOption[] = classRows.map((klass) => ({
     id: klass.id,
+    name: klass.name,
     label: [klass.name, klass.section].filter(Boolean).join(" · "),
     students: klass.enrollments.map((enrollment) => enrollment.student),
   }));
@@ -113,15 +114,7 @@ export default async function ScanPage({
 
   return (
     <PageContainer>
-      <PageHeader
-        title="Paper Scanner"
-        description={
-          visionEnabled
-            ? "Photograph a handwritten test. GPT-4o reads it and drafts scores against your answer key. Nothing publishes until you approve it."
-            : "Photograph a handwritten test. The demo scanner uses the sample photos' stored transcriptions, or answers you type, and drafts scores against your answer key. Nothing publishes until you approve it."
-        }
-        actions={<ScanEngineBadge visionEnabled={visionEnabled} />}
-      />
+      <ScanPageHeader visionEnabled={visionEnabled} />
       {assignments.length === 0 ? (
         <EmptyState
           icon={Camera}

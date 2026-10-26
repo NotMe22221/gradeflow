@@ -1,184 +1,247 @@
-import { Camera, Check, ChevronRight, CircleCheck, FileText, Flag, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  ChartColumn,
+  Camera,
+  Check,
+  ClipboardCheck,
+  FlaskConical,
+  House,
+  Menu,
+  MoreVertical,
+  ShieldCheck,
+  Sparkles,
+  Table2,
+  type LucideIcon,
+} from "lucide-react";
 
+import { LogoMark } from "@/components/brand/logo";
+import { BannerArt } from "@/components/classroom/banner-art";
 import { buttonVariants } from "@/components/ui/button";
+import { bannerMotif, classTheme } from "@/lib/ui/class-theme";
 import { cn } from "@/lib/utils";
 
 /*
- * A static, non-interactive preview of the review screen, built from the same
- * tokens as the real one. Everything inside is decorative (aria-hidden); the
- * figure carries a text description for screen readers. Names and text are
- * synthetic.
+ * A static, non-interactive preview of the product, built from the same
+ * tokens and pieces as the real screens: the app bar and class drawer, class
+ * cards with their colored banners, and the grading panel with Approve &
+ * return. Everything inside is decorative (aria-hidden); the figure carries a
+ * text description for screen readers. Names and text are synthetic.
  */
 
 const EVIDENCE = "students average only 6.6 hours of sleep on school nights";
+
+type MockClass = { name: string; section: string; due: string; work: string; review: string };
+
+const CLASSES: MockClass[] = [
+  { name: "English 10", section: "Period 2", due: "Due Friday", work: "Persuasive Essay", review: "3 to review" },
+  {
+    name: "Environmental Science",
+    section: "Period 4",
+    due: "Due today",
+    work: "Unit 3 Quiz (handwritten)",
+    review: "2 scans to review",
+  },
+];
 
 export function HeroMock({ className }: { className?: string }) {
   return (
     <figure
       role="img"
-      aria-label="Preview of the GradeSmart AI review screen: a student paper with a highlighted evidence quote beside rubric scores the AI suggested, a high confidence badge, and an Approve and publish button the teacher must press. Beside it, a review queue holds the essay and two photographed handwritten tests."
-      className={cn("relative mx-auto w-full max-w-5xl", className)}
+      aria-label="Preview of GradeSmart AI: a class home with color-coded class cards that show upcoming work and how many papers wait for review, beside the grading panel. The panel shows a student paper with a highlighted evidence quote, rubric scores the AI drafted, a high confidence badge, and the Approve and return button the teacher must press before the grade reaches the student."
+      className={cn("relative mx-auto w-full max-w-6xl", className)}
     >
-      <div aria-hidden className="pointer-events-none select-none">
-        <div className="rounded-2xl border border-border bg-secondary/70 p-1.5 shadow-raised sm:p-2">
-          <div className="overflow-hidden rounded-xl border border-border bg-card">
-            <WindowBar />
-            <div className="grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-              <PaperPane />
-              <RubricPane />
+      <div aria-hidden className="pointer-events-none rounded-[28px] bg-secondary p-1.5 select-none sm:p-2.5">
+        <div className="overflow-hidden rounded-[22px] border border-border bg-card">
+          <AppBar />
+          <div className="flex">
+            <Drawer />
+            <div className="min-w-0 flex-1 bg-background p-3 sm:p-5 lg:p-6">
+              <div className="grid gap-4 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.25fr)] lg:gap-5 xl:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
+                <div className="order-2 flex min-w-0 flex-col gap-4 md:order-1">
+                  {CLASSES.map((klass, index) => (
+                    <ClassCard key={klass.name} klass={klass} className={index > 0 ? "hidden sm:flex" : undefined} />
+                  ))}
+                </div>
+                <GradingPanel className="order-1 md:order-2" />
+              </div>
             </div>
-            <ActionBar />
           </div>
         </div>
-        <QueueCard />
       </div>
     </figure>
   );
 }
 
-function WindowBar() {
+function AppBar() {
   return (
-    <div className="flex items-center gap-3 border-b border-border px-3 py-2.5 sm:px-4">
-      <div className="hidden gap-1.5 sm:flex">
-        <span className="size-2.5 rounded-full bg-border" />
-        <span className="size-2.5 rounded-full bg-border" />
-        <span className="size-2.5 rounded-full bg-border" />
-      </div>
-      <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground sm:ml-2">
-        <span className="shrink-0 font-medium text-foreground">Review queue</span>
-        <ChevronRight className="hidden size-3 shrink-0 sm:block" />
-        <span className="hidden truncate sm:inline">
-          Persuasive Essay: Should Our School Start the Day Later?
+    <div className="flex h-14 items-center gap-2 border-b border-border px-3 sm:gap-3 sm:px-4">
+      <span className="flex size-9 items-center justify-center rounded-full text-muted-foreground">
+        <Menu className="size-5" />
+      </span>
+      <LogoMark className="size-7" />
+      <span className="font-display text-[17px] font-semibold tracking-[-0.01em] text-foreground">
+        GradeSmart <span className="font-normal text-muted-foreground">AI</span>
+      </span>
+      <span className="ml-auto hidden h-7 items-center gap-1.5 rounded-full border border-dashed border-border px-2.5 text-xs font-medium text-muted-foreground sm:inline-flex">
+        <FlaskConical className="size-3.5" />
+        Demo engines
+      </span>
+      <span className="ml-auto flex size-8 items-center justify-center rounded-full bg-secondary text-[11px] font-semibold text-secondary-foreground ring-1 ring-border sm:ml-0">
+        MH
+      </span>
+    </div>
+  );
+}
+
+const NAV: { icon: LucideIcon; label: string; active?: boolean; count?: number }[] = [
+  { icon: House, label: "Home" },
+  { icon: ClipboardCheck, label: "To review", active: true, count: 5 },
+  { icon: Camera, label: "Paper Scanner" },
+  { icon: Table2, label: "Gradebook" },
+  { icon: ChartColumn, label: "Insights" },
+];
+
+function Drawer() {
+  return (
+    <div className="hidden w-52 shrink-0 flex-col gap-0.5 border-r border-border bg-background px-2.5 py-3 xl:flex">
+      {NAV.map((item) => (
+        <span
+          key={item.label}
+          className={cn(
+            "flex h-10 items-center gap-3 rounded-full px-3.5 text-[13px] font-medium",
+            item.active ? "bg-primary-soft text-primary-soft-foreground" : "text-sidebar-foreground"
+          )}
+        >
+          <item.icon className="size-[18px] shrink-0" />
+          <span className="flex-1 truncate">{item.label}</span>
+          {item.count ? <span className="tabular text-xs font-semibold">{item.count}</span> : null}
         </span>
+      ))}
+      <span className="my-2 h-px bg-border" />
+      <span className="px-3.5 pb-1 text-xs font-medium text-muted-foreground">Teaching</span>
+      {CLASSES.map((klass) => (
+        <span key={klass.name} className="flex h-12 items-center gap-3 rounded-full px-3 text-[13px] font-medium text-sidebar-foreground">
+          <span
+            className="flex size-7 shrink-0 items-center justify-center rounded-full text-xs text-white"
+            style={{ backgroundColor: classTheme(klass).color }}
+          >
+            {klass.name.charAt(0)}
+          </span>
+          <span className="min-w-0 leading-tight">
+            <span className="block truncate">{klass.name}</span>
+            <span className="block truncate text-[11px] font-normal text-muted-foreground">{klass.section}</span>
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ClassCard({ klass, className }: { klass: MockClass; className?: string }) {
+  const theme = classTheme(klass);
+  return (
+    <div className={cn("flex flex-col overflow-hidden rounded-xl border border-border bg-card", className)}>
+      <div className="relative isolate h-[88px] overflow-hidden px-4 pt-3.5 text-white" style={{ backgroundColor: theme.color }}>
+        <BannerArt
+          motif={bannerMotif(klass)}
+          className="pointer-events-none absolute -right-6 -bottom-4 -z-10 h-[104px] w-auto text-white opacity-80"
+        />
+        <p className="truncate font-display text-lg leading-6 font-medium">{klass.name}</p>
+        <p className="truncate text-[13px] text-white/90">{klass.section}</p>
       </div>
-      <div className="ml-auto flex shrink-0 items-center gap-3">
-        <span className="tabular hidden text-xs text-muted-foreground lg:inline">1 of 3</span>
-        <span className="inline-flex items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-xs font-medium text-success-soft-foreground">
-          <span className="size-1.5 rounded-full bg-success" />
-          High confidence
+      <div className="space-y-0.5 px-4 pt-3 pb-3.5">
+        <p className="text-xs text-muted-foreground">{klass.due}</p>
+        <p className="truncate text-[13px] font-medium text-foreground">{klass.work}</p>
+      </div>
+      <div className="flex items-center justify-between border-t border-border px-3 py-2">
+        <span className="tabular inline-flex h-7 items-center gap-1.5 rounded-full bg-primary-soft px-2.5 text-xs font-medium text-primary-soft-foreground">
+          <ClipboardCheck className="size-3.5" />
+          {klass.review}
+        </span>
+        <span className="flex size-8 items-center justify-center rounded-full text-muted-foreground">
+          <MoreVertical className="size-4" />
         </span>
       </div>
     </div>
   );
 }
 
-function PaperPane() {
+const CRITERIA = [
+  { title: "Thesis and position", score: 5, max: 5 },
+  { title: "Evidence and reasoning", score: 8, max: 10, open: true },
+  { title: "Counterargument", score: 4, max: 5 },
+];
+
+function GradingPanel({ className }: { className?: string }) {
   return (
-    <div className="border-b border-border bg-background p-4 sm:p-6 md:border-r md:border-b-0">
-      <div className="flex items-center gap-3">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground ring-1 ring-border">
+    <div className={cn("flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card", className)}>
+      <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground ring-1 ring-border">
           RT
         </span>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-foreground">Rowan Thistlewood</p>
-          <p className="tabular truncate text-xs text-muted-foreground">Submitted 2h ago · 486 words</p>
-        </div>
-      </div>
-      <div className="mt-4 space-y-3 rounded-lg border border-border bg-card px-4 py-4 text-[13px] leading-6 text-foreground/90 shadow-card sm:px-5 sm:py-5">
-        <p className="hidden sm:block">
-          Every morning at 7:25, the hallway outside the science wing is full of students who look like they
-          are sleepwalking. I am usually one of them.
-        </p>
-        <p>
-          The strongest reason for the change is sleep. According to the Cedar Ridge Student Sleep Survey,{" "}
-          <mark className="rounded-sm bg-highlight box-decoration-clone px-0.5 text-foreground">
-            <span className="tabular mr-1 inline-flex h-4 min-w-4 -translate-y-px items-center justify-center rounded-full bg-highlight-strong px-1 align-middle text-[10px] leading-none font-semibold">
-              2
-            </span>
-            {EVIDENCE}
-          </mark>
-          . That is well below what our health class says teenagers need.
-        </p>
-        <p className="hidden text-foreground/45 sm:block">
-          That extra hour would show up in our classrooms. The same survey found that 71 percent of students
-          feel tired during first period.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function RubricPane() {
-  return (
-    <div className="space-y-3 p-4 sm:p-6">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-foreground">Rubric</p>
-        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <Sparkles className="size-3" />
-          AI first pass
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium text-foreground">Rowan Thistlewood</span>
+          <span className="block truncate text-xs text-muted-foreground">Persuasive Essay · Turned in</span>
+        </span>
+        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-success-soft px-2.5 py-1 text-xs font-medium text-success-soft-foreground">
+          <span className="size-1.5 rounded-full bg-success" />
+          <span className="hidden sm:inline">High confidence</span>
+          <span className="sm:hidden">High</span>
         </span>
       </div>
-      <MockCriterion number={1} title="Thesis and position" score={5} max={5} />
-      <MockCriterion number={2} title="Evidence and reasoning" score={8} max={10} expanded />
-      <MockCriterion number={3} title="Counterargument" score={4} max={5} className="hidden sm:block" />
-    </div>
-  );
-}
 
-function MockCriterion({
-  number,
-  title,
-  score,
-  max,
-  expanded = false,
-  className,
-}: {
-  number: number;
-  title: string;
-  score: number;
-  max: number;
-  expanded?: boolean;
-  className?: string;
-}) {
-  return (
-    <div className={cn("rounded-lg border border-border bg-card p-3 shadow-card", className)}>
-      <div className="flex items-start gap-2.5">
-        <span className="tabular mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[11px] font-semibold text-secondary-foreground ring-1 ring-border">
-          {number}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] leading-5 font-semibold text-foreground">{title}</p>
-          <span className="tabular mt-1 inline-flex items-center gap-1 rounded-full border border-border px-1.5 py-px text-[11px] font-medium text-muted-foreground">
-            <Sparkles className="size-2.5" />
-            AI suggested {score}
-          </span>
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <span className="tabular flex h-8 w-10 items-center justify-end rounded-md border border-input bg-card px-2 text-sm font-semibold text-foreground shadow-card">
-            {score}
-          </span>
-          <span className="tabular text-xs text-muted-foreground">/ {max}</span>
-        </div>
-      </div>
-      {expanded ? (
-        <div className="mt-3 space-y-2.5 pl-7.5">
-          <p className="text-xs leading-5 text-muted-foreground">
-            Uses two survey figures and explains how lost sleep hurts first-period learning.
+      <div className="grid min-w-0 flex-1 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
+        <div className="border-b border-border bg-background/60 px-4 py-4 text-[13px] leading-6 text-foreground/90 lg:border-r lg:border-b-0">
+          <p>
+            The strongest reason for the change is sleep. According to the Cedar Ridge sleep survey,{" "}
+            <mark className="rounded-sm bg-highlight box-decoration-clone px-0.5 text-foreground">{EVIDENCE}</mark>.
           </p>
-          <div className="rounded-md border-l-[3px] border-highlight-strong bg-highlight/35 px-2.5 py-2">
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-success-soft-foreground">
-              <CircleCheck className="size-3" />
-              Verified in paper
-            </span>
-            <q className="mt-1 block text-xs leading-5 text-foreground italic">{EVIDENCE}</q>
-          </div>
+          <p className="mt-3 hidden text-foreground/45 sm:block">
+            That extra hour would show up in our classrooms, too.
+          </p>
         </div>
-      ) : null}
-    </div>
-  );
-}
 
-function ActionBar() {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 sm:px-6">
-      {/* From lg up the floating QueueCard sits over this corner; start the copy to its right. */}
-      <p className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex lg:pl-64 xl:pl-56">
-        <ShieldCheck className="size-3.5 text-success" />
-        Nothing publishes until you approve it.
-      </p>
-      <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-end">
-        {/* Phones hide criterion 3 (4 / 5), so the total covers only the two visible criteria. */}
-        <span className="tabular mr-1 text-sm text-muted-foreground">
+        <div className="space-y-2 px-3 py-3 sm:px-3.5 sm:py-4">
+          <p className="flex items-center justify-between px-1 pb-1 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Rubric</span>
+            <span className="inline-flex items-center gap-1">
+              <Sparkles className="size-3" />
+              AI draft
+            </span>
+          </p>
+          {CRITERIA.map((criterion, index) => (
+            <div
+              key={criterion.title}
+              className={cn(
+                "rounded-lg border border-border px-2.5 py-2.5",
+                criterion.open && "border-primary/40 bg-primary/[0.03]",
+                index === 2 && "hidden sm:block"
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">{criterion.title}</span>
+                <span className="tabular flex h-7 w-9 items-center justify-center rounded-md border border-input/60 bg-card text-[13px] font-semibold text-foreground">
+                  {criterion.score}
+                </span>
+                <span className="tabular w-6 text-xs text-muted-foreground">/ {criterion.max}</span>
+              </div>
+              {criterion.open ? (
+                <p className="mt-1.5 flex items-start gap-1.5 text-[11px] leading-4 text-success-soft-foreground">
+                  <Check className="mt-px size-3 shrink-0" />
+                  Quote found in the paper
+                </p>
+              ) : null}
+            </div>
+          ))}
+          <p className="hidden items-start gap-1.5 px-1 pt-1 text-[11px] leading-4 text-muted-foreground sm:flex">
+            <ShieldCheck className="size-3.5 shrink-0 text-success" />
+            Nothing reaches the student until you approve it.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-3">
+        <span className="tabular mr-auto text-sm text-muted-foreground">
+          {/* Phones hide criterion 3 (4 / 5), so the total covers only the two visible criteria. */}
           <span className="sm:hidden">
             <span className="font-semibold text-foreground">13</span> / 15
           </span>
@@ -186,94 +249,12 @@ function ActionBar() {
             <span className="font-semibold text-foreground">17</span> / 20
           </span>
         </span>
-        <div className="flex items-center gap-2">
-          <span className={cn(buttonVariants({ variant: "outline", size: "sm" }), "hidden sm:inline-flex")}>
-            Send back
-          </span>
-          <span className={buttonVariants({ size: "sm" })}>
-            <Check />
-            Approve &amp; publish
-          </span>
-        </div>
+        <span className={cn(buttonVariants({ variant: "outline", size: "sm" }), "hidden sm:inline-flex")}>Send back</span>
+        <span className={buttonVariants({ size: "sm" })}>
+          <Check />
+          Approve &amp; return
+        </span>
       </div>
-    </div>
-  );
-}
-
-type QueueRow = {
-  name: string;
-  task: string;
-  scanned: boolean;
-  confidence: "High" | "Medium" | "Low";
-  active?: boolean;
-  flagged?: boolean;
-};
-
-/* Mirrors the review queue list: typed papers and camera-graded tests side by side. */
-const QUEUE: QueueRow[] = [
-  { name: "Rowan Thistlewood", task: "Persuasive Essay", scanned: false, confidence: "High", active: true },
-  { name: "Iris Thistledown", task: "Unit 3 Quiz", scanned: true, confidence: "Medium" },
-  { name: "Rafael Copperleaf", task: "Unit 3 Quiz", scanned: true, confidence: "Low", flagged: true },
-];
-
-const CONFIDENCE_BADGE: Record<QueueRow["confidence"], { badge: string; dot: string }> = {
-  High: { badge: "bg-success-soft text-success-soft-foreground", dot: "bg-success" },
-  Medium: { badge: "bg-warning-soft text-warning-soft-foreground", dot: "bg-warning" },
-  Low: { badge: "bg-danger-soft text-danger-soft-foreground", dot: "bg-danger" },
-};
-
-function QueueCard() {
-  return (
-    <div className="absolute -bottom-14 -left-8 hidden w-72 rounded-xl border border-border bg-card p-2 shadow-raised lg:block xl:-left-14">
-      <p className="px-2 pt-1 pb-2 text-xs font-medium text-muted-foreground">3 waiting for your review</p>
-      <ul className="space-y-0.5">
-        {QUEUE.map((item, index) => {
-          const SourceIcon = item.scanned ? Camera : FileText;
-          const tone = CONFIDENCE_BADGE[item.confidence];
-          return (
-            <li
-              key={item.name}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-1.5",
-                item.active && "bg-accent ring-1 ring-border"
-              )}
-            >
-              <span
-                className={cn(
-                  "tabular w-3 shrink-0 self-start pt-px text-right text-xs",
-                  item.active ? "font-semibold text-primary" : "text-muted-foreground"
-                )}
-              >
-                {index + 1}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span
-                  className={cn(
-                    "block truncate text-[13px] text-foreground",
-                    item.active ? "font-semibold" : "font-medium"
-                  )}
-                >
-                  {item.name}
-                </span>
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <SourceIcon className="size-3 shrink-0" />
-                  <span className="truncate">{item.task}</span>
-                </span>
-              </span>
-              {item.flagged ? <Flag className="size-3.5 shrink-0 text-warning" /> : null}
-              <span
-                className={cn(
-                  "inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-medium",
-                  tone.badge
-                )}
-              >
-                <span className={cn("size-1.5 rounded-full", tone.dot)} />
-                {item.confidence}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
     </div>
   );
 }

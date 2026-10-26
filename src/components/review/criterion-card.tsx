@@ -2,7 +2,8 @@
 
 import { useId, useState } from "react";
 import {
-  ChevronRight,
+  ArrowRight,
+  ChevronDown,
   CircleAlert,
   CircleCheck,
   FlaskConical,
@@ -11,9 +12,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -80,23 +79,23 @@ export function CriterionCard({
   const test = kind === "TEST";
 
   return (
-    <Card
+    <div
       id={criterionCardId(submissionId, criterion.id)}
       className={cn(
-        "scroll-mt-28 gap-4 p-4 sm:p-5",
-        check.error && "border-destructive/50",
-        criterion.aiScore === null && blank && "border-danger/30"
+        "scroll-mt-32 rounded-xl border border-border bg-card lg:scroll-mt-40",
+        check.error && "border-destructive/60",
+        criterion.aiScore === null && blank && "border-danger/40"
       )}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-3 px-4 pt-4 sm:px-5">
         <span
-          className="tabular mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground ring-1 ring-border"
+          className="tabular mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary-soft-foreground"
           aria-hidden
         >
           {number}
         </span>
-        <div className="min-w-0 flex-1 space-y-2">
-          <h3 className="text-sm leading-6 font-semibold break-words text-foreground">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <h3 className="pt-0.5 text-[15px] leading-6 font-semibold break-words text-foreground">
             <span className="sr-only">
               {test ? "Question" : "Criterion"} {number}:{" "}
             </span>
@@ -104,29 +103,36 @@ export function CriterionCard({
           </h3>
           <div className="flex flex-wrap items-center gap-1.5">
             {criterion.aiScore !== null ? (
-              <Badge variant="outline" className={cn("tabular", demo && "border-dashed")}>
-                {demo ? <FlaskConical aria-hidden /> : <Sparkles aria-hidden />}
+              <span
+                className={cn(
+                  "tabular inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-xs font-medium",
+                  demo
+                    ? "border border-dashed border-input/50 text-muted-foreground"
+                    : "bg-primary-soft text-primary-soft-foreground"
+                )}
+              >
+                {demo ? <FlaskConical className="size-3" aria-hidden /> : <Sparkles className="size-3" aria-hidden />}
                 {demo ? "Demo suggested" : "AI suggested"} {formatPoints(criterion.aiScore)}
-              </Badge>
+              </span>
             ) : (
-              <Badge variant="danger" className="max-w-full whitespace-normal">
-                <CircleAlert aria-hidden />
+              <span className="inline-flex h-6 max-w-full items-center gap-1 rounded-full bg-danger-soft px-2.5 text-xs font-medium text-danger-soft-foreground">
+                <CircleAlert className="size-3" aria-hidden />
                 No valid AI score
-              </Badge>
+              </span>
             )}
             {edited ? (
               <>
-                <Badge variant="secondary">
-                  <Pencil aria-hidden />
+                <span className="inline-flex h-6 items-center gap-1 rounded-full bg-secondary px-2.5 text-xs font-medium text-secondary-foreground">
+                  <Pencil className="size-3" aria-hidden />
                   Edited
-                </Badge>
+                </span>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon-sm"
-                      className="size-6"
+                      className="size-7"
                       onClick={onResetScore}
                       aria-label={`Reset ${criterion.title} to the suggested score of ${formatPoints(criterion.aiScore)}`}
                     >
@@ -139,7 +145,7 @@ export function CriterionCard({
             ) : null}
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
           <Input
             id={inputId}
             type="number"
@@ -156,96 +162,106 @@ export function CriterionCard({
             aria-invalid={check.error ? true : undefined}
             aria-describedby={check.error || blank ? errorId : undefined}
             className={cn(
-              "tabular h-10 w-[4.5rem] text-right text-base font-semibold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
-              blank && "border-dashed bg-muted/40"
+              "tabular h-11 w-[4.5rem] rounded-full border-input/60 px-3 text-center font-display text-lg font-semibold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+              blank && "border-dashed bg-muted/50"
             )}
           />
           <span className="tabular text-sm text-muted-foreground">/ {criterion.maxPoints}</span>
         </div>
       </div>
 
-      {check.error ? (
-        <p id={errorId} className="-mt-1 flex items-center gap-1.5 text-[13px] text-danger-soft-foreground">
-          <CircleAlert className="size-3.5 shrink-0" aria-hidden />
-          {check.error}
-        </p>
-      ) : blank ? (
-        <p id={errorId} className="-mt-1 text-[13px] text-muted-foreground">
-          Enter a score from 0 to {criterion.maxPoints} to publish.
-        </p>
-      ) : null}
-
-      <div>
-        <button
-          type="button"
-          onClick={() => setShowDescription((open) => !open)}
-          aria-expanded={showDescription}
-          aria-controls={descriptionId}
-          className="-mx-1 inline-flex items-center gap-1 rounded px-1 text-[13px] font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
-        >
-          <ChevronRight
-            className={cn("size-3.5 transition-transform", showDescription && "rotate-90")}
-            aria-hidden
-          />
-          {criterionGuideLabel(kind)}
-        </button>
-        <p
-          id={descriptionId}
-          hidden={!showDescription}
-          className="mt-2 rounded-lg bg-muted/70 px-3 py-2.5 text-[13px] leading-relaxed break-words whitespace-pre-line text-muted-foreground"
-        >
-          {criterion.description}
-        </p>
-      </div>
-
-      <EvidenceQuote
-        evidence={criterion.aiEvidence}
-        verified={evidenceVerified}
-        paperNoun={scanned ? "transcription" : "paper"}
-        unit={test ? "question" : "criterion"}
-        onShow={onShowEvidence}
-      />
-
-      <div className="space-y-2">
-        <Label htmlFor={commentId} className="text-[13px]">
-          Feedback for student
-        </Label>
-        <Textarea
-          id={commentId}
-          value={draft.comment}
-          onChange={(event) => onCommentChange(event.target.value)}
-          maxLength={MAX_COMMENT_CHARS}
-          rows={3}
-          placeholder={
-            test
-              ? "What did this answer get right, and what would earn full credit?"
-              : "What did this paper do well, and what would earn full credit?"
-          }
-          aria-invalid={commentTooLong ? true : undefined}
-          className="min-h-20 text-[13px] leading-relaxed"
-        />
-        {nearCommentLimit ? (
-          <p
-            className={cn(
-              "tabular text-right text-xs",
-              commentTooLong ? "text-danger-soft-foreground" : "text-muted-foreground"
-            )}
-          >
-            {draft.comment.length.toLocaleString()} / {MAX_COMMENT_CHARS.toLocaleString()}
+      <div className="space-y-4 px-4 pt-3 pb-4 sm:px-5 sm:pb-5">
+        {check.error ? (
+          <p id={errorId} className="flex items-center gap-1.5 text-[13px] text-danger-soft-foreground">
+            <CircleAlert className="size-3.5 shrink-0" aria-hidden />
+            {check.error}
+          </p>
+        ) : blank ? (
+          <p id={errorId} className="text-[13px] text-muted-foreground">
+            Enter a score from 0 to {criterion.maxPoints} to return this grade.
           </p>
         ) : null}
+
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowDescription((open) => !open)}
+            aria-expanded={showDescription}
+            aria-controls={descriptionId}
+            className="-mx-2 inline-flex h-8 items-center gap-1 rounded-full px-2 text-[13px] font-medium text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.05] hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
+          >
+            {criterionGuideLabel(kind)}
+            <ChevronDown
+              className={cn("size-4 transition-transform", showDescription && "rotate-180")}
+              aria-hidden
+            />
+          </button>
+          <p
+            id={descriptionId}
+            hidden={!showDescription}
+            className="mt-1.5 border-l-2 border-border pl-3 text-[13px] leading-relaxed break-words whitespace-pre-line text-muted-foreground"
+          >
+            {criterion.description}
+          </p>
+        </div>
+
+        <EvidenceQuote
+          number={number}
+          evidence={criterion.aiEvidence}
+          verified={evidenceVerified}
+          paperNoun={scanned ? "transcription" : "paper"}
+          unit={test ? "question" : "criterion"}
+          onShow={onShowEvidence}
+        />
+
+        <div className="space-y-2">
+          <Label htmlFor={commentId} className="text-[13px]">
+            Feedback for student
+          </Label>
+          <Textarea
+            id={commentId}
+            value={draft.comment}
+            onChange={(event) => onCommentChange(event.target.value)}
+            maxLength={MAX_COMMENT_CHARS}
+            rows={3}
+            placeholder={
+              test
+                ? "What did this answer get right, and what would earn full credit?"
+                : "What did this paper do well, and what would earn full credit?"
+            }
+            aria-invalid={commentTooLong ? true : undefined}
+            className="min-h-20 text-[13px] leading-relaxed"
+          />
+          {nearCommentLimit ? (
+            <p
+              className={cn(
+                "tabular text-right text-xs",
+                commentTooLong ? "text-danger-soft-foreground" : "text-muted-foreground"
+              )}
+            >
+              {draft.comment.length.toLocaleString()} / {MAX_COMMENT_CHARS.toLocaleString()}
+            </p>
+          ) : null}
+        </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
+/**
+ * The quote the grader cited, as a tonal card. A verified quote links to its
+ * highlight in the paper (the number chip matches the paper's marks); one
+ * that was not found in the paper is shown in red and is not clickable.
+ */
 function EvidenceQuote({
+  number,
   evidence,
   verified,
   paperNoun,
   unit,
   onShow,
 }: {
+  number: number;
   evidence: string | null;
   verified: boolean;
   paperNoun: "paper" | "transcription";
@@ -264,15 +280,22 @@ function EvidenceQuote({
       <button
         type="button"
         onClick={onShow}
-        className="group block w-full rounded-lg border-l-[3px] border-highlight-strong bg-highlight/35 px-3 py-2.5 text-left transition-colors outline-none hover:bg-highlight/60 focus-visible:ring-[3px] focus-visible:ring-ring"
+        className="group block w-full rounded-xl bg-secondary px-4 py-3 text-left transition-colors outline-none hover:bg-primary-soft/50 focus-visible:ring-[3px] focus-visible:ring-ring"
       >
         <span className="mb-1.5 flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-success-soft-foreground">
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success-soft-foreground">
+            <span
+              aria-hidden
+              className="tabular inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-highlight-strong px-1 text-[10px] leading-none font-semibold text-foreground"
+            >
+              {number}
+            </span>
             <CircleCheck className="size-3.5" aria-hidden />
             Verified in {paperNoun}
           </span>
-          <span className="text-xs text-muted-foreground transition-colors group-hover:text-foreground">
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
             Show in {paperNoun}
+            <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden />
           </span>
         </span>
         <q className="block text-[13px] leading-relaxed break-words text-foreground italic">
@@ -284,8 +307,8 @@ function EvidenceQuote({
   }
 
   return (
-    <div className="rounded-lg border-l-[3px] border-danger/40 bg-danger-soft/60 px-3 py-2.5">
-      <span className="mb-1.5 inline-flex items-center gap-1 text-xs font-medium text-danger-soft-foreground">
+    <div className="rounded-xl bg-danger-soft/70 px-4 py-3">
+      <span className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-medium text-danger-soft-foreground">
         <CircleAlert className="size-3.5" aria-hidden />
         Not found in {paperNoun}
       </span>

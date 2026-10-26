@@ -65,7 +65,7 @@ export function PhotoPages({
                   <button
                     type="button"
                     onClick={() => openZoom(index)}
-                    className="group relative block w-full overflow-hidden rounded-xl border border-border bg-card shadow-card outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
+                    className="group relative block w-full overflow-hidden rounded-xl border border-border bg-card transition-shadow outline-none hover:shadow-hover focus-visible:ring-[3px] focus-visible:ring-ring"
                     aria-label={`Zoom in on page ${pageNumber}`}
                   >
                     {/* Plain <img>: the image route checks access and sets private caching. */}
@@ -77,7 +77,7 @@ export function PhotoPages({
                       onError={() => markFailed(image.id)}
                       className="block h-auto w-full bg-muted/40"
                     />
-                    <span className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-card/95 px-2.5 py-1 text-xs font-medium text-foreground shadow-card transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100">
+                    <span className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-xs font-medium text-foreground shadow-raised transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100">
                       <ZoomIn className="size-3.5" aria-hidden />
                       Zoom
                     </span>
@@ -106,7 +106,7 @@ export function PhotoPages({
                 Page {zoomIndex + 1} of {total}
               </DialogTitle>
               <DialogDescription>
-                {studentName}&apos;s test. Compare the handwriting with the transcription before you publish.
+                {studentName}&apos;s test. Compare the handwriting with the transcription before you return the grade.
               </DialogDescription>
             </DialogHeader>
             {/*
@@ -123,7 +123,7 @@ export function PhotoPages({
               onKeyDown={(event) => {
                 if (magnified && (event.key === "ArrowLeft" || event.key === "ArrowRight")) event.stopPropagation();
               }}
-              className="max-h-[calc(100dvh-16rem)] overflow-auto overscroll-contain rounded-lg border border-border bg-muted/40 outline-none focus-visible:ring-[3px] focus-visible:ring-ring sm:max-h-[calc(100dvh-13rem)]"
+              className="max-h-[calc(100dvh-16rem)] overflow-auto overscroll-contain rounded-xl border border-border bg-muted/40 outline-none focus-visible:ring-[3px] focus-visible:ring-ring sm:max-h-[calc(100dvh-13rem)]"
             >
               <img
                 src={submissionImageUrl(submissionId, zoomed.id)}

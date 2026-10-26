@@ -61,13 +61,13 @@ export function ScanProgress({
 
   return (
     <Card aria-busy="true" aria-label="Grading progress" className="min-w-0">
-      <CardContent className="space-y-6 p-4 sm:p-6">
+      <CardContent className="space-y-6 px-4 py-5 sm:p-6">
         <div className="flex items-start gap-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
-            <LoaderCircle className="size-4 animate-spin" aria-hidden />
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary-soft-foreground">
+            <LoaderCircle className="size-5 animate-spin" aria-hidden />
           </div>
-          <div className="min-w-0 flex-1 space-y-1">
-            <p className="text-sm font-semibold text-foreground">Grading {studentName}&apos;s test</p>
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <p className="font-display text-lg leading-7 font-medium text-foreground">Grading {studentName}&apos;s test</p>
             <p className="truncate text-sm text-muted-foreground">
               {pluralize(pageCount, "page")} · {assignmentTitle}
             </p>
@@ -107,16 +107,16 @@ export function ScanProgress({
           })}
         </ol>
 
-        <div className="space-y-3 rounded-lg border border-border bg-background p-4" aria-hidden>
+        <div className="space-y-3 rounded-xl bg-secondary p-4" aria-hidden>
           <div className="flex flex-wrap gap-2">
-            <Skeleton className="h-5 w-20 rounded-full" />
-            <Skeleton className="h-5 w-28 rounded-full" />
-            <Skeleton className="h-5 w-16 rounded-full" />
+            <Skeleton className="h-5 w-20 rounded-full bg-card" />
+            <Skeleton className="h-5 w-28 rounded-full bg-card" />
+            <Skeleton className="h-5 w-16 rounded-full bg-card" />
           </div>
-          <Skeleton className="h-3.5 w-full" />
-          <Skeleton className="h-3.5 w-11/12" />
-          <Skeleton className="h-3.5 w-4/5" />
-          <Skeleton className="h-3.5 w-2/3" />
+          <Skeleton className="h-3.5 w-full bg-card" />
+          <Skeleton className="h-3.5 w-11/12 bg-card" />
+          <Skeleton className="h-3.5 w-4/5 bg-card" />
+          <Skeleton className="h-3.5 w-2/3 bg-card" />
         </div>
 
         {visionEnabled ? (

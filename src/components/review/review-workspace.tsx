@@ -23,7 +23,7 @@ import { ShortcutsDialog } from "@/components/review/shortcuts-dialog";
 import { useReviewDrafts } from "@/components/review/use-review-drafts";
 import { useReviewShortcuts } from "@/components/review/use-review-shortcuts";
 import { viewAsStudent } from "@/lib/auth/actions";
-import { firstName, formatScore } from "@/lib/format";
+import { firstName, formatPoints, formatScore } from "@/lib/format";
 import {
   assignmentLabels,
   blockingReason,
@@ -158,6 +158,17 @@ export function ReviewWorkspace({
     [liveItems, filter, sort]
   );
 
+  // The working draft grade of every paper, for the grading list ("18/25").
+  const { getDraft } = drafts;
+  const totals = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of queue) {
+      const draftSummary = summarizeDraft(item, getDraft(item));
+      map.set(item.id, `${formatPoints(draftSummary.total)}/${formatPoints(draftSummary.maxTotal)}`);
+    }
+    return map;
+  }, [queue, getDraft]);
+
   const current = queue.find((item) => item.id === selectedId) ?? queue[0] ?? null;
   const currentIndex = current ? queue.indexOf(current) : -1;
   const draft = current ? drafts.getDraft(current) : null;
@@ -264,7 +275,7 @@ export function ReviewWorkspace({
     (openedWith: ReturnFocus["openedWith"]) => {
       if (!current || !summary || busyRef.current) return;
       if (!summary.ready) {
-        toast.error("Not ready to publish yet", {
+        toast.error("Not ready to return yet", {
           description: blockingReason(summary, current.assignment.kind) ?? undefined,
         });
         const firstProblem = summary.invalidIds[0] ?? summary.missingIds[0];
@@ -313,7 +324,7 @@ export function ReviewWorkspace({
       await drafts.flush(item.id);
       const latest = summarizeDraft(item, drafts.readDraft(item));
       if (!latest.ready) {
-        toast.error("Not ready to publish yet", {
+        toast.error("Not ready to return yet", {
           description: blockingReason(latest, item.assignment.kind) ?? undefined,
         });
         setApproveTargetId(null);
@@ -321,14 +332,14 @@ export function ReviewWorkspace({
       }
       const result = await approveAndPublish(item.id, latest.payload);
       if (!result.ok) {
-        toast.error("Couldn't publish this grade", { description: result.error });
+        toast.error("Couldn't return this grade", { description: result.error });
         setApproveTargetId(null);
         router.refresh();
         return;
       }
       const score = formatScore(result.totalScore, result.maxScore);
-      toast.success("Grade published", {
-        description: `${result.studentName} · ${score} is now in the gradebook.`,
+      toast.success("Grade returned", {
+        description: `${result.studentName} · ${score} is now in the gradebook and on ${firstName(result.studentName)}'s assignment page.`,
         action: {
           label: "View as student",
           onClick: () => void viewAsStudent(result.studentId, result.assignmentId),
@@ -339,7 +350,7 @@ export function ReviewWorkspace({
       router.refresh();
     } catch {
       toast.error("Couldn't reach the server", {
-        description: "Check your connection, then reload to see whether the grade was published.",
+        description: "Check your connection, then reload to see whether the grade was returned.",
       });
       setApproveTargetId(null);
     } finally {
@@ -447,20 +458,26 @@ export function ReviewWorkspace({
 
     body = (
       <div className="flex min-h-0 flex-1">
+        {/* The grading list rail, when the workspace is wide enough (the
+            container query also follows the collapsed drawer). Narrower,
+            the student switcher's popover holds the same list. */}
         <aside
-          aria-label="Papers in the queue"
-          className="hidden w-72 shrink-0 flex-col border-r border-border bg-card 2xl:flex"
+          aria-label="Papers to review"
+          className="hidden w-64 shrink-0 flex-col border-r border-border bg-card @6xl:flex"
         >
-          <div className="flex items-baseline justify-between gap-2 border-b border-border px-4 py-3">
-            <h2 className="text-sm font-semibold text-foreground">Queue</h2>
-            <span className="truncate text-xs text-muted-foreground">{SORT_DESCRIPTIONS[sort]}</span>
+          <div className="px-4 pt-4 pb-2">
+            <h2 className="font-display text-sm font-semibold text-foreground">
+              <span className="tabular">{queue.length}</span> to review
+            </h2>
+            <p className="truncate text-xs text-muted-foreground">{SORT_DESCRIPTIONS[sort]}</p>
           </div>
           <QueueList
             items={queue}
             labels={labels}
+            totals={totals}
             currentId={current.id}
             onSelect={setSelectedId}
-            className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-3"
           />
         </aside>
 
@@ -469,15 +486,16 @@ export function ReviewWorkspace({
           onValueChange={(value) => setTab(value as PaneTab)}
           className="flex min-w-0 flex-1 flex-col gap-0 lg:min-h-0"
         >
-          <div className="sticky top-14 z-20 border-b border-border bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:hidden">
-            <TabsList className="grid w-full grid-cols-2">
+          {/* Phones and tablets: Paper | Grade tabs, sticky under the 64px app bar. */}
+          <div className="sticky top-16 z-20 border-b border-border bg-card px-4 py-2 lg:hidden">
+            <TabsList className="grid h-12 w-full grid-cols-2">
               <TabsTrigger value="paper">
                 <FileText aria-hidden />
                 Paper
               </TabsTrigger>
               <TabsTrigger value="rubric">
                 <ListChecks aria-hidden />
-                Rubric
+                Grade
                 <span className="tabular text-xs font-normal text-muted-foreground">
                   {formatScore(summary.total, summary.maxTotal)}
                 </span>
@@ -504,7 +522,7 @@ export function ReviewWorkspace({
             <TabsContent
               value="rubric"
               forceMount
-              className="flex min-w-0 flex-col border-border focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset data-[state=inactive]:hidden lg:min-h-0 lg:w-1/2 lg:flex-none lg:border-l lg:data-[state=inactive]:flex 2xl:w-[min(600px,48%)]"
+              className="flex min-w-0 flex-col border-border focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset data-[state=inactive]:hidden lg:min-h-0 lg:w-[min(30rem,48%)] lg:flex-none lg:border-l lg:data-[state=inactive]:flex"
             >
               <RubricPane
                 key={current.id}
@@ -528,11 +546,13 @@ export function ReviewWorkspace({
   }
 
   return (
-    // Desktop: exactly the viewport below the 56px top bar. Only the paper,
-    // the rubric, and the 2xl queue rail scroll; `relative` plus
-    // overflow-hidden keeps any absolutely positioned descendant (sr-only
-    // text) from stretching the page. Phones scroll the whole page instead.
-    <div className="relative flex min-h-[calc(100dvh-3.5rem)] flex-col lg:h-[calc(100dvh-3.5rem)] lg:min-h-0 lg:overflow-hidden">
+    // Desktop: exactly the viewport below the 64px top app bar. Only the
+    // paper, the grade panel, and the grading list rail scroll; `relative`
+    // plus overflow-hidden keeps any absolutely positioned descendant
+    // (sr-only text) from stretching the page. Phones scroll the whole page
+    // instead. `@container` lets the rail and header follow the workspace
+    // width, which changes with the drawer, not just the viewport.
+    <div className="@container relative flex min-h-[calc(100dvh-4rem)] flex-col lg:h-[calc(100dvh-4rem)] lg:min-h-0 lg:overflow-hidden">
       <ReviewHeader
         totalCount={liveItems.length}
         visibleCount={queue.length}
@@ -540,6 +560,7 @@ export function ReviewWorkspace({
         filterOptions={filterOptions}
         filterTitle={filter?.title ?? null}
         labels={labels}
+        totals={totals}
         onFilterChange={(id) => {
           setFilter(id ? { id, title: filterOptions.find((option) => option.id === id)?.title ?? null } : null);
           // Stay on the current paper if it is still in the filtered queue.
@@ -551,7 +572,7 @@ export function ReviewWorkspace({
           if (current) setSelectedId(current.id);
         }}
         queue={queue}
-        currentId={current?.id ?? null}
+        current={current}
         position={currentIndex + 1}
         onSelect={setSelectedId}
         onPrevious={() => goBy(-1)}

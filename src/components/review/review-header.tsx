@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowUpDown, ChevronLeft, ChevronRight, ChevronsUpDown, Keyboard, ListFilter } from "lucide-react";
+import { ArrowUpDown, ChevronDown, ChevronLeft, ChevronRight, Keyboard, ListFilter } from "lucide-react";
 
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -10,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { QueueList } from "@/components/review/queue-list";
 import { pluralize } from "@/lib/format";
 import type { QueueSort, ReviewFilterOption, ReviewItem } from "@/lib/review/types";
+import { cn } from "@/lib/utils";
 
 const ALL = "all";
 
@@ -19,7 +21,7 @@ export const SORT_LABELS: Record<QueueSort, string> = {
   oldest: "Oldest first",
 };
 
-/** Full wording for the sort menu and the queue list headings. */
+/** Full wording for the sort menu and the grading list headings. */
 export const SORT_DESCRIPTIONS: Record<QueueSort, string> = {
   confidence: "Lowest confidence first",
   oldest: "Oldest first",
@@ -28,6 +30,7 @@ export const SORT_DESCRIPTIONS: Record<QueueSort, string> = {
 // Select values are flex rows (see SelectTrigger). Growing the value keeps
 // short labels next to their icon, and the inner span gets the ellipsis.
 const SELECT_VALUE_CLASS = "min-w-0 flex-1 text-left";
+const PILL_SELECT = "h-10 rounded-full pr-3 pl-4";
 
 export function ReviewHeader({
   totalCount,
@@ -36,11 +39,12 @@ export function ReviewHeader({
   filterOptions,
   filterTitle,
   labels,
+  totals,
   onFilterChange,
   sort,
   onSortChange,
   queue,
-  currentId,
+  current,
   position,
   onSelect,
   onPrevious,
@@ -56,11 +60,13 @@ export function ReviewHeader({
   filterTitle: string | null;
   /** Short, distinguishable assignment labels by assignment id. */
   labels: Map<string, string>;
+  /** Working draft grade per submission id, for the grading list. */
+  totals: Map<string, string>;
   onFilterChange: (assignmentId: string | null) => void;
   sort: QueueSort;
   onSortChange: (sort: QueueSort) => void;
   queue: ReviewItem[];
-  currentId: string | null;
+  current: ReviewItem | null;
   /** 1-based index of the current paper in `queue`, or 0 when empty. */
   position: number;
   onSelect: (id: string) => void;
@@ -88,66 +94,97 @@ export function ReviewHeader({
   return (
     <div className="border-b border-border bg-card px-4 py-3 sm:px-6">
       {/*
-        One row from 1280px up: title (shrinks, subtitle truncates), filter,
-        sort, shortcuts, pager. Below lg the controls take their own row and
-        the pager stays next to the title.
+        Wide: title, filters, student switcher, and shortcuts on one row.
+        Narrower, the switcher drops below the title and the filters take
+        their own row (the container query follows the workspace width, so
+        it also tracks the collapsed drawer).
       */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-        <div className="min-w-0 flex-1 basis-40">
-          <h1 className="truncate text-xl font-semibold tracking-tight text-foreground">Review queue</h1>
-          <p className="tabular text-sm text-muted-foreground lg:truncate" aria-live="polite" title={countLine}>
+        <div className="min-w-0 flex-1 basis-44">
+          <div className="flex items-center gap-2.5">
+            <h1 className="truncate text-[26px] leading-8 font-medium text-foreground">To review</h1>
+            {totalCount > 0 ? (
+              <span
+                aria-hidden
+                className="tabular inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary-soft px-2 text-[13px] font-medium text-primary-soft-foreground"
+              >
+                {totalCount}
+              </span>
+            ) : null}
+          </div>
+          <p className="tabular truncate text-sm text-muted-foreground" aria-live="polite" title={countLine}>
             {countLine}
           </p>
         </div>
 
-        <div className="order-last flex w-full min-w-0 items-center gap-2 lg:order-none lg:w-auto">
-          {filterOptions.length > 0 || filter !== null ? (
-            <Select value={filter ?? ALL} onValueChange={(value) => onFilterChange(value === ALL ? null : value)}>
-              <SelectTrigger
-                className="min-w-0 flex-1 sm:w-64 sm:flex-none"
-                aria-label={`Filter by assignment: ${fullFilterTitle}`}
-                title={fullFilterTitle}
-              >
-                <ListFilter className="text-muted-foreground max-sm:hidden" aria-hidden />
-                <SelectValue placeholder="All assignments" className={SELECT_VALUE_CLASS}>
-                  <span className="truncate">{filterLabel}</span>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent align="end" className="max-w-[min(32rem,calc(100vw-2rem))]">
-                <SelectItem value={ALL}>
-                  All assignments <span className="tabular text-muted-foreground">{totalCount}</span>
-                </SelectItem>
-                {filterOptions.map((option) => (
-                  <SelectItem key={option.id} value={option.id}>
-                    {option.title}
-                    {(titleCounts.get(option.title) ?? 0) > 1 ? (
-                      <span className="text-muted-foreground"> · {option.className}</span>
-                    ) : null}{" "}
-                    <span className="tabular text-muted-foreground">{option.count}</span>
+        {filterOptions.length > 0 || filter !== null || totalCount > 0 ? (
+          <div className="order-last flex w-full min-w-0 items-center gap-2 @6xl:order-none @6xl:w-auto">
+            {filterOptions.length > 0 || filter !== null ? (
+              <Select value={filter ?? ALL} onValueChange={(value) => onFilterChange(value === ALL ? null : value)}>
+                <SelectTrigger
+                  className={cn(PILL_SELECT, "min-w-0 flex-1 sm:w-60 sm:flex-none")}
+                  aria-label={`Filter by assignment: ${fullFilterTitle}`}
+                  title={fullFilterTitle}
+                >
+                  <ListFilter className="text-muted-foreground max-sm:hidden" aria-hidden />
+                  <SelectValue placeholder="All assignments" className={SELECT_VALUE_CLASS}>
+                    <span className="truncate">{filterLabel}</span>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent align="start" className="max-w-[min(32rem,calc(100vw-2rem))]">
+                  <SelectItem value={ALL}>
+                    All assignments <span className="tabular text-muted-foreground">{totalCount}</span>
                   </SelectItem>
-                ))}
-                {filterMissing && filter ? (
-                  <SelectItem value={filter}>
-                    {filterTitle ?? "Selected assignment"} <span className="tabular text-muted-foreground">0</span>
-                  </SelectItem>
-                ) : null}
-              </SelectContent>
-            </Select>
-          ) : null}
+                  {filterOptions.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.title}
+                      {(titleCounts.get(option.title) ?? 0) > 1 ? (
+                        <span className="text-muted-foreground"> · {option.className}</span>
+                      ) : null}{" "}
+                      <span className="tabular text-muted-foreground">{option.count}</span>
+                    </SelectItem>
+                  ))}
+                  {filterMissing && filter ? (
+                    <SelectItem value={filter}>
+                      {filterTitle ?? "Selected assignment"} <span className="tabular text-muted-foreground">0</span>
+                    </SelectItem>
+                  ) : null}
+                </SelectContent>
+              </Select>
+            ) : null}
 
-          {totalCount > 0 ? (
-            <Select value={sort} onValueChange={(value) => onSortChange(value as QueueSort)}>
-              <SelectTrigger className="shrink-0 sm:w-52" aria-label="Sort the queue">
-                <ArrowUpDown className="text-muted-foreground max-sm:hidden" aria-hidden />
-                <SelectValue className={SELECT_VALUE_CLASS}>
-                  <span className="truncate">{SORT_LABELS[sort]}</span>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent align="end">
-                <SelectItem value="confidence">{SORT_DESCRIPTIONS.confidence}</SelectItem>
-                <SelectItem value="oldest">{SORT_DESCRIPTIONS.oldest}</SelectItem>
-              </SelectContent>
-            </Select>
+            {totalCount > 0 ? (
+              <Select value={sort} onValueChange={(value) => onSortChange(value as QueueSort)}>
+                <SelectTrigger className={cn(PILL_SELECT, "shrink-0 sm:w-52")} aria-label="Sort the queue">
+                  <ArrowUpDown className="text-muted-foreground max-sm:hidden" aria-hidden />
+                  <SelectValue className={SELECT_VALUE_CLASS}>
+                    <span className="truncate">{SORT_LABELS[sort]}</span>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectItem value="confidence">{SORT_DESCRIPTIONS.confidence}</SelectItem>
+                  <SelectItem value="oldest">{SORT_DESCRIPTIONS.oldest}</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="flex w-full min-w-0 items-center gap-1 sm:ml-auto sm:w-auto">
+          {current ? (
+            <StudentSwitcher
+              current={current}
+              queue={queue}
+              labels={labels}
+              totals={totals}
+              sort={sort}
+              position={position}
+              onSelect={onSelect}
+              onPrevious={onPrevious}
+              onNext={onNext}
+              open={queueOpen}
+              onOpenChange={onQueueOpenChange}
+            />
           ) : null}
 
           <Tooltip>
@@ -155,99 +192,131 @@ export function ReviewHeader({
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={onShowShortcuts}
                 className="hidden shrink-0 lg:inline-flex"
                 aria-label="Keyboard shortcuts"
               >
-                <Keyboard aria-hidden />
-                <span className="hidden 2xl:inline">Keyboard shortcuts</span>
-                <Kbd aria-hidden>?</Kbd>
+                <Keyboard className="size-5" aria-hidden />
               </Button>
             </TooltipTrigger>
-            <TooltipContent className="2xl:hidden">Keyboard shortcuts</TooltipContent>
+            <TooltipContent className="flex items-center gap-2">
+              Keyboard shortcuts <Kbd className="border-transparent">?</Kbd>
+            </TooltipContent>
           </Tooltip>
         </div>
-
-        {queue.length > 0 ? (
-          <div className="ml-auto flex shrink-0 items-center rounded-lg border border-border bg-card shadow-card">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={onPrevious}
-                  disabled={position <= 1}
-                  aria-label="Previous paper"
-                  className="rounded-r-none"
-                >
-                  <ChevronLeft />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="flex items-center gap-2">
-                Previous <Kbd className="border-transparent">K</Kbd>
-              </TooltipContent>
-            </Tooltip>
-
-            <Popover open={queueOpen} onOpenChange={onQueueOpenChange}>
-              <PopoverTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="tabular h-8 rounded-none border-x border-border px-2.5 font-medium text-foreground 2xl:hidden"
-                  aria-label={`Paper ${position} of ${queue.length}. Jump to another paper`}
-                >
-                  {position} of {queue.length}
-                  <ChevronsUpDown className="size-3.5 text-muted-foreground" aria-hidden />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-[min(24rem,calc(100vw-2rem))] p-0">
-                <div className="flex items-baseline justify-between gap-2 border-b border-border px-4 py-3">
-                  <p className="text-sm font-semibold text-foreground">Queue</p>
-                  <p className="truncate text-xs text-muted-foreground">{SORT_DESCRIPTIONS[sort]}</p>
-                </div>
-                <QueueList
-                  items={queue}
-                  labels={labels}
-                  currentId={currentId}
-                  onSelect={(id) => {
-                    onSelect(id);
-                    onQueueOpenChange(false);
-                  }}
-                  className="max-h-[min(60dvh,26rem)] overflow-y-auto overscroll-contain p-2"
-                />
-              </PopoverContent>
-            </Popover>
-            <span
-              className="tabular hidden h-8 items-center border-x border-border px-3 text-sm font-medium text-foreground 2xl:inline-flex"
-              aria-live="polite"
-            >
-              {position} of {queue.length}
-            </span>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={onNext}
-                  disabled={position >= queue.length}
-                  aria-label="Next paper"
-                  className="rounded-l-none"
-                >
-                  <ChevronRight />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent className="flex items-center gap-2">
-                Next <Kbd className="border-transparent">J</Kbd>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        ) : null}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Classroom's student switcher: the current student's avatar and name with
+ * previous / next arrows. The name opens the grading list as a popover, so
+ * any paper is one click away even without the wide-screen rail.
+ */
+function StudentSwitcher({
+  current,
+  queue,
+  labels,
+  totals,
+  sort,
+  position,
+  onSelect,
+  onPrevious,
+  onNext,
+  open,
+  onOpenChange,
+}: {
+  current: ReviewItem;
+  queue: ReviewItem[];
+  labels: Map<string, string>;
+  totals: Map<string, string>;
+  sort: QueueSort;
+  position: number;
+  onSelect: (id: string) => void;
+  onPrevious: () => void;
+  onNext: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-1 sm:flex-none">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onPrevious}
+            disabled={position <= 1}
+            aria-label="Previous paper"
+          >
+            <ChevronLeft className="size-5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent className="flex items-center gap-2">
+          Previous <Kbd className="border-transparent">K</Kbd>
+        </TooltipContent>
+      </Tooltip>
+
+      <Popover open={open} onOpenChange={onOpenChange}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-full border border-border bg-card pr-3 pl-1.5 text-left transition-colors outline-none hover:bg-foreground/[0.04] focus-visible:ring-[3px] focus-visible:ring-ring data-[state=open]:bg-primary-soft/60 sm:w-64 sm:flex-none"
+            aria-label={`Paper ${position} of ${queue.length}: ${current.student.name}. Jump to another paper`}
+          >
+            <Avatar name={current.student.name} className="size-9 bg-primary-soft text-[13px] text-primary-soft-foreground ring-0" />
+            <span className="min-w-0 flex-1" aria-hidden>
+              <span className="block truncate text-sm font-medium text-foreground">{current.student.name}</span>
+              <span className="tabular block truncate text-xs text-muted-foreground">
+                {position} of {queue.length}
+                <span> · </span>
+                {labels.get(current.assignment.id) ?? current.assignment.title}
+              </span>
+            </span>
+            <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-[min(24rem,calc(100vw-2rem))] rounded-xl p-0">
+          <div className="flex items-baseline justify-between gap-2 border-b border-border px-4 py-3">
+            <p className="font-display text-sm font-semibold text-foreground">
+              {pluralize(queue.length, "paper")} to review
+            </p>
+            <p className="truncate text-xs text-muted-foreground">{SORT_DESCRIPTIONS[sort]}</p>
+          </div>
+          <QueueList
+            items={queue}
+            labels={labels}
+            totals={totals}
+            currentId={current.id}
+            onSelect={(id) => {
+              onSelect(id);
+              onOpenChange(false);
+            }}
+            className="max-h-[min(60dvh,26rem)] overflow-y-auto overscroll-contain p-2"
+          />
+        </PopoverContent>
+      </Popover>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onNext}
+            disabled={position >= queue.length}
+            aria-label="Next paper"
+          >
+            <ChevronRight className="size-5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent className="flex items-center gap-2">
+          Next <Kbd className="border-transparent">J</Kbd>
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 }

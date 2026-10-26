@@ -29,7 +29,7 @@ function describe(run: BatchRun): { title: string; detail: string; tone: "runnin
     return {
       title: "AI pass stopped",
       detail: `${pluralize(run.succeeded, "paper")} graded. ${pluralize(run.total - run.processed, "paper")} not started.${
-        run.failed ? ` ${pluralize(run.failed, "paper")} failed; use Retry in the table.` : ""
+        run.failed ? ` ${pluralize(run.failed, "paper")} failed; use Retry in the student list.` : ""
       }`,
       tone: "neutral",
     };
@@ -44,13 +44,13 @@ function describe(run: BatchRun): { title: string; detail: string; tone: "runnin
   if (run.succeeded === 0) {
     return {
       title: "The AI pass did not finish",
-      detail: `${pluralize(run.failed, "paper")} could not be graded. Use Retry in the table to try again.`,
+      detail: `${pluralize(run.failed, "paper")} could not be graded. Use Retry in the student list to try again.`,
       tone: "danger",
     };
   }
   return {
     title: "AI first pass finished with errors",
-    detail: `${pluralize(run.succeeded, "paper")} ready for review. ${pluralize(run.failed, "paper")} could not be graded; use Retry in the table.`,
+    detail: `${pluralize(run.succeeded, "paper")} ready for review. ${pluralize(run.failed, "paper")} could not be graded; use Retry in the student list.`,
     tone: "danger",
   };
 }
@@ -75,11 +75,11 @@ export function BatchProgressCard() {
   return (
     <section
       aria-label="AI first pass progress"
-      className="mb-6 rounded-xl border border-border bg-card p-4 shadow-card sm:p-6"
+      className="rounded-xl border border-border bg-card p-4 sm:p-6"
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          <div className={cn("flex size-9 shrink-0 items-center justify-center rounded-full", toneClass)}>
+          <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", toneClass)}>
             <Icon className={cn("size-4", spin && "animate-spin")} aria-hidden />
           </div>
           <div className="min-w-0 space-y-1" aria-live="polite" aria-atomic="true">
@@ -87,7 +87,7 @@ export function BatchProgressCard() {
             <p className="text-sm text-pretty text-muted-foreground">{detail}</p>
           </div>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2 pl-12 sm:pl-0">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 pl-13 sm:pl-0">
           <GraderBadge grader={graderInfo.kind} model={graderInfo.model} />
           {running ? (
             <Button variant="outline" size="sm" onClick={stop} disabled={run.status === "stopping"}>

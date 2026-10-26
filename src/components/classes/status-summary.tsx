@@ -23,27 +23,43 @@ export function summarizeStatuses(statuses: string[], rosterCount: number): Stat
   return summary;
 }
 
+/**
+ * Google Classroom's three numbers for a piece of work:
+ * - turnedIn: papers waiting on the teacher (AI pass or review)
+ * - assigned: students the work is waiting on (not turned in, or sent back for a revision)
+ * - graded: approved and returned with a grade
+ */
+export type WorkCounts = { turnedIn: number; assigned: number; graded: number };
+
+export function workCounts(summary: StatusSummary): WorkCounts {
+  return {
+    turnedIn: summary.review + summary.ready,
+    assigned: summary.notSubmitted + summary.returned,
+    graded: summary.published,
+  };
+}
+
 const SEGMENTS: { key: keyof Omit<StatusSummary, "total" | "notSubmitted">; label: string; className: string }[] = [
-  { key: "published", label: "published", className: "bg-success" },
+  { key: "published", label: "graded", className: "bg-success" },
   { key: "review", label: "to review", className: "bg-warning" },
   { key: "ready", label: "ready for AI pass", className: "bg-muted-foreground/45" },
   { key: "returned", label: "sent back", className: "bg-muted-foreground/20" },
 ];
 
-/** "2 to review · 1 ready for AI pass · 1 published · 3 not submitted" */
+/** "2 to review · 1 ready for AI pass · 1 graded · 3 not turned in" */
 export function describeSummary(summary: StatusSummary): string {
   const parts = [
     summary.review ? `${summary.review} to review` : null,
     summary.ready ? `${summary.ready} ready for AI pass` : null,
     summary.returned ? `${summary.returned} sent back` : null,
-    summary.published ? `${summary.published} published` : null,
-    summary.notSubmitted ? `${summary.notSubmitted} not submitted` : null,
+    summary.published ? `${summary.published} graded` : null,
+    summary.notSubmitted ? `${summary.notSubmitted} not turned in` : null,
   ].filter(Boolean);
   if (summary.total === 0) return "No students enrolled yet";
   return parts.join(" · ");
 }
 
-/** Mini stacked bar: published, to review, ready, sent back, then not submitted. */
+/** Mini stacked bar: graded, to review, ready, sent back, then not turned in. */
 export function StatusBar({ summary, className }: { summary: StatusSummary; className?: string }) {
   return (
     <div

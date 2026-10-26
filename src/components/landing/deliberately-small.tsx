@@ -26,31 +26,29 @@ export function DeliberatelySmall() {
         />
 
         <div className="mt-12 grid gap-6 md:grid-cols-2">
-          <div className="rounded-xl border border-border bg-card p-6 shadow-card sm:p-8">
-            <h3 className="text-base font-semibold tracking-tight text-foreground">What GradeSmart AI does</h3>
+          <div className="rounded-xl border border-border bg-card p-6 sm:p-8">
+            <h3 className="text-lg font-medium text-foreground">What GradeSmart AI does</h3>
             <ul className="mt-6 space-y-4">
               {DOES.map((item) => (
                 <li key={item} className="flex items-start gap-3 text-sm text-foreground">
-                  <span className="mt-px flex size-5 shrink-0 items-center justify-center rounded-full bg-foreground text-background">
-                    <Check className="size-3" strokeWidth={3} aria-hidden />
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <Check className="size-3.5" strokeWidth={3} aria-hidden />
                   </span>
-                  {item}
+                  <span className="pt-0.5">{item}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="rounded-xl border border-dashed border-border bg-background p-6 sm:p-8">
-            <h3 className="text-base font-semibold tracking-tight text-muted-foreground">
-              What it deliberately skips
-            </h3>
+          <div className="rounded-xl border border-dashed border-input/50 bg-background p-6 sm:p-8">
+            <h3 className="text-lg font-medium text-muted-foreground">What it deliberately skips</h3>
             <ul className="mt-6 space-y-4">
               {SKIPS.map((item) => (
                 <li key={item} className="flex items-start gap-3 text-sm text-muted-foreground">
-                  <span className="mt-px flex size-5 shrink-0 items-center justify-center rounded-full ring-1 ring-border">
-                    <Minus className="size-3" aria-hidden />
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-secondary">
+                    <Minus className="size-3.5" aria-hidden />
                   </span>
-                  {item}
+                  <span className="pt-0.5">{item}</span>
                 </li>
               ))}
             </ul>

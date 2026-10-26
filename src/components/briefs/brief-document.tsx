@@ -27,7 +27,7 @@ function Section({
     <section className="min-w-0 break-inside-avoid">
       <h4
         className={cn(
-          "flex items-center gap-2 font-semibold text-foreground",
+          "flex items-center gap-2 font-sans font-semibold text-foreground",
           print ? "text-[10.5pt]" : "text-sm"
         )}
       >
@@ -87,20 +87,15 @@ export function BriefDocument({
   return (
     <article aria-labelledby={headingId} className={cn("text-foreground", print ? "space-y-4" : "space-y-6")}>
       <header className={cn("border-b border-border", print ? "space-y-1.5 pb-3" : "space-y-3 pb-5")}>
-        <p
-          className={cn(
-            "font-medium tracking-wide text-muted-foreground uppercase",
-            print ? "text-[8.5pt]" : "text-xs"
-          )}
-        >
+        <p className={cn("font-medium text-primary", print ? "text-[8.5pt]" : "text-[13px]")}>
           Parent-teacher conference brief
         </p>
         <h3
           id={headingId}
           tabIndex={-1}
           className={cn(
-            "font-semibold tracking-tight text-balance outline-none",
-            print ? "text-[15pt] leading-tight" : "text-xl leading-snug"
+            "font-medium text-balance outline-none",
+            print ? "text-[15pt] leading-tight" : "text-[22px] leading-snug"
           )}
         >
           {brief.headline}
@@ -110,8 +105,8 @@ export function BriefDocument({
         </p>
         <p
           className={cn(
-            "tabular inline-flex items-center gap-1.5 rounded-md bg-secondary font-medium text-secondary-foreground",
-            print ? "px-1.5 py-0.5 text-[8.5pt]" : "px-2 py-1 text-xs"
+            "tabular inline-flex items-center gap-1.5 rounded-full bg-secondary font-medium text-secondary-foreground",
+            print ? "px-2 py-0.5 text-[8.5pt]" : "px-3 py-1 text-xs"
           )}
         >
           <ShieldCheck className="size-3.5 shrink-0 text-success" aria-hidden />

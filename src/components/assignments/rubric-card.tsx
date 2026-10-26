@@ -1,5 +1,4 @@
 import { PromptText } from "@/components/assignments/prompt-text";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AssignmentKind } from "@/lib/constants";
 import { pluralize } from "@/lib/format";
@@ -28,9 +27,9 @@ export function RubricCard({ criteria, kind = "ESSAY" }: { criteria: RubricCardC
           </CardDescription>
         </div>
         <CardAction>
-          <Badge variant="secondary" className="tabular">
-            {pluralize(total, "pt")}
-          </Badge>
+          <span className="tabular rounded-full bg-secondary px-2.5 py-1 text-xs font-medium whitespace-nowrap text-secondary-foreground">
+            {pluralize(total, "point")}
+          </span>
         </CardAction>
       </CardHeader>
       {criteria.length === 0 ? (
@@ -43,12 +42,12 @@ export function RubricCard({ criteria, kind = "ESSAY" }: { criteria: RubricCardC
         <ol className="divide-y divide-border border-t border-border">
           {criteria.map((criterion, index) => (
             <li key={criterion.id} className="flex gap-4 px-6 py-4">
-              <span className="tabular flex size-6 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-secondary-foreground ring-1 ring-border">
+              <span className="tabular flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-xs font-semibold text-primary-soft-foreground">
                 {index + 1}
               </span>
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex items-baseline justify-between gap-3">
-                  <h3 className="min-w-0 text-sm font-medium break-words text-foreground">{criterion.title}</h3>
+                  <h3 className="min-w-0 font-sans text-sm font-medium break-words text-foreground">{criterion.title}</h3>
                   <span className="tabular shrink-0 text-sm text-muted-foreground">
                     {pluralize(criterion.maxPoints, "pt")}
                   </span>
@@ -75,7 +74,7 @@ export function PromptCard({ instructions, kind = "ESSAY" }: { instructions: str
           <h2>{test ? "Directions" : "Prompt"}</h2>
         </CardTitle>
         <CardDescription>
-          {test ? "Printed on the test. The AI reads them with the answer key." : "What students see when they submit."}
+          {test ? "Printed on the test. The AI reads them with the answer key." : "What students see when they turn in their work."}
         </CardDescription>
       </CardHeader>
       <CardContent className="border-t border-border pt-4">

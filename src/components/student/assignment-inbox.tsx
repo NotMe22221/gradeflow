@@ -1,67 +1,82 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, CircleCheck, ClipboardList, FileText, Inbox, MousePointerClick, Send } from "lucide-react";
+import { ChevronRight, CircleCheck, Inbox, MousePointerClick, PartyPopper } from "lucide-react";
 import { toast } from "sonner";
 
 import { logStudySession } from "@/app/(student)/student/actions";
+import { AssignmentIcon } from "@/components/classwork/assignment-icon";
 import { EmptyState } from "@/components/empty-state";
-import {
-  defaultInboxTab,
-  dueLabel,
-  INBOX_TABS,
-  inboxCounts,
-  rowsForTab,
-  type InboxAssignment,
-  type InboxTab,
-} from "@/components/student/inbox-model";
+import { dueLabel, type InboxAssignment } from "@/components/student/inbox-model";
 import { InboxPanel } from "@/components/student/inbox-panel";
 import { usePlannerBridge } from "@/components/student/planner-bridge";
-import { StudentStateBadge } from "@/components/student/student-state-badge";
+import {
+  defaultTodoTab,
+  scoreText,
+  TODO_TABS,
+  todoCounts,
+  todoSortKey,
+  todoTabFor,
+  WORK_TONE_CLASS,
+  workStatus,
+  type TodoTab,
+} from "@/components/student/todo-model";
+import { UnderlineTabsList, UnderlineTabsTrigger } from "@/components/student/underline-tabs";
 import { useMediaQuery } from "@/components/student/use-media-query";
-import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatDate, formatScore } from "@/lib/format";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { classTheme } from "@/lib/ui/class-theme";
 import { cn } from "@/lib/utils";
 
-const EMPTY_COPY: Record<InboxTab, { icon: typeof Inbox; title: string; description: string }> = {
-  todo: {
+const EMPTY_COPY: Record<TodoTab, { icon: typeof Inbox; title: string; description: string }> = {
+  assigned: {
     icon: CircleCheck,
-    title: "Nothing to do right now.",
-    description: "New assignments from your teachers land here.",
+    title: "No work assigned right now.",
+    description: "New work from your teachers shows up here.",
   },
-  submitted: {
-    icon: Send,
-    title: "No papers waiting on your teacher.",
-    description: "Papers you submit wait here until your teacher approves a grade.",
+  missing: {
+    icon: PartyPopper,
+    title: "Nothing missing. Nice work.",
+    description: "Work you haven't turned in by its due date shows up here.",
   },
-  graded: {
+  done: {
     icon: Inbox,
-    title: "No grades yet.",
-    description: "Grades show up here as soon as your teacher approves them.",
+    title: "Nothing turned in yet.",
+    description: "Work you turn in, and grades your teacher returns, show up here.",
   },
 };
 
+function rowsFor(rows: readonly InboxAssignment[], tab: TodoTab): InboxAssignment[] {
+  return rows
+    .filter((row) => todoTabFor(row) === tab)
+    .sort((a, b) => todoSortKey(a, tab) - todoSortKey(b, tab) || a.title.localeCompare(b.title));
+}
+
 /**
- * Modular assignment inbox: the student's assignments on the left (filtered
- * by To do / Submitted / Graded) and quick-launch actions for the selected
- * one on the right. On phones the actions open in a bottom sheet.
+ * Modular assignment inbox: the student's work on the left, filtered by
+ * Classroom's To-do tabs (Assigned / Missing / Done), and quick-launch actions
+ * for the selected assignment on the right. On phones the actions open in a
+ * bottom sheet.
  */
 export function AssignmentInbox({
   rows,
+  summary,
   studyLoggedToday: initialStudyLogged,
 }: {
   rows: InboxAssignment[];
+  /** One plain line about what's waiting on the student. */
+  summary?: string;
   studyLoggedToday: boolean;
 }) {
   const router = useRouter();
   const bridge = usePlannerBridge();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
-  const [tab, setTab] = useState<InboxTab>(() => defaultInboxTab(rows));
-  const [picked, setPicked] = useState<Partial<Record<InboxTab, string>>>({});
+  const [tab, setTab] = useState<TodoTab>(() => defaultTodoTab(rows));
+  const [picked, setPicked] = useState<Partial<Record<TodoTab, string>>>({});
   const [sheetOpen, setSheetOpen] = useState(false);
   const [studyLogged, setStudyLogged] = useState(initialStudyLogged);
   const [studyPending, startStudy] = useTransition();
@@ -70,8 +85,8 @@ export function AssignmentInbox({
   const panelHeadingRef = useRef<HTMLHeadingElement>(null);
   const keepFocusOnClose = useRef(false);
 
-  const counts = useMemo(() => inboxCounts(rows), [rows]);
-  const tabRows = useMemo(() => rowsForTab(rows, tab), [rows, tab]);
+  const counts = useMemo(() => todoCounts(rows), [rows]);
+  const tabRows = useMemo(() => rowsFor(rows, tab), [rows, tab]);
   const pickedId = picked[tab];
   const selected = tabRows.find((row) => row.id === pickedId) ?? tabRows[0] ?? null;
 
@@ -154,51 +169,47 @@ export function AssignmentInbox({
   };
 
   return (
-    <section aria-labelledby="inbox-heading">
-      <Card className="overflow-hidden">
-        <div className="flex flex-col gap-1 border-b border-border px-5 py-4 sm:px-6">
-          <h2 id="inbox-heading" className="flex items-center gap-2 text-base font-semibold tracking-tight text-foreground">
-            <Inbox className="size-4 text-muted-foreground" aria-hidden />
+    <section aria-labelledby="inbox-heading" className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="flex items-start justify-between gap-4 px-4 pt-4 sm:px-5">
+        <div className="min-w-0">
+          <h2 id="inbox-heading" className="text-base font-semibold text-foreground">
             Assignment inbox
           </h2>
-          <p className="text-sm text-muted-foreground">
-            Pick an assignment to see what&apos;s next. Use the arrow keys to move through the list.
+          <p className="mt-0.5 text-sm text-pretty text-muted-foreground">
+            {summary ?? "Pick an assignment for quick actions."}
           </p>
+        </div>
+        <Button asChild variant="text" size="sm" className="-mr-2 h-10 shrink-0">
+          <Link href="/student/todo">View all</Link>
+        </Button>
+      </div>
+
+      <Tabs value={tab} onValueChange={(value) => setTab(value as TodoTab)} className="gap-0">
+        <div className="mt-2 border-b border-border px-2 sm:px-3">
+          <UnderlineTabsList aria-label="Filter your work">
+            {TODO_TABS.map((item) => (
+              <UnderlineTabsTrigger key={item.value} value={item.value} count={counts[item.value]}>
+                {item.label}
+              </UnderlineTabsTrigger>
+            ))}
+          </UnderlineTabsList>
         </div>
 
         <div className="grid lg:grid-cols-[minmax(0,7fr)_minmax(0,6fr)]">
-          <Tabs value={tab} onValueChange={(value) => setTab(value as InboxTab)} className="min-w-0 gap-0">
-            <div className="px-4 pt-4 sm:px-5">
-              <TabsList className="w-full" aria-label="Filter assignments">
-                {INBOX_TABS.map((item) => (
-                  <TabsTrigger key={item.value} value={item.value} className="gap-1.5 px-2">
-                    {item.label}
-                    <span
-                      className={cn(
-                        "tabular min-w-5 rounded-full px-1.5 text-[11px] leading-[18px] font-semibold",
-                        tab === item.value ? "bg-secondary text-foreground" : "bg-background/70 text-muted-foreground"
-                      )}
-                    >
-                      {counts[item.value]}
-                    </span>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </div>
-
-            {INBOX_TABS.map((item) => (
-              <TabsContent key={item.value} value={item.value} className="min-w-0 p-2 sm:p-3">
+          <div className="min-w-0">
+            {TODO_TABS.map((item) => (
+              <TabsContent key={item.value} value={item.value} className="min-w-0">
                 {item.value !== tab ? null : tabRows.length === 0 ? (
                   <EmptyState
                     icon={EMPTY_COPY[item.value].icon}
                     title={EMPTY_COPY[item.value].title}
                     description={EMPTY_COPY[item.value].description}
-                    className="m-2 border-0 bg-transparent py-10"
+                    className="border-0 bg-transparent py-12"
                   />
                 ) : (
                   <ul
-                    className="flex flex-col gap-1 p-1 lg:max-h-[30rem] lg:overflow-y-auto"
-                    aria-label={`${item.label} assignments`}
+                    className="divide-y divide-border lg:max-h-[32rem] lg:overflow-y-auto"
+                    aria-label={`${item.label} work`}
                     onKeyDown={onListKeyDown}
                   >
                     {tabRows.map((row) => (
@@ -218,22 +229,22 @@ export function AssignmentInbox({
                 )}
               </TabsContent>
             ))}
-          </Tabs>
+          </div>
 
-          <section aria-label="Quick actions" className="hidden min-w-0 border-l border-border bg-muted/30 p-6 lg:block">
+          <section aria-label="Quick actions" className="hidden min-w-0 border-l border-border p-6 lg:block">
             {selected ? (
               <InboxPanel key={selected.id} row={selected} headingRef={panelHeadingRef} {...panelProps} />
             ) : (
               <EmptyState
                 icon={MousePointerClick}
                 title="Quick actions show up here."
-                description="Choose an assignment to submit it, plan your grade, or log a study session."
+                description="Choose an assignment to turn it in, plan your grade, or log a study session."
                 className="h-full border-0 bg-transparent"
               />
             )}
           </section>
         </div>
-      </Card>
+      </Tabs>
 
       <Sheet open={sheetOpen && !isDesktop && selected !== null} onOpenChange={setSheetOpen}>
         <SheetContent
@@ -249,7 +260,9 @@ export function AssignmentInbox({
           {selected ? (
             <>
               <SheetHeader className="px-5 pt-5 pr-12 pb-4">
-                <SheetTitle className="text-base leading-snug text-balance break-words">{selected.title}</SheetTitle>
+                <SheetTitle className="text-base leading-snug font-medium text-balance break-words">
+                  {selected.title}
+                </SheetTitle>
                 <SheetDescription className="tabular">
                   {selected.className} · {dueLabel(selected)}
                 </SheetDescription>
@@ -276,10 +289,8 @@ function InboxRow({
   onActivate: () => void;
   buttonRef: (element: HTMLButtonElement | null) => void;
 }) {
-  const paperTest = row.kind === "TEST";
-  const Icon = paperTest ? ClipboardList : FileText;
-  // On phones the due date matters more than a "Not submitted" badge every To do row would share.
-  const hideBadgeOnPhone = row.state === "not_submitted" && !paperTest;
+  const status = workStatus(row);
+  const score = scoreText(row);
   return (
     <button
       ref={buttonRef}
@@ -288,46 +299,33 @@ function InboxRow({
       aria-current={active ? "true" : undefined}
       tabIndex={active ? 0 : -1}
       className={cn(
-        "group flex w-full items-start gap-3 rounded-lg px-3 py-3 text-left transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring",
-        active ? "bg-accent ring-1 ring-border" : "hover:bg-accent/60"
+        "group flex min-h-16 w-full items-center gap-4 px-4 py-3 text-left transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset sm:px-5",
+        active ? "bg-primary-soft/45" : "hover:bg-foreground/[0.04]"
       )}
     >
-      <span
-        className={cn(
-          "mt-0.5 hidden size-8 shrink-0 items-center justify-center rounded-lg ring-1 sm:flex",
-          active ? "bg-card text-foreground ring-border" : "bg-secondary text-muted-foreground ring-border"
-        )}
-        aria-hidden
-      >
-        <Icon className="size-4" />
-      </span>
+      <AssignmentIcon
+        isTest={row.kind === "TEST"}
+        color={classTheme({ name: row.className }).color}
+        className="size-9 [&_svg]:size-[18px]"
+      />
       <span className="min-w-0 flex-1">
-        <span
-          className={cn(
-            "line-clamp-2 text-sm break-words text-pretty text-foreground",
-            active ? "font-semibold" : "font-medium"
-          )}
-        >
-          {row.title}
-        </span>
-        <span className="mt-0.5 line-clamp-2 text-[13px] break-words text-muted-foreground">
+        <span className="line-clamp-2 text-sm font-medium break-words text-pretty text-foreground">{row.title}</span>
+        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
           {row.className}
           <span aria-hidden> · </span>
-          <span className={cn("tabular", row.pastDue && "font-medium text-danger-soft-foreground")}>
-            {row.pastDue ? `Overdue · ${formatDate(row.dueDate)}` : dueLabel(row)}
-          </span>
+          <span className={cn("tabular", row.pastDue && "font-medium text-danger")}>{dueLabel(row)}</span>
         </span>
       </span>
-      <span className={cn("flex shrink-0 flex-col items-end gap-1 pt-0.5", hideBadgeOnPhone && "max-sm:hidden")}>
-        <StudentStateBadge state={row.state} paperTest={paperTest} awaitingScan={row.awaitingScan} />
-        {row.state === "graded" && row.score ? (
-          <span className="tabular text-xs font-semibold text-foreground">
+      <span className="flex shrink-0 flex-col items-end gap-0.5 text-right">
+        {score ? (
+          <span className="tabular text-sm font-medium text-foreground">
             <span className="sr-only">Score: </span>
-            {formatScore(row.score.total, row.score.max)}
+            {score}
           </span>
         ) : null}
+        <span className={cn("text-xs font-medium", WORK_TONE_CLASS[status.tone])}>{status.label}</span>
       </span>
-      <ChevronRight className="mt-1.5 size-4 shrink-0 text-muted-foreground/70 lg:hidden" aria-hidden />
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground/70 lg:hidden" aria-hidden />
     </button>
   );
 }

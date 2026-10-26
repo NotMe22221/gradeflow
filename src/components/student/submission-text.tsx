@@ -3,15 +3,18 @@ import { ChevronRight, FileText } from "lucide-react";
 import { pluralize, wordCount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+/** The id of the "Your paper" disclosure, which Your work's paper tile opens. */
+export const PAPER_ANCHOR = "your-paper";
+
 /**
- * The student's own paper in a disclosure. Native <details> keeps it
+ * The student's own paper in a disclosure card. Native <details> keeps it
  * keyboard-accessible without client JavaScript. The paper is rendered as a
  * text node only, never as HTML.
  */
 export function SubmissionText({
   content,
   fileName,
-  label = "Your submission",
+  label = "Your paper",
   className,
 }: {
   content: string;
@@ -20,14 +23,17 @@ export function SubmissionText({
   className?: string;
 }) {
   return (
-    <details className={cn("group border-t border-border", className)}>
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-6 py-4 text-sm font-medium text-foreground transition-colors outline-none select-none hover:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset [&::-webkit-details-marker]:hidden">
+    <details
+      id={PAPER_ANCHOR}
+      className={cn("group scroll-mt-24 overflow-hidden rounded-xl border border-border bg-card", className)}
+    >
+      <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-base font-semibold text-foreground transition-colors outline-none select-none hover:bg-foreground/[0.04] focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset sm:px-5 [&::-webkit-details-marker]:hidden">
         <span className="flex items-center gap-2">
           <ChevronRight
-            className="size-4 text-muted-foreground transition-transform group-open:rotate-90"
+            className="size-5 text-muted-foreground transition-transform group-open:rotate-90"
             aria-hidden
           />
-          {label}
+          <span className="font-display">{label}</span>
         </span>
         <span className="flex min-w-0 items-center gap-1.5 text-xs font-normal text-muted-foreground">
           {fileName ? (
@@ -42,8 +48,8 @@ export function SubmissionText({
           <span className="tabular shrink-0">{pluralize(wordCount(content), "word")}</span>
         </span>
       </summary>
-      <div className="px-4 pb-6 sm:px-6">
-        <div className="max-h-[28rem] overflow-y-auto rounded-lg border border-border bg-background px-4 py-4 text-[15px] leading-7 break-words whitespace-pre-wrap text-foreground sm:px-6">
+      <div className="border-t border-border px-4 py-5 sm:px-6">
+        <div className="max-w-prose text-[15px] leading-7 break-words whitespace-pre-wrap text-foreground">
           {content}
         </div>
       </div>

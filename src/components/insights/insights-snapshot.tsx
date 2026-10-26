@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="min-w-0">
-      <dt className="truncate text-xs text-muted-foreground">{label}</dt>
-      <dd className="tabular mt-0.5 text-xl font-semibold tracking-tight text-foreground">{value}</dd>
+      <dt className="truncate text-[13px] text-muted-foreground">{label}</dt>
+      <dd className="tabular mt-0.5 font-display text-2xl leading-8 font-medium text-foreground">{value}</dd>
       {hint ? <dd className="tabular truncate text-xs text-muted-foreground">{hint}</dd> : null}
     </div>
   );
@@ -25,11 +25,11 @@ function AverageSpread({ heatmap }: { heatmap: ClassHeatmap }) {
   if (graded === 0) return null;
 
   return (
-    <div className="px-6 pb-6">
-      <h3 id="average-spread-heading" className="text-xs text-muted-foreground">
+    <div className="px-5 pb-6 sm:px-6">
+      <h3 id="average-spread-heading" className="font-sans text-[13px] font-medium text-foreground">
         Student averages
       </h3>
-      <div aria-hidden className="mt-2 flex h-2 w-full gap-0.5 overflow-hidden rounded-full bg-muted">
+      <div aria-hidden className="mt-2.5 flex h-2 w-full gap-0.5 overflow-hidden rounded-full bg-secondary">
         {bands
           .filter((band) => band.count > 0)
           .map((band) => (
@@ -75,24 +75,24 @@ export function InsightsSnapshot({ heatmap }: { heatmap: ClassHeatmap }) {
   const graded = heatmap.rows.filter((row) => row.gradedCount > 0).length;
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-4">
+    <Card className="h-full min-w-0">
+      <CardHeader className="gap-1 px-5 pt-5 pb-4 sm:px-6">
         <CardTitle>
           <h2>Class snapshot</h2>
         </CardTitle>
         <CardDescription>Across the assignments in the heatmap.</CardDescription>
       </CardHeader>
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-5 px-6 pb-6">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-5 px-5 pb-6 sm:px-6">
         <Stat label="Class average" value={formatHeatPercent(heatmap.classAverage)} />
         <Stat label="Approved grades" value={String(heatmap.publishedCount)} />
         <Stat label="Students graded" value={`${graded}/${heatmap.rows.length}`} />
         <Stat label="Criteria tracked" value={String(heatmap.columns.length)} hint={pluralize(heatmap.groups.length, "assignment")} />
       </dl>
       <AverageSpread heatmap={heatmap} />
-      <div className="mt-auto space-y-2 border-t border-border px-6 py-4 text-xs text-pretty text-muted-foreground">
+      <div className="mt-auto space-y-2 border-t border-border px-5 py-4 text-xs text-pretty text-muted-foreground sm:px-6">
         <p className="flex items-start gap-2">
           <ShieldCheck className="mt-px size-3.5 shrink-0 text-success" aria-hidden />
-          <span>AI drafts waiting in the review queue never count here.</span>
+          <span>AI drafts waiting in To review never count here.</span>
         </p>
         {heatmap.hiddenAssignmentCount > 0 ? (
           <p className="tabular pl-5.5">

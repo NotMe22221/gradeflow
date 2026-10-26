@@ -56,7 +56,7 @@ export async function approveAndPublish(
     revalidatePath("/", "layout");
     return { ok: true, ...result };
   } catch (error) {
-    return failure(error, "Couldn't publish this grade. Nothing was published.");
+    return failure(error, "Couldn't return this grade. Nothing was published.");
   }
 }
 

@@ -21,25 +21,27 @@ function SkillList({
 }) {
   return (
     <div>
-      <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-        <Icon className={cn("size-4", iconClassName)} aria-hidden />
+      <h3 className="flex items-center gap-2.5 px-5 font-sans text-sm font-medium text-foreground sm:px-6">
+        <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-full", iconClassName)}>
+          <Icon className="size-4" aria-hidden />
+        </span>
         {title}
       </h3>
       {items.length === 0 ? (
-        <p className="mt-2 text-sm text-muted-foreground">{empty}</p>
+        <p className="mt-2 px-5 text-sm text-muted-foreground sm:px-6">{empty}</p>
       ) : (
-        <ul className="mt-3 space-y-3">
+        <ul className="mt-1.5">
           {items.map((skill) => (
-            <li key={skill.title} className="flex items-start justify-between gap-3">
+            <li key={skill.title} className="flex items-start justify-between gap-3 px-5 py-2 sm:px-6">
               <div className="min-w-0">
-                <p className="text-sm font-medium break-words text-foreground">{skill.title}</p>
+                <p className="text-sm break-words text-foreground">{skill.title}</p>
                 <p className="line-clamp-2 text-xs text-muted-foreground" title={skill.assignments.join(", ")}>
                   {skill.assignments.join(", ")}
                 </p>
               </div>
               <span
                 className={cn(
-                  "tabular inline-flex h-6 min-w-12 shrink-0 items-center justify-center rounded-md px-1.5 text-xs font-semibold",
+                  "tabular inline-flex h-6 min-w-12 shrink-0 items-center justify-center rounded-full px-2 text-xs font-semibold",
                   HEAT_TONE[heatBand(skill.percent)].cell
                 )}
               >
@@ -64,35 +66,33 @@ export function SkillsCard({
   hasGrades: boolean;
 }) {
   return (
-    <Card>
-      <CardHeader className="pb-4">
+    <Card className="min-w-0">
+      <CardHeader className="gap-1 px-5 pt-5 pb-4 sm:px-6">
         <CardTitle>
           <h2>Strengths and growth areas</h2>
         </CardTitle>
         <CardDescription>From rubric scores on approved grades.</CardDescription>
       </CardHeader>
-      <div className="space-y-6 px-6 pb-6">
-        {hasGrades ? (
-          <>
-            <SkillList
-              title="Strengths"
-              icon={TrendingUp}
-              iconClassName="text-success"
-              items={strengths}
-              empty={`No criterion averages ${STRENGTH_MIN_PERCENT}% or more yet.`}
-            />
-            <SkillList
-              title="Growth areas"
-              icon={Target}
-              iconClassName="text-warning"
-              items={growthAreas}
-              empty={`Every criterion averages ${GROWTH_MAX_PERCENT}% or more.`}
-            />
-          </>
-        ) : (
-          <p className="text-sm text-muted-foreground">Approve a grade to see strengths and growth areas.</p>
-        )}
-      </div>
+      {hasGrades ? (
+        <div className="space-y-4 border-t border-border pt-4 pb-4">
+          <SkillList
+            title="Strengths"
+            icon={TrendingUp}
+            iconClassName="bg-success-soft text-success-soft-foreground"
+            items={strengths}
+            empty={`No criterion averages ${STRENGTH_MIN_PERCENT}% or more yet.`}
+          />
+          <SkillList
+            title="Growth areas"
+            icon={Target}
+            iconClassName="bg-warning-soft text-warning-soft-foreground"
+            items={growthAreas}
+            empty={`Every criterion averages ${GROWTH_MAX_PERCENT}% or more.`}
+          />
+        </div>
+      ) : (
+        <p className="px-5 pb-6 text-sm text-muted-foreground sm:px-6">Approve a grade to see strengths and growth areas.</p>
+      )}
     </Card>
   );
 }

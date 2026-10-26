@@ -18,15 +18,15 @@ export function SectionIntro({
 }) {
   return (
     <div className={cn("max-w-2xl", align === "center" && "mx-auto text-center", className)}>
-      <p className="text-sm font-medium text-muted-foreground">{eyebrow}</p>
+      <p className="text-sm font-medium text-primary">{eyebrow}</p>
       <h2
         id={id}
-        className="mt-3 text-3xl font-semibold tracking-tight text-balance text-foreground sm:text-4xl sm:leading-[1.15]"
+        className="mt-3 text-[30px] leading-[1.2] font-medium tracking-[-0.01em] text-balance text-foreground sm:text-[40px] sm:leading-[1.15]"
       >
         {title}
       </h2>
       {description ? (
-        <p className="mt-4 text-base leading-7 text-pretty text-muted-foreground">{description}</p>
+        <p className="mt-4 text-base leading-7 text-pretty text-muted-foreground sm:text-[17px]">{description}</p>
       ) : null}
     </div>
   );

@@ -1,0 +1,33 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+
+import { PageContainer } from "@/components/page-header";
+import { StudentClasswork } from "@/components/student/class-classwork";
+import { requireStudentPage } from "@/lib/auth/session";
+import { classTheme } from "@/lib/ui/class-theme";
+
+import { getEnrolledClass, loadStudentWork } from "../../../data";
+
+type Params = Promise<{ classId: string }>;
+
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+  const student = await requireStudentPage();
+  const klass = await getEnrolledClass(student.id, (await params).classId);
+  return { title: klass ? `${klass.name} · Classwork` : "Classwork" };
+}
+
+/** Classwork for the signed-in student: every assignment in the class with their own status. */
+export default async function StudentClassworkPage({ params }: { params: Params }) {
+  const student = await requireStudentPage();
+  const klass = await getEnrolledClass(student.id, (await params).classId);
+  if (!klass) notFound();
+
+  const now = new Date();
+  const { rows } = await loadStudentWork(student.id, now, { classId: klass.id });
+
+  return (
+    <PageContainer className="max-w-5xl">
+      <StudentClasswork classId={klass.id} classColor={classTheme(klass).color} rows={rows} now={now} />
+    </PageContainer>
+  );
+}

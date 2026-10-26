@@ -21,6 +21,10 @@ type ActionBarProps = {
   busy: boolean;
 };
 
+/**
+ * The approval button. It only opens the confirmation dialog: the grade is
+ * returned (published) by the dialog's own confirm button.
+ */
 function ApproveButton({
   blockedReason,
   busy,
@@ -45,10 +49,10 @@ function ApproveButton({
       disabled={busy || blockedReason !== null}
       aria-describedby={blockedReason ? reasonId : undefined}
       data-review-approve={blockedReason ? undefined : ""}
-      className={blockedReason ? "h-full w-full" : className}
+      className={blockedReason ? "w-full" : className}
     >
       <CheckCheck aria-hidden className="max-sm:hidden" />
-      Approve &amp; publish
+      Approve &amp; return
       {showKbd ? (
         <Kbd
           aria-hidden
@@ -70,7 +74,7 @@ function ApproveButton({
           tabIndex={0}
           data-review-approve=""
           className={cn(
-            "inline-flex rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring",
+            "inline-flex rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring",
             className
           )}
         >
@@ -85,7 +89,7 @@ function ApproveButton({
   );
 }
 
-/** Desktop footer pinned under the rubric. */
+/** Desktop footer pinned under the grade panel. */
 export function DesktopActionBar({
   saveState,
   onRetrySave,
@@ -95,10 +99,10 @@ export function DesktopActionBar({
   busy,
 }: ActionBarProps) {
   return (
-    // From xl (1280px) the save status takes only the room the buttons leave
-    // and truncates, so the footer stays one row. Narrower, it wraps above.
-    <div className="hidden shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-t border-border bg-card px-4 py-3 lg:flex xl:px-6">
-      <AutosaveStatus state={saveState} onRetry={onRetrySave} className="min-w-0 flex-1 basis-32 xl:basis-0" />
+    // The save status takes only the room the buttons leave and truncates,
+    // so the footer stays one row; on a narrow panel it wraps above them.
+    <div className="hidden shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-t border-border bg-card px-4 py-3 lg:flex xl:px-5">
+      <AutosaveStatus state={saveState} onRetry={onRetrySave} className="min-w-0 flex-1 basis-28" />
       <div className="ml-auto flex shrink-0 items-center gap-2">
         <Button type="button" variant="outline" onClick={onSendBack} disabled={busy}>
           <CornerUpLeft aria-hidden />
@@ -113,7 +117,7 @@ export function DesktopActionBar({
   );
 }
 
-/** Phone and tablet: sticky bottom bar, visible on both the Paper and Rubric tabs. */
+/** Phone and tablet: sticky bottom bar, visible on both the Paper and Grade tabs. */
 export function MobileActionBar({
   saveState,
   onRetrySave,
@@ -125,17 +129,18 @@ export function MobileActionBar({
   maxTotal,
 }: ActionBarProps & { total: number | null; maxTotal: number }) {
   return (
-    <div className="sticky bottom-0 z-20 border-t border-border bg-card/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur supports-[backdrop-filter]:bg-card/85 lg:hidden">
-      <div className="mb-2.5 flex items-center justify-between gap-3">
-        <p className="tabular text-sm font-semibold text-foreground">
-          {formatPoints(total)}
-          <span className="font-medium text-muted-foreground"> / {formatPoints(maxTotal)}</span>
+    <div className="sticky bottom-0 z-20 border-t border-border bg-card px-4 pt-2.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="tabular text-sm text-muted-foreground">
+          Grade{" "}
+          <span className="font-display text-base font-semibold text-foreground">{formatPoints(total)}</span>
+          <span> / {formatPoints(maxTotal)}</span>
           <span className="sr-only"> points</span>
         </p>
         <AutosaveStatus state={saveState} onRetry={onRetrySave} className="flex justify-end" />
       </div>
       <div className="flex items-center gap-2">
-        <Button type="button" variant="outline" onClick={onSendBack} disabled={busy} className="h-10 flex-1">
+        <Button type="button" variant="outline" onClick={onSendBack} disabled={busy} className="flex-1">
           <CornerUpLeft aria-hidden className="max-sm:hidden" />
           Send back
         </Button>
@@ -144,7 +149,7 @@ export function MobileActionBar({
           busy={busy}
           onApprove={onApprove}
           showKbd={false}
-          className="h-10 flex-[1.4]"
+          className="flex-[1.4]"
         />
       </div>
     </div>

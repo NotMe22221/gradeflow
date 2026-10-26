@@ -1,13 +1,8 @@
 import type { Metadata } from "next";
-import { BookOpen } from "lucide-react";
 
-import { EmptyState } from "@/components/empty-state";
-import { PageContainer } from "@/components/page-header";
-import { AssignmentInbox } from "@/components/student/assignment-inbox";
+import { buildClassCards } from "@/components/student/class-card";
+import { StudentHomeView } from "@/components/student/home-view";
 import { inboxSummary } from "@/components/student/inbox-model";
-import { GoalPlanner } from "@/components/student/goal-planner";
-import { PlannerBridgeProvider } from "@/components/student/planner-bridge";
-import { StudyHeader } from "@/components/student/study-header";
 import { requireStudentPage } from "@/lib/auth/session";
 import { getStudentEngagement } from "@/lib/gamification/engagement";
 import { goalEngineInfo } from "@/lib/goals/planner";
@@ -15,7 +10,7 @@ import { firstName } from "@/lib/format";
 
 import { loadSavedPlans, loadStudentDashboard } from "./data";
 
-export const metadata: Metadata = { title: "Your dashboard" };
+export const metadata: Metadata = { title: "Home" };
 
 export default async function StudentHomePage() {
   const student = await requireStudentPage();
@@ -33,32 +28,15 @@ export default async function StudentHomePage() {
     dashboard.classes.length === 0 ? "Your classes and assignments will show up here." : inboxSummary(dashboard.inbox);
 
   return (
-    <PageContainer className="space-y-6 lg:space-y-8">
-      <StudyHeader
-        firstName={firstName(student.name)}
-        summary={summary}
-        streak={engagement.streak}
-        level={engagement.level}
-        recent={engagement.recent}
-      />
-
-      {dashboard.classes.length === 0 ? (
-        <EmptyState
-          icon={BookOpen}
-          title="You're not enrolled in any classes yet."
-          description="When your teacher adds you to a class, its assignments will show up here."
-        />
-      ) : (
-        <PlannerBridgeProvider>
-          <AssignmentInbox rows={dashboard.inbox} studyLoggedToday={engagement.studyLoggedToday} />
-          <GoalPlanner
-            classes={dashboard.classes}
-            savedPlans={savedPlans}
-            defaultClassId={savedPlans[0]?.classId ?? dashboard.classes[0]?.id ?? null}
-            engine={goalEngineInfo()}
-          />
-        </PlannerBridgeProvider>
-      )}
-    </PageContainer>
+    <StudentHomeView
+      firstName={firstName(student.name)}
+      summary={summary}
+      engagement={engagement}
+      cards={buildClassCards(dashboard.classes, dashboard.inbox, now)}
+      inbox={dashboard.inbox}
+      plannerClasses={dashboard.classes.map(({ id, name, section }) => ({ id, name, section }))}
+      savedPlans={savedPlans}
+      engine={goalEngineInfo()}
+    />
   );
 }

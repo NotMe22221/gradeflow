@@ -4,16 +4,19 @@ import { HEAT_TONE } from "@/components/insights/heat-tone";
 import { formatPoints, pluralize } from "@/lib/format";
 import { formatHeatPercent, heatBand, roundPercent, type MostMissedItem } from "@/lib/insights/heatmap";
 import { insightsHref } from "@/lib/insights/links";
+import { classTheme } from "@/lib/ui/class-theme";
 import { cn } from "@/lib/utils";
 
 /**
- * Ranked list of the criteria a class loses the most points on. Each row
- * links to its assignment (or, with `linkTo="insights"`, to the class
+ * Ranked list of the criteria a class loses the most points on, as
+ * Classroom-style rows: a circle in the class color holding the rank, the
+ * criterion and where it was asked, and the class average on the right. Each
+ * row links to its assignment (or, with `linkTo="insights"`, to the class
  * heatmap). The bar is the class average; the percent is always printed.
  *
- * `dense` is for a narrow rail (the dashboard): the rank bubble is dropped to
- * give the text room, the question wraps to two lines, and the assignment and
- * class get a line each, so the row still says what was missed and where.
+ * `dense` is for a narrow rail (the dashboard): a smaller circle, the
+ * question wraps to two lines, and the assignment and class get a line each,
+ * so the row still says what was missed and where.
  */
 export function MostMissedList({
   items,
@@ -45,23 +48,25 @@ export function MostMissedList({
               href={href}
               aria-label={`${index + 1}. ${item.title}, ${context}: class average ${average} across ${pluralize(item.sampleSize, "student")}`}
               className={cn(
-                "flex items-center gap-4 transition-colors outline-none hover:bg-background focus-visible:bg-background focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset",
-                dense ? "px-5 py-3" : "px-6 py-4"
+                "flex items-center transition-colors outline-none hover:bg-foreground/[0.04] focus-visible:bg-foreground/[0.04] focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset",
+                dense ? "gap-3 px-5 py-3" : "gap-4 px-4 py-3.5 sm:px-6"
               )}
             >
-              {dense ? null : (
-                <span
-                  aria-hidden
-                  className="tabular flex size-6 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold text-muted-foreground ring-1 ring-border"
-                >
-                  {index + 1}
-                </span>
-              )}
+              <span
+                aria-hidden
+                className={cn(
+                  "tabular flex shrink-0 items-center justify-center self-start rounded-full font-medium text-white",
+                  dense ? "mt-0.5 size-8 text-[13px]" : "size-10 text-sm"
+                )}
+                style={{ backgroundColor: classTheme({ name: item.className }).color }}
+              >
+                {index + 1}
+              </span>
               <span className="min-w-0 flex-1">
                 <span
                   className={cn(
                     "block text-sm font-medium text-foreground",
-                    dense ? "line-clamp-2 [overflow-wrap:anywhere]" : "truncate"
+                    dense ? "line-clamp-2 [overflow-wrap:anywhere]" : "line-clamp-2 [overflow-wrap:anywhere] sm:line-clamp-1"
                   )}
                   title={item.title}
                 >
@@ -79,20 +84,22 @@ export function MostMissedList({
                     ) : null}
                   </>
                 ) : (
-                  <span className="block truncate text-xs text-muted-foreground" title={context}>
+                  <span className="mt-0.5 block truncate text-xs text-muted-foreground" title={context}>
                     {context}
                     <span className="tabular"> · out of {formatPoints(item.maxPoints)}</span>
                   </span>
                 )}
-                <span aria-hidden className="mt-2 block h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <span aria-hidden className="mt-2 block h-1 w-full overflow-hidden rounded-full bg-secondary">
                   <span
                     className={cn("block h-full rounded-full", tone.bar)}
                     style={{ width: `${Math.max(2, roundPercent(item.average))}%` }}
                   />
                 </span>
               </span>
-              <span aria-hidden className="shrink-0 text-right">
-                <span className="tabular block text-sm font-semibold text-foreground">{average}</span>
+              <span aria-hidden className="shrink-0 self-start text-right">
+                <span className="tabular block font-display text-base leading-6 font-medium text-foreground">
+                  {average}
+                </span>
                 <span className="tabular block text-xs whitespace-nowrap text-muted-foreground">
                   {pluralize(item.sampleSize, "student")}
                 </span>

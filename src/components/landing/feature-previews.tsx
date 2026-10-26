@@ -35,12 +35,12 @@ import { cn } from "@/lib/utils";
 
 /** The review screen's "Transcription | Photo" toggle, in miniature. */
 export function MiniPaperTabs({ active, className }: { active: "transcription" | "photo"; className?: string }) {
-  const tab = "inline-flex h-full items-center gap-1 rounded-[5px] px-2 [&>svg]:size-3 [&>svg]:shrink-0";
-  const on = "bg-card text-foreground shadow-card";
+  const tab = "inline-flex h-full items-center gap-1 rounded-full px-2.5 [&>svg]:size-3 [&>svg]:shrink-0";
+  const on = "bg-card text-primary-soft-foreground shadow-hover";
   return (
     <span
       className={cn(
-        "inline-flex h-7 shrink-0 items-center rounded-md bg-muted p-0.5 text-[11px] font-medium text-muted-foreground",
+        "inline-flex h-7 shrink-0 items-center rounded-full bg-secondary p-0.5 text-[11px] font-medium text-muted-foreground",
         className
       )}
     >
@@ -126,7 +126,7 @@ export function CameraPreview() {
           </div>
         </div>
 
-        <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card shadow-card">
+        <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
           {READ_SCORES.map((row) => (
             <li key={row.q} className="flex items-center gap-2 px-2.5 py-[7px] text-[11px]">
               <span className="tabular w-5 shrink-0 font-semibold text-foreground">{row.q}</span>
@@ -144,7 +144,7 @@ export function CameraPreview() {
           ))}
         </ul>
       </div>
-      <PreviewFootnote>Sent to your review queue. Nothing publishes yet.</PreviewFootnote>
+      <PreviewFootnote>Sent to To review. Nothing reaches the student yet.</PreviewFootnote>
     </div>
   );
 }
@@ -188,7 +188,7 @@ function BriefSection({
 
 export function BriefPreview() {
   return (
-    <div className="rounded-lg border border-border bg-card p-4 shadow-card">
+    <div className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-start justify-between gap-3 border-b border-border pb-3">
         <div className="min-w-0">
           <p className="text-[11px] font-medium text-muted-foreground">Conference brief</p>
@@ -248,7 +248,7 @@ const HEAT_AVERAGES = HEAT_QUESTIONS.map((_, column) =>
 
 export function HeatmapPreview() {
   return (
-    <div className="rounded-lg border border-border bg-card p-3 shadow-card">
+    <div className="rounded-xl border border-border bg-card p-3">
       <div className="flex items-center justify-between gap-2 px-0.5 pb-2.5">
         <p className="truncate text-[11px] font-semibold text-foreground">Unit 3 Quiz · Points earned</p>
         <span className="tabular shrink-0 text-[11px] text-muted-foreground">Approved grades</span>
@@ -315,9 +315,9 @@ const QUEUE_ROWS = [
 export function QueuePreview() {
   return (
     <div className="space-y-2.5">
-      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-card">
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
         <p className="flex items-center justify-between gap-2 border-b border-border px-3 py-2 text-[11px]">
-          <span className="font-semibold text-foreground">Review queue</span>
+          <span className="font-semibold text-foreground">To review</span>
           <span className="tabular text-muted-foreground">3 waiting for you</span>
         </p>
         <ul className="divide-y divide-border">
@@ -343,14 +343,14 @@ export function QueuePreview() {
           })}
         </ul>
       </div>
-      <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 shadow-card">
+      <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
         <Table2 className="size-3.5 shrink-0 text-muted-foreground" />
         <span className="text-[11px] font-semibold text-foreground">Gradebook</span>
         <span className="tabular inline-flex items-center gap-1 rounded-full bg-success-soft px-1.5 py-px text-[10px] font-medium text-success-soft-foreground">
           <span className="size-1.5 rounded-full bg-success" />
           18 published
         </span>
-        <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 text-[11px] font-medium text-foreground shadow-card">
+        <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full border border-input/60 bg-card px-2.5 py-0.5 text-[11px] font-medium text-primary">
           <Download className="size-3" />
           CSV
         </span>
@@ -369,11 +369,11 @@ const GOAL_TASKS = [
 export function GoalPreview() {
   return (
     <div className="space-y-2.5">
-      <div className="flex items-center gap-2 rounded-lg border border-input bg-card px-3 py-2 shadow-card">
+      <div className="flex h-10 items-center gap-2 rounded-lg border border-input/60 bg-card px-3">
         <Target className="size-3.5 shrink-0 text-muted-foreground" />
         <span className="truncate text-xs text-foreground">I need an A in Environmental Science</span>
       </div>
-      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-card">
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
         <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
           <span className="truncate text-[11px] font-semibold text-foreground">Aim for 90% overall</span>
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-medium text-success-soft-foreground">
@@ -413,7 +413,7 @@ export function StreakPreview() {
   return (
     <div className="space-y-2.5">
       <div className="grid gap-2 @sm:grid-cols-2">
-        <div className="flex items-center gap-2.5 rounded-lg border border-border bg-card p-3 shadow-card">
+        <div className="flex items-center gap-2.5 rounded-xl border border-border bg-card p-3">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-warning-soft text-warning-soft-foreground ring-1 ring-warning/30">
             <Flame className="size-4" />
           </span>
@@ -422,7 +422,7 @@ export function StreakPreview() {
             <span className="block text-[11px] font-medium text-success-soft-foreground">Studied today</span>
           </span>
         </div>
-        <div className="flex items-center gap-2.5 rounded-lg border border-border bg-card p-3 shadow-card">
+        <div className="flex items-center gap-2.5 rounded-xl border border-border bg-card p-3">
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary-soft-foreground ring-1 ring-primary/15">
             <Trophy className="size-4" />
           </span>
@@ -439,7 +439,7 @@ export function StreakPreview() {
         {XP_EVENTS.map((event) => (
           <li
             key={event.label}
-            className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5 text-[11px] shadow-card"
+            className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-2 py-0.5 text-[11px]"
           >
             <span className="tabular font-semibold text-foreground">+{event.xp}</span>
             <span className="text-muted-foreground">{event.label}</span>
@@ -469,7 +469,7 @@ export function InboxPreview() {
   return (
     // Split like the real inbox; stacks only when the card is too narrow for both panes.
     <div className="grid gap-2 @min-[17rem]:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-      <ul className="overflow-hidden rounded-lg border border-border bg-card shadow-card">
+      <ul className="overflow-hidden rounded-xl border border-border bg-card">
         {INBOX_ROWS.map((row) => (
           <li
             key={row.title}
@@ -488,16 +488,16 @@ export function InboxPreview() {
           </li>
         ))}
       </ul>
-      <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-card p-1.5 shadow-card">
+      <div className="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-1.5">
         <p className="truncate px-1 pt-0.5 text-[11px] font-semibold text-foreground">Unit 4 Quiz</p>
         {INBOX_ACTIONS.map((action) => (
           <span
             key={action.label}
             className={cn(
-              "inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-medium",
+              "inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[11px] font-medium",
               action.primary
-                ? "bg-primary text-primary-foreground shadow-card"
-                : "border border-border bg-card text-foreground shadow-card"
+                ? "bg-primary text-primary-foreground"
+                : "border border-input/60 bg-card text-primary"
             )}
           >
             <action.icon className="size-3 shrink-0" />

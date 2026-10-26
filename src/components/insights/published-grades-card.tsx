@@ -1,102 +1,97 @@
 import Link from "next/link";
-import { ArrowUpRight, CircleCheckBig } from "lucide-react";
+import { ChevronRight, CircleCheckBig } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
+import { AssignmentIcon } from "@/components/classwork/assignment-icon";
 import { HEAT_TONE } from "@/components/insights/heat-tone";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDate, formatDateTime, formatScore, pluralize } from "@/lib/format";
 import { formatHeatPercent, heatBand } from "@/lib/insights/heatmap";
 import type { PublishedGradeSummary } from "@/lib/insights/profile";
 import { cn } from "@/lib/utils";
 
-/** The student's published grades in this class, newest first. PublishedGrade only. */
-export function PublishedGradesCard({ grades }: { grades: PublishedGradeSummary[] }) {
+/**
+ * The student's returned grades in this class, newest first (PublishedGrade
+ * only), as Classroom-style rows: the class-colored assignment icon, the
+ * title and return date, then the score and percent. The whole row opens the
+ * assignment.
+ */
+export function PublishedGradesCard({
+  grades,
+  classColor,
+  testAssignmentIds = [],
+}: {
+  grades: PublishedGradeSummary[];
+  /** The class color (classTheme(klass).color) for the row icons. */
+  classColor: string;
+  /** Assignments that are handwritten paper tests (scan icon instead of a document). */
+  testAssignmentIds?: string[];
+}) {
+  const tests = new Set(testAssignmentIds);
+
   return (
     <Card className="min-w-0 overflow-hidden">
-      <CardHeader className="pb-4">
+      <CardHeader className="gap-1 px-5 pt-5 pb-4 sm:px-6">
         <CardTitle>
-          <h2>Published grades</h2>
+          <h2>Returned grades</h2>
         </CardTitle>
         <CardDescription className="tabular">
           {grades.length === 0
-            ? "Approved by you. The student sees these too."
-            : `${pluralize(grades.length, "grade")} approved by you. The student sees these too.`}
+            ? "Grades you approve and return. The student sees these too."
+            : `${pluralize(grades.length, "grade")} you approved and returned. The student sees these too.`}
         </CardDescription>
       </CardHeader>
 
       {grades.length === 0 ? (
-        <div className="px-6 pb-6">
+        <div className="px-5 pb-6 sm:px-6">
           <EmptyState
             icon={CircleCheckBig}
-            title="No approved grades yet."
-            description="Grades appear here once you approve them in the review queue."
-            className="py-10"
+            title="No returned grades yet."
+            description="A grade appears here once you choose Approve & return in To review."
+            className="border-dashed bg-background py-10"
           />
         </div>
       ) : (
-        <Table className="border-t border-border">
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead scope="col" className="pr-2 pl-4 sm:pr-4 sm:pl-6">
-                Assignment
-              </TableHead>
-              <TableHead scope="col" className="px-2 text-right sm:px-4">
-                Score
-              </TableHead>
-              <TableHead scope="col" className="px-2 text-right sm:px-4">
-                Percent
-              </TableHead>
-              <TableHead scope="col" className="hidden sm:table-cell">
-                Published
-              </TableHead>
-              <TableHead scope="col" className="pr-4 pl-2 sm:pr-6">
-                <span className="sr-only">Open</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {grades.map((grade) => (
-              <TableRow key={grade.submissionId} className="hover:bg-background">
-                <TableCell className="min-w-32 pr-2 pl-4 whitespace-normal sm:min-w-40 sm:pr-4 sm:pl-6">
-                  <p className="line-clamp-2 text-sm font-medium break-words text-foreground" title={grade.title}>
+        <ul aria-label="Returned grades" className="divide-y divide-border border-t border-border">
+          {grades.map((grade) => (
+            <li key={grade.submissionId}>
+              <Link
+                href={`/assignments/${encodeURIComponent(grade.assignmentId)}`}
+                className="group flex min-h-16 items-center gap-3 px-5 py-2.5 transition-colors outline-none hover:bg-foreground/[0.04] focus-visible:bg-foreground/[0.04] focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset sm:gap-4 sm:px-6"
+              >
+                <AssignmentIcon isTest={tests.has(grade.assignmentId)} color={classColor} className="size-9 [&_svg]:size-[18px]" />
+                <span className="min-w-0 flex-1">
+                  <span className="line-clamp-2 text-sm font-medium break-words text-foreground" title={grade.title}>
                     {grade.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground sm:hidden">
-                    <time dateTime={grade.publishedAt.toISOString()}>{formatDate(grade.publishedAt)}</time>
-                  </p>
-                </TableCell>
-                <TableCell className="tabular px-2 text-right font-medium text-foreground sm:px-4">
-                  {formatScore(grade.totalScore, grade.maxScore)}
-                </TableCell>
-                <TableCell className="px-2 text-right sm:px-4">
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    Returned{" "}
+                    <time dateTime={grade.publishedAt.toISOString()} title={formatDateTime(grade.publishedAt)}>
+                      {formatDate(grade.publishedAt)}
+                    </time>
+                  </span>
+                </span>
+                <span className="flex shrink-0 items-center gap-2 sm:gap-3">
+                  <span className="tabular text-sm font-medium text-foreground">
+                    {formatScore(grade.totalScore, grade.maxScore)}
+                  </span>
                   <span
                     className={cn(
-                      "tabular inline-flex h-6 min-w-12 items-center justify-center rounded-md px-1.5 text-xs font-semibold",
+                      "tabular inline-flex h-6 min-w-12 items-center justify-center rounded-full px-2 text-xs font-semibold",
                       HEAT_TONE[heatBand(grade.percent)].cell
                     )}
                   >
                     {formatHeatPercent(grade.percent)}
                   </span>
-                </TableCell>
-                <TableCell className="hidden text-sm text-muted-foreground sm:table-cell">
-                  <time dateTime={grade.publishedAt.toISOString()} title={formatDateTime(grade.publishedAt)}>
-                    {formatDate(grade.publishedAt)}
-                  </time>
-                </TableCell>
-                <TableCell className="pr-4 pl-2 text-right sm:pr-6">
-                  <Link
-                    href={`/assignments/${encodeURIComponent(grade.assignmentId)}`}
-                    aria-label={`Open ${grade.title}`}
-                    className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
-                  >
-                    <ArrowUpRight className="size-4" aria-hidden />
-                  </Link>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                  <ChevronRight
+                    className="hidden size-5 text-muted-foreground/70 transition-colors group-hover:text-foreground sm:block"
+                    aria-hidden
+                  />
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       )}
     </Card>
   );

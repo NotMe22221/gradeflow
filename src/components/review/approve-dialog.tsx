@@ -17,8 +17,9 @@ import type { DraftSummary } from "@/lib/review/model";
 import type { ReviewItem } from "@/lib/review/types";
 
 /**
- * The deliberate approval step. Only this dialog's confirm button publishes;
- * focus starts on Cancel, so a stray Enter after "A" never publishes.
+ * The deliberate approval step. Only this dialog's confirm button returns
+ * (publishes) the grade; focus starts on Cancel, so a stray Enter after "A"
+ * never publishes.
  */
 export function ApproveDialog({
   open,
@@ -39,6 +40,7 @@ export function ApproveDialog({
   restoreFocus: () => void;
 }) {
   const name = item.student.name;
+  const first = firstName(name);
   const scores = new Map(summary.payload.scores.map((entry) => [entry.criterionId, entry.score]));
 
   return (
@@ -52,26 +54,33 @@ export function ApproveDialog({
       >
         <AlertDialogHeader>
           <AlertDialogTitle className="tabular">
-            Publish {formatScore(summary.total, summary.maxTotal)} for {name}?
+            Return {formatScore(summary.total, summary.maxTotal)} to {name}?
           </AlertDialogTitle>
           <AlertDialogDescription>
-            This grade will appear in the gradebook and on {firstName(name)}&apos;s assignment page. You
-            can&apos;t unpublish from the demo.
+            Approving publishes this grade to the gradebook and to {first}&apos;s view of the assignment, with
+            your feedback. You can&apos;t unpublish from the demo.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <dl className="max-h-56 divide-y divide-border overflow-y-auto rounded-lg border border-border bg-muted/40 text-[13px]">
+        <dl className="max-h-56 divide-y divide-border overflow-y-auto rounded-xl border border-border text-[13px]">
           {item.criteria.map((criterion, index) => (
-            <div key={criterion.id} className="flex items-center justify-between gap-4 px-3 py-2">
+            <div key={criterion.id} className="flex items-center justify-between gap-4 px-4 py-2.5">
               <dt className="min-w-0 truncate text-muted-foreground">
                 {index + 1}. {criterion.title}
               </dt>
               <dd className="tabular shrink-0 font-medium text-foreground">
                 {formatPoints(scores.get(criterion.id) ?? null)}
-                <span className="text-muted-foreground"> / {criterion.maxPoints}</span>
+                <span className="font-normal text-muted-foreground"> / {criterion.maxPoints}</span>
               </dd>
             </div>
           ))}
+          <div className="flex items-center justify-between gap-4 bg-secondary px-4 py-2.5">
+            <dt className="font-medium text-foreground">Grade</dt>
+            <dd className="tabular shrink-0 font-semibold text-foreground">
+              {formatPoints(summary.total)}
+              <span className="font-normal text-muted-foreground"> / {formatPoints(summary.maxTotal)}</span>
+            </dd>
+          </div>
         </dl>
 
         <AlertDialogFooter>
@@ -80,12 +89,12 @@ export function ApproveDialog({
             {pending ? (
               <>
                 <LoaderCircle className="animate-spin" aria-hidden />
-                Publishing…
+                Returning…
               </>
             ) : (
               <>
                 <CheckCheck aria-hidden />
-                Approve &amp; publish
+                Approve &amp; return
               </>
             )}
           </Button>

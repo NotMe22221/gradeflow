@@ -3,7 +3,8 @@ import { cn } from "@/lib/utils";
 
 /**
  * The pair of demo buttons used in the hero and the closing band: one click
- * into the seeded teacher account, or into a seeded student's view.
+ * into the seeded teacher account (the filled primary action), or into a
+ * seeded student's view (outlined).
  */
 export function DemoCtas({
   demoLogin,

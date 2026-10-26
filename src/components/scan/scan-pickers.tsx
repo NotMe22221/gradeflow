@@ -3,6 +3,7 @@
 import { CheckIcon } from "lucide-react";
 import { Select as SelectPrimitive } from "radix-ui";
 
+import { ClassAvatar } from "@/components/classroom/class-avatar";
 import {
   paperKey,
   type ScanAssignmentOption,
@@ -29,7 +30,7 @@ function OptionItem({
     <SelectPrimitive.Item
       value={value}
       disabled={disabled}
-      className="relative flex w-full cursor-default flex-col items-start gap-0.5 rounded-md py-1.5 pr-8 pl-2 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+      className="relative flex w-full cursor-default flex-col items-start gap-0.5 rounded-md py-2 pr-8 pl-2 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
     >
       <span className="absolute top-2 right-2 flex size-3.5 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
@@ -42,9 +43,11 @@ function OptionItem({
   );
 }
 
-function GroupLabel({ children }: { children: React.ReactNode }) {
+/** A class heading in the assignment menu, with the class's color avatar. */
+function GroupLabel({ name, children }: { name: string; children: React.ReactNode }) {
   return (
-    <SelectPrimitive.Label className="px-2 pt-2 pb-1 text-xs font-medium text-muted-foreground">
+    <SelectPrimitive.Label className="flex items-center gap-2 px-2 pt-2.5 pb-1 text-xs font-medium text-muted-foreground">
+      <ClassAvatar name={name} className="size-5 text-[10px]" />
       {children}
     </SelectPrimitive.Label>
   );
@@ -91,7 +94,7 @@ export function AssignmentPicker({
       <SelectContent className="max-w-[calc(100vw-2rem)]">
         {groups.map(({ klass, items }) => (
           <SelectGroup key={klass.id}>
-            <GroupLabel>{klass.label}</GroupLabel>
+            <GroupLabel name={klass.name}>{klass.label}</GroupLabel>
             {items.map((assignment) => (
               <OptionItem
                 key={assignment.id}

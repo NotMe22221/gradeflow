@@ -21,7 +21,14 @@ import type { FieldErrors } from "@/lib/validation/form";
 
 const EMPTY = { name: "", section: "", subject: "" };
 
-export function NewClassDialog({ variant = "default" }: { variant?: "default" | "outline" }) {
+/** "+ Create class": the filled primary action on Classes (and Home's empty state). */
+export function NewClassDialog({
+  variant = "default",
+  className,
+}: {
+  variant?: "default" | "outline" | "tonal";
+  className?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [values, setValues] = useState(EMPTY);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -70,14 +77,14 @@ export function NewClassDialog({ variant = "default" }: { variant?: "default" | 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant={variant}>
+        <Button variant={variant} className={className}>
           <Plus aria-hidden />
-          New class
+          Create class
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>New class</DialogTitle>
+          <DialogTitle>Create class</DialogTitle>
           <DialogDescription>Add the basics now. You can add students and assignments next.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-6" noValidate>
@@ -136,12 +143,12 @@ export function NewClassDialog({ variant = "default" }: { variant?: "default" | 
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={pending}>
+            <Button type="button" variant="text" onClick={() => handleOpenChange(false)} disabled={pending}>
               Cancel
             </Button>
             <Button type="submit" disabled={pending}>
               {pending ? <Loader2 className="animate-spin" aria-hidden /> : null}
-              {pending ? "Creating…" : "Create class"}
+              {pending ? "Creating…" : "Create"}
             </Button>
           </DialogFooter>
         </form>

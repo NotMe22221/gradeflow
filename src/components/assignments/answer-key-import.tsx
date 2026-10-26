@@ -250,14 +250,14 @@ export function AnswerKeyImport({
   return (
     <section
       aria-labelledby="answer-key-import-title"
-      className="rounded-lg border border-dashed border-border bg-muted/40 p-4 sm:p-5"
+      className="rounded-xl border border-dashed border-input/50 bg-card p-4 sm:p-6"
     >
       <div className="flex items-start gap-3">
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-card text-muted-foreground ring-1 ring-border">
-          <ScanLine className="size-4" aria-hidden />
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary-soft-foreground">
+          <ScanLine className="size-5" aria-hidden />
         </div>
         <div className="min-w-0 space-y-0.5">
-          <h3 id="answer-key-import-title" className="text-sm font-medium text-foreground">
+          <h3 id="answer-key-import-title" className="text-[15px] font-medium text-foreground">
             Import the answer key from a photo
           </h3>
           <p className="text-[13px] text-pretty text-muted-foreground">
@@ -270,7 +270,7 @@ export function AnswerKeyImport({
 
       <div aria-live="polite" className="empty:hidden">
         {busy || phase.kind === "done" ? (
-          <div className="mt-4 flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+          <div className="mt-4 flex items-center gap-3 rounded-xl border border-border bg-background p-3">
             {preview ? (
               <img src={preview} alt="" className="h-14 w-11 shrink-0 rounded-md border border-border object-cover" />
             ) : null}
@@ -319,10 +319,9 @@ export function AnswerKeyImport({
       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <Button
           type="button"
-          variant="outline"
+          variant="tonal"
           onClick={() => uploadRef.current?.click()}
           disabled={disabled || busy}
-          className="bg-card"
         >
           <Upload aria-hidden />
           Upload photo
@@ -332,13 +331,13 @@ export function AnswerKeyImport({
           variant="outline"
           onClick={() => cameraRef.current?.click()}
           disabled={disabled || busy}
-          className="bg-card md:hidden"
+          className="md:hidden"
         >
           <Camera aria-hidden />
           Take photo
         </Button>
         {/* With a key, the sample is a real GPT-4o read like any photo, so it is not labelled demo. */}
-        <Button type="button" variant="ghost" onClick={() => void readSample()} disabled={disabled || busy}>
+        <Button type="button" variant="text" onClick={() => void readSample()} disabled={disabled || busy}>
           {engine === "openai" ? <ImageIcon aria-hidden /> : <FlaskConical aria-hidden />}
           {engine === "openai" ? "Try the sample answer key" : "Use the sample answer key (demo)"}
         </Button>

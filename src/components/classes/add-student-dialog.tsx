@@ -33,7 +33,7 @@ export function AddStudentDialog({
   /** The school class's display name (not a CSS class). */
   classTitle: string;
   size?: "sm" | "default";
-  variant?: "outline" | "default";
+  variant?: "outline" | "default" | "tonal";
 }) {
   const [open, setOpen] = useState(false);
   const [values, setValues] = useState(EMPTY);
@@ -141,7 +141,7 @@ export function AddStudentDialog({
             Demo data only. Use fictional names.
           </p>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={pending}>
+            <Button type="button" variant="text" onClick={() => handleOpenChange(false)} disabled={pending}>
               Cancel
             </Button>
             <Button type="submit" disabled={pending}>

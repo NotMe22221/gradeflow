@@ -53,7 +53,7 @@ const STANDING_TOOLTIP =
 // left, the number on the right. From sm up they are three columns, and every
 // label reserves two lines so the numbers sit at the same height.
 const TILE =
-  "min-w-0 rounded-lg border border-border bg-background/60 px-3 py-3 max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:items-center max-sm:gap-x-4 sm:px-4";
+  "min-w-0 rounded-lg bg-secondary px-3 py-3 max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:items-center max-sm:gap-x-4 sm:px-4";
 const TILE_LABEL =
   "text-xs leading-snug font-medium text-muted-foreground max-sm:col-start-1 max-sm:row-start-1 sm:min-h-[2lh]";
 const TILE_VALUE =
@@ -83,7 +83,7 @@ export function GoalPlanResult({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1">
           <p className="text-[13px] font-medium text-muted-foreground">Your target</p>
-          <p className="text-xl font-semibold tracking-tight text-balance text-foreground">{plan.interpretation}</p>
+          <p className="font-display text-xl font-medium text-balance text-foreground">{plan.interpretation}</p>
           <p className="text-[13px] break-words text-muted-foreground">
             You wrote &ldquo;{plan.goalText}&rdquo;
             <span className="tabular"> · Saved {formatDate(plan.savedAt)}</span>
@@ -191,8 +191,8 @@ export function GoalPlanResult({
         </section>
       ) : null}
 
-      <div className="flex gap-3 rounded-lg border border-border bg-muted/40 p-4">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-card text-muted-foreground shadow-card ring-1 ring-border">
+      <div className="flex gap-3 rounded-lg bg-secondary p-4">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-card text-primary">
           <Lightbulb className="size-4" aria-hidden />
         </span>
         <div className="min-w-0 space-y-1">

@@ -1,7 +1,9 @@
 import "server-only";
 
-import type { InboxAssignment } from "@/components/student/inbox-model";
+import { cache } from "react";
+
 import { isAwaitingScan, isOverdue, studentStateFor } from "@/components/student/student-status";
+import type { StudentWorkRow } from "@/components/student/todo-model";
 import { parseAssignmentKind } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { demoCoachingTip } from "@/lib/goals/coaching";
@@ -9,12 +11,28 @@ import { planGoal } from "@/lib/goals/plan";
 import { loadSavedGoals } from "@/lib/goals/query";
 import type { GoalClass, GoalPlanView } from "@/lib/goals/types";
 import { buildGoalClass, buildPlanView } from "@/lib/goals/view";
+import { idSchema } from "@/lib/validation/id";
 
-export type DashboardClass = { id: string; name: string; section: string | null };
+/** A class the student is enrolled in, as their Home and class pages show it. */
+export type StudentClass = {
+  id: string;
+  name: string;
+  section: string | null;
+  subject: string | null;
+  teacherName: string;
+};
 
+export type StudentWorkData = {
+  classes: StudentClass[];
+  /** One row per assignment in those classes, with this student's own status. */
+  rows: StudentWorkRow[];
+  goalClasses: GoalClass[];
+};
+
+/** Kept for the Home page: the same data under its original names. */
 export type StudentDashboardData = {
-  classes: DashboardClass[];
-  inbox: InboxAssignment[];
+  classes: StudentClass[];
+  inbox: StudentWorkRow[];
   goalClasses: GoalClass[];
 };
 
@@ -23,15 +41,20 @@ function iso(date: Date | null | undefined): string | null {
 }
 
 /**
- * Everything the student dashboard shows, for the signed-in student only:
- * their classes (enrollments), assignments, their own submission status, and
+ * The student's classes and work, for the signed-in student only: their
+ * enrollments, each class's assignments, their own submission status, and
  * teacher-approved PublishedGrade totals and breakdowns. No AI suggestion,
- * confidence, flag, or draft edit is ever selected.
+ * confidence, flag, draft edit, or other student's work is ever selected.
+ * With `classId`, only that class (and only if the student is enrolled).
  */
-export async function loadStudentDashboard(studentId: string, now: Date): Promise<StudentDashboardData> {
+export async function loadStudentWork(
+  studentId: string,
+  now: Date,
+  { classId }: { classId?: string } = {}
+): Promise<StudentWorkData> {
   const enrollments = await db.enrollment.findMany({
-    where: { studentId },
-    orderBy: { class: { name: "asc" } },
+    where: { studentId, ...(classId ? { classId } : {}) },
+    orderBy: { class: { createdAt: "asc" } },
     select: {
       class: {
         select: {
@@ -39,6 +62,7 @@ export async function loadStudentDashboard(studentId: string, now: Date): Promis
           name: true,
           section: true,
           subject: true,
+          teacher: { select: { name: true } },
           assignments: {
             orderBy: [{ dueDate: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }],
             select: {
@@ -46,6 +70,7 @@ export async function loadStudentDashboard(studentId: string, now: Date): Promis
               title: true,
               kind: true,
               dueDate: true,
+              createdAt: true,
               criteria: { orderBy: { position: "asc" }, select: { id: true, title: true, maxPoints: true } },
               submissions: {
                 where: { studentId },
@@ -53,6 +78,7 @@ export async function loadStudentDashboard(studentId: string, now: Date): Promis
                 select: {
                   status: true,
                   submittedAt: true,
+                  returnedAt: true,
                   publishedGrade: {
                     select: { totalScore: true, maxScore: true, breakdown: true, publishedAt: true },
                   },
@@ -65,19 +91,25 @@ export async function loadStudentDashboard(studentId: string, now: Date): Promis
     },
   });
 
-  const classes: DashboardClass[] = [];
-  const inbox: InboxAssignment[] = [];
+  const classes: StudentClass[] = [];
+  const rows: StudentWorkRow[] = [];
   const goalClasses: GoalClass[] = [];
 
   for (const { class: klass } of enrollments) {
-    classes.push({ id: klass.id, name: klass.name, section: klass.section });
+    classes.push({
+      id: klass.id,
+      name: klass.name,
+      section: klass.section,
+      subject: klass.subject,
+      teacherName: klass.teacher.name,
+    });
 
     for (const assignment of klass.assignments) {
       const submission = assignment.submissions[0] ?? null;
       const published = submission?.publishedGrade ?? null;
       const state = studentStateFor(submission?.status, published !== null);
       const kind = parseAssignmentKind(assignment.kind);
-      inbox.push({
+      rows.push({
         id: assignment.id,
         title: assignment.title,
         classId: klass.id,
@@ -93,6 +125,8 @@ export async function loadStudentDashboard(studentId: string, now: Date): Promis
         score: published ? { total: published.totalScore, max: published.maxScore } : null,
         totalPoints: assignment.criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0),
         criteria: assignment.criteria,
+        postedAt: assignment.createdAt.toISOString(),
+        returnedAt: iso(submission?.returnedAt),
       });
     }
 
@@ -111,9 +145,7 @@ export async function loadStudentDashboard(studentId: string, now: Date): Promis
               kind: assignment.kind,
               dueDate: assignment.dueDate,
               criteria: assignment.criteria,
-              submission: submission
-                ? { status: submission.status, published: submission.publishedGrade }
-                : null,
+              submission: submission ? { status: submission.status, published: submission.publishedGrade } : null,
             };
           }),
         },
@@ -122,7 +154,54 @@ export async function loadStudentDashboard(studentId: string, now: Date): Promis
     );
   }
 
-  return { classes, inbox, goalClasses };
+  return { classes, rows, goalClasses };
+}
+
+/** Everything the student Home shows (class cards, inbox, goal planner). */
+export async function loadStudentDashboard(studentId: string, now: Date): Promise<StudentDashboardData> {
+  const { classes, rows, goalClasses } = await loadStudentWork(studentId, now);
+  return { classes, inbox: rows, goalClasses };
+}
+
+/**
+ * One class the student is enrolled in, or null. Cached per request so a
+ * page's metadata and body share one lookup. The class layout checks the
+ * enrollment too; every page checks it again for its own queries.
+ */
+export const getEnrolledClass = cache(async (studentId: string, classId: string): Promise<StudentClass | null> => {
+  const id = idSchema.safeParse(classId);
+  if (!id.success) return null;
+  const klass = await db.class.findFirst({
+    where: { id: id.data, enrollments: { some: { studentId } } },
+    select: { id: true, name: true, section: true, subject: true, teacher: { select: { name: true } } },
+  });
+  if (!klass) return null;
+  return {
+    id: klass.id,
+    name: klass.name,
+    section: klass.section,
+    subject: klass.subject,
+    teacherName: klass.teacher.name,
+  };
+});
+
+export type Classmate = { id: string; name: string; isYou: boolean };
+
+/**
+ * A class's roster as a classmate sees it: names only, never emails or any
+ * other student data. Empty unless the student is enrolled in the class.
+ */
+export async function loadClassmates(studentId: string, classId: string): Promise<Classmate[]> {
+  const enrollments = await db.enrollment.findMany({
+    where: {
+      classId,
+      student: { role: "STUDENT" },
+      class: { enrollments: { some: { studentId } } },
+    },
+    orderBy: { student: { name: "asc" } },
+    select: { student: { select: { id: true, name: true } } },
+  });
+  return enrollments.map(({ student }) => ({ id: student.id, name: student.name, isYou: student.id === studentId }));
 }
 
 /**

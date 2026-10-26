@@ -6,6 +6,7 @@ import {
   Camera,
   CircleCheck,
   FlaskConical,
+  ImagePlus,
   Images,
   KeyRound,
   LoaderCircle,
@@ -17,6 +18,7 @@ import {
 import { toast } from "sonner";
 
 import { FieldError, FormAlert } from "@/components/classes/form-feedback";
+import { ClassAvatar } from "@/components/classroom/class-avatar";
 import { CameraCapture } from "@/components/scan/camera-capture";
 import {
   extensionFor,
@@ -344,7 +346,7 @@ export function ScanWorkspace({
       }
       setResult(data);
       setPhase("done");
-      toast.success("Graded draft is in your review queue", {
+      toast.success("Graded draft is ready in To review", {
         description: `${data.studentName} · ${data.assignmentTitle}`,
       });
       router.refresh();
@@ -382,63 +384,74 @@ export function ScanWorkspace({
 
   const pagesError = fieldMessage(error, "pages");
 
+  // The three ways to add pages. Inside the empty drop zone they are centered;
+  // once pages exist they sit under the thumbnails.
+  const captureButtons = (
+    <>
+      <Button
+        type="button"
+        variant="tonal"
+        onClick={() => setCameraOpen((open) => !open)}
+        disabled={busy}
+        aria-pressed={cameraOpen}
+      >
+        <Camera aria-hidden />
+        {cameraOpen ? "Close camera" : "Use camera"}
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={busy || full || preparing}
+      >
+        <Upload aria-hidden />
+        Upload photos
+      </Button>
+      <SampleMenu
+        onPick={(sample) => void pickSample(sample)}
+        disabled={busy || full || preparing}
+        visionEnabled={visionEnabled}
+      />
+    </>
+  );
+
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px] xl:items-start">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-start">
       <Card className="min-w-0">
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 space-y-1.5">
-              <CardTitle>Test pages</CardTitle>
-              <CardDescription>Photograph or upload each page of one student&apos;s test, in order.</CardDescription>
-            </div>
-            <span
-              className="tabular shrink-0 rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground"
-              aria-label={`${pages.length} of ${MAX_SCAN_PAGES} pages added`}
-            >
-              {pages.length}/{MAX_SCAN_PAGES}
-            </span>
+        <div className="flex items-start gap-4 px-4 pt-5 sm:px-6 sm:pt-6">
+          <span
+            aria-hidden
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary-soft-foreground"
+          >
+            <Images className="size-5" />
+          </span>
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <CardTitle>
+              <h2>Test pages</h2>
+            </CardTitle>
+            <CardDescription>Photograph or upload each page of one student&apos;s test, in order.</CardDescription>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-center">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setCameraOpen((open) => !open)}
-              disabled={busy}
-              aria-pressed={cameraOpen}
-            >
-              <Camera aria-hidden />
-              {cameraOpen ? "Close camera" : "Use camera"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={busy || full || preparing}
-            >
-              <Upload aria-hidden />
-              Upload photos
-            </Button>
-            <SampleMenu
-              onPick={(sample) => void pickSample(sample)}
-              disabled={busy || full || preparing}
-              visionEnabled={visionEnabled}
-              className="sm:ml-auto"
-            />
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={ACCEPT}
-              capture="environment"
-              multiple
-              hidden
-              onChange={(event) => {
-                handleFileList(event.target.files);
-                event.target.value = "";
-              }}
-            />
-          </div>
+          <span
+            className="tabular inline-flex h-7 shrink-0 items-center rounded-full bg-secondary px-3 text-xs font-medium text-secondary-foreground"
+            aria-label={`${pages.length} of ${MAX_SCAN_PAGES} pages added`}
+          >
+            {pages.length}/{MAX_SCAN_PAGES}
+          </span>
+        </div>
+
+        <div className="space-y-4 px-4 py-5 sm:px-6 sm:py-6">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={ACCEPT}
+            capture="environment"
+            multiple
+            hidden
+            onChange={(event) => {
+              handleFileList(event.target.files);
+              event.target.value = "";
+            }}
+          />
 
           {cameraOpen && !busy ? (
             <CameraCapture
@@ -463,18 +476,21 @@ export function ScanWorkspace({
             {pages.length === 0 ? (
               <div
                 className={cn(
-                  "flex flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 text-center transition-colors",
-                  dragging ? "border-primary/50 bg-primary-soft/50" : "border-border bg-background"
+                  "flex min-h-72 flex-col items-center justify-center rounded-xl border-2 border-dashed px-5 py-10 text-center transition-colors",
+                  dragging ? "border-primary/60 bg-primary-soft/40" : "border-input/30 bg-background"
                 )}
               >
-                <div className="mb-4 flex size-10 items-center justify-center rounded-full bg-secondary text-muted-foreground ring-1 ring-border">
-                  <Images className="size-5" aria-hidden />
+                <div className="mb-4 flex size-14 items-center justify-center rounded-full bg-primary-soft text-primary-soft-foreground">
+                  <ImagePlus className="size-6" aria-hidden />
                 </div>
-                <p className="text-sm font-medium text-foreground">Add photos of one student&apos;s test</p>
-                <p className="mt-1 max-w-sm text-sm text-pretty text-muted-foreground">
-                  Up to {MAX_SCAN_PAGES} pages, in order. JPEG, PNG, or WebP, 5 MB each. Drop photos here or use the
-                  buttons above.
+                <p className="font-display text-lg font-medium text-foreground">Add photos of one student&apos;s test</p>
+                <p className="mt-1 max-w-md text-sm text-pretty text-muted-foreground">
+                  Drop photos here, or choose how to add them. Up to {MAX_SCAN_PAGES} pages, in order. JPEG, PNG, or
+                  WebP, 5 MB each.
                 </p>
+                <div className="mt-6 flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
+                  {captureButtons}
+                </div>
               </div>
             ) : (
               <div className={cn("rounded-xl", dragging && "ring-2 ring-primary/40 ring-offset-4 ring-offset-card")}>
@@ -490,6 +506,13 @@ export function ScanWorkspace({
             )}
           </div>
 
+          {/* Outside the dimmed drop target, so disabled buttons don't stack two opacities. */}
+          {pages.length > 0 ? (
+            <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+              {captureButtons}
+            </div>
+          ) : null}
+
           {preparing ? (
             <p className="flex items-center gap-2 text-[13px] text-muted-foreground" role="status">
               <LoaderCircle className="size-3.5 animate-spin" aria-hidden />
@@ -497,10 +520,18 @@ export function ScanWorkspace({
             </p>
           ) : null}
           <FieldError id="scan-pages-error" message={pagesError} />
+        </div>
 
-          <div className="space-y-3 border-t border-border pt-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0 space-y-1">
+        <div className="space-y-3 border-t border-border px-4 py-5 sm:px-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <span
+                aria-hidden
+                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground"
+              >
+                <KeyRound className="size-4" />
+              </span>
+              <div className="min-w-0 space-y-0.5">
                 <p className="text-sm font-medium text-foreground">
                   Answer key photo <span className="font-normal text-muted-foreground">(optional)</span>
                 </p>
@@ -510,60 +541,59 @@ export function ScanWorkspace({
                     : "The demo scanner always grades against the assignment's answer key."}
                 </p>
               </div>
-              {!answerKey ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-full sm:w-auto"
-                  onClick={() => answerKeyInputRef.current?.click()}
-                  disabled={busy || preparing}
-                >
-                  <KeyRound aria-hidden />
-                  Add answer key photo
-                </Button>
-              ) : null}
             </div>
-            {answerKey ? (
-              <div className="flex items-center gap-3 rounded-lg border border-border bg-background p-2.5">
-                {/* Plain <img>: a local object URL. */}
-                <img
-                  src={answerKey.url}
-                  alt="Answer key photo"
-                  className="h-14 w-11 shrink-0 rounded-md border border-border object-cover"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">{answerKey.name}</p>
-                  <p className="tabular text-xs text-muted-foreground">{describeDimensions(answerKey)}</p>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={removeAnswerKey}
-                  disabled={busy}
-                  aria-label="Remove answer key photo"
-                >
-                  <X />
-                </Button>
-              </div>
+            {!answerKey ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full shrink-0 sm:w-auto"
+                onClick={() => answerKeyInputRef.current?.click()}
+                disabled={busy || preparing}
+              >
+                <KeyRound aria-hidden />
+                Add answer key photo
+              </Button>
             ) : null}
-            <input
-              ref={answerKeyInputRef}
-              type="file"
-              accept={ACCEPT}
-              hidden
-              onChange={(event) => {
-                void handleAnswerKeyFile(event.target.files?.[0]);
-                event.target.value = "";
-              }}
-            />
-            <FieldError id="scan-answer-key-error" message={fieldMessage(error, "answerKey")} />
           </div>
-        </CardContent>
+          {answerKey ? (
+            <div className="flex items-center gap-3 rounded-xl border border-border p-2.5 pr-1.5">
+              {/* Plain <img>: a local object URL. */}
+              <img
+                src={answerKey.url}
+                alt="Answer key photo"
+                className="h-14 w-11 shrink-0 rounded-md border border-border object-cover"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-foreground">{answerKey.name}</p>
+                <p className="tabular text-xs text-muted-foreground">{describeDimensions(answerKey)}</p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={removeAnswerKey}
+                disabled={busy}
+                aria-label="Remove answer key photo"
+              >
+                <X />
+              </Button>
+            </div>
+          ) : null}
+          <input
+            ref={answerKeyInputRef}
+            type="file"
+            accept={ACCEPT}
+            hidden
+            onChange={(event) => {
+              void handleAnswerKeyFile(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
+          <FieldError id="scan-answer-key-error" message={fieldMessage(error, "answerKey")} />
+        </div>
       </Card>
 
-      <div ref={sideRef} className="min-w-0 scroll-mt-20 xl:sticky xl:top-20">
+      <div ref={sideRef} className="min-w-0 scroll-mt-24 xl:sticky xl:top-24">
         {phase === "grading" && assignment && student ? (
           <ScanProgress
             visionEnabled={visionEnabled}
@@ -578,15 +608,17 @@ export function ScanWorkspace({
           </div>
         ) : (
           <Card>
-            <CardHeader>
-              <CardTitle>Grade this test</CardTitle>
-              <CardDescription>Choose where the draft goes. It lands in your review queue.</CardDescription>
+            <CardHeader className="px-4 pt-5 sm:px-6 sm:pt-6">
+              <CardTitle>
+                <h2>Grade this test</h2>
+              </CardTitle>
+              <CardDescription>Choose where the draft goes. It lands in To review.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 pt-5 pb-5 sm:px-6 sm:pb-6">
               <form onSubmit={submit} noValidate className="grid grid-cols-[minmax(0,1fr)] gap-5">
                 {matchNotice ? (
                   <p
-                    className="flex items-start gap-2 rounded-lg bg-primary-soft px-3 py-2 text-[13px] text-pretty text-primary-soft-foreground"
+                    className="flex items-start gap-2 rounded-xl bg-primary-soft px-3.5 py-2.5 text-[13px] text-pretty text-primary-soft-foreground"
                     role="status"
                   >
                     <CircleCheck className="mt-0.5 size-3.5 shrink-0" aria-hidden />
@@ -608,9 +640,12 @@ export function ScanWorkspace({
                     disabled={busy}
                   />
                   {assignment ? (
-                    <p className="text-[13px] text-muted-foreground">
-                      {klass?.label ? `${klass.label} · ` : ""}
-                      {assignmentHint(assignment)}
+                    <p className="flex min-w-0 items-center gap-2 text-[13px] text-muted-foreground">
+                      {klass ? <ClassAvatar name={klass.name} className="size-5 text-[10px]" /> : null}
+                      <span className="min-w-0">
+                        {klass?.label ? `${klass.label} · ` : ""}
+                        {assignmentHint(assignment)}
+                      </span>
                     </p>
                   ) : null}
                   <FieldError id="scan-assignment-error" message={fieldMessage(error, "assignment")} />
@@ -683,7 +718,7 @@ export function ScanWorkspace({
                 </Button>
                 <p className="flex items-start gap-2 text-[13px] text-pretty text-muted-foreground">
                   <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-success" aria-hidden />
-                  The draft lands in your review queue. Nothing publishes until you approve it.
+                  The draft lands in To review. Nothing publishes until you approve and return it.
                 </p>
               </form>
             </CardContent>

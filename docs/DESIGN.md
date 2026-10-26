@@ -54,7 +54,7 @@ the branding: no Google logos, product names, or proprietary fonts.
 | `/classes/[id]` | Stream | `ClassBanner`; left column "Upcoming" card; activity stream (assignments posted, grades returned, scans, AI drafts) |
 | `/classes/[id]/classwork` | Classwork | "+ Create" menu (Assignment / Handwritten test); assignment rows with icon circle, title, due date; expandable details with Turned in / Assigned / Graded counts |
 | `/classes/[id]/people` | People | Teachers and Students sections with primary-colored headings and underline; add student; rows link to student profiles |
-| `/classes/[id]/grades` | Grades | Spreadsheet gradebook; AI drafts in *italic* as "Draft"; Missing in red; CSV export |
+| `/classes/[id]/grades` | Grades | Spreadsheet gradebook of approved grades only (an AI draft never shows a score: the cell reads "Needs review" and links to To review); Missing in red; CSV export |
 | `/classes/[id]/students/[sid]` | (student profile) | Stats, strengths, conference brief |
 | `/assignments/[id]` | Assignment → Student work / Instructions | Big Turned in / Assigned / Graded counts, student list with statuses and grades, AI first pass, review links |
 | `/review` (To review) | Grading tool | Student list rail, paper, grade panel; "Approve & return" publishes |
@@ -74,7 +74,8 @@ the branding: no Google logos, product names, or proprietary fonts.
 ## Words
 
 Use Classroom's vocabulary where it fits: Stream, Classwork, People, Grades,
-To review, To-do, Turned in, Assigned, Missing, Returned, Your work, Turn in,
-Draft grade. Our approval action is **Approve & return**: the teacher approves
-the grade and returns it to the student. It still publishes only through the
-approval gate. **Send back** asks for a revision.
+To review, To-do, Turned in, Assigned, Missing, Returned, Your work, Turn in.
+An AI draft is a "draft" only inside To review; no other page shows its score.
+Our approval action is **Approve & return**: the teacher approves the grade and
+returns it to the student. It still publishes only through the approval gate.
+**Send back** asks for a revision.

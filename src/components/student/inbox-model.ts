@@ -5,6 +5,12 @@ import type { AssignmentKind } from "@/lib/constants";
 import { formatDate, formatPercent, formatScore, pluralize } from "@/lib/format";
 import type { StudentAssignmentState } from "@/components/student/student-status";
 
+/**
+ * The inbox's original three buckets. The UI now shows Classroom's To-do
+ * tabs (Assigned / Missing / Done, see todo-model.ts), which split "todo"
+ * into Assigned and Missing; these stay as the source of truth for what is
+ * waiting on the student.
+ */
 export type InboxTab = "todo" | "submitted" | "graded";
 
 export const INBOX_TABS: { value: InboxTab; label: string }[] = [
@@ -101,8 +107,8 @@ export function statusSummary(row: InboxAssignment): string {
   switch (row.state) {
     case "graded":
       return row.score
-        ? `Graded ${formatScore(row.score.total, row.score.max)} (${formatPercent(row.score.total, row.score.max)}). Your teacher's feedback is ready.`
-        : "Graded. Your teacher's feedback is ready.";
+        ? `Returned with ${formatScore(row.score.total, row.score.max)} (${formatPercent(row.score.total, row.score.max)}). Your teacher's feedback is ready.`
+        : "Returned. Your teacher's feedback is ready.";
     case "submitted":
       // A paper test reaches "submitted" when the teacher scans (or types in) the student's paper.
       if (row.kind === "TEST") {
@@ -111,8 +117,8 @@ export function statusSummary(row: InboxAssignment): string {
           : "Your teacher added your test and is reviewing it.";
       }
       return row.submittedAt
-        ? `Submitted ${formatDate(row.submittedAt)}. Your teacher is reviewing it.`
-        : "Submitted. Your teacher is reviewing it.";
+        ? `Turned in ${formatDate(row.submittedAt)}. Your teacher is reviewing it.`
+        : "Turned in. Your teacher is reviewing it.";
     case "returned":
       if (row.kind === "TEST") return "Your teacher sent this back with a note and will rescan it.";
       return "Your teacher sent this back with a note. Revise it and resubmit.";
@@ -122,8 +128,8 @@ export function statusSummary(row: InboxAssignment): string {
           ? `The test was on ${formatDate(row.dueDate)}. Your teacher scans the papers, and your grade appears here once it's approved.`
           : "A paper test. You take it in class and your teacher scans it, so there's nothing to upload.";
       }
-      if (row.pastDue) return `Overdue since ${formatDate(row.dueDate)}. Submit it as soon as you can.`;
-      return row.dueDate ? `Not submitted yet. Due ${formatDate(row.dueDate)}.` : "Not submitted yet.";
+      if (row.pastDue) return `Missing since ${formatDate(row.dueDate)}. Turn it in as soon as you can.`;
+      return row.dueDate ? `Assigned. Due ${formatDate(row.dueDate)}.` : "Assigned. No due date.";
   }
 }
 

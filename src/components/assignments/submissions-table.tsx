@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Camera, Clock, FileText, Flag, Info, Loader2, RotateCw, Sparkles, UserPlus } from "lucide-react";
+import { Camera, Clock, Flag, Info, Loader2, RotateCw, Sparkles, UserPlus } from "lucide-react";
 
 import { AddSubmissionDialog } from "@/components/assignments/add-submission-dialog";
 import { useBatchGrading, type LiveRowState } from "@/components/assignments/batch-grading";
@@ -11,13 +11,11 @@ import type { EligibleStudent, RosterStudent, SubmissionFlag, SubmissionRowData 
 import { EmptyState } from "@/components/empty-state";
 import { ConfidenceBadge } from "@/components/grading/confidence-badge";
 import { GraderBadge } from "@/components/grading/grader-badge";
-import { StatusBadge } from "@/components/grading/status-badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { GRADER_LABELS, type AssignmentKind, type Confidence, type GraderKind } from "@/lib/constants";
 import { formatScore, pluralize } from "@/lib/format";
@@ -72,24 +70,24 @@ function rowActionKind(row: SubmissionRowData, view: RowView): RowActionKind {
   return null;
 }
 
-function Dash({ label }: { label: string }) {
-  return (
-    <span className="text-muted-foreground/70">
-      <span aria-hidden>–</span>
-      <span className="sr-only">{label}</span>
-    </span>
-  );
+/** Classroom's grading-list groups, matching the Turned in / Assigned / Graded numbers. */
+type Group = "turnedIn" | "assigned" | "graded";
+
+function rowGroup(row: SubmissionRowData): Group {
+  if (row.published) return "graded";
+  if (row.status === "RETURNED") return "assigned";
+  return "turnedIn";
 }
 
-function FlagsIndicator({ flags, showLabel = false }: { flags: SubmissionFlag[] | number; showLabel?: boolean }) {
+function FlagsIndicator({ flags }: { flags: SubmissionFlag[] | number }) {
   const count = typeof flags === "number" ? flags : flags.length;
-  if (count === 0) return <Dash label="No flags" />;
+  if (count === 0) return null;
   const noun = count === 1 ? "flag" : "flags";
   const content = (
-    <span className="inline-flex items-center gap-1 font-medium text-warning-soft-foreground">
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-warning-soft-foreground">
       <Flag className="size-3.5 text-warning" aria-hidden />
       <span className="tabular">{count}</span>
-      <span className={showLabel ? undefined : "sr-only"}>{noun}</span>
+      <span>{noun}</span>
     </span>
   );
   if (typeof flags === "number") return content;
@@ -118,16 +116,20 @@ function FlagsIndicator({ flags, showLabel = false }: { flags: SubmissionFlag[] 
   );
 }
 
-function GradingCell({ label = false }: { label?: boolean }) {
-  return (
-    <span className="flex items-center gap-2">
-      <Skeleton className="h-5 w-16 rounded-full" />
-      {label ? <span className="text-[13px] text-muted-foreground">Grading…</span> : null}
-    </span>
-  );
-}
-
-function RowStatus({ row, view }: { row: SubmissionRowData; view: RowView }) {
+/** Status words in Google Classroom's style; status colors only where they mean something. */
+function RowStatus({
+  row,
+  view,
+  grader,
+  showGrader,
+  test,
+}: {
+  row: SubmissionRowData;
+  view: RowView;
+  grader: GraderKind | null;
+  showGrader: boolean;
+  test: boolean;
+}) {
   if (view.kind === "queued") {
     return (
       <Badge variant="outline">
@@ -138,23 +140,35 @@ function RowStatus({ row, view }: { row: SubmissionRowData; view: RowView }) {
   }
   if (view.kind === "grading") {
     return (
-      <Badge variant="default">
-        <Loader2 className="animate-spin" aria-hidden />
-        Grading…
-      </Badge>
+      <span className="flex items-center gap-2">
+        <Badge variant="default">
+          <Loader2 className="animate-spin" aria-hidden />
+          Grading…
+        </Badge>
+        <Skeleton className="h-5 w-24 rounded-full" />
+      </span>
     );
   }
-  if (view.kind === "graded") return <StatusBadge status="NEEDS_REVIEW" />;
+  if (view.kind === "graded") {
+    return (
+      <span className="flex flex-wrap items-center gap-2">
+        <Badge variant="warning">Needs review</Badge>
+        {view.confidence ? <ConfidenceBadge confidence={view.confidence} /> : null}
+        <FlagsIndicator flags={view.flags} />
+        {showGrader && grader ? <span className="text-xs text-muted-foreground">{GRADER_LABELS[grader]}</span> : null}
+      </span>
+    );
+  }
   if (view.kind === "failed") {
     return (
       <span className="inline-flex items-center gap-1.5">
-        <StatusBadge status="GRADING_FAILED" />
+        <Badge variant="danger">AI pass failed</Badge>
         {view.error ? (
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 type="button"
-                className="rounded-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
+                className="inline-flex size-6 items-center justify-center rounded-full text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
                 aria-label={`Why it failed: ${view.error}`}
               >
                 <Info className="size-3.5" aria-hidden />
@@ -166,29 +180,59 @@ function RowStatus({ row, view }: { row: SubmissionRowData; view: RowView }) {
       </span>
     );
   }
-  return <StatusBadge status={row.status} />;
+  if (row.published) {
+    return (
+      <span className="flex flex-wrap items-baseline gap-x-2">
+        <span className="tabular text-sm font-medium text-foreground">
+          {formatScore(row.published.total, row.published.max)}
+        </span>
+        <span className="text-xs text-muted-foreground">Returned</span>
+      </span>
+    );
+  }
+  switch (row.status) {
+    case "SUBMITTED":
+      return (
+        <span className="flex flex-wrap items-baseline gap-x-2">
+          <span className="text-[13px] font-medium text-success">{test ? "Scanned" : "Turned in"}</span>
+          {row.source !== "SCAN" ? <span className="text-xs text-muted-foreground">Ready for AI pass</span> : null}
+        </span>
+      );
+    case "RETURNED":
+      return (
+        <span className="flex flex-wrap items-baseline gap-x-2">
+          <span className="text-[13px] font-medium text-foreground">Sent back</span>
+          <span className="text-xs text-muted-foreground">{test ? "Waiting for a rescan" : "Waiting on student"}</span>
+        </span>
+      );
+    case "APPROVED":
+      return <Badge variant="success">Approved</Badge>;
+    case "NEEDS_REVIEW":
+      return <Badge variant="warning">Needs review</Badge>;
+    default:
+      return <span className="text-[13px] text-muted-foreground">{row.status}</span>;
+  }
 }
 
-/** The row's single next step: review, retry, run, or a note. */
+/** The row's next step: review, retry, or run. */
 function RowAction({
   row,
   kind,
   reviewHref,
   onRun,
   disabled,
-  className,
 }: {
   row: SubmissionRowData;
   kind: RowActionKind;
   reviewHref: string;
   onRun: () => void;
   disabled: boolean;
-  className?: string;
 }) {
   const who = <span className="sr-only"> for {row.student.name}</span>;
+  const size = "max-md:h-10";
   if (kind === "review") {
     return (
-      <Button variant="outline" size="sm" asChild className={className}>
+      <Button variant="outline" size="sm" asChild className={size}>
         <Link href={reviewHref}>
           Review
           {who}
@@ -198,7 +242,7 @@ function RowAction({
   }
   if (kind === "retry") {
     return (
-      <Button variant="outline" size="sm" onClick={onRun} disabled={disabled} className={className}>
+      <Button variant="outline" size="sm" onClick={onRun} disabled={disabled} className={size}>
         <RotateCw aria-hidden />
         Retry AI pass
         {who}
@@ -207,21 +251,20 @@ function RowAction({
   }
   if (kind === "run") {
     return (
-      <Button variant="ghost" size="sm" onClick={onRun} disabled={disabled} className={className}>
+      <Button variant="text" size="sm" onClick={onRun} disabled={disabled} className={size}>
         <Sparkles aria-hidden />
         Run AI pass
         {who}
       </Button>
     );
   }
-  if (kind === "waiting") return <span className="text-[13px] text-muted-foreground">Waiting on student</span>;
   return null;
 }
 
 /** "Scanned · 2 pages" for a handwritten test read by the camera grader. */
-function ScannedHint({ row, className }: { row: SubmissionRowData; className?: string }) {
+function ScannedHint({ row }: { row: SubmissionRowData }) {
   return (
-    <span className={cn("tabular inline-flex items-center gap-1", className)}>
+    <span className="tabular inline-flex items-center gap-1">
       <Camera className="size-3 shrink-0" aria-hidden />
       Scanned{row.pageCount > 0 ? ` · ${pluralize(row.pageCount, "page")}` : ""}
     </span>
@@ -233,18 +276,17 @@ function ScanLink({
   assignmentId,
   student,
   rescan,
-  className,
 }: {
   assignmentId: string;
   student: { id: string; name: string };
   rescan: boolean;
-  className?: string;
 }) {
   return (
-    <Button variant="ghost" size="sm" asChild className={className}>
+    <Button variant="ghost" size="sm" asChild className="max-md:h-10">
       <Link href={scanHref(assignmentId, student.id)}>
         <Camera aria-hidden />
-        {rescan ? "Rescan" : "Scan"}
+        {/* Phones: icon only when it sits beside another action. */}
+        <span className={rescan ? "max-md:sr-only" : undefined}>{rescan ? "Rescan" : "Scan"}</span>
         <span className="sr-only"> test for {student.name}</span>
       </Link>
     </Button>
@@ -267,7 +309,7 @@ function GraderNote({
   const modelFor = (grader: GraderKind) =>
     grader === firstPass.kind ? firstPass.model : grader === graderInfo.kind ? graderInfo.model : null;
   return (
-    <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground sm:justify-end">
+    <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted-foreground">
       <span>{hasOutput ? "Suggestions by" : "First pass by"}</span>
       {shown.map((grader) => (
         <GraderBadge key={grader} grader={grader} model={modelFor(grader)} />
@@ -276,6 +318,33 @@ function GraderNote({
   );
 }
 
+/** Row grid: avatar | name | (status) | action. On phones the status drops under the name. */
+const ROW =
+  "grid min-h-16 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-4 py-3 md:grid-cols-[auto_minmax(0,1fr)_minmax(0,20rem)_9.5rem] md:gap-x-4 md:px-6";
+const STATUS_CELL = "col-span-3 row-start-2 min-w-0 pl-11 md:col-span-1 md:col-start-3 md:row-start-1 md:pl-0";
+const ACTION_CELL = "col-start-3 row-start-1 flex items-center justify-end gap-1 md:col-start-4";
+
+function GroupHeading({ id, title, count }: { id: string; title: string; count: number }) {
+  return (
+    <h3
+      id={id}
+      className="flex items-center gap-2 border-y border-border bg-background px-4 py-2 font-sans text-[13px] font-medium text-muted-foreground md:px-6"
+    >
+      {title}
+      <span className="tabular rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-secondary-foreground">
+        {count}
+      </span>
+    </h3>
+  );
+}
+
+/**
+ * The student list on the assignment's Student work tab, in the style of
+ * Google Classroom's grading list: grouped into Turned in, Assigned, and
+ * Graded, each row an avatar, the student, a status in Classroom's words
+ * (with AI confidence and flags while a draft waits for review), and the next
+ * step. Live batch state shows on each row as the AI pass runs.
+ */
 export function SubmissionsTable({
   classId,
   kind = "ESSAY",
@@ -283,6 +352,7 @@ export function SubmissionsTable({
   notSubmitted,
   eligibleStudents,
   hasRoster,
+  pastDue = false,
 }: {
   classId: string;
   kind?: AssignmentKind;
@@ -291,6 +361,8 @@ export function SubmissionsTable({
   notSubmitted: RosterStudent[];
   eligibleStudents: EligibleStudent[];
   hasRoster: boolean;
+  /** The due day has ended: students with nothing turned in read "Missing" (never for paper tests). */
+  pastDue?: boolean;
 }) {
   const { assignmentId, rows, liveFor, isRunning, start, graderInfo } = useBatchGrading();
   const test = kind === "TEST";
@@ -303,23 +375,25 @@ export function SubmissionsTable({
 
   const views = rows.map((row) => {
     const view = rowView(row, liveFor(row));
-    return { row, view, grader: rowGrader(row, view), action: rowActionKind(row, view) };
+    return { row, view, grader: rowGrader(row, view), action: rowActionKind(row, view), group: rowGroup(row) };
   });
   const graders = Array.from(new Set(views.flatMap(({ grader }) => (grader ? [grader] : [])))).sort();
   // With output from more than one grader, each row says which one it came from.
   const mixedGraders = graders.length > 1;
 
-  const description =
-    rows.length === 0
-      ? test
-        ? "Scanned tests appear here, graded and ready for your review."
-        : "Papers appear here as students submit."
-      : [
-          `${pluralize(rows.length, "paper")} ${test ? "in" : "submitted"}`,
-          notSubmitted.length > 0 ? `${notSubmitted.length} not submitted` : null,
-        ]
-          .filter(Boolean)
-          .join(" · ");
+  if (!hasRoster && rows.length === 0) {
+    return (
+      <EmptyState
+        icon={UserPlus}
+        title="Add students to this class before collecting papers."
+        action={
+          <Button variant="outline" asChild>
+            <Link href={`/classes/${encodeURIComponent(classId)}/people`}>Go to People</Link>
+          </Button>
+        }
+      />
+    );
+  }
 
   const addPaper = (student: RosterStudent) => (
     <AddSubmissionDialog
@@ -329,7 +403,7 @@ export function SubmissionsTable({
       defaultStudentId={student.id}
       disabled={isRunning}
       trigger={
-        <Button variant="ghost" size="sm" disabled={isRunning}>
+        <Button variant="text" size="sm" disabled={isRunning} className="max-md:h-10">
           Add paper
           <span className="sr-only"> for {student.name}</span>
         </Button>
@@ -337,342 +411,129 @@ export function SubmissionsTable({
     />
   );
 
+  const renderRow = ({ row, view, grader, action }: (typeof views)[number]) => {
+    const busy = view.kind === "grading";
+    const canScan = scannable.has(row.student.id);
+    return (
+      <li key={row.id} className={cn(ROW, busy && "bg-primary-soft/40")} aria-busy={busy || undefined}>
+        <Avatar name={row.student.name} className="size-8" />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-foreground">{row.student.name}</p>
+          <p className="truncate text-xs text-muted-foreground">
+            <span title={row.submittedTitle}>{row.submittedLabel}</span>
+            {row.source === "SCAN" ? (
+              <>
+                {" · "}
+                <ScannedHint row={row} />
+              </>
+            ) : (
+              <>
+                <span className="tabular">
+                  {" · "}
+                  {row.wordCount.toLocaleString("en-US")} {row.wordCount === 1 ? "word" : "words"}
+                </span>
+                {row.fileName ? <span title={row.fileName}> · {row.fileName}</span> : null}
+              </>
+            )}
+          </p>
+        </div>
+        <div className={STATUS_CELL}>
+          <RowStatus row={row} view={view} grader={grader} showGrader={mixedGraders} test={test} />
+        </div>
+        <div className={ACTION_CELL}>
+          {canScan ? <ScanLink assignmentId={assignmentId} student={row.student} rescan /> : null}
+          <RowAction
+            row={row}
+            kind={action}
+            reviewHref={reviewHref(row.id)}
+            onRun={() => start([row.id])}
+            disabled={isRunning}
+          />
+        </div>
+      </li>
+    );
+  };
+
+  const turnedIn = views.filter((entry) => entry.group === "turnedIn");
+  const sentBack = views.filter((entry) => entry.group === "assigned");
+  const graded = views.filter((entry) => entry.group === "graded");
+  const assignedCount = sentBack.length + notSubmitted.length;
+  const labels = test
+    ? { turnedIn: "Scanned", assigned: "Not scanned", graded: "Graded" }
+    : { turnedIn: "Turned in", assigned: "Assigned", graded: "Graded" };
+
   return (
     <Card className="min-w-0 overflow-hidden">
-      <CardHeader className="gap-3 pb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-        <div className="min-w-0 space-y-1.5">
-          <CardTitle>
-            <h2>Submissions</h2>
-          </CardTitle>
-          <CardDescription className="tabular">{description}</CardDescription>
+      <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between md:px-6">
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold text-foreground">All students</h2>
+          <p className="tabular text-[13px] text-muted-foreground">
+            {pluralize(rows.length + notSubmitted.length, "student")}
+          </p>
         </div>
-        {rows.length > 0 ? (
-          <GraderNote graders={graders} hasOutput={graders.length > 0} firstPass={firstPass} />
-        ) : null}
-      </CardHeader>
+        <GraderNote graders={graders} hasOutput={graders.length > 0} firstPass={firstPass} />
+      </div>
 
       {rows.length === 0 ? (
-        <div className="px-6 pb-6">
-          {hasRoster && test ? (
-            <EmptyState
-              icon={Camera}
-              title="No tests scanned yet."
-              description={
-                firstPass.kind === "openai"
-                  ? "Photograph each student's test. GPT-4o reads the handwriting and drafts scores against your answer key for your review."
-                  : "Photograph each student's test. The demo scanner reads the bundled sample photos and drafts scores for your review."
-              }
-              action={
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Button asChild>
-                    <Link href={scanHref(assignmentId)}>
-                      <Camera aria-hidden />
-                      Scan papers
-                    </Link>
-                  </Button>
-                  <AddSubmissionDialog
-                    assignmentId={assignmentId}
-                    students={eligibleStudents}
-                    hasRoster={hasRoster}
-                    trigger={
-                      <Button variant="outline">
-                        <FileText aria-hidden />
-                        Add a typed paper
-                      </Button>
-                    }
-                  />
-                </div>
-              }
-            />
-          ) : hasRoster ? (
-            <EmptyState
-              icon={FileText}
-              title="No papers yet. Students submit from their assignment page, or you can add one here."
-              action={
-                <div className="flex flex-col items-center gap-3">
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <AddSubmissionDialog
-                      assignmentId={assignmentId}
-                      students={eligibleStudents}
-                      hasRoster={hasRoster}
-                    />
-                    <LoadSamplesButton assignmentId={assignmentId} variant="secondary" />
-                  </div>
-                  <p className="text-[13px] text-muted-foreground">{LOAD_SAMPLES_HINT}</p>
-                </div>
-              }
-            />
-          ) : (
-            <EmptyState
-              icon={UserPlus}
-              title="Add students to this class before collecting papers."
-              action={
-                <Button variant="outline" asChild>
-                  <Link href={`/classes/${encodeURIComponent(classId)}`}>Go to the roster</Link>
-                </Button>
-              }
-            />
-          )}
+        <div className="flex flex-col gap-4 border-t border-border bg-secondary/60 px-4 py-5 sm:flex-row sm:items-center sm:justify-between md:px-6">
+          <p className="max-w-xl text-sm text-pretty text-foreground">
+            {test
+              ? firstPass.kind === "openai"
+                ? "No tests scanned yet. Photograph each student's test: GPT-4o reads the handwriting and drafts scores against your answer key for your review."
+                : "No tests scanned yet. The demo scanner reads the bundled sample photos and drafts scores for your review."
+              : "No papers yet. Students turn in work from their assignment page, or you can add a paper for them."}
+          </p>
+          {!test ? (
+            <div className="flex shrink-0 flex-col items-start gap-1.5 sm:items-end">
+              <LoadSamplesButton assignmentId={assignmentId} variant="tonal" disabled={isRunning} />
+              <p className="text-xs text-muted-foreground">{LOAD_SAMPLES_HINT}</p>
+            </div>
+          ) : null}
         </div>
-      ) : (
-        <>
-          {/* Below xl the table would scroll sideways and hide the row actions: stack each paper instead. */}
-          <ul className="divide-y divide-border border-t border-border xl:hidden" aria-label="Submissions">
-            {views.map(({ row, view, grader, action }) => {
-              const busy = view.kind === "grading";
-              const confidence = view.kind === "graded" ? view.confidence : null;
-              const flagSource = view.kind === "graded" ? view.flags : view.kind === "server" && row.ai ? row.ai.flags : 0;
-              const flagCount = typeof flagSource === "number" ? flagSource : flagSource.length;
-              const hasDetails =
-                busy || confidence !== null || flagCount > 0 || row.published !== null || action === "waiting";
-              const canScan = scannable.has(row.student.id);
-              const hasAction = (action !== null && action !== "waiting") || canScan;
-              return (
-                <li
-                  key={row.id}
-                  className={cn("px-6 py-4", busy && "bg-primary-soft/40")}
-                  aria-busy={busy || undefined}
-                >
-                  <div className="flex items-start gap-3">
-                    <Avatar name={row.student.name} />
-                    <div className="min-w-0 flex-1 space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-foreground">{row.student.name}</p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            <span title={row.submittedTitle}>{row.submittedLabel}</span>
-                            <span className="tabular">
-                              {" · "}
-                              {row.wordCount.toLocaleString("en-US")} {row.wordCount === 1 ? "word" : "words"}
-                            </span>
-                            {row.source === "SCAN" ? (
-                              <>
-                                {" · "}
-                                <ScannedHint row={row} />
-                              </>
-                            ) : row.fileName ? (
-                              <span title={row.fileName}> · {row.fileName}</span>
-                            ) : null}
-                          </p>
-                        </div>
-                        <div className="shrink-0">
-                          <RowStatus row={row} view={view} />
-                        </div>
-                      </div>
+      ) : null}
 
-                      {hasDetails || hasAction ? (
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          {hasDetails ? (
-                            <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 text-[13px]">
-                              {busy ? (
-                                <GradingCell label />
-                              ) : (
-                                <>
-                                  {confidence ? (
-                                    <span className="inline-flex flex-wrap items-center gap-2">
-                                      <ConfidenceBadge confidence={confidence} />
-                                      {mixedGraders && grader ? (
-                                        <span className="text-xs text-muted-foreground">{GRADER_LABELS[grader]}</span>
-                                      ) : null}
-                                    </span>
-                                  ) : null}
-                                  {flagCount > 0 ? <FlagsIndicator flags={flagSource} showLabel /> : null}
-                                  {row.published ? (
-                                    <span className="text-muted-foreground">
-                                      Score{" "}
-                                      <span className="tabular font-medium text-foreground">
-                                        {formatScore(row.published.total, row.published.max)}
-                                      </span>
-                                    </span>
-                                  ) : null}
-                                  {action === "waiting" ? (
-                                    <span className="text-muted-foreground">Waiting on student</span>
-                                  ) : null}
-                                </>
-                              )}
-                            </div>
-                          ) : null}
-                          {hasAction ? (
-                            // Phones: the main action on top, the rescan link below it.
-                            <div className="flex flex-col-reverse gap-2 sm:ml-auto sm:shrink-0 sm:flex-row sm:items-center">
-                              {canScan ? (
-                                <ScanLink
-                                  assignmentId={assignmentId}
-                                  student={row.student}
-                                  rescan
-                                  className="w-full sm:w-auto"
-                                />
-                              ) : null}
-                              {action !== null && action !== "waiting" ? (
-                                <RowAction
-                                  row={row}
-                                  kind={action}
-                                  reviewHref={reviewHref(row.id)}
-                                  onRun={() => start([row.id])}
-                                  disabled={isRunning}
-                                  className="w-full sm:w-auto"
-                                />
-                              ) : null}
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
+      {turnedIn.length > 0 ? (
+        <section aria-labelledby="group-turned-in">
+          <GroupHeading id="group-turned-in" title={labels.turnedIn} count={turnedIn.length} />
+          <ul className="divide-y divide-border">{turnedIn.map(renderRow)}</ul>
+        </section>
+      ) : null}
 
+      {assignedCount > 0 ? (
+        <section aria-labelledby="group-assigned">
+          <GroupHeading id="group-assigned" title={labels.assigned} count={assignedCount} />
+          <ul className="divide-y divide-border">
+            {sentBack.map(renderRow)}
             {notSubmitted.map((student) => (
-              <li key={student.id} className="flex items-center gap-3 px-6 py-3">
-                <Avatar name={student.name} className="opacity-60" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm text-muted-foreground">{student.name}</p>
-                  <p className="text-xs text-muted-foreground">{test ? "Not scanned yet" : "Not submitted"}</p>
+              <li key={student.id} className={ROW}>
+                <Avatar name={student.name} className="size-8 opacity-70" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm text-foreground">{student.name}</p>
                 </div>
-                <div className="shrink-0">
+                <div className={STATUS_CELL}>
+                  {test ? (
+                    <span className="text-[13px] text-muted-foreground">Not scanned yet</span>
+                  ) : pastDue ? (
+                    <span className="text-[13px] font-medium text-danger">Missing</span>
+                  ) : (
+                    <span className="text-[13px] text-muted-foreground">Assigned</span>
+                  )}
+                </div>
+                <div className={ACTION_CELL}>
                   {test ? <ScanLink assignmentId={assignmentId} student={student} rescan={false} /> : addPaper(student)}
                 </div>
               </li>
             ))}
           </ul>
+        </section>
+      ) : null}
 
-          <div className="hidden border-t border-border xl:block">
-            <Table className="min-w-[56rem]">
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="pl-6">Student</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead className="text-right">Words</TableHead>
-                  <TableHead>Confidence</TableHead>
-                  <TableHead>Flags</TableHead>
-                  <TableHead className="text-right">Score</TableHead>
-                  <TableHead className="pr-6 text-right">
-                    <span className="sr-only">Actions</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {views.map(({ row, view, grader, action }) => {
-                  const busy = view.kind === "grading";
-                  return (
-                    <TableRow
-                      key={row.id}
-                      className={cn(busy && "bg-primary-soft/40 hover:bg-primary-soft/40")}
-                      aria-busy={busy || undefined}
-                    >
-                      <TableCell className="pl-6">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <Avatar name={row.student.name} />
-                          <div className="min-w-0">
-                            <p className="truncate font-medium text-foreground">{row.student.name}</p>
-                            {row.source === "SCAN" ? (
-                              <p className="text-xs text-muted-foreground">
-                                <ScannedHint row={row} />
-                              </p>
-                            ) : row.fileName ? (
-                              <p className="max-w-48 truncate text-xs text-muted-foreground" title={row.fileName}>
-                                {row.fileName}
-                              </p>
-                            ) : null}
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      <TableCell>
-                        <RowStatus row={row} view={view} />
-                      </TableCell>
-
-                      <TableCell className="text-muted-foreground">
-                        <span title={row.submittedTitle}>{row.submittedLabel}</span>
-                      </TableCell>
-
-                      <TableCell className="tabular text-right text-muted-foreground">
-                        {row.wordCount.toLocaleString("en-US")}
-                      </TableCell>
-
-                      <TableCell>
-                        {busy ? (
-                          <GradingCell label />
-                        ) : view.kind === "graded" && view.confidence ? (
-                          <span className="inline-flex items-center gap-2">
-                            <ConfidenceBadge confidence={view.confidence} showLabel={false} />
-                            {mixedGraders && grader ? (
-                              <span className="text-xs text-muted-foreground">{GRADER_LABELS[grader]}</span>
-                            ) : null}
-                          </span>
-                        ) : (
-                          <Dash label="No suggestion yet" />
-                        )}
-                      </TableCell>
-
-                      <TableCell>
-                        {busy ? (
-                          <Skeleton className="h-5 w-8 rounded-full" />
-                        ) : view.kind === "graded" ? (
-                          <FlagsIndicator flags={view.flags} />
-                        ) : view.kind === "server" && row.ai ? (
-                          <FlagsIndicator flags={row.ai.flags} />
-                        ) : (
-                          <Dash label="No flags" />
-                        )}
-                      </TableCell>
-
-                      <TableCell className="text-right">
-                        {busy ? (
-                          <Skeleton className="ml-auto h-5 w-12" />
-                        ) : row.published ? (
-                          <span className="tabular font-medium text-foreground">
-                            {formatScore(row.published.total, row.published.max)}
-                          </span>
-                        ) : (
-                          <Dash label="Not published" />
-                        )}
-                      </TableCell>
-
-                      <TableCell className="pr-6 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {scannable.has(row.student.id) ? (
-                            <ScanLink assignmentId={assignmentId} student={row.student} rescan />
-                          ) : null}
-                          <RowAction
-                            row={row}
-                            kind={action}
-                            reviewHref={reviewHref(row.id)}
-                            onRun={() => start([row.id])}
-                            disabled={isRunning}
-                          />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-
-                {notSubmitted.map((student) => (
-                  <TableRow key={student.id} className="hover:bg-transparent">
-                    <TableCell className="pl-6">
-                      <div className="flex items-center gap-3">
-                        <Avatar name={student.name} className="opacity-60" />
-                        <span className="truncate text-muted-foreground">{student.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-[13px] text-muted-foreground">
-                        {test ? "Not scanned yet" : "Not submitted"}
-                      </span>
-                    </TableCell>
-                    <TableCell colSpan={5} />
-                    <TableCell className="pr-6 text-right">
-                      {test ? <ScanLink assignmentId={assignmentId} student={student} rescan={false} /> : addPaper(student)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </>
-      )}
+      {graded.length > 0 ? (
+        <section aria-labelledby="group-graded">
+          <GroupHeading id="group-graded" title={labels.graded} count={graded.length} />
+          <ul className="divide-y divide-border">{graded.map(renderRow)}</ul>
+        </section>
+      ) : null}
     </Card>
   );
 }

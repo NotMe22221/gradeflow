@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { BannerArt } from "@/components/classroom/banner-art";
 import { bannerMotif, classTheme } from "@/lib/ui/class-theme";
 import { cn } from "@/lib/utils";
@@ -29,7 +31,7 @@ export function ClassBanner({
     >
       <BannerArt
         motif={bannerMotif({ name, subject })}
-        className="pointer-events-none absolute right-0 bottom-0 -z-10 h-full w-auto max-w-[70%] text-white opacity-90 sm:max-w-[55%]"
+        className="pointer-events-none absolute right-0 bottom-0 -z-10 h-full w-auto max-w-[62%] text-white opacity-45 sm:max-w-[55%] sm:opacity-90"
       />
       <div className="flex min-h-28 flex-col justify-end sm:min-h-36">
         <h1 className="text-[28px] leading-tight font-semibold text-balance sm:text-[36px]">{name}</h1>
@@ -64,12 +66,13 @@ export function ClassCardBanner({
         motif={bannerMotif({ name, subject })}
         className="pointer-events-none absolute -right-6 -bottom-4 -z-10 h-[120px] w-auto text-white opacity-80"
       />
-      <a
+      {/* The link stretches over the whole banner, so the banner is one click target. */}
+      <Link
         href={href}
-        className="block truncate rounded-sm text-[22px] leading-7 font-medium outline-none hover:underline focus-visible:ring-2 focus-visible:ring-white"
+        className="block truncate rounded-sm text-[22px] leading-7 font-medium outline-none after:absolute after:inset-0 hover:underline focus-visible:after:ring-2 focus-visible:after:ring-white focus-visible:after:ring-inset"
       >
         <span className="font-display">{name}</span>
-      </a>
+      </Link>
       <p className="truncate text-sm text-white/90">{[section, subject].filter(Boolean).join(" · ")}</p>
       {meta ? <p className="mt-2 truncate text-[13px] text-white/90">{meta}</p> : null}
     </div>

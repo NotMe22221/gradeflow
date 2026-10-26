@@ -62,15 +62,23 @@ Submission ──AI first pass──▶ AiGrade + CriterionScore (suggestion, dr
 | Route | Who | Purpose |
 | --- | --- | --- |
 | `/` | public | Marketing landing; "View the demo" signs in as the demo teacher |
-| `/dashboard` | teacher | Stat row + class cards with pending-review counts |
+| `/dashboard` | teacher | Home: greeting, stat strip, teaching tools, class cards with upcoming work and "N to review" |
 | `/classes` | teacher | Class cards; create a class |
-| `/classes/[classId]` | teacher | Roster (add student) + assignments |
-| `/classes/[classId]/assignments/new` | teacher | Assignment + rubric builder |
-| `/assignments/[assignmentId]` | teacher | Rubric, submissions, add submission, batch AI pass with progress |
-| `/review` | teacher | Review queue split view. Query: `?assignment=<id>` filter, `?s=<submissionId>` selection |
-| `/gradebook` | teacher | Gradebook per class (`?class=<id>`), CSV export |
-| `/student` | student | Their assignments and statuses |
-| `/student/assignments/[assignmentId]` | student | Submit (paste or .txt) / see published grade + feedback |
+| `/classes/[classId]` | teacher | Stream: class banner, Upcoming, activity feed (`src/lib/classroom/stream.ts`) |
+| `/classes/[classId]/classwork` | teacher | Classwork: "+ Create" menu, expandable assignment rows with Turned in / Assigned / Graded counts |
+| `/classes/[classId]/people` | teacher | People: teacher and roster (add student); rows link to student profiles |
+| `/classes/[classId]/grades` | teacher | Grades: class gradebook of approved grades, CSV export |
+| `/classes/[classId]/students/[studentId]` | teacher | Student profile + conference brief |
+| `/classes/[classId]/assignments/new` | teacher | Assignment + rubric builder (`?kind=TEST` for a handwritten test) |
+| `/assignments/[assignmentId]` | teacher | Student work (counts, student list, add submission, batch AI pass with progress) and Instructions (`?tab=instructions`) |
+| `/review` | teacher | To review: the grading tool. Query: `?assignment=<id>` filter, `?s=<submissionId>` selection |
+| `/scan` | teacher | Paper Scanner (`?assignment=<id>`) |
+| `/gradebook` | teacher | Cross-class gradebook (`?class=<id>`), CSV export |
+| `/insights` | teacher | Class heatmap and most-missed questions (`?class=<id>`) |
+| `/student` | student | Home: streak + XP strip, class cards, assignment inbox, goal planner |
+| `/student/todo` | student | To-do: Assigned / Missing / Done, grouped by due date (`?tab=`, `?class=`) |
+| `/student/classes/[classId]` (+ `/classwork`, `/people`) | student | The class Stream, their work in the class, teacher + classmates (names only) |
+| `/student/assignments/[assignmentId]` | student | Instructions and rubric; Your work card (paste or .txt, Turn in) / returned grade + feedback |
 | `POST /api/submissions/[submissionId]/grade` | teacher | Run the AI first pass for one submission |
 | `GET /api/classes/[classId]/gradebook/export` | teacher | Gradebook CSV download |
 
@@ -120,12 +128,15 @@ src/lib/
   gradebook/          gradebook query
   export/             GradebookExporter interface + CSV implementation
   stats.ts            dashboard stats
+  classroom/          class Stream feed (stream.ts loader, feed.ts pure) + due-date wording
+  ui/class-theme.ts   class colors and banner motifs (pure)
   demo/               rubric templates + sample papers (synthetic)
 src/components/
   ui/                 shadcn/ui primitives
-  app-shell/          top bar, sidebar, user menu, mobile nav
+  app-shell/          64px top app bar, collapsible class drawer (sheet on phones), user menu
+  classroom/          ClassBanner, ClassCardBanner, ClassAvatar, PageTabs, ClassTabBar
   grading/            ConfidenceBadge, GraderBadge, StatusBadge
-  review/ assignments/ classes/ dashboard/ gradebook/ student/ landing/
+  review/ assignments/ classes/ classwork/ dashboard/ gradebook/ student/ landing/
 ```
 
 ## Safeguards
@@ -194,7 +205,7 @@ API key through a labelled local demo implementation.
 server only (`.env.local`), never logged, never sent to the client.
 
 **Safeguards carried over:**
-- Camera-graded tests land in the review queue as `NEEDS_REVIEW`. They publish
+- Camera-graded tests land in To review as `NEEDS_REVIEW`. They publish
   only through the existing teacher approval gate. `/api/grade` never writes
   `PublishedGrade`.
 - Photos and transcriptions are untrusted data. The vision prompt says the

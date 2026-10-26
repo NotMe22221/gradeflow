@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Camera, FlaskConical, Inbox, Loader2, MoreHorizontal, Sparkles, Table2 } from "lucide-react";
+import { Camera, FlaskConical, Inbox, Loader2, MoreVertical, Sparkles, Table2 } from "lucide-react";
 
 import { AddSubmissionDialog } from "@/components/assignments/add-submission-dialog";
 import { useBatchGrading } from "@/components/assignments/batch-grading";
@@ -22,9 +22,10 @@ import { pluralize } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /**
- * Page-header actions: overflow menu, add submission, and the AI pass / review
- * CTA. On phones the CTA comes first at full width, then the review link, then
- * the utility buttons.
+ * The Student work actions beside the Turned in / Assigned / Graded numbers:
+ * one filled primary action (run the AI pass, review, or scan), an outlined
+ * secondary, "Add submission", and an overflow menu. On phones the primary
+ * action comes first at full width.
  *
  * A handwritten test's primary action is "Scan papers": scans arrive already
  * graded, so the batch AI pass only appears when typed papers are waiting.
@@ -35,6 +36,7 @@ export function AssignmentActions({
   eligibleStudents,
   hasRoster,
   missingCount,
+  className,
 }: {
   classId: string;
   kind: AssignmentKind;
@@ -42,6 +44,7 @@ export function AssignmentActions({
   hasRoster: boolean;
   /** Enrolled students with no paper yet (sample papers can fill these). */
   missingCount: number;
+  className?: string;
 }) {
   const { assignmentId, gradableIds, reviewCount, isRunning, run, start } = useBatchGrading();
   const samples = useLoadSamples(assignmentId);
@@ -55,7 +58,11 @@ export function AssignmentActions({
     run && isRunning ? `Grading ${Math.min(run.processed + 1, run.total)} of ${run.total}…` : "Grading…";
 
   const reviewButton = (primary: boolean) => (
-    <Button variant={primary ? "default" : "outline"} asChild className={cn("max-sm:w-full", primary && "max-sm:order-first")}>
+    <Button
+      variant={primary ? "default" : "outline"}
+      asChild
+      className={cn("max-sm:w-full", primary && "max-sm:order-first")}
+    >
       <Link href={reviewHref}>
         <Inbox aria-hidden />
         Review {pluralize(reviewCount, "paper")}
@@ -76,45 +83,7 @@ export function AssignmentActions({
   );
 
   return (
-    <>
-      <div className="flex items-center gap-2 max-sm:order-last">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" aria-label="More actions">
-              {samples.pending ? <Loader2 className="animate-spin" /> : <MoreHorizontal />}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72">
-            {showSamples ? (
-              <>
-                <DropdownMenuLabel>Demo</DropdownMenuLabel>
-                <DropdownMenuItem onSelect={samples.load} disabled={samples.pending || isRunning} className="items-start">
-                  <FlaskConical className="mt-0.5" aria-hidden />
-                  <span className="grid gap-0.5">
-                    <span>Load sample papers (demo)</span>
-                    <span className="text-xs text-muted-foreground">{LOAD_SAMPLES_HINT}</span>
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
-            ) : null}
-            <DropdownMenuItem asChild>
-              <Link href={`/gradebook?class=${encodeURIComponent(classId)}`}>
-                <Table2 aria-hidden />
-                Open gradebook
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <AddSubmissionDialog
-          assignmentId={assignmentId}
-          students={eligibleStudents}
-          hasRoster={hasRoster}
-          disabled={isRunning}
-        />
-      </div>
-
+    <div className={cn("flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end", className)}>
       {test ? (
         <>
           {reviewCount > 0 && !isRunning ? reviewButton(false) : null}
@@ -136,6 +105,48 @@ export function AssignmentActions({
       ) : reviewCount > 0 ? (
         reviewButton(true)
       ) : null}
-    </>
+
+      {/* Phones: one row under the main actions. Wider: "Add submission" first, the menu last. */}
+      <div className="flex items-center gap-2 max-sm:order-last sm:contents">
+        <div className="sm:order-first">
+          <AddSubmissionDialog
+            assignmentId={assignmentId}
+            students={eligibleStudents}
+            hasRoster={hasRoster}
+            disabled={isRunning}
+          />
+        </div>
+        <div className="ml-auto sm:order-last sm:ml-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="More actions">
+                {samples.pending ? <Loader2 className="animate-spin" /> : <MoreVertical />}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-72">
+              {showSamples ? (
+                <>
+                  <DropdownMenuLabel>Demo</DropdownMenuLabel>
+                  <DropdownMenuItem onSelect={samples.load} disabled={samples.pending || isRunning} className="items-start">
+                    <FlaskConical className="mt-0.5" aria-hidden />
+                    <span className="grid gap-0.5">
+                      <span>Load sample papers (demo)</span>
+                      <span className="text-xs text-muted-foreground">{LOAD_SAMPLES_HINT}</span>
+                    </span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              ) : null}
+              <DropdownMenuItem asChild>
+                <Link href={`/classes/${encodeURIComponent(classId)}/grades`}>
+                  <Table2 aria-hidden />
+                  Open class Grades
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </div>
   );
 }

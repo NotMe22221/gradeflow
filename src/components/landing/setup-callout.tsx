@@ -8,12 +8,12 @@ export function SetupCallout() {
     <LandingContainer className="pt-6">
       <div
         role="status"
-        className="mx-auto flex max-w-3xl items-start gap-3 rounded-xl border border-warning/30 bg-warning-soft px-4 py-3 text-sm text-warning-soft-foreground"
+        className="mx-auto flex max-w-3xl items-start gap-3 rounded-2xl bg-warning-soft px-4 py-3.5 text-sm text-warning-soft-foreground"
       >
         <Database className="mt-0.5 size-4 shrink-0" aria-hidden />
         <p>
           <span className="font-medium text-foreground">Demo data isn&apos;t loaded yet.</span> Run{" "}
-          <code className="rounded bg-card px-1.5 py-0.5 font-mono text-[13px] text-foreground ring-1 ring-warning/30">
+          <code className="rounded-md bg-card px-1.5 py-0.5 font-mono text-[13px] text-foreground">
             npm run seed
           </code>
           , then click View the demo.

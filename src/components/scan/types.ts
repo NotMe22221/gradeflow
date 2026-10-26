@@ -5,6 +5,8 @@ export type ScanStudentOption = { id: string; name: string };
 
 export type ScanClassOption = {
   id: string;
+  /** "Environmental Science": seeds the class color (classTheme). */
+  name: string;
   /** "Environmental Science · Period 4" */
   label: string;
   students: ScanStudentOption[];

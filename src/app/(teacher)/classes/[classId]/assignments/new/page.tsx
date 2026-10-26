@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight } from "lucide-react";
 
 import { RubricBuilder } from "@/components/assignments/rubric-builder";
-import { PageContainer, PageHeader } from "@/components/page-header";
+import { PageContainer } from "@/components/page-header";
 import { getOwnedClass } from "@/lib/access";
 import { openAiConfigured } from "@/lib/ai/openai";
 import { AuthError, requireTeacherPage } from "@/lib/auth/session";
 import { parseAssignmentKind } from "@/lib/constants";
+import { classTheme } from "@/lib/ui/class-theme";
 
 export const metadata: Metadata = { title: "New assignment" };
 
@@ -36,24 +35,9 @@ export default async function NewAssignmentPage({
 
   return (
     <PageContainer>
-      <PageHeader
-        eyebrow={
-          <span className="flex min-w-0 items-center gap-1">
-            <Link
-              href={`/classes/${klass.id}`}
-              className="truncate rounded-sm transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
-            >
-              {klass.name}
-            </Link>
-            <ChevronRight className="size-3.5 shrink-0" aria-hidden />
-            <span>New assignment</span>
-          </span>
-        }
-        title="New assignment"
-        description="Write the prompt and the rubric, or the answer key for a handwritten test. The AI grades against exactly what you write here, and you approve every grade."
-      />
       <RubricBuilder
         classId={klass.id}
+        classColor={classTheme(klass).color}
         initialKind={initialKind}
         answerKeyEngine={openAiConfigured() ? "openai" : "demo"}
       />

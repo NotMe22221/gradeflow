@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, BookOpen, Inbox, Table2 } from "lucide-react";
+import { BookOpen, ClipboardCheck, Table2 } from "lucide-react";
 
-import { DashboardClassCard } from "@/components/dashboard/class-card";
+import { ClassCard, ClassCardGrid } from "@/components/classes/class-card";
+import { NewClassDialog } from "@/components/classes/new-class-dialog";
 import { MostMissedCard } from "@/components/dashboard/most-missed-card";
 import { ReadyForAiCallout } from "@/components/dashboard/ready-for-ai-callout";
 import { RecentlyPublished } from "@/components/dashboard/recently-published";
@@ -10,9 +11,10 @@ import { SectionHeader } from "@/components/dashboard/section-header";
 import { StatRow } from "@/components/dashboard/stat-row";
 import { TeachingTools } from "@/components/dashboard/teaching-tools";
 import { EmptyState } from "@/components/empty-state";
-import { PageContainer, PageHeader } from "@/components/page-header";
+import { PageContainer } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireTeacherPage } from "@/lib/auth/session";
+import { getUpcomingByClass } from "@/lib/classroom/stream";
 import { firstName, pluralize } from "@/lib/format";
 import { getMostMissedForTeacher, listBriefStudents } from "@/lib/insights/query";
 import {
@@ -22,7 +24,7 @@ import {
   getRecentlyPublished,
 } from "@/lib/stats";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata: Metadata = { title: "Home" };
 
 const todayFormatter = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" });
 
@@ -30,86 +32,90 @@ export default async function DashboardPage() {
   const teacher = await requireTeacherPage();
   const now = new Date();
 
-  const [stats, classes, recent, readyAssignments, mostMissed, briefClasses] = await Promise.all([
+  const [stats, classes, upcoming, recent, readyAssignments, mostMissed, briefClasses] = await Promise.all([
     getDashboardStats(teacher.id, now),
     getClassSummaries(teacher.id, now),
+    getUpcomingByClass(teacher.id, now, 2),
     getRecentlyPublished(teacher.id, 5),
-    getReadyForAiAssignments(teacher.id),
+    getReadyForAiAssignments(teacher.id, now),
     getMostMissedForTeacher(teacher.id, 3),
     listBriefStudents(teacher.id),
   ]);
 
   const pending = stats.pendingReview;
   const statusLine =
-    pending > 0 ? `${pluralize(pending, "paper")} waiting for your review` : "You're all caught up";
+    pending > 0
+      ? `${pluralize(pending, "paper")} waiting for your review`
+      : stats.readyForAi > 0
+        ? "Nothing is waiting for your review"
+        : "You're all caught up";
 
   return (
     <PageContainer>
-      <PageHeader
-        eyebrow={todayFormatter.format(now)}
-        title={`Welcome back, ${firstName(teacher.name)}`}
-        description={statusLine}
-        actions={
-          pending > 0 ? (
-            <Button asChild>
-              <Link href="/review">
-                <Inbox aria-hidden />
-                Open review queue
-              </Link>
-            </Button>
-          ) : classes.length > 0 ? (
-            <Button asChild variant="outline">
-              <Link href="/gradebook">
-                <Table2 aria-hidden />
-                Open gradebook
-              </Link>
-            </Button>
-          ) : null
-        }
-      />
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0 space-y-1">
+          <p className="text-[13px] font-medium text-muted-foreground">{todayFormatter.format(now)}</p>
+          <h1 className="text-[26px] leading-tight font-medium text-balance text-foreground sm:text-[28px]">
+            Welcome back, {firstName(teacher.name)}
+          </h1>
+          <p className="text-[15px] text-muted-foreground">{statusLine}</p>
+        </div>
+        {pending > 0 ? (
+          <Button asChild className="self-start sm:self-auto">
+            <Link href="/review">
+              <ClipboardCheck aria-hidden />
+              Open To review
+            </Link>
+          </Button>
+        ) : classes.length > 0 ? (
+          <Button asChild variant="outline" className="self-start sm:self-auto">
+            <Link href="/gradebook">
+              <Table2 aria-hidden />
+              Open gradebook
+            </Link>
+          </Button>
+        ) : null}
+      </header>
 
-      <ReadyForAiCallout count={stats.readyForAi} assignments={readyAssignments} className="mb-8" />
+      <ReadyForAiCallout count={stats.readyForAi} assignments={readyAssignments} className="mt-6" />
 
-      <StatRow stats={stats} />
+      <StatRow stats={stats} className="mt-6" />
 
-      {/* The Paper Scanner, class heatmap, and conference briefs, one click from the dashboard. */}
-      <TeachingTools briefClasses={briefClasses} className="mt-12" />
+      {/* The Paper Scanner, class heatmap, and conference briefs, one click from Home. */}
+      <TeachingTools briefClasses={briefClasses} className="mt-10" />
 
-      {/* grid-cols-1 (minmax(0, 1fr)) keeps long card text from widening the column past a phone screen. */}
-      <div className="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <section aria-labelledby="classes-heading" className="min-w-0 lg:col-span-2">
+      {/* minmax(0, 1fr) keeps long card text from widening the column past a phone screen. */}
+      <div className="mt-10 grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <section aria-labelledby="classes-heading" className="min-w-0">
           <SectionHeader
             id="classes-heading"
             title="Your classes"
             href={classes.length > 0 ? "/classes" : undefined}
-            linkLabel="All classes"
+            linkLabel="View all"
           />
           {classes.length === 0 ? (
             <EmptyState
               icon={BookOpen}
               title="Create your first class to start grading."
               description="Add a class and its students, then set up an assignment with a rubric."
-              action={
-                <Button asChild>
-                  <Link href="/classes">
-                    Go to classes
-                    <ArrowRight aria-hidden />
-                  </Link>
-                </Button>
-              }
+              action={<NewClassDialog />}
             />
           ) : (
-            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+            <ClassCardGrid>
               {classes.map((summary) => (
                 <li key={summary.id} className="min-w-0">
-                  <DashboardClassCard summary={summary} />
+                  <ClassCard
+                    data={{ ...summary, upcoming: upcoming.get(summary.id) ?? [] }}
+                    teacherName={teacher.name}
+                    now={now}
+                  />
                 </li>
               ))}
-            </ul>
+            </ClassCardGrid>
           )}
         </section>
 
-        <div className="min-w-0 space-y-8">
+        <div className="grid min-w-0 grid-cols-1 content-start gap-6 md:grid-cols-2 xl:grid-cols-1 xl:pt-14">
           <RecentlyPublished items={recent} now={now} />
           {classes.length > 0 ? <MostMissedCard items={mostMissed} /> : null}
         </div>

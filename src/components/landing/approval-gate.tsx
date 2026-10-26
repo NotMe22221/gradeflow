@@ -23,7 +23,7 @@ type FlowNode = { icon: LucideIcon; title: string; detail: string; gate?: boolea
 const FLOW: FlowNode[] = [
   { icon: FileText, title: "Paper or photo", detail: "Read as data, never as instructions" },
   { icon: Sparkles, title: "AI suggestion", detail: "A validated draft, not a grade" },
-  { icon: ShieldCheck, title: "Your approval", detail: "Edit, approve, or send back", gate: true },
+  { icon: ShieldCheck, title: "Your approval", detail: "Edit, then Approve & return", gate: true },
   { icon: Table2, title: "Gradebook", detail: "And the student's view" },
 ];
 
@@ -82,36 +82,28 @@ export function ApprovalGate() {
 
         <ol
           aria-label="How a grade moves through GradeSmart AI"
-          className="mt-12 flex flex-col items-stretch gap-2 rounded-2xl border border-border bg-card p-3 shadow-card lg:flex-row lg:items-stretch lg:gap-0 lg:p-4"
+          className="mt-12 flex flex-col items-stretch gap-1 rounded-2xl border border-border bg-card p-2 sm:p-3 lg:flex-row lg:items-stretch lg:gap-0"
         >
           {FLOW.map((node, index) => (
-            <li
-              key={node.title}
-              className="flex flex-col items-stretch lg:flex-1 lg:flex-row lg:items-stretch"
-            >
+            <li key={node.title} className="flex flex-col items-stretch lg:flex-1 lg:flex-row lg:items-stretch">
               <div
                 className={cn(
-                  "flex flex-1 items-center gap-3 rounded-xl border px-4 py-3",
-                  node.gate ? "border-success/30 bg-success-soft" : "border-transparent bg-background"
+                  "flex flex-1 items-center gap-3 rounded-xl px-4 py-3",
+                  node.gate ? "bg-success-soft" : "bg-background"
                 )}
               >
                 <span
                   className={cn(
-                    "flex size-9 shrink-0 items-center justify-center rounded-lg ring-1",
-                    node.gate
-                      ? "bg-card text-success ring-success/30"
-                      : "bg-card text-muted-foreground ring-border"
+                    "flex size-10 shrink-0 items-center justify-center rounded-full",
+                    node.gate ? "bg-success text-white" : "bg-primary-soft text-primary-soft-foreground"
                   )}
                 >
-                  <node.icon className="size-4" aria-hidden />
+                  <node.icon className="size-5" aria-hidden />
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-sm font-semibold text-foreground">{node.title}</span>
+                  <span className="block text-sm font-medium text-foreground">{node.title}</span>
                   <span
-                    className={cn(
-                      "block text-xs",
-                      node.gate ? "text-success-soft-foreground" : "text-muted-foreground"
-                    )}
+                    className={cn("block text-xs", node.gate ? "text-success-soft-foreground" : "text-muted-foreground")}
                   >
                     {node.detail}
                   </span>
@@ -119,7 +111,7 @@ export function ApprovalGate() {
               </div>
               {index < FLOW.length - 1 ? (
                 <span
-                  className="flex items-center justify-center py-0.5 text-muted-foreground/60 lg:px-2 lg:py-0"
+                  className="flex items-center justify-center py-0.5 text-muted-foreground/60 lg:px-1.5 lg:py-0"
                   aria-hidden
                 >
                   <ArrowDown className="size-4 lg:hidden" />
@@ -132,20 +124,16 @@ export function ApprovalGate() {
 
         <ul className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {SAFEGUARDS.map((item) => (
-            <li
-              key={item.title}
-              className="flex flex-col rounded-xl border border-border bg-card p-6 shadow-card"
-            >
-              <span className="flex size-10 items-center justify-center rounded-lg bg-secondary text-foreground ring-1 ring-border">
+            <li key={item.title} className="flex min-w-0 flex-col rounded-xl border border-border bg-card p-5 sm:p-6">
+              <span className="flex size-10 items-center justify-center rounded-full bg-primary-soft text-primary-soft-foreground">
                 <item.icon className="size-5" aria-hidden />
               </span>
-              <h3 className="mt-5 text-base font-semibold tracking-tight text-foreground">{item.title}</h3>
+              <h3 className="mt-5 text-lg leading-snug font-medium text-foreground">{item.title}</h3>
               <p className="mt-2 text-sm leading-6 text-pretty text-muted-foreground">{item.body}</p>
               {item.example ? <div className="mt-auto pt-5">{item.example}</div> : null}
             </li>
           ))}
         </ul>
-
       </LandingContainer>
     </section>
   );
@@ -153,7 +141,7 @@ export function ApprovalGate() {
 
 function InjectionExample() {
   return (
-    <div className="rounded-lg border border-danger/20 bg-danger-soft/60 px-3 py-2.5">
+    <div className="rounded-xl bg-danger-soft/70 px-3.5 py-3">
       <span className="inline-flex items-center gap-1.5 text-xs font-medium text-danger-soft-foreground">
         <Flag className="size-3.5" aria-hidden />
         Flagged: text addressed to the grader
@@ -171,7 +159,7 @@ function InjectionExample() {
 
 function TranscriptionExample() {
   return (
-    <div className="rounded-lg border border-border bg-background px-3 py-2.5">
+    <div className="rounded-xl border border-border bg-background px-3.5 py-3">
       <div aria-hidden>
         <MiniPaperTabs active="transcription" />
       </div>
@@ -191,7 +179,7 @@ const CONFIDENCE_SAMPLES = [
 
 function ConfidenceExample() {
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5">
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-background px-3.5 py-3">
       <span className="mr-1 text-xs text-muted-foreground">Sorts the queue:</span>
       {CONFIDENCE_SAMPLES.map((sample) => (
         <span

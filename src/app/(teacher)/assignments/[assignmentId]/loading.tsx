@@ -4,42 +4,56 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function AssignmentLoading() {
   return (
     <PageContainer aria-busy="true" aria-label="Loading assignment">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-2">
-          <Skeleton className="h-3.5 w-36" />
-          <Skeleton className="h-7 w-[28rem] max-w-full" />
-          <Skeleton className="h-4 w-64 max-w-full" />
+      <Skeleton className="mb-4 h-6 w-56 rounded-full" />
+      <div className="mb-2 flex items-start gap-4">
+        <Skeleton className="size-12 shrink-0 rounded-full" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <Skeleton className="h-8 w-[28rem] max-w-full" />
+          <Skeleton className="h-4 w-72 max-w-full" />
         </div>
-        <div className="flex gap-2">
-          <Skeleton className="size-9" />
-          <Skeleton className="h-9 w-36" />
-          <Skeleton className="h-9 w-56" />
+      </div>
+      <div className="mb-6 flex gap-1 border-b border-border">
+        <div className="flex h-12 items-center px-4">
+          <Skeleton className="h-4 w-24" />
+        </div>
+        <div className="flex h-12 items-center px-4">
+          <Skeleton className="h-4 w-20" />
         </div>
       </div>
       <div className="space-y-6">
-        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-card">
-          <div className="space-y-2 px-6 pt-6 pb-4">
-            <Skeleton className="h-5 w-32" />
-            <Skeleton className="h-4 w-48" />
-          </div>
-          <div className="border-t border-border">
-            {Array.from({ length: 5 }, (_, index) => (
-              <div key={index} className="flex items-center gap-6 border-b border-border px-6 py-3 last:border-0">
-                <div className="flex min-w-0 flex-1 items-center gap-3 xl:w-48 xl:flex-none">
-                  <Skeleton className="size-8 shrink-0 rounded-full" />
-                  <Skeleton className="h-4 w-28" />
-                </div>
-                <Skeleton className="h-5 w-24 shrink-0 rounded-full" />
-                <Skeleton className="hidden h-4 w-16 xl:block" />
-                <Skeleton className="hidden h-5 w-16 rounded-full xl:block" />
-                <Skeleton className="ml-auto hidden h-8 w-20 sm:block" />
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex gap-6">
+            {[0, 1, 2].map((index) => (
+              <div key={index} className="space-y-2">
+                <Skeleton className="h-10 w-10" />
+                <Skeleton className="h-3.5 w-16" />
               </div>
             ))}
           </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Skeleton className="h-10 w-full rounded-full sm:w-40" />
+            <Skeleton className="h-10 w-full rounded-full sm:w-60" />
+          </div>
         </div>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Skeleton className="h-72 w-full rounded-xl" />
-          <Skeleton className="h-72 w-full rounded-xl" />
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <div className="space-y-1.5 px-4 py-4 md:px-6">
+            <Skeleton className="h-5 w-28" />
+            <Skeleton className="h-3.5 w-20" />
+          </div>
+          <div className="border-y border-border bg-background px-4 py-2 md:px-6">
+            <Skeleton className="h-4 w-24" />
+          </div>
+          {Array.from({ length: 5 }, (_, index) => (
+            <div key={index} className="flex min-h-16 items-center gap-4 border-b border-border px-4 py-3 last:border-0 md:px-6">
+              <Skeleton className="size-8 shrink-0 rounded-full" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-44 max-w-full" />
+              </div>
+              <Skeleton className="hidden h-5 w-40 rounded-full md:block" />
+              <Skeleton className="h-8 w-20 rounded-full" />
+            </div>
+          ))}
         </div>
       </div>
     </PageContainer>
