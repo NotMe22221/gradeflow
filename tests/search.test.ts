@@ -284,10 +284,11 @@ describe("palette shortcut", () => {
   const editable = { tagName: "DIV", isContentEditable: true, getAttribute: () => null, closest: () => null };
   const closed = { paletteOpen: false, overlayOpen: false };
 
-  it("opens with Ctrl+K, Cmd+K and /", () => {
+  it("opens with Ctrl+K and Cmd+K, and has no single-key shortcut (WCAG 2.1.4)", () => {
     assert.equal(paletteShortcut({ key: "k", ctrlKey: true, target: body }, closed), "open");
     assert.equal(paletteShortcut({ key: "K", metaKey: true, target: body }, closed), "open");
-    assert.equal(paletteShortcut({ key: "/", target: body }, closed), "open");
+    assert.equal(paletteShortcut({ key: "/", target: body }, closed), null);
+    assert.equal(paletteShortcut({ key: "/", shiftKey: true, target: body }, closed), null);
   });
 
   it("never fires while typing", () => {
@@ -311,7 +312,7 @@ describe("palette shortcut", () => {
     assert.equal(paletteShortcut({ key: "k", ctrlKey: true, altKey: true, target: body }, closed), null);
   });
 
-  it("closes with Ctrl/Cmd+K and types / inside the open palette", () => {
+  it("closes with Ctrl/Cmd+K and leaves / to the open palette's field", () => {
     const open = { paletteOpen: true, overlayOpen: true, activeElement: input };
     assert.equal(paletteShortcut({ key: "k", metaKey: true, target: input }, open), "close");
     assert.equal(paletteShortcut({ key: "/", target: input }, open), null);

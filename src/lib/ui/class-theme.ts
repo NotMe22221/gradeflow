@@ -104,7 +104,44 @@ export function bannerMotif(klass: { name: string; subject?: string | null }): B
   return "default";
 }
 
-/** One or two letters for a class avatar ("English 10" -> "E"). */
+/** Small words that give a class no initial unless they end its name ("History of Art" -> "HA", "Biology A" -> "BA"). */
+const MINOR_WORDS = new Set(["a", "an", "and", "at", "for", "in", "of", "on", "the", "to", "with"]);
+
+/** Roman numerals after the first word ("Spanish II"), read as the digit they stand for. */
+const ROMAN = new Map(
+  ["i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix"].map((numeral, index) => [numeral, String(index + 1)])
+);
+
+/** Characters narrow enough to sit two to a small circle: Latin, Greek and Cyrillic letters, and digits. */
+const PAIRABLE = /^[\p{Script=Latin}\p{Script=Greek}\p{Script=Cyrillic}\p{Nd}]$/u;
+
+function upper(char: string): string {
+  const result = char.toUpperCase();
+  // "ß" upper-cases to "SS": keep one character per slot.
+  return [...result].length === 1 ? result : char;
+}
+
+/**
+ * Two characters for a class avatar, so classes that share a first letter
+ * still look different (in the navigation rail the avatar stands alone):
+ * the first character of the first two words ("English 10" -> "E1",
+ * "Environmental Science" -> "ES", "History of Art" -> "HA", "Spanish II" ->
+ * "S2"), or the first two letters of a one-word name ("Biology" -> "BI").
+ * Scripts with wide characters (Chinese, Japanese, Korean...) keep one.
+ */
 export function classInitial(name: string): string {
-  return name.trim().charAt(0).toUpperCase() || "C";
+  // Each word as its letters and digits (apostrophes, accents and other marks dropped).
+  const words = name
+    .replace(/['’]/g, "")
+    .split(/[^\p{L}\p{M}\p{N}]+/u)
+    .map((word) => [...word].filter((char) => /[\p{L}\p{N}]/u.test(char)))
+    .filter((chars) => chars.length > 0)
+    .filter(
+      (chars, index, all) => index === 0 || index === all.length - 1 || !MINOR_WORDS.has(chars.join("").toLowerCase())
+    );
+  if (words.length === 0) return "C";
+  const first = words[0][0];
+  const second = words.length > 1 ? (ROMAN.get(words[1].join("").toLowerCase()) ?? words[1][0]) : words[0][1];
+  if (!second || !PAIRABLE.test(first) || !PAIRABLE.test(second)) return upper(first);
+  return upper(first) + upper(second);
 }

@@ -3,6 +3,7 @@
 import { useEffect, useEffectEvent } from "react";
 
 import {
+  isCharacterKey,
   isEditableTarget,
   ownsArrowKeys,
   shortcutForKey,
@@ -25,9 +26,15 @@ function overlayIsOpen(): boolean {
  * "A" only ever opens the approval confirmation; publishing needs a click
  * (or Enter) on the dialog's confirm button. Shortcuts are ignored while the
  * teacher is typing, while any dialog or popover is open, with a modifier
- * key held, and on auto-repeat.
+ * key held, and on auto-repeat. With `singleKeys` off (the teacher's
+ * setting), only the arrow keys work: letter shortcuts can clash with speech
+ * input and some screen readers (WCAG 2.1.4).
  */
-export function useReviewShortcuts(enabled: boolean, handlers: ReviewShortcutHandlers) {
+export function useReviewShortcuts(
+  enabled: boolean,
+  handlers: ReviewShortcutHandlers,
+  { singleKeys = true }: { singleKeys?: boolean } = {}
+) {
   const handleKeyDown = useEffectEvent((event: KeyboardEvent) => {
     if (!enabled) return;
     if (event.defaultPrevented || event.repeat || event.isComposing) return;
@@ -37,6 +44,7 @@ export function useReviewShortcuts(enabled: boolean, handlers: ReviewShortcutHan
 
     const action = shortcutForKey(event.key);
     if (!action) return;
+    if (!singleKeys && isCharacterKey(event.key)) return;
     if (event.key.startsWith("Arrow") && ownsArrowKeys(event.target)) return;
     event.preventDefault();
     handlers[action]();

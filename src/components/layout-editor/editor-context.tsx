@@ -24,11 +24,15 @@ import { sameLayout } from "./model";
 /*
  * Edit mode for a page's arrangement: Home sections (main and side column,
  * hidden or shown) and the class card order. Arranging is always an explicit
- * mode: the Customize button (or ?customize=1 in the URL, which the Customize
- * dialog links to) opens a sticky bar, every change is a draft, Done saves it
- * to the user's preferences (optimistically, reverting with a toast if the
- * save fails), and Cancel throws it away. Outside edit mode nothing on the
- * page can be dragged.
+ * mode: the Arrange button (or ?customize=1 in the URL, which Customize >
+ * Arrange Home links to) opens a sticky bar, every change is a draft, Done
+ * saves it to the user's preferences (optimistically, reverting with a toast
+ * if the save fails), and Cancel throws it away. Outside edit mode nothing on
+ * the page can be dragged.
+ *
+ * While the bar is up its height is published as --edit-bar-h on <html>, which
+ * html scroll-padding-top adds in, so a focused or scrolled-to control never
+ * lands under it (WCAG 2.4.11).
  */
 
 type Arrangement = { layout: SectionLayout | null; classOrder: string[] };
@@ -46,7 +50,8 @@ export type LayoutEditorValue = {
   /** Say something to screen readers (a polite live region). */
   announce: (message: string) => void;
   start: () => void;
-  customizeRef: React.RefObject<HTMLButtonElement | null>;
+  /** The Arrange button, which gets focus back when editing ends. */
+  arrangeButtonRef: React.RefObject<HTMLButtonElement | null>;
 };
 
 const EditorContext = createContext<LayoutEditorValue | null>(null);
@@ -102,9 +107,40 @@ export function LayoutEditorProvider({
   const session = useRef(0);
   const [, startTransition] = useTransition();
 
-  const customizeRef = useRef<HTMLButtonElement>(null);
+  const arrangeButtonRef = useRef<HTMLButtonElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
   const barHeadingRef = useRef<HTMLHeadingElement>(null);
   const focusAfterToggle = useRef(false);
+
+  // The bar is sticky just under the app bar. Publish its height (plus that
+  // 0.5rem offset) so html scroll-padding-top keeps focused and scrolled-to
+  // controls clear of it. It wraps, so its height follows the width and the
+  // text size: measure it rather than assume one.
+  useEffect(() => {
+    const bar = barRef.current;
+    if (!editing || !bar) return;
+    const root = document.documentElement;
+    const sync = () => {
+      const height = Math.ceil(bar.getBoundingClientRect().height);
+      root.style.setProperty("--edit-bar-h", `calc(${height}px + 0.5rem)`);
+    };
+    sync();
+    const observer = new ResizeObserver(sync);
+    observer.observe(bar);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--edit-bar-h");
+    };
+  }, [editing]);
+
+  // "Reset to default" offers Undo in a toast, which only means something
+  // while that edit session is open: Done, Cancel or leaving the page closes it.
+  const resetToastId = useRef<string | number | undefined>(undefined);
+  const dismissResetToast = useCallback(() => {
+    if (resetToastId.current !== undefined) toast.dismiss(resetToastId.current);
+    resetToastId.current = undefined;
+  }, []);
+  useEffect(() => dismissResetToast, [dismissResetToast]);
 
   const [message, setMessage] = useState("");
   const messageTimer = useRef<number | undefined>(undefined);
@@ -121,7 +157,7 @@ export function LayoutEditorProvider({
     if (!focusAfterToggle.current) return;
     focusAfterToggle.current = false;
     if (editing) barHeadingRef.current?.focus();
-    else customizeRef.current?.focus();
+    else arrangeButtonRef.current?.focus();
   }, [editing]);
 
   const start = useCallback(() => {
@@ -157,6 +193,7 @@ export function LayoutEditorProvider({
   }, []);
 
   function cancel() {
+    dismissResetToast();
     focusAfterToggle.current = true;
     setDraft(null);
     announce("Cancelled. Nothing changed.");
@@ -164,6 +201,7 @@ export function LayoutEditorProvider({
 
   function done() {
     if (!draft) return;
+    dismissResetToast();
     const patch: { layout: NonNullable<PreferencesPatch["layout"]> } = { layout: {} };
     if (surface && draft.layout && saved.layout && !sameLayout(draft.layout, saved.layout)) {
       patch.layout[surface] = draft.layout;
@@ -209,7 +247,8 @@ export function LayoutEditorProvider({
       text = "Classes are back in the order they were created.";
     }
     announce(text);
-    toast(text, {
+    dismissResetToast();
+    resetToastId.current = toast(text, {
       description: "Press Done to keep it.",
       duration: 8000,
       action: {
@@ -231,7 +270,7 @@ export function LayoutEditorProvider({
       setClassOrder,
       announce,
       start,
-      customizeRef,
+      arrangeButtonRef,
     }),
     [surface, editing, draft, saved, setLayout, setClassOrder, announce, start]
   );
@@ -240,6 +279,7 @@ export function LayoutEditorProvider({
     <EditorContext.Provider value={value}>
       {editing ? (
         <div
+          ref={barRef}
           role="region"
           aria-labelledby="layout-editor-heading"
           className="sticky top-[calc(var(--app-bar-h,4rem)+0.5rem)] z-30 mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-border bg-card py-2 pr-2 pl-4 shadow-raised"
@@ -291,9 +331,13 @@ export function LayoutEditorProvider({
   );
 }
 
-/** The quiet entry point beside the page title. Hidden (keeping its space) while editing. */
-export function CustomizeButton({
-  children = "Customize",
+/**
+ * The quiet entry point beside the page title: "Arrange" (the layout), never
+ * "Customize", which is the account menu's appearance panel. Hidden (keeping
+ * its space) while editing.
+ */
+export function ArrangeButton({
+  children = "Arrange",
   className,
 }: {
   children?: React.ReactNode;
@@ -303,7 +347,7 @@ export function CustomizeButton({
   if (!editor) return null;
   return (
     <Button
-      ref={editor.customizeRef}
+      ref={editor.arrangeButtonRef}
       type="button"
       variant="outline"
       size="sm"

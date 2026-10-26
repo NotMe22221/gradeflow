@@ -23,8 +23,11 @@ export const SEARCH_HREFS = {
   },
 } as const;
 
-/** The student goal planner is a section of Home (see GoalPlanner's id). */
-export const GOAL_PLANNER_HREF = "/student#goal-planner";
+/** The id of the goal planner's section on student Home (GoalPlanner uses it). */
+export const GOAL_PLANNER_ID = "goal-planner";
+
+/** Goals: the student goal planner, a section of Home. */
+export const GOAL_PLANNER_HREF = `/student#${GOAL_PLANNER_ID}`;
 
 /** Pages, in the order the navigation shows them. */
 export function pagesFor(role: SearchRole): SearchItem[] {

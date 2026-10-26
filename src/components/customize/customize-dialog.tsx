@@ -56,8 +56,33 @@ const radioInput = "absolute inset-0 z-10 m-0 size-full cursor-pointer appearanc
 /** In Windows high contrast (forced colors) backgrounds vanish, so the selected choice also gets an outline. */
 const forcedSelected = "forced-colors:outline-2 forced-colors:-outline-offset-4";
 
-/** Focus ring for a choice whose radio has keyboard focus. */
-const choiceFocus = "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-inset";
+/**
+ * An icon given its own color keeps it in forced colors (SVGs only follow
+ * their parent's forced color), so give it the system text color there.
+ */
+const forcedIcon = "forced-colors:text-[color:CanvasText]";
+
+/**
+ * Focus ring for a choice whose radio has keyboard focus. Forced colors drop
+ * box-shadow rings, so there it is an inset outline in the system Highlight
+ * color, which also wins over the selected outline above (the selected choice
+ * still shows its check or filled icon).
+ */
+const choiceFocus = cn(
+  "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-inset",
+  "forced-colors:has-[:focus-visible]:outline-[3px] forced-colors:has-[:focus-visible]:-outline-offset-[3px]",
+  "forced-colors:has-[:focus-visible]:outline-solid forced-colors:has-[:focus-visible]:outline-[color:Highlight]"
+);
+
+/**
+ * The same for the panel's buttons (Arrange Home, Reset, Undo, Done, Close):
+ * their focus ring is a box-shadow too, so in forced colors any focused
+ * control in the sheet gets a Highlight outline.
+ */
+const forcedFocus = cn(
+  "forced-colors:**:focus-visible:outline-2 forced-colors:**:focus-visible:outline-offset-2",
+  "forced-colors:**:focus-visible:outline-solid forced-colors:**:focus-visible:outline-[color:Highlight]"
+);
 
 /**
  * Customize: appearance (theme, accent, text size, density) and layout
@@ -188,7 +213,7 @@ export function CustomizeDialog({
         side={wide ? "right" : "bottom"}
         // A light scrim: the page behind is the live preview.
         overlayClassName="bg-scrim/40"
-        className={cn("gap-0 p-0", wide ? "w-full sm:max-w-[26rem]" : "max-h-[90dvh]")}
+        className={cn("gap-0 p-0", forcedFocus, wide ? "w-full sm:max-w-[26rem]" : "max-h-[90dvh]")}
         onOpenAutoFocus={(event) => {
           // Start on the selected theme (not the first radio), so Space never changes a setting by surprise.
           const checked = (event.currentTarget as HTMLElement | null)?.querySelector<HTMLInputElement>("input[type=radio]:checked");
@@ -198,48 +223,55 @@ export function CustomizeDialog({
           }
         }}
       >
-        <SheetHeader className="gap-1 px-6 pt-6 pr-16 pb-2">
+        {/* Divided from the scrolling settings like the footer, so content scrolls under a clear edge. */}
+        <SheetHeader className="shrink-0 gap-1 border-b border-border px-6 pt-6 pr-16 pb-4">
           <SheetTitle className="font-display text-[1.375rem] leading-tight font-normal">Customize</SheetTitle>
           <SheetDescription className="text-[0.875rem] leading-relaxed text-pretty">
             Changes show right away and are saved to your account.
           </SheetDescription>
         </SheetHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pt-2 pb-8">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pt-5 pb-8">
           {/* Theme */}
           <fieldset className="min-w-0">
             <legend>
               <h3 className={sectionTitle}>Theme</h3>
             </legend>
-            <div className="mt-3 grid grid-cols-3 overflow-hidden rounded-full border border-input">
-              {THEME_OPTIONS.map((option, index) => {
-                const Icon = THEME_ICONS[option.value];
-                const checked = shown.theme === option.value;
-                return (
-                  <label
-                    key={option.value}
-                    className={cn(
-                      "relative flex min-h-10 cursor-pointer items-center justify-center gap-2 px-2 py-2 text-sm font-medium transition-colors select-none",
-                      index > 0 && "border-l border-input",
-                      checked ? cn("bg-primary-soft text-primary-soft-foreground", forcedSelected) : "text-foreground hover:bg-foreground/[0.06]",
-                      choiceFocus,
-                      index === 0 && "rounded-l-full",
-                      index === THEME_OPTIONS.length - 1 && "rounded-r-full"
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name={`${ids}-theme`}
-                      value={option.value}
-                      checked={checked}
-                      onChange={() => change({ theme: option.value })}
-                      className={radioInput}
-                    />
-                    <Icon filled={checked} className="size-[1.125rem]" />
-                    {option.label}
-                  </label>
-                );
-              })}
+            {/* A pill of three segments; when it is too narrow for icon and label side by side
+                (large text on a small phone), each segment stacks them instead. */}
+            <div className="@container mt-3">
+              <div className="grid grid-cols-3 overflow-hidden rounded-full border border-input @max-[16rem]:rounded-xl">
+                {THEME_OPTIONS.map((option, index) => {
+                  const Icon = THEME_ICONS[option.value];
+                  const checked = shown.theme === option.value;
+                  return (
+                    <label
+                      key={option.value}
+                      className={cn(
+                        "relative flex min-h-10 min-w-0 cursor-pointer items-center justify-center gap-2 px-2 py-2 text-sm font-medium transition-colors select-none @max-[16rem]:flex-col @max-[16rem]:gap-1 @max-[16rem]:px-1",
+                        index > 0 && "border-l border-input",
+                        checked ? cn("bg-primary-soft text-primary-soft-foreground", forcedSelected) : "text-foreground hover:bg-foreground/[0.06]",
+                        choiceFocus,
+                        index === 0 && "rounded-l-full @max-[16rem]:rounded-l-xl",
+                        index === THEME_OPTIONS.length - 1 && "rounded-r-full @max-[16rem]:rounded-r-xl"
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name={`${ids}-theme`}
+                        value={option.value}
+                        checked={checked}
+                        onChange={() => change({ theme: option.value })}
+                        className={radioInput}
+                      />
+                      {/* Material segmented button: a check takes the icon's place on the selected
+                          segment, so the choice shows by shape as well as by the tint. */}
+                      {checked ? <Check className="size-[1.125rem]" /> : <Icon className="size-[1.125rem]" />}
+                      {option.label}
+                    </label>
+                  );
+                })}
+              </div>
             </div>
             <p className="mt-2 text-[0.8125rem] text-muted-foreground">
               {shown.theme === "system"
@@ -278,7 +310,7 @@ export function CustomizeDialog({
                       aria-hidden
                       data-accent={option.value}
                       className={cn(
-                        "flex size-10 items-center justify-center rounded-full bg-[var(--primary-40)] text-primary-foreground ring-offset-2 ring-offset-popover dark:bg-[var(--primary-80)]",
+                        "flex size-10 items-center justify-center rounded-full bg-[var(--primary-40)] text-primary-foreground ring-offset-2 ring-offset-popover forced-color-adjust-none dark:bg-[var(--primary-80)]",
                         checked && "ring-2 ring-foreground"
                       )}
                     >
@@ -303,7 +335,7 @@ export function CustomizeDialog({
                   <label
                     key={option.value}
                     className={cn(
-                      "relative flex min-h-16 cursor-pointer flex-col items-center justify-end gap-1 px-1 pt-2 pb-2 transition-colors select-none",
+                      "relative flex min-h-[4.5rem] cursor-pointer flex-col items-center justify-end gap-1 px-1 pt-2 pb-2 transition-colors select-none",
                       index > 0 && "border-l border-input",
                       checked ? cn("bg-primary-soft text-primary-soft-foreground", forcedSelected) : "text-foreground hover:bg-foreground/[0.06]",
                       choiceFocus
@@ -326,6 +358,9 @@ export function CustomizeDialog({
                       Aa
                     </span>
                     <span className={cn("text-xs", checked ? "font-medium" : "text-muted-foreground")}>{option.label}</span>
+                    {/* Like the Density cards: the selected size shows by a check, not only by the tint.
+                        It takes the label's color, so forced colors repaint it with the text. */}
+                    {checked ? <Check aria-hidden className="absolute top-1.5 right-1.5 size-4" /> : null}
                   </label>
                 );
               })}
@@ -376,7 +411,7 @@ export function CustomizeDialog({
                         {option.description}
                       </span>
                     </span>
-                    {checked ? <Check aria-hidden className="absolute right-2.5 bottom-3 size-5 text-primary" /> : null}
+                    {checked ? <Check aria-hidden className={cn("absolute right-2.5 bottom-3 size-5 text-primary", forcedIcon)} /> : null}
                   </label>
                 );
               })}
@@ -430,7 +465,7 @@ export function CustomizeDialog({
                           onChange={() => void changePaperSide(option.value)}
                           className={radioInput}
                         />
-                        <Icon filled={checked} className={cn("size-5 shrink-0", checked ? "text-primary" : "text-muted-foreground")} />
+                        <Icon filled={checked} className={cn("size-5 shrink-0", checked ? "text-primary" : "text-muted-foreground", forcedIcon)} />
                         {option.label}
                       </label>
                     );
@@ -441,7 +476,8 @@ export function CustomizeDialog({
           </section>
         </div>
 
-        <div className="flex min-h-16 items-center justify-between gap-3 border-t border-border px-4 py-3">
+        {/* Wraps (Done moves to its own line, at the end) when large text leaves no room for both. */}
+        <div className="flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
           {/* Announced politely when the reset happens. */}
           <div ref={footerRef} role="status" className="flex min-w-0 items-center gap-1">
             {undo ? (
@@ -459,7 +495,9 @@ export function CustomizeDialog({
             )}
           </div>
           <SheetClose asChild>
-            <Button type="button">Done</Button>
+            <Button type="button" className="ml-auto">
+              Done
+            </Button>
           </SheetClose>
         </div>
       </SheetContent>

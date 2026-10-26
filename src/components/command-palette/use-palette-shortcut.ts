@@ -5,9 +5,10 @@ import { useEffect, useEffectEvent } from "react";
 import { OVERLAY_SELECTOR, paletteShortcut } from "@/lib/search/shortcut";
 
 /**
- * Ctrl/Cmd+K and "/" open search from anywhere in the app, except while
- * typing in a field or while another dialog, menu or listbox is open (see
- * paletteShortcut). Ctrl/Cmd+K closes the open palette.
+ * Ctrl/Cmd+K opens search from anywhere in the app, except while typing in a
+ * field or while another dialog, menu or listbox is open (see
+ * paletteShortcut), and closes the open palette. No single-key shortcut
+ * (WCAG 2.1.4).
  */
 export function usePaletteShortcut(open: boolean, setOpen: (open: boolean) => void) {
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {

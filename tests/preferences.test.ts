@@ -59,3 +59,12 @@ describe("preferences", () => {
     assert.deepEqual(orderByIds(items, ["c", "a", "gone"]).map((i) => i.id), ["c", "a", "b", "d"]);
   });
 });
+
+describe("single-key shortcuts setting", () => {
+  it("defaults on and accepts a boolean", () => {
+    assert.equal(DEFAULT_PREFERENCES.singleKeyShortcuts, true);
+    assert.equal(mergePreferences(DEFAULT_PREFERENCES, { singleKeyShortcuts: false }).singleKeyShortcuts, false);
+    assert.equal(normalizePreferences({ singleKeyShortcuts: "no" }).singleKeyShortcuts, true);
+    assert.equal(preferencesPatchSchema.safeParse({ singleKeyShortcuts: "off" }).success, false);
+  });
+});

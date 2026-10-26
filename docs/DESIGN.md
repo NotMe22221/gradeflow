@@ -52,7 +52,9 @@ flash on load.
   saves, **Cancel** discards, **Reset to default** has Undo.
 - **Class cards** reorder the same way (Move earlier / later / to start / to
   end), and the drawer's class list follows the order.
-- **To review:** the paper can sit on the left or the right.
+- **To review:** the paper can sit on the left or the right, and the single-letter
+  shortcuts (J, K, A, S, ?) can be turned off in **Keyboard shortcuts** (WCAG
+  2.1.4); the arrow keys and buttons always work.
 
 - **Type:** Roboto for text. Figtree (an open stand-in for Google Sans) for
   headings: `h1`–`h3` and `.font-display` use it automatically. Page titles are
@@ -86,7 +88,7 @@ flash on load.
   button), `ghost` (neutral icon buttons), `destructive`. Sizes: default 40px,
   `sm` 32px, `lg` 48px, `icon` 40px.
 - `src/components/classroom/`: `ClassBanner` (Stream header), `ClassCardBanner`
-  (Home class cards), `ClassAvatar` (colored initial circle), `PageTabs`
+  (Home class cards), `ClassAvatar` (colored initials circle), `PageTabs`
   (underline link tabs), `ClassTabBar` + `TeacherClassTabs` / `StudentClassTabs`.
 - App shell (`src/components/app-shell/`): 64px top app bar with menu button,
   logo, search, engine status, and account menu (with **Customize**).

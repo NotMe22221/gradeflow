@@ -11,7 +11,7 @@ import { TeachingTools } from "@/components/dashboard/teaching-tools";
 import { EmptyState } from "@/components/empty-state";
 import { ArrangeableClassGrid } from "@/components/layout-editor/arrangeable-class-grid";
 import { CustomizableSections, type SectionSpec } from "@/components/layout-editor/customizable-sections";
-import { CustomizeButton, FixedRegion, LayoutEditorProvider } from "@/components/layout-editor/editor-context";
+import { ArrangeButton, FixedRegion, LayoutEditorProvider } from "@/components/layout-editor/editor-context";
 import { PageContainer } from "@/components/page-header";
 import { requireTeacherPage } from "@/lib/auth/session";
 import { getUpcomingByClass } from "@/lib/classroom/stream";
@@ -41,7 +41,7 @@ const SECTIONS = SURFACE_SECTIONS.teacherHome;
  * Teacher Home. The greeting and the "what needs you" notice stay on top;
  * below them the five sections (this week, teaching tools, your classes,
  * recently returned, most missed) sit in the teacher's saved arrangement,
- * which Customize (or ?customize=1) lets them rearrange.
+ * which Arrange (or ?customize=1) lets them rearrange.
  */
 export default async function DashboardPage({
   searchParams,
@@ -130,10 +130,10 @@ export default async function DashboardPage({
         startEditing={params.customize === "1"}
       >
         <FixedRegion>
-          {/* Phones: Customize sits beside the date, so the greeting keeps the full width. */}
+          {/* Phones: Arrange sits beside the date, so the greeting keeps the full width. */}
           <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1">
             <p className="text-[0.8125rem] font-medium text-muted-foreground">{todayLabel(now, timeZone)}</p>
-            <CustomizeButton className="col-start-2 row-start-1 sm:row-span-2 sm:self-end" />
+            <ArrangeButton className="col-start-2 row-start-1 sm:row-span-2 sm:self-end" />
             <h1 className="col-span-2 text-[1.625rem] leading-tight font-medium text-balance text-foreground sm:col-span-1 sm:text-[1.75rem]">
               Welcome back, {firstName(teacher.name)}
             </h1>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useRef } from "react";
 import { FlaskConical, CloudCheck } from "@/components/icons";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -37,15 +37,18 @@ export function GraderStatus({ status, className }: { status: EngineStatus; clas
   const Icon = liveCount === rows.length ? CloudCheck : FlaskConical;
   // Radix renders the popover as role="dialog"; name it by its heading.
   const headingId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const interactedOutside = useRef(false);
 
   return (
     <Popover>
       <PopoverTrigger asChild>
         <button
+          ref={triggerRef}
           type="button"
           aria-label={`AI engines: ${label}`}
           className={cn(
-            "inline-flex h-8 min-w-8 cursor-pointer items-center justify-center gap-1.5 rounded-full border px-2 text-[0.75rem] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring min-[52.5rem]:px-3",
+            "inline-flex h-8 min-w-8 cursor-pointer items-center justify-center gap-1.5 rounded-full border px-2 text-[0.75rem] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden min-[52.5rem]:px-3",
             liveCount === rows.length
               ? "border-transparent bg-primary-soft text-primary-soft-foreground"
               : "border-dashed border-border bg-card text-muted-foreground",
@@ -59,7 +62,21 @@ export function GraderStatus({ status, className }: { status: EngineStatus; clas
           </span>
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" aria-labelledby={headingId} className="w-[min(22rem,calc(100vw-2rem))] text-[0.875rem]">
+      <PopoverContent
+        align="end"
+        aria-labelledby={headingId}
+        className="w-[min(22rem,calc(100vw-2rem))] text-[0.875rem]"
+        onInteractOutside={() => {
+          interactedOutside.current = true;
+        }}
+        // Back to the pill as Radix would, but without scrolling: a plain focus() on a control in
+        // the sticky app bar scrolls the page to the top (html scroll-padding).
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          if (!interactedOutside.current) triggerRef.current?.focus({ preventScroll: true });
+          interactedOutside.current = false;
+        }}
+      >
         <p id={headingId} className="mb-2 font-medium text-foreground">
           AI engines
         </p>

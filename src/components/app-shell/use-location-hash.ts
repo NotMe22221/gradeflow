@@ -2,16 +2,17 @@
 
 import { useSyncExternalStore } from "react";
 
-const EVENT = "gs:locationchange";
+/** Fired after the app changes the URL in a way the browser doesn't announce (pushState, replaceState). */
+export const LOCATION_EVENT = "gs:locationchange";
 
 function subscribe(onChange: () => void) {
   window.addEventListener("hashchange", onChange);
   window.addEventListener("popstate", onChange);
-  window.addEventListener(EVENT, onChange);
+  window.addEventListener(LOCATION_EVENT, onChange);
   return () => {
     window.removeEventListener("hashchange", onChange);
     window.removeEventListener("popstate", onChange);
-    window.removeEventListener(EVENT, onChange);
+    window.removeEventListener(LOCATION_EVENT, onChange);
   };
 }
 
@@ -28,12 +29,17 @@ export function useLocationHash(): string {
   );
 }
 
+/** Re-read the hash now (after the app itself changed the URL with replaceState or pushState). */
+export function dispatchLocationChange() {
+  window.dispatchEvent(new Event(LOCATION_EVENT));
+}
+
 /**
  * Re-read the hash once the router has updated the URL. The router commits
  * the new URL in a transition, a moment after the click, so check a few times.
  */
 export function notifyLocationChange() {
   for (const delay of [0, 60, 250]) {
-    window.setTimeout(() => window.dispatchEvent(new Event(EVENT)), delay);
+    window.setTimeout(dispatchLocationChange, delay);
   }
 }

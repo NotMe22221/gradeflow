@@ -9,6 +9,7 @@ import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
 import { THEME_COLOR } from "@/components/customize/options";
+import { createSaveTracker } from "@/components/customize/pending-saves";
 import { updatePreferences } from "@/lib/preferences/actions";
 import {
   ACCENTS,
@@ -87,23 +88,21 @@ export function applyAppearance(patch: Partial<Appearance>) {
   }
 }
 
-let saveVersion = 0;
-
 /**
- * Values the user picked whose save hasn't finished. Saves run one after
- * another, and each one re-renders the page from the server, so a quick
- * second change could briefly be undone by the first save's (older) render of
- * <html>. While a value is pending, this observer puts it straight back,
- * before the browser paints.
+ * Values the user picked whose save hasn't finished, and the last stored value
+ * of each (see pending-saves.ts). Saves run one after another, and each one
+ * re-renders the page from the server, so a quick second change could briefly
+ * be undone by the first save's (older) render of <html>. While a value is
+ * pending, this observer puts it straight back, before the browser paints.
  */
-const pending = new Map<keyof Appearance, { value: string; version: number }>();
+const saves = createSaveTracker<keyof Appearance>();
 let guard: MutationObserver | null = null;
 
 function guardPending() {
   if (guard || typeof MutationObserver === "undefined") return;
   const root = document.documentElement;
   guard = new MutationObserver(() => {
-    for (const [key, { value }] of pending) {
+    for (const [key, { value }] of saves.pending) {
       if (root.getAttribute(ATTRIBUTES[key]) !== value) root.setAttribute(ATTRIBUTES[key], value);
     }
   });
@@ -112,36 +111,31 @@ function guardPending() {
 
 /**
  * Apply an appearance change and save it to the signed-in user's
- * preferences. If saving fails, the previous look comes back (unless a newer
- * change has been made since) and a toast says so. `persist: false` only
- * applies it, for signed-out pages. Resolves to whether it was saved.
+ * preferences. If saving fails, the last saved look comes back (unless a
+ * newer change has been made since, which reports its own outcome) and a
+ * toast says so. `persist: false` only applies it, for signed-out pages.
+ * Resolves to whether it was saved.
  */
 export async function saveAppearance(
   patch: Partial<Appearance>,
   { persist = true }: { persist?: boolean } = {}
 ): Promise<boolean> {
-  const previous = readAppearance();
+  const onScreen = readAppearance();
   applyAppearance(patch);
   if (!persist) return true;
-  const version = ++saveVersion;
-  const keys = (Object.keys(patch) as (keyof Appearance)[]).filter((key) => patch[key] !== undefined);
   guardPending();
-  for (const key of keys) pending.set(key, { value: patch[key] as string, version });
+  const save = saves.begin(patch, onScreen);
   let result: Awaited<ReturnType<typeof updatePreferences>>;
   try {
     result = await updatePreferences(patch);
   } catch {
     result = { ok: false, error: "Your change couldn't be saved. Check your connection and try again." };
   }
-  // Settle this save's keys, unless a newer change to the same setting is still on its way.
-  const settled = keys.filter((key) => pending.get(key)?.version === version);
-  for (const key of settled) pending.delete(key);
+  const revert = saves.finish(save, result.ok) as Partial<Appearance>;
   if (result.ok) return true;
-  if (settled.length > 0) {
-    const revert: Partial<Appearance> = {};
-    for (const key of settled) Object.assign(revert, { [key]: previous[key] });
-    applyAppearance(revert);
-  }
+  // Every setting in this save already has a newer change on its way: that one reports instead.
+  if (Object.keys(revert).length === 0) return false;
+  applyAppearance(revert);
   toast.error(result.error);
   return false;
 }

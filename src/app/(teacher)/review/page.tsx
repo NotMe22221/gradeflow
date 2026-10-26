@@ -46,6 +46,7 @@ export default async function ReviewPage({
       initialSelectedId={selectedId}
       filterTitle={assignmentTitle}
       paperSide={preferences.layout.reviewPaperSide}
+      singleKeyShortcuts={preferences.singleKeyShortcuts}
     />
   );
 }

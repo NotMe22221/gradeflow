@@ -13,6 +13,7 @@ import {
   type Active,
   type Announcements,
   type CollisionDetection,
+  type DragCancelEvent,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -38,6 +39,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import type { Column, SectionLayout } from "@/lib/preferences/schema";
 import { cn } from "@/lib/utils";
 
+import { createDragAnnouncer } from "./announcements";
 import { useLayoutEditor, type LayoutEditorValue } from "./editor-context";
 import { MAIN_STACK, SECTIONS_CONTAINER, SECTIONS_GRID, SECTIONS_SPLIT, SIDE_STACK } from "./grid";
 import {
@@ -55,6 +57,7 @@ import {
   visibleIn,
   type SectionPosition,
 } from "./model";
+import { findControl, focusIsOnOrLost, revealControl, SETTLE_MS } from "./reveal";
 import { SectionHeading, type SectionAction } from "./section-heading";
 import { useEditorSensors, useReducedMotion } from "./sensors";
 
@@ -184,6 +187,7 @@ function EditableSections({
   const sensors = useEditorSensors();
   const reduced = useReducedMotion();
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [keyboardActive, setKeyboardActive] = useState(false);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const layoutRef = useRef(layout);
@@ -192,10 +196,16 @@ function EditableSections({
   const lastOverId = useRef<UniqueIdentifier | null>(null);
   const movedAcross = useRef(false);
   const pendingFocus = useRef<string | null>(null);
+  /** The section picked up with the keyboard, whose handle keeps focus for the whole drag. */
+  const keyboardDrag = useRef<string | null>(null);
+  const revealTimer = useRef<number | undefined>(undefined);
+  const [announcer] = useState(() => createDragAnnouncer("a column"));
 
   useLayoutEffect(() => {
     layoutRef.current = layout;
   });
+
+  useEffect(() => () => window.clearTimeout(revealTimer.current), []);
 
   // After a column change the item settles for a frame before collisions resume.
   useEffect(() => {
@@ -205,13 +215,36 @@ function EditableSections({
     return () => cancelAnimationFrame(frame);
   }, [layout]);
 
-  // Keep keyboard focus on the control that was used, wherever its section went.
+  // Keep keyboard focus on the control that was used, wherever its section
+  // went, and keep that control in view (clear of the sticky bars).
   useLayoutEffect(() => {
     const target = pendingFocus.current;
     if (!target) return;
     pendingFocus.current = null;
-    rootRef.current?.querySelector<HTMLElement>(`[data-control="${CSS_escape(target)}"]`)?.focus();
+    const control = findControl(rootRef.current, target);
+    if (control) revealControl(control);
   });
+
+  // A keyboard drag into the other column re-renders the section there, and
+  // focus would fall to the page: put it back on the handle being dragged.
+  useLayoutEffect(() => {
+    const id = keyboardDrag.current;
+    if (!id) return;
+    const handle = findControl(rootRef.current, `${id}:handle`);
+    if (handle && document.activeElement !== handle && focusIsOnOrLost(handle)) handle.focus({ preventScroll: true });
+  });
+
+  /** After a keyboard drop or cancel, once the section has settled, bring its handle into view. */
+  function revealHandle(id: string) {
+    window.clearTimeout(revealTimer.current);
+    revealTimer.current = window.setTimeout(
+      () => {
+        const handle = findControl(rootRef.current, `${id}:handle`);
+        if (handle && focusIsOnOrLost(handle)) revealControl(handle);
+      },
+      reduced ? 0 : SETTLE_MS
+    );
+  }
 
   const essential = useMemo(
     () => new Set(Object.entries(sections).filter(([, spec]) => spec.essential).map(([id]) => id)),
@@ -334,33 +367,36 @@ function EditableSections({
     [available, columnFor]
   );
 
+  const where = (position: SectionPosition | null) => (position ? describePosition(position) : null);
   const announcements: Announcements = {
     onDragStart({ active }) {
-      const position = positionOf(layoutRef.current, String(active.id), available);
-      return `Picked up ${title(String(active.id))}${position ? `, ${describePosition(position)}` : ""}.`;
+      const id = String(active.id);
+      return announcer.start(id, title(id), where(positionOf(layoutRef.current, id, available)));
     },
     onDragOver({ active, over }) {
-      const name = title(String(active.id));
-      if (!over) return `${name} is not over a column.`;
-      const position = targetPosition(active, over);
-      return position ? `${name} is over ${describePosition(position)}.` : undefined;
+      return announcer.over(
+        title(String(active.id)),
+        over ? String(over.id) : null,
+        over ? where(targetPosition(active, over)) : null
+      );
     },
     onDragEnd({ active, over }) {
-      const name = title(String(active.id));
-      if (!over) return `${name} was dropped where it started.`;
-      const position = targetPosition(active, over);
-      return `Dropped ${name}${position ? ` at ${describePosition(position)}` : ""}.`;
+      return announcer.drop(
+        title(String(active.id)),
+        over ? String(over.id) : null,
+        over ? where(targetPosition(active, over)) : null
+      );
     },
     onDragCancel({ active }) {
-      const id = String(active.id);
-      const position = snapshot.current ? positionOf(snapshot.current, id, available) : null;
-      return `Cancelled. ${title(id)} went back${position ? ` to ${describePosition(position)}` : ""}.`;
+      return announcer.cancel(title(String(active.id)));
     },
   };
 
-  function onDragStart({ active }: DragStartEvent) {
+  function onDragStart({ active, activatorEvent }: DragStartEvent) {
     snapshot.current = layoutRef.current;
     activeRef.current = String(active.id);
+    keyboardDrag.current = activatorEvent instanceof KeyboardEvent ? String(active.id) : null;
+    setKeyboardActive(keyboardDrag.current !== null);
     setActiveId(String(active.id));
   }
 
@@ -398,16 +434,19 @@ function EditableSections({
         }
       }
     }
-    endDrag();
+    endDrag(id);
   }
 
-  function onDragCancel() {
+  function onDragCancel({ active }: DragCancelEvent) {
     const before = snapshot.current;
     if (before) editor.setLayout(() => before);
-    endDrag();
+    endDrag(String(active.id));
   }
 
-  function endDrag() {
+  function endDrag(id: string) {
+    if (keyboardDrag.current === id) revealHandle(id);
+    keyboardDrag.current = null;
+    setKeyboardActive(false);
     setActiveId(null);
     activeRef.current = null;
     lastOverId.current = null;
@@ -460,15 +499,10 @@ function EditableSections({
         </div>
       </div>
       <DragOverlay dropAnimation={reduced ? null : { duration: 200, easing: EASE }}>
-        {activeId ? <DragTile title={title(activeId)} /> : null}
+        {activeId ? <DragTile title={title(activeId)} focused={keyboardActive} /> : null}
       </DragOverlay>
     </DndContext>
   );
-}
-
-/** CSS.escape where it exists (every browser); ids here are plain words anyway. */
-function CSS_escape(value: string): string {
-  return typeof window !== "undefined" && window.CSS?.escape ? window.CSS.escape(value) : value;
 }
 
 function EditColumn({ column, ids, children }: { column: Column; ids: string[]; children: React.ReactNode }) {
@@ -543,6 +577,9 @@ function SortableSection({
         isDragging ? "border-2 border-dashed border-primary bg-primary-soft/25" : "border-border"
       )}
     >
+      {/* While dragged, the section leaves an empty dashed placeholder. Its handle
+          stays rendered (visible, but transparent) so it keeps keyboard focus for
+          the whole drag; the drag tile shows the focus ring meanwhile. */}
       <div className={cn(isDragging && "invisible")}>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <button
@@ -552,11 +589,16 @@ function SortableSection({
             {...listeners}
             aria-label={`Move ${name}`}
             data-control={`${id}:handle`}
-            className="flex size-10 shrink-0 cursor-grab touch-manipulation items-center justify-center rounded-full text-muted-foreground outline-none select-none [-webkit-touch-callout:none] hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+            className={cn(
+              "visible flex size-10 shrink-0 cursor-grab touch-manipulation items-center justify-center rounded-full text-muted-foreground outline-none select-none [-webkit-touch-callout:none] hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing",
+              isDragging && "opacity-0"
+            )}
           >
             <DragHandle className="size-5" aria-hidden />
           </button>
-          <div className="min-w-0 flex-1 basis-36">
+          {/* Sized by its real text, so the controls wrap below only when they don't fit beside it;
+              capped at the room beside the handle, so the title itself never wraps away from it. */}
+          <div className="min-w-0 flex-auto max-w-[calc(100%-3rem)]">
             <h3 className="truncate font-sans text-[0.9375rem] leading-6 font-medium text-foreground">{name}</h3>
             {spec.essential ? (
               <p className="flex items-center gap-1 text-[0.75rem] leading-4 text-muted-foreground">
@@ -730,13 +772,27 @@ function HiddenTray({
   );
 }
 
-function DragTile({ title }: { title: string }) {
+/**
+ * What follows the pointer (or the arrow keys) during a drag. dnd-kit measures
+ * this outer node for keyboard moves, so it must start at the section's
+ * top-left corner: the inset over the handle is padding, never a margin, or
+ * the first ArrowLeft / ArrowRight lands in the section's own column.
+ */
+function DragTile({ title, focused }: { title: string; focused: boolean }) {
   return (
-    <div className="m-2 inline-flex h-12 cursor-grabbing items-center gap-1 rounded-2xl border border-primary bg-card pr-5 shadow-raised">
-      <span className="flex size-10 items-center justify-center text-primary">
-        <DragHandle className="size-5" aria-hidden />
-      </span>
-      <span className="text-[0.9375rem] font-medium whitespace-nowrap text-foreground">{title}</span>
+    <div className="w-fit cursor-grabbing p-2">
+      <div
+        className={cn(
+          "inline-flex h-12 items-center gap-1 rounded-2xl border border-primary bg-card pr-5 shadow-raised",
+          // A keyboard drag: the handle being moved has focus, and this is where it shows.
+          focused && "ring-2 ring-ring ring-offset-2 ring-offset-background"
+        )}
+      >
+        <span className="flex size-10 items-center justify-center text-primary">
+          <DragHandle className="size-5" aria-hidden />
+        </span>
+        <span className="text-[0.9375rem] font-medium whitespace-nowrap text-foreground">{title}</span>
+      </div>
     </div>
   );
 }

@@ -15,13 +15,67 @@ export type NavMatchable = {
   matches?: readonly string[];
 };
 
-function pathOf(href: string): string {
+/** "/student" from "/student?x=1#goal-planner". */
+export function pathOf(href: string): string {
   return href.split(/[?#]/)[0] || "/";
 }
 
-function hashOf(href: string): string {
+/** "?x=1" from "/student?x=1#goal-planner" ("" without a query), in the shape of location.search. */
+export function searchOf(href: string): string {
+  const hashAt = href.indexOf("#");
+  const beforeHash = hashAt === -1 ? href : href.slice(0, hashAt);
+  const at = beforeHash.indexOf("?");
+  const search = at === -1 ? "" : beforeHash.slice(at);
+  return search === "?" ? "" : search;
+}
+
+/** "#goal-planner" from "/student#goal-planner" ("" without one), in the shape of location.hash. */
+export function hashOf(href: string): string {
   const at = href.indexOf("#");
-  return at === -1 ? "" : href.slice(at);
+  const hash = at === -1 ? "" : href.slice(at);
+  return hash === "#" ? "" : hash;
+}
+
+/** The element id a #hash names ("goal-planner"), or "" for none. */
+export function hashTargetId(hash: string): string {
+  if (!hash.startsWith("#") || hash.length < 2) return "";
+  try {
+    return decodeURIComponent(hash.slice(1));
+  } catch {
+    return hash.slice(1);
+  }
+}
+
+/**
+ * Whether following `href` stays on the page that is open: the same path and
+ * query, differing at most in the #hash. The router does not scroll for such
+ * a link (Home re-selected on Home, Goals on Home), so navigation handles it
+ * in the page. A different query is a different view (/review?assignment=x),
+ * so it navigates as usual.
+ */
+export function isInPageHref(href: string, here: { pathname: string; search: string }): boolean {
+  return pathOf(href) === here.pathname && searchOf(href) === (here.search === "?" ? "" : here.search);
+}
+
+export type ClickLike = {
+  button?: number;
+  metaKey?: boolean;
+  ctrlKey?: boolean;
+  shiftKey?: boolean;
+  altKey?: boolean;
+  defaultPrevented?: boolean;
+};
+
+/** A plain primary click (or Enter): not one that opens a new tab or window. */
+export function isPlainClick(event: ClickLike): boolean {
+  return (
+    !event.defaultPrevented &&
+    (event.button ?? 0) === 0 &&
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.shiftKey &&
+    !event.altKey
+  );
 }
 
 /**

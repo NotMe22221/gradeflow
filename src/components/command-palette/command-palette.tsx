@@ -5,10 +5,14 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 
+import { isInPage, prepareNavigation, showInPage } from "@/components/app-shell/destination";
+import { pathOf } from "@/components/app-shell/nav-model";
+import { overlayHistory } from "@/components/app-shell/overlay-history";
 import { notifyLocationChange } from "@/components/app-shell/use-location-hash";
 import { ClassAvatar } from "@/components/classroom/class-avatar";
 import { AssignmentIcon } from "@/components/classwork/assignment-icon";
 import { readRecent, writeRecent } from "@/components/command-palette/recent-storage";
+import { useModifierLabel } from "@/components/command-palette/use-modifier-label";
 import { useSearchIndex } from "@/components/command-palette/use-search-index";
 import { saveAppearance, useAppearance } from "@/components/customize/appearance";
 import {
@@ -39,7 +43,6 @@ import { Kbd } from "@/components/ui/kbd";
 import { dueLabel } from "@/lib/classroom/due";
 import { actionsFor, indexItems, pagesFor, SEARCH_LABELS } from "@/lib/search/catalog";
 import { canBeRecent, countResults, highlight, pushRecent, searchGroups } from "@/lib/search/rank";
-import { modifierLabel } from "@/lib/search/shortcut";
 import type { SearchIcon, SearchItem, SearchRole } from "@/lib/search/types";
 import { classTheme } from "@/lib/ui/class-theme";
 import { cn } from "@/lib/utils";
@@ -158,7 +161,7 @@ export function CommandPalette({
   // remember what had it (layout effect: before the dialog moves focus to the input).
   const returnFocus = useRef<HTMLElement | null>(null);
   const [now, setNow] = useState(() => new Date());
-  const [modifier, setModifier] = useState<"⌘" | "Ctrl">("Ctrl");
+  const modifier = useModifierLabel();
 
   // Each open starts fresh, before the first paint (so a previous query never flashes).
   useLayoutEffect(() => {
@@ -167,8 +170,6 @@ export function CommandPalette({
     setQuery("");
     setRecent(readRecent(userId));
     setNow(new Date());
-    const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
-    setModifier(modifierLabel(nav.userAgentData?.platform || nav.platform));
   }, [open, userId]);
 
   const items = useMemo<SearchItem[]>(
@@ -214,8 +215,31 @@ export function CommandPalette({
       return;
     }
     if (item.href) {
+      const href = item.href;
+      if (isInPage(href)) {
+        // A section of this page (Goal planner on Home): move once the dialog, its scroll lock
+        // and its focus return are gone, or the page lands mid-way and focus snaps back here.
+        afterClose.current = () => void overlayHistory.settled().then(() => showInPage(href));
+        onOpenChange(false);
+        return;
+      }
+      if (pathOf(href) === window.location.pathname) {
+        // This page with another query (Arrange Home on Home): after closing, so the page's own
+        // focus (the "Arranging" bar) isn't taken back. Replace: it's still the same page.
+        afterClose.current = () =>
+          void overlayHistory.settled().then(() => {
+            router.replace(href);
+            notifyLocationChange();
+          });
+        onOpenChange(false);
+        return;
+      }
+      prepareNavigation(href);
+      // The full-screen search holds a history entry of its own on phones: the new page replaces
+      // it, so Back from there returns to the page search was opened on.
+      if (overlayHistory.takeOver()) router.replace(href);
+      else router.push(href);
       onOpenChange(false);
-      router.push(item.href);
       notifyLocationChange();
     }
   }
@@ -260,9 +284,22 @@ export function CommandPalette({
             event.preventDefault();
             const saved = returnFocus.current;
             returnFocus.current = null;
-            const target = saved?.isConnected && saved !== document.body ? saved : fallbackFocus?.();
-            target?.focus();
-            // Customize opens after focus is back, so closing it returns there too.
+            // While the dialog faded out, the page it opened may already have moved focus on
+            // purpose (a fast page load, a section revealing itself). Leave it there; restore
+            // only when focus fell to <body> because the dialog went away.
+            const current = document.activeElement;
+            const pageTookFocus =
+              current instanceof HTMLElement &&
+              current !== document.body &&
+              current.isConnected &&
+              !current.closest("[data-command-palette]");
+            if (!pageTookFocus) {
+              const target = saved?.isConnected && saved !== document.body ? saved : fallbackFocus?.();
+              // Without scrolling: it was on screen when search opened, and the search button sits
+              // in the sticky app bar, which html scroll-padding would otherwise scroll the page to.
+              target?.focus({ preventScroll: true });
+            }
+            // Customize (and in-page moves) run after focus is back, so closing Customize returns there too.
             const next = afterClose.current;
             afterClose.current = null;
             if (next) window.setTimeout(next, 0);
@@ -298,7 +335,7 @@ export function CommandPalette({
               <DialogPrimitive.Close
                 aria-label="Close search"
                 className={cn(
-                  "flex size-12 shrink-0 items-center justify-center rounded-full text-foreground outline-none hover:bg-foreground/[0.06] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                  "flex size-12 shrink-0 items-center justify-center rounded-full text-foreground outline-none hover:bg-foreground/[0.06] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset focus-visible:outline-hidden forced-colors:focus-visible:-outline-offset-2",
                   "min-[37.5rem]:hidden"
                 )}
               >
@@ -324,7 +361,7 @@ export function CommandPalette({
                     setQuery("");
                     inputRef.current?.focus();
                   }}
-                  className="flex size-10 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                  className="flex size-10 shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset focus-visible:outline-hidden forced-colors:focus-visible:-outline-offset-2"
                 >
                   <X className="size-5" aria-hidden />
                 </button>
@@ -342,7 +379,7 @@ export function CommandPalette({
                 <button
                   type="button"
                   onClick={retry}
-                  className="-my-1 rounded-full px-3 py-1.5 font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                  className="-my-1 rounded-full px-3 py-1.5 font-medium underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden"
                 >
                   Try again
                 </button>
@@ -396,7 +433,8 @@ export function CommandPalette({
                           "group/item flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-foreground outline-none select-none",
                           subtitle ? "min-h-14" : "min-h-12",
                           "data-[selected=true]:bg-primary-soft data-[selected=true]:text-primary-soft-foreground",
-                          "forced-colors:data-[selected=true]:outline-2 forced-colors:data-[selected=true]:-outline-offset-2"
+                          // outline-solid: outline-none above also zeroes the outline style that outline-2 reads.
+                          "forced-colors:data-[selected=true]:outline-2 forced-colors:data-[selected=true]:outline-solid forced-colors:data-[selected=true]:-outline-offset-2"
                         )}
                       >
                         <Leading item={item} />
@@ -447,8 +485,6 @@ export function CommandPalette({
               <span className="ml-auto flex items-center gap-1">
                 <Kbd>{modifier}</Kbd>
                 <Kbd>K</Kbd>
-                or
-                <Kbd>/</Kbd>
                 to search from anywhere
               </span>
             </div>

@@ -2,7 +2,7 @@ import { BookOpen } from "@/components/icons";
 import { EmptyState } from "@/components/empty-state";
 import { ArrangeableClassGrid } from "@/components/layout-editor/arrangeable-class-grid";
 import { CustomizableSections, type SectionSpec } from "@/components/layout-editor/customizable-sections";
-import { CustomizeButton, FixedRegion, LayoutEditorProvider } from "@/components/layout-editor/editor-context";
+import { ArrangeButton, FixedRegion, LayoutEditorProvider } from "@/components/layout-editor/editor-context";
 import { MAIN_ONLY_SECTIONS } from "@/components/layout-editor/model";
 import { PageContainer } from "@/components/page-header";
 import { AssignmentInbox } from "@/components/student/assignment-inbox";
@@ -21,7 +21,7 @@ const MAIN_ONLY = new Set(MAIN_ONLY_SECTIONS.studentHome);
 /**
  * The student Home: a greeting on top, then the sections in the student's
  * saved arrangement (streak and XP, class cards, the assignment inbox, the
- * goal planner). Customize, or ?customize=1, rearranges them. Data is loaded
+ * goal planner). Arrange, or ?customize=1, rearranges them. Data is loaded
  * by the page, for the signed-in student only.
  */
 export function StudentHomeView({
@@ -114,10 +114,10 @@ export function StudentHomeView({
         startEditing={startEditing && hasClasses}
       >
         <FixedRegion>
-          {/* Phones: Customize sits beside the date, so the greeting keeps the full width. */}
+          {/* Phones: Arrange sits beside the date, so the greeting keeps the full width. */}
           <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1">
             <p className="min-h-5 text-[0.8125rem] font-medium text-muted-foreground">{today}</p>
-            {hasClasses ? <CustomizeButton className="col-start-2 row-start-1 sm:row-span-2 sm:self-end" /> : null}
+            {hasClasses ? <ArrangeButton className="col-start-2 row-start-1 sm:row-span-2 sm:self-end" /> : null}
             <h1 className="col-span-2 text-[1.625rem] leading-tight font-medium text-balance text-foreground sm:col-span-1 sm:text-[1.75rem]">
               Welcome back, {firstName}
             </h1>
@@ -125,8 +125,9 @@ export function StudentHomeView({
           </header>
         </FixedRegion>
 
-        {/* Lets the inbox's "Plan my grade" hand a class to the planner, wherever each one sits. */}
-        <PlannerBridgeProvider>
+        {/* Lets the inbox's "Plan my grade" hand a class to the planner, wherever each one sits
+            (and only while the planner's section is shown). */}
+        <PlannerBridgeProvider section="planner">
           <CustomizableSections className="mt-8" sections={sections} />
         </PlannerBridgeProvider>
       </LayoutEditorProvider>

@@ -66,7 +66,7 @@ export function InboxPanel({
   row: InboxRow;
   /** False inside the sheet, which shows the title in its own header. */
   showHeading?: boolean;
-  /** Absent when the goal planner is not on the page. */
+  /** Absent when the goal planner is not on the page (none there, or the student hid it). */
   onPlan?: (classId: string) => void;
   onLogStudy: (assignmentId: string) => void;
   studyPending: boolean;
@@ -89,7 +89,7 @@ export function InboxPanel({
             <h3
               ref={headingRef}
               tabIndex={-1}
-              className="rounded-sm text-[1.125rem] leading-snug font-medium text-balance break-words text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+              className="rounded-sm text-[1.125rem] leading-snug font-medium text-balance break-words text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:outline-hidden"
             >
               {row.title}
             </h3>

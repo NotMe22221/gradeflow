@@ -5,7 +5,7 @@ import { ClassCard } from "@/components/classes/class-card";
 import { NewClassDialog } from "@/components/classes/new-class-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { ArrangeableClassGrid } from "@/components/layout-editor/arrangeable-class-grid";
-import { CustomizeButton, FixedRegion, LayoutEditorProvider } from "@/components/layout-editor/editor-context";
+import { ArrangeButton, FixedRegion, LayoutEditorProvider } from "@/components/layout-editor/editor-context";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { requireTeacherPage } from "@/lib/auth/session";
 import { getUpcomingByClass } from "@/lib/classroom/stream";
@@ -58,7 +58,7 @@ export default async function ClassesPage({
             actions={
               summaries.length > 0 ? (
                 <>
-                  {summaries.length > 1 ? <CustomizeButton>Arrange</CustomizeButton> : null}
+                  {summaries.length > 1 ? <ArrangeButton /> : null}
                   <NewClassDialog />
                 </>
               ) : null

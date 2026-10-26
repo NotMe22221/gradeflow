@@ -117,6 +117,7 @@ export function ReviewWorkspace({
   initialSelectedId,
   filterTitle,
   paperSide: savedPaperSide = "left",
+  singleKeyShortcuts: savedSingleKeys = true,
 }: {
   items: ReviewItem[];
   initialAssignmentId: string | null;
@@ -125,6 +126,8 @@ export function ReviewWorkspace({
   filterTitle: string | null;
   /** The teacher's saved layout: which side the paper sits on when paper and grade are side by side. */
   paperSide?: PaperSide;
+  /** The teacher's setting for letter shortcuts (J, K, A, S, ?). */
+  singleKeyShortcuts?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -132,6 +135,7 @@ export function ReviewWorkspace({
   // Swapping sides shows at once; the saved preference comes back from the
   // server (updatePreferences revalidates the page). A failed save reverts.
   const [paperSide, setOptimisticPaperSide] = useOptimistic(savedPaperSide);
+  const [singleKeys, setOptimisticSingleKeys] = useOptimistic(savedSingleKeys);
 
   const [filter, setFilter] = useState<AssignmentFilter>(
     initialAssignmentId ? { id: initialAssignmentId, title: filterTitle } : null
@@ -449,7 +453,22 @@ export function ReviewWorkspace({
     onApprove: () => requestApprove("shortcut"),
     onSendBack: () => requestSendBack("shortcut"),
     onHelp: () => openShortcuts("shortcut"),
-  });
+  }, { singleKeys });
+
+  const changeSingleKeys = useCallback(
+    (next: boolean) => {
+      startTransition(async () => {
+        setOptimisticSingleKeys(next);
+        try {
+          const result = await updatePreferences({ singleKeyShortcuts: next });
+          if (!result.ok) toast.error("Couldn't save that setting", { description: result.error });
+        } catch {
+          toast.error("Couldn't save that setting", { description: "Check your connection and try again." });
+        }
+      });
+    },
+    [setOptimisticSingleKeys]
+  );
 
   let body: React.ReactNode;
   if (!current || !summary || !draft || !layout) {
@@ -654,7 +673,13 @@ export function ReviewWorkspace({
         />
       ) : null}
 
-      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} restoreFocus={restoreFocus} />
+      <ShortcutsDialog
+        open={shortcutsOpen}
+        onOpenChange={setShortcutsOpen}
+        restoreFocus={restoreFocus}
+        singleKeys={singleKeys}
+        onSingleKeysChange={changeSingleKeys}
+      />
     </div>
   );
 }

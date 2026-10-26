@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { BookOpen } from "@/components/icons";
 import { EmptyState } from "@/components/empty-state";
 import { ArrangeableClassGrid } from "@/components/layout-editor/arrangeable-class-grid";
-import { CustomizeButton, FixedRegion, LayoutEditorProvider } from "@/components/layout-editor/editor-context";
+import { ArrangeButton, FixedRegion, LayoutEditorProvider } from "@/components/layout-editor/editor-context";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { buildClassCards, StudentClassCard } from "@/components/student/class-card";
 import { todoTabFor } from "@/components/student/todo-model";
@@ -56,7 +56,7 @@ export default async function StudentClassesPage({
           <PageHeader
             title="Classes"
             description={description}
-            actions={cards.length > 1 ? <CustomizeButton>Arrange</CustomizeButton> : null}
+            actions={cards.length > 1 ? <ArrangeButton /> : null}
           />
         </FixedRegion>
         <ArrangeableClassGrid

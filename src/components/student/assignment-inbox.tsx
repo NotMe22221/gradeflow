@@ -95,6 +95,8 @@ export function AssignmentInbox({
 }) {
   const router = useRouter();
   const bridge = usePlannerBridge();
+  // "Plan my grade" only while the goal planner is on Home to receive it (it can be hidden).
+  const canPlan = Boolean(bridge?.available);
   const wideWindow = useMediaQuery("(min-width: 768px)");
   const headingId = useId();
 
@@ -170,7 +172,7 @@ export function AssignmentInbox({
   }
 
   function planFor(classId: string) {
-    if (!bridge) return;
+    if (!bridge || !canPlan) return;
     if (sheetOpen) {
       // Let the sheet close (and release its scroll lock) before scrolling to the planner.
       keepFocusOnClose.current = true;
@@ -199,7 +201,7 @@ export function AssignmentInbox({
   }
 
   const panelProps = {
-    onPlan: bridge ? planFor : undefined,
+    onPlan: canPlan ? planFor : undefined,
     onLogStudy: logStudy,
     studyPending,
     studyLoggedToday: studyLogged,
@@ -210,7 +212,12 @@ export function AssignmentInbox({
       <SectionHeading
         id={headingId}
         title="Assignment inbox"
-        description={summary ?? "Choose an assignment to open it, plan your grade, or log a study session."}
+        description={
+          summary ??
+          (canPlan
+            ? "Choose an assignment to open it, plan your grade, or log a study session."
+            : "Choose an assignment to open it or log a study session.")
+        }
         action={{ href: "/student/todo", label: "Open To-do" }}
       />
 
@@ -312,7 +319,11 @@ export function AssignmentInbox({
                 <EmptyState
                   icon={MousePointerClick}
                   title="Quick actions show up here."
-                  description="Choose an assignment to turn it in, plan your grade, or log a study session."
+                  description={
+                    canPlan
+                      ? "Choose an assignment to turn it in, plan your grade, or log a study session."
+                      : "Choose an assignment to turn it in or log a study session."
+                  }
                   className="h-full border-0 bg-transparent"
                 />
               )}
@@ -378,7 +389,7 @@ function InboxRow({
       aria-current={active ? "true" : undefined}
       tabIndex={active ? 0 : -1}
       className={cn(
-        "group relative flex min-h-16 w-full items-center gap-3 px-4 py-row text-left transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset compact:min-h-14 sm:gap-4 sm:px-5 motion-reduce:transition-none",
+        "group relative flex min-h-16 w-full items-center gap-3 px-4 py-row text-left transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset focus-visible:outline-hidden forced-colors:focus-visible:-outline-offset-2 compact:min-h-14 sm:gap-4 sm:px-5 motion-reduce:transition-none",
         // Selection only shows in the split view, where the pane beside the list follows it.
         active
           ? "hover:bg-foreground/[0.04] @min-[48rem]/inbox:bg-primary-soft/45 @min-[48rem]/inbox:hover:bg-primary-soft/45"

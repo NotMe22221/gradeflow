@@ -35,7 +35,10 @@ export default async function NewAssignmentPage({
 
   return (
     <PageContainer>
+      {/* Keyed by kind: "Create handwritten test in …" from search, opened on this class's
+          essay builder, only changes ?kind, and the builder would keep its essay state. */}
       <RubricBuilder
+        key={initialKind}
         classId={klass.id}
         classColor={classTheme(klass).color}
         initialKind={initialKind}

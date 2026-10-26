@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CircleAlert, Flag, LoaderCircle, Target } from "@/components/icons";
 import { toast } from "sonner";
 
+import { useDestinationTarget } from "@/components/app-shell/destination";
 import { EmptyState } from "@/components/empty-state";
 import { SectionHeading } from "@/components/layout-editor/section-heading";
 import { GoalEngineBadge } from "@/components/student/goal-engine-badge";
@@ -18,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MAX_GOAL_CHARS } from "@/lib/goals/parse";
 import type { GoalEngine, GoalPlannerResponse, GoalPlanView } from "@/lib/goals/types";
 import { scrollBehavior } from "@/lib/motion";
+import { GOAL_PLANNER_ID } from "@/lib/search/catalog";
 import { cn } from "@/lib/utils";
 
 export type PlannerClass = { id: string; name: string; section: string | null };
@@ -74,9 +76,10 @@ export function GoalPlanner({
   useEffect(() => () => abortRef.current?.abort(), []);
 
   // "Plan my grade" from the assignment inbox: switch class, scroll here, focus
-  // the goal. Each request is handled once (a refresh re-renders with new props).
+  // the goal. Each request is handled once (a refresh re-renders with new props),
+  // and one made before this planner mounted (Home re-arranged) is not replayed.
   const request = bridge?.request ?? null;
-  const handledNonce = useRef(0);
+  const handledNonce = useRef(request?.nonce ?? 0);
   useEffect(() => {
     if (!request || request.nonce === handledNonce.current) return;
     handledNonce.current = request.nonce;
@@ -88,6 +91,12 @@ export function GoalPlanner({
     sectionRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
     inputRef.current?.focus({ preventScroll: true });
   }, [request, classes]);
+
+  // Goals (bottom bar, rail, drawer, search) is /student#goal-planner. Arriving from another
+  // page, the router tries the hash while Home's loading skeleton is up and gives up, so the
+  // planner scrolls itself into view and takes focus once it mounts. Scrolled away, the URL
+  // drops the hash and Home is the current destination again.
+  useDestinationTarget(GOAL_PLANNER_ID, sectionRef);
 
   const current = results[classId] ?? null;
   const selectedClass = classes.find((klass) => klass.id === classId) ?? null;
@@ -166,7 +175,7 @@ export function GoalPlanner({
   return (
     <section
       ref={sectionRef}
-      id="goal-planner"
+      id={GOAL_PLANNER_ID}
       aria-labelledby={headingId}
       className="min-w-0 scroll-mt-24"
     >
@@ -244,7 +253,7 @@ export function GoalPlanner({
                 type="button"
                 onClick={() => applyExample(example)}
                 disabled={pending}
-                className="inline-flex h-8 items-center rounded-lg border border-input bg-card px-3 text-[0.8125rem] font-medium text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring disabled:opacity-50"
+                className="inline-flex h-8 items-center rounded-lg border border-input bg-card px-3 text-[0.8125rem] font-medium text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:outline-hidden disabled:opacity-50"
               >
                 {example}
               </button>

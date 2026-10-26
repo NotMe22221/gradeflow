@@ -4,9 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useId } from "react";
 
+import { onNavLinkClick } from "@/components/app-shell/destination";
 import { COUNT_LABELS, type DrawerClass, type NavCountKey, type NavItem } from "@/components/app-shell/nav-items";
 import { activeClassId, activeNavId, badgeText } from "@/components/app-shell/nav-model";
-import { notifyLocationChange, useLocationHash } from "@/components/app-shell/use-location-hash";
+import { useLocationHash } from "@/components/app-shell/use-location-hash";
 import { ClassAvatar } from "@/components/classroom/class-avatar";
 import { ShieldCheck } from "@/components/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -41,7 +42,10 @@ function RailTip({ label, show, children }: { label: string; show: boolean; chil
  * sheet there is no "nav" container, so it is always the full drawer.
  *
  * The current destination has a filled icon, the secondary-container pill,
- * a semibold label and aria-current="page".
+ * a semibold label and aria-current="page". Choosing the page that is open
+ * scrolls it to its top (or to its #section, for Goals) instead of doing
+ * nothing. On a short window (a phone turned sideways) the whole column
+ * scrolls, so every destination and class stays reachable.
  */
 export function NavDrawer({
   items,
@@ -62,7 +66,8 @@ export function NavDrawer({
   /** Rail mode is showing: give abbreviated items tooltips. */
   tooltips?: boolean;
   showGateNote?: boolean;
-  onNavigate?: () => void;
+  /** In the phone sheet: handles the link click instead (closes the sheet, then goes). */
+  onNavigate?: (event: React.MouseEvent<HTMLAnchorElement>, href: string) => void;
 }) {
   const pathname = usePathname();
   const hash = useLocationHash();
@@ -75,13 +80,13 @@ export function NavDrawer({
   // With a class open, its own item marks the page, not "Classes" as well.
   const current = currentClass ? null : activeNavId(items, pathname, hash);
 
-  function navigate() {
-    notifyLocationChange();
-    onNavigate?.();
+  function navigate(event: React.MouseEvent<HTMLAnchorElement>, href: string) {
+    if (onNavigate) onNavigate(event, href);
+    else onNavLinkClick(event, href);
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col px-3 @max-[11rem]/nav:px-1">
+    <div className="flex h-full min-h-0 flex-col overflow-x-hidden overflow-y-auto overscroll-contain px-3 [scrollbar-width:thin] @max-[11rem]/nav:px-1">
       <nav aria-label="Main" className="flex shrink-0 flex-col gap-0.5 @max-[11rem]/nav:gap-1">
         {items.map((item) => {
           const active = item.id === current;
@@ -91,10 +96,10 @@ export function NavDrawer({
             <RailTip key={item.id} label={item.label} show={tooltips && Boolean(item.shortLabel)}>
               <Link
                 href={item.href}
-                onClick={navigate}
+                onClick={(event) => navigate(event, item.href)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "group/navitem relative flex h-12 shrink-0 items-center gap-3 rounded-full px-4 text-[0.875rem] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                  "group/navitem relative flex h-12 shrink-0 items-center gap-3 rounded-full px-4 text-[0.875rem] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset focus-visible:outline-hidden forced-colors:focus-visible:-outline-offset-2",
                   "@max-[11rem]/nav:h-auto @max-[11rem]/nav:min-h-14 @max-[11rem]/nav:flex-col @max-[11rem]/nav:justify-center @max-[11rem]/nav:gap-1 @max-[11rem]/nav:rounded-2xl @max-[11rem]/nav:px-0 @max-[11rem]/nav:py-1",
                   active
                     ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground forced-colors:outline @max-[11rem]/nav:bg-transparent @max-[11rem]/nav:text-foreground"
@@ -139,10 +144,12 @@ export function NavDrawer({
       {classes.length > 0 ? (
         <>
           <div className="mx-4 my-3 h-px shrink-0 bg-sidebar-border @max-[11rem]/nav:mx-3" />
-          {/* -m-1 p-1: room inside the scroller for the items' focus rings. */}
+          {/* Grows to push the gate note down on tall windows, never shrinks: on short ones the
+              whole column scrolls (a list squeezed to nothing can't be reached). -m-1 p-1: room
+              for the items' focus rings. */}
           <nav
             aria-labelledby={classesHeadingId}
-            className="-m-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto p-1 @max-[11rem]/nav:gap-1"
+            className="-m-1 flex shrink-0 grow flex-col gap-0.5 p-1 @max-[11rem]/nav:gap-1"
           >
             <p
               id={classesHeadingId}
@@ -156,10 +163,10 @@ export function NavDrawer({
                 <RailTip key={klass.id} label={klass.name} show={tooltips}>
                   <Link
                     href={`${classHrefBase}${klass.id}`}
-                    onClick={navigate}
+                    onClick={(event) => navigate(event, `${classHrefBase}${klass.id}`)}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "group/navitem flex h-14 shrink-0 items-center gap-3 rounded-full pr-4 pl-3 text-[0.875rem] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                      "group/navitem flex h-14 shrink-0 items-center gap-3 rounded-full pr-4 pl-3 text-[0.875rem] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset focus-visible:outline-hidden forced-colors:focus-visible:-outline-offset-2",
                       "@max-[11rem]/nav:h-12 @max-[11rem]/nav:justify-center @max-[11rem]/nav:rounded-2xl @max-[11rem]/nav:px-0",
                       active
                         ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground forced-colors:outline @max-[11rem]/nav:bg-transparent"

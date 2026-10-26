@@ -63,8 +63,10 @@
  * grow with it) in rem: text-[0.8125rem], never px.
  *
  * STICKY BARS: html scroll-padding-top equals the app bar (--app-bar-h, plus
- * the class tab bar on class pages), so a focused element is never hidden
- * under them (WCAG 2.4.11). A fixed bottom bar should carry data-bottom-nav.
+ * the class tab bar on class pages, plus the "Arranging" bar while a layout is
+ * being arranged: --edit-bar-h, measured by the layout editor), so a focused
+ * element is never hidden under them (WCAG 2.4.11). A fixed bottom bar should
+ * carry data-bottom-nav.
  *
  * Contrast for every token pair, accent and class color is checked by
  * tests/theme.test.ts, which parses this file. Change a value, run npm test.
@@ -546,8 +548,9 @@
     text-rendering: optimizeLegibility;
     /* Native checkboxes, radios, range inputs and progress follow the accent. */
     accent-color: var(--primary);
-    /* Focused or scrolled-to elements never land under the sticky bars (WCAG 2.4.11). */
-    scroll-padding-top: calc(var(--app-bar-h) + var(--class-bar-h) + 0.5rem);
+    /* Focused or scrolled-to elements never land under the sticky bars (WCAG 2.4.11).
+       --edit-bar-h is set by LayoutEditorProvider while the "Arranging" bar is up. */
+    scroll-padding-top: calc(var(--app-bar-h) + var(--class-bar-h) + var(--edit-bar-h, 0px) + 0.5rem);
     scroll-padding-bottom: calc(var(--bottom-bar-h) + 0.5rem);
   }
   body {
@@ -584,6 +587,15 @@
  * things around. Transitions opt out with `motion-reduce:` where they move
  * layout (the app drawer).
  */
+/* Windows High Contrast / forced colors: many controls draw focus with a box-shadow ring,
+   which forced colors removes. Give every focused control a system-colored outline there. */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: 2px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   [class*="animate-in"],
   [class*="animate-out"] {

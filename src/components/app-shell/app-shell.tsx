@@ -1,13 +1,17 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { BottomNav } from "@/components/app-shell/bottom-nav";
+import { focusMain, isInPage, prepareNavigation, showInPage } from "@/components/app-shell/destination";
 import { GraderStatus } from "@/components/app-shell/grader-status";
 import { NavDrawer } from "@/components/app-shell/nav-drawer";
 import { STUDENT_NAV, TEACHER_NAV, type DrawerClass, type NavCountKey } from "@/components/app-shell/nav-items";
-import { NAV_COLLAPSED_COOKIE, NAV_COLLAPSED_MAX_AGE } from "@/components/app-shell/nav-model";
+import { isPlainClick, NAV_COLLAPSED_COOKIE, NAV_COLLAPSED_MAX_AGE } from "@/components/app-shell/nav-model";
+import { overlayHistory } from "@/components/app-shell/overlay-history";
+import { useBackDismiss } from "@/components/app-shell/use-back-dismiss";
+import { notifyLocationChange } from "@/components/app-shell/use-location-hash";
 import { UserMenu, type SwitchableStudent } from "@/components/app-shell/user-menu";
 import { Logo } from "@/components/brand/logo";
 import { CommandPalette } from "@/components/command-palette/command-palette";
@@ -57,11 +61,15 @@ function rememberCollapsed(collapsed: boolean) {
  *   to the rail (remembered in a cookie, so it renders collapsed on the
  *   server with no shift).
  *
- * The app bar holds the search field (Ctrl/Cmd+K or "/"), which opens the
- * command palette, and the account menu, which opens Customize. Pages own
- * their padding so the review queue can go full-bleed. <main id="main"> is
- * the skip link's target and a size container, so page grids switch on the
- * room they get (`@3xl:`) rather than the viewport.
+ * The app bar holds the search field (Ctrl/Cmd+K), which opens the command
+ * palette, and the account menu, which opens Customize. Pages own their
+ * padding so the review queue can go full-bleed. <main id="main"> is the skip
+ * link's target and a size container, so page grids switch on the room they
+ * get (`@3xl:`) rather than the viewport.
+ *
+ * On phones and tablets Back closes the menu sheet or the full-screen search
+ * instead of leaving the page under it (useBackDismiss), and an overlay never
+ * outlives the page it was opened on.
  */
 export function AppShell({
   user,
@@ -100,6 +108,7 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -111,6 +120,13 @@ export function AppShell({
   // Customize opens from the account menu or the palette, never from a DialogTrigger, so
   // Radix can't return focus on close: remember what had it.
   const customizeReturnFocus = useRef<HTMLElement | null>(null);
+  // The sheet closed because a link in it was followed (focus goes to the page, not to ☰),
+  // and the in-page move to make once it has gone (Home or Goals re-selected on Home).
+  const sheetNavigated = useRef(false);
+  const sheetAfterClose = useRef<(() => void) | null>(null);
+  // The ☰ tooltip shows for hover and keyboard focus only, never for the focus it gets
+  // back when the sheet closes after a tap (it would sit over the page title).
+  const [menuTip, setMenuTip] = useState(false);
 
   const openCustomize = useCallback(() => {
     customizeReturnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -123,9 +139,11 @@ export function AppShell({
     const saved = customizeReturnFocus.current;
     customizeReturnFocus.current = null;
     // After the sheet stops trapping focus (this frame), before its exit animation ends.
+    // preventScroll: it was on screen when Customize opened, and focusing a control in the
+    // sticky app bar would otherwise scroll the page to the top (html scroll-padding).
     window.requestAnimationFrame(() => {
       const target = saved?.isConnected && saved !== document.body ? saved : menuButtonRef.current;
-      target?.focus();
+      target?.focus({ preventScroll: true });
     });
   }
 
@@ -147,6 +165,41 @@ export function AppShell({
   useEffect(() => {
     if (expanded) setSheetOpen(false);
   }, [expanded]);
+
+  // Overlays belong to the page they were opened on: close them when the route changes
+  // (Back/Forward included). Links inside them already close them before navigating.
+  useEffect(() => {
+    setSheetOpen(false);
+    setSearchOpen(false);
+  }, [pathname]);
+
+  // Back closes the sheet, and the search where it is full screen (phones), instead of
+  // navigating the page underneath.
+  const closeSheet = useCallback(() => setSheetOpen(false), []);
+  const closeSearch = useCallback(() => setSearchOpen(false), []);
+  useBackDismiss(sheetOpen, closeSheet);
+  useBackDismiss(searchOpen, closeSearch, () => !window.matchMedia(MEDIUM_QUERY).matches);
+
+  /** A link in the menu sheet: close the sheet, then go (see onNavLinkClick for the rest). */
+  function navigateFromSheet(event: React.MouseEvent<HTMLAnchorElement>, href: string) {
+    // A new tab or window: the browser's job, and the sheet stays.
+    if (!isPlainClick(event)) return;
+    if (isInPage(href)) {
+      // This page (Home or Goals re-selected): move once the sheet and its scroll lock are gone.
+      event.preventDefault();
+      sheetAfterClose.current = () => void overlayHistory.settled().then(() => showInPage(href));
+    } else {
+      prepareNavigation(href);
+      sheetNavigated.current = true;
+      // The sheet's own history entry becomes the new page, so Back returns to this one.
+      if (overlayHistory.takeOver()) {
+        event.preventDefault();
+        router.replace(href);
+      }
+      notifyLocationChange();
+    }
+    setSheetOpen(false);
+  }
 
   usePaletteShortcut(searchOpen, setSearchOpen);
   const prefetch = useCallback(() => prefetchSearchIndex(user.id), [user.id]);
@@ -180,13 +233,21 @@ export function AppShell({
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-1 border-b border-border bg-card px-2 min-[37.5rem]:gap-2 min-[37.5rem]:px-3">
-        <Tooltip>
+        <Tooltip
+          open={menuTip}
+          onOpenChange={(next) => {
+            const button = menuButtonRef.current;
+            setMenuTip(next && Boolean(button?.matches(":hover") || button?.matches(":focus-visible")));
+          }}
+        >
           <TooltipTrigger asChild>
             <Button
               ref={menuButtonRef}
               variant="ghost"
               size="icon"
               onClick={toggleMenu}
+              // Contrast themes drop Button's focus ring: draw a system-colored outline instead.
+              className="focus-visible:outline-hidden"
               aria-label="Main menu"
               aria-expanded={expanded ? !collapsed : sheetOpen}
               aria-controls={expanded ? DRAWER_ID : undefined}
@@ -197,7 +258,7 @@ export function AppShell({
           </TooltipTrigger>
           <TooltipContent side="bottom">{expanded ? (collapsed ? "Expand menu" : "Collapse menu") : "Main menu"}</TooltipContent>
         </Tooltip>
-        <Logo href={homeHref} className="ml-0.5 min-[37.5rem]:mr-4" />
+        <Logo href={homeHref} className="ml-0.5 focus-visible:outline-hidden min-[37.5rem]:mr-4" />
         <SearchButton
           ref={searchButtonRef}
           role={user.role}
@@ -227,21 +288,32 @@ export function AppShell({
           <SheetContent
             side="left"
             className="w-[min(20rem,85vw)] gap-0 bg-sidebar p-0 sm:max-w-[20rem]"
-            // No SheetTrigger for Radix to return focus to: go back to the menu button.
+            // No SheetTrigger for Radix to return focus to. After following a link, focus moves to
+            // the page (as the skip link does); otherwise (Esc, scrim, Back) back to the menu button.
             onCloseAutoFocus={(event) => {
               event.preventDefault();
-              menuButtonRef.current?.focus();
+              const after = sheetAfterClose.current;
+              sheetAfterClose.current = null;
+              const navigated = sheetNavigated.current;
+              sheetNavigated.current = false;
+              if (after || navigated) {
+                focusMain();
+                after?.();
+                return;
+              }
+              // preventScroll: the button sits in the sticky app bar; focusing it would scroll the page to the top.
+              menuButtonRef.current?.focus({ preventScroll: true });
             }}
           >
             <SheetHeader className="h-16 shrink-0 justify-center border-b border-border px-4 py-0">
               <div>
-                <Logo href={homeHref} />
+                <Logo href={homeHref} className="focus-visible:outline-hidden" />
               </div>
               <SheetTitle className="sr-only">Main menu</SheetTitle>
               <SheetDescription className="sr-only">All pages and your classes</SheetDescription>
             </SheetHeader>
             <div className="min-h-0 flex-1 py-3">
-              <NavDrawer {...drawerProps} onNavigate={() => setSheetOpen(false)} />
+              <NavDrawer {...drawerProps} onNavigate={navigateFromSheet} />
             </div>
           </SheetContent>
         </Sheet>

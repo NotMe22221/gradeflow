@@ -102,20 +102,26 @@ export function ReviewHeader({
     filter === null ? "All assignments" : (selectedOption?.title ?? filterTitle ?? "Selected assignment");
   const filterLabel = (filter !== null ? labels.get(filter) : undefined) ?? fullFilterTitle;
 
+  // Kept short on purpose: on the one-row layout (a 72rem workspace, e.g.
+  // 1440px with the drawer open) the title block is only about 11.5rem wide,
+  // and the badge and the filter pill already carry the total and the
+  // assignment. Both lines fit that width up to three-digit counts; the
+  // ellipsis and the title stay as a safety net.
   const countLine =
     totalCount === 0
       ? "Your queue is clear"
-      : `${pluralize(totalCount, "paper")} waiting for your review${
-          filter !== null ? ` · ${visibleCount} in this assignment` : ""
-        }`;
+      : filter !== null
+        ? `Showing ${visibleCount} of ${pluralize(totalCount, "paper")}`
+        : `${pluralize(totalCount, "paper")} waiting for review`;
 
   return (
     <div className="border-b border-border bg-card px-4 py-3 sm:px-6">
       {/*
-        Wide: title, filters, student switcher, and shortcuts on one row.
-        Narrower, the switcher drops below the title and the filters take
-        their own row (the container query follows the workspace width, so
-        it also tracks the collapsed drawer).
+        Wide (a 72rem workspace): title, filters, student switcher, and
+        shortcuts on one row. Narrower, the switcher drops below the title and
+        the filters take their own row (the container query follows the
+        workspace width, so it also tracks the collapsed drawer). The
+        skeleton in review-skeleton.tsx uses the same breakpoint.
       */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <div className="min-w-0 flex-1 basis-44">

@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { onNavLinkClick } from "@/components/app-shell/destination";
 import { COUNT_LABELS, type NavCountKey, type NavItem } from "@/components/app-shell/nav-items";
 import { activeNavId, badgeText } from "@/components/app-shell/nav-model";
-import { notifyLocationChange, useLocationHash } from "@/components/app-shell/use-location-hash";
+import { useLocationHash } from "@/components/app-shell/use-location-hash";
 import { cn } from "@/lib/utils";
 
 /**
@@ -14,7 +15,9 @@ import { cn } from "@/lib/utils";
  * and a semibold label. Fixed to the bottom above the home indicator
  * (safe-area padding); the shell pads <main> by the bar's height so nothing
  * hides under it, and globals.css adds scroll padding for it via
- * data-bottom-nav. Counts show as a small badge on the icon.
+ * data-bottom-nav. Counts show as a small badge on the icon. Tapping the
+ * destination that is open scrolls back to its top (or to the goal planner,
+ * for Goals), M3 style.
  */
 export function BottomNav({
   items,
@@ -42,9 +45,9 @@ export function BottomNav({
             <li key={item.id} className="flex min-w-0 flex-1">
               <Link
                 href={item.href}
-                onClick={notifyLocationChange}
+                onClick={(event) => onNavLinkClick(event, item.href)}
                 aria-current={active ? "page" : undefined}
-                className="group/tab flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl pt-1.5 pb-2 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                className="group/tab flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl pt-1.5 pb-2 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset focus-visible:outline-hidden forced-colors:focus-visible:-outline-offset-2"
               >
                 <span
                   className={cn(
@@ -64,9 +67,11 @@ export function BottomNav({
                     </span>
                   ) : null}
                 </span>
+                {/* No side padding: four slots are ~78px at 320px, and "Gradebook" at the largest
+                    text size needs 73px of them. Truncation stays as the last resort. */}
                 <span
                   className={cn(
-                    "max-w-full truncate px-1 text-[0.75rem] leading-4",
+                    "max-w-full truncate text-[0.75rem] leading-4",
                     active ? "font-semibold text-foreground" : "font-medium text-muted-foreground"
                   )}
                 >

@@ -59,6 +59,11 @@ export type ReviewShortcutHandlers = {
 export type ShortcutAction = keyof ReviewShortcutHandlers;
 
 /** Map a key to a review action. */
+/** Letter and symbol keys (not arrows): the ones a user can turn off (WCAG 2.1.4). */
+export function isCharacterKey(key: string): boolean {
+  return key.length === 1;
+}
+
 export function shortcutForKey(key: string): ShortcutAction | null {
   switch (key) {
     case "ArrowRight":

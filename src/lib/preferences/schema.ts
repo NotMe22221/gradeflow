@@ -63,6 +63,8 @@ export type Preferences = {
   accent: Accent;
   textSize: TextSize;
   density: Density;
+  /** Single-letter shortcuts in To review (J, K, A, S, ?). WCAG 2.1.4: users can turn them off. */
+  singleKeyShortcuts: boolean;
   layout: {
     teacherHome: SectionLayout;
     studentHome: SectionLayout;
@@ -87,6 +89,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   accent: "blue",
   textSize: "default",
   density: "comfortable",
+  singleKeyShortcuts: true,
   layout: {
     teacherHome: defaultSectionLayout("teacherHome"),
     studentHome: defaultSectionLayout("studentHome"),
@@ -107,6 +110,7 @@ export const preferencesPatchSchema = z
     accent: z.enum(ACCENTS).optional(),
     textSize: z.enum(TEXT_SIZES).optional(),
     density: z.enum(DENSITIES).optional(),
+    singleKeyShortcuts: z.boolean().optional(),
     layout: z
       .object({
         teacherHome: sectionLayoutSchema.optional(),
@@ -164,6 +168,8 @@ export function normalizePreferences(raw: unknown): Preferences {
     accent: pick(value.accent, ACCENTS, DEFAULT_PREFERENCES.accent),
     textSize: pick(value.textSize, TEXT_SIZES, DEFAULT_PREFERENCES.textSize),
     density: pick(value.density, DENSITIES, DEFAULT_PREFERENCES.density),
+    singleKeyShortcuts:
+      typeof value.singleKeyShortcuts === "boolean" ? value.singleKeyShortcuts : DEFAULT_PREFERENCES.singleKeyShortcuts,
     layout: {
       teacherHome: normalizeSectionLayout("teacherHome", layout.teacherHome),
       studentHome: normalizeSectionLayout("studentHome", layout.studentHome),

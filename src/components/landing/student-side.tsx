@@ -21,7 +21,13 @@ const SCREENS: { shot: ScreenshotId; title: string; body: string }[] = [
   },
 ];
 
-/** The student side, shown at phone size because that's where students check it. */
+/**
+ * The student side, shown at phone size because that's where students check
+ * it. Each phone screen keeps a readable width (about 18rem, never a
+ * thumbnail): under its text on phones, beside it on tablets, and three
+ * across from lg, where the gaps and panel padding tighten so the screens
+ * stay as large.
+ */
 export function StudentSide({ theme }: { theme: Theme }) {
   return (
     <section id="students" aria-labelledby="students-heading" className={SECTION_SPACING}>
@@ -31,22 +37,25 @@ export function StudentSide({ theme }: { theme: Theme }) {
           title="For students, a calm place to see what's due"
           description="Students see their work, the grades you approved and your feedback. Never a draft, a confidence label or another student's work."
         />
-        <ul className="mt-12 grid gap-10 md:grid-cols-3 md:gap-8">
+        <ul className="mt-12 grid gap-14 md:gap-12 lg:grid-cols-3 lg:gap-6 xl:gap-8">
           {SCREENS.map((screen) => (
-            <li key={screen.shot} className="grid grid-cols-[minmax(0,1fr)_8.5rem] items-start gap-5 md:grid-cols-1 md:gap-6">
-              <div className="order-2 flex justify-center rounded-2xl bg-secondary p-2 md:order-1 md:p-6">
-                <ScreenshotFrame
-                  id={screen.shot}
-                  theme={theme}
-                  shape="phone"
-                  className="rounded-[0.875rem] md:rounded-[1.75rem]"
-                />
-              </div>
-              <div className="order-1 md:order-2">
+            <li
+              key={screen.shot}
+              className="grid items-center gap-5 md:grid-cols-[minmax(0,1fr)_20rem] md:gap-8 lg:grid-cols-1 lg:content-start lg:gap-6"
+            >
+              <div>
                 <h3 className="text-[1.125rem] leading-snug font-medium text-foreground">{screen.title}</h3>
                 <p className="mt-2 max-w-[60ch] text-[0.9375rem] leading-6 text-pretty text-muted-foreground">
                   {screen.body}
                 </p>
+              </div>
+              <div className="flex justify-center rounded-2xl bg-secondary p-4 lg:order-first lg:p-3 xl:p-5">
+                <ScreenshotFrame
+                  id={screen.shot}
+                  theme={theme}
+                  shape="phone"
+                  className="max-w-[18rem] sm:max-w-[18rem] lg:max-w-(--shot-width)"
+                />
               </div>
             </li>
           ))}

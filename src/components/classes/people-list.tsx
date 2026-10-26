@@ -22,8 +22,8 @@ function PeopleHeading({
   aside?: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-16 items-end justify-between gap-4 border-b border-primary pb-2">
-      <h2 id={id} className="text-[1.75rem] leading-9 font-normal text-primary sm:text-[2rem] sm:leading-10">
+    <div className="flex min-h-16 flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b border-primary pb-2">
+      <h2 id={id} className="min-w-0 text-[1.75rem] leading-9 font-normal text-primary sm:text-[2rem] sm:leading-10">
         {title}
       </h2>
       {aside ? <div className="flex shrink-0 items-center gap-2 pb-0.5">{aside}</div> : null}

@@ -1,11 +1,15 @@
 // When a key press opens (or closes) the search palette. Pure, so the rules
 // are unit-tested; the hook in src/components/command-palette applies them.
 //
-// Ctrl+K (Cmd+K on a Mac; either works) and "/" open search, but never while
-// someone is typing in a field, and never while another dialog, menu or
-// listbox is open: the review queue's own shortcuts (J/K/A/S/?) and its
-// confirmation dialogs keep the keyboard. Ctrl/Cmd+K inside the open palette
-// closes it again.
+// Ctrl+K (Cmd+K on a Mac; either works) opens search, but never while someone
+// is typing in a field, and never while another dialog, menu or listbox is
+// open: the review queue's own shortcuts (J/K/A/S/?) and its confirmation
+// dialogs keep the keyboard. Ctrl/Cmd+K inside the open palette closes it
+// again.
+//
+// There is deliberately no single-key shortcut ("/"): a character key that
+// works anywhere fires on speech input and stray presses, and WCAG 2.1.4
+// would need a way to turn it off or remap it. A modifier chord needs neither.
 
 import { isEditableTarget } from "@/lib/review/shortcuts";
 
@@ -42,12 +46,6 @@ export function paletteShortcut(event: ShortcutKeyEvent, context: ShortcutContex
     return "open";
   }
 
-  const slash = event.key === "/" && !event.ctrlKey && !event.metaKey && !event.altKey;
-  if (slash) {
-    // In the open palette "/" is just a character in the search field.
-    if (context.paletteOpen || context.overlayOpen || typing) return null;
-    return "open";
-  }
   return null;
 }
 
@@ -57,4 +55,9 @@ export const OVERLAY_SELECTOR = '[role="dialog"], [role="alertdialog"], [role="m
 /** "⌘" on Apple platforms, "Ctrl" elsewhere, for shortcut hints. */
 export function modifierLabel(platform: string | undefined): "⌘" | "Ctrl" {
   return platform && /mac|iphone|ipad|ipod/i.test(platform) ? "⌘" : "Ctrl";
+}
+
+/** The search shortcut as a key hint: "⌘K" on Apple platforms, "Ctrl K" elsewhere. */
+export function searchShortcutHint(modifier: "⌘" | "Ctrl"): string {
+  return modifier === "⌘" ? "⌘K" : "Ctrl K";
 }

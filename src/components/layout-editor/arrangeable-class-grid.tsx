@@ -1,7 +1,15 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
-import { closestCenter, DndContext, type Announcements, type DragEndEvent } from "@dnd-kit/core";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  closestCenter,
+  DndContext,
+  type Announcements,
+  type DragCancelEvent,
+  type DragEndEvent,
+  type DragStartEvent,
+  type UniqueIdentifier,
+} from "@dnd-kit/core";
 import { rectSortingStrategy, SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -24,6 +32,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
+import { createDragAnnouncer } from "./announcements";
 import { useLayoutEditor } from "./editor-context";
 import { CLASS_GRID } from "./grid";
 import {
@@ -35,6 +44,7 @@ import {
   orderItems,
   type OrderMove,
 } from "./model";
+import { findControl, focusIsOnOrLost, revealControl, SETTLE_MS } from "./reveal";
 import { useEditorSensors, useReducedMotion } from "./sensors";
 
 /** One class card. `node` is the card, rendered on the server. */
@@ -104,17 +114,46 @@ function SortableGrid({ items, label, className }: { items: ClassGridItem[]; lab
   const reduced = useReducedMotion();
   const rootRef = useRef<HTMLUListElement>(null);
   const pendingFocus = useRef<string | null>(null);
+  /** The card picked up with the keyboard. */
+  const keyboardDrag = useRef<string | null>(null);
+  const revealTimer = useRef<number | undefined>(undefined);
+  const [announcer] = useState(() => createDragAnnouncer("a place"));
 
   const ids = items.map((item) => item.id);
   const nameOf = (id: string) => items.find((item) => item.id === id)?.name ?? "Class";
 
+  // Keep focus on the move button that was used and keep it in view: it
+  // usually keeps focus as its card moves, so focus() alone would never scroll.
   useLayoutEffect(() => {
     const target = pendingFocus.current;
     if (!target) return;
     pendingFocus.current = null;
-    const escaped = typeof window !== "undefined" && window.CSS?.escape ? window.CSS.escape(target) : target;
-    rootRef.current?.querySelector<HTMLElement>(`[data-control="${escaped}"]`)?.focus();
+    const control = findControl(rootRef.current, target);
+    if (control) revealControl(control);
   });
+
+  useEffect(() => () => window.clearTimeout(revealTimer.current), []);
+
+  /** After a keyboard drop or cancel, once the card has settled, bring its handle into view. */
+  function revealHandle(id: string) {
+    window.clearTimeout(revealTimer.current);
+    revealTimer.current = window.setTimeout(
+      () => {
+        const handle = findControl(rootRef.current, `${id}:handle`);
+        if (handle && focusIsOnOrLost(handle)) revealControl(handle);
+      },
+      reduced ? 0 : SETTLE_MS
+    );
+  }
+
+  function onDragStart({ active, activatorEvent }: DragStartEvent) {
+    keyboardDrag.current = activatorEvent instanceof KeyboardEvent ? String(active.id) : null;
+  }
+
+  function endDrag(id: string) {
+    if (keyboardDrag.current === id) revealHandle(id);
+    keyboardDrag.current = null;
+  }
 
   function save(next: string[]) {
     editor?.setClassOrder((current) => mergeOrder(next, current));
@@ -133,6 +172,7 @@ function SortableGrid({ items, label, className }: { items: ClassGridItem[]; lab
   }
 
   function onDragEnd({ active, over }: DragEndEvent) {
+    endDrag(String(active.id));
     if (!over || active.id === over.id) return;
     const from = ids.indexOf(String(active.id));
     const to = ids.indexOf(String(over.id));
@@ -140,17 +180,20 @@ function SortableGrid({ items, label, className }: { items: ClassGridItem[]; lab
     save(arrayMove(ids, from, to));
   }
 
+  function onDragCancel({ active }: DragCancelEvent) {
+    endDrag(String(active.id));
+  }
+
   const position = (id: string) => describeOrderPosition(ids.indexOf(id), ids.length);
+  const overId = (over: { id: UniqueIdentifier } | null) => (over ? String(over.id) : null);
   const announcements: Announcements = {
-    onDragStart: ({ active }) => `Picked up ${nameOf(String(active.id))}, ${position(String(active.id))}.`,
-    onDragOver: ({ active, over }) =>
-      over ? `${nameOf(String(active.id))} is over ${position(String(over.id))}.` : `${nameOf(String(active.id))} is not over a place.`,
-    onDragEnd: ({ active, over }) =>
-      over
-        ? `Dropped ${nameOf(String(active.id))} at ${position(String(over.id))}.`
-        : `${nameOf(String(active.id))} was dropped where it started.`,
-    onDragCancel: ({ active }) =>
-      `Cancelled. ${nameOf(String(active.id))} went back to ${position(String(active.id))}.`,
+    onDragStart: ({ active }) => {
+      const id = String(active.id);
+      return announcer.start(id, nameOf(id), position(id));
+    },
+    onDragOver: ({ active, over }) => announcer.over(nameOf(String(active.id)), overId(over), over && position(String(over.id))),
+    onDragEnd: ({ active, over }) => announcer.drop(nameOf(String(active.id)), overId(over), over && position(String(over.id))),
+    onDragCancel: ({ active }) => announcer.cancel(nameOf(String(active.id))),
   };
 
   return (
@@ -158,7 +201,9 @@ function SortableGrid({ items, label, className }: { items: ClassGridItem[]; lab
       id="class-order"
       sensors={sensors}
       collisionDetection={closestCenter}
+      onDragStart={onDragStart}
       onDragEnd={onDragEnd}
+      onDragCancel={onDragCancel}
       accessibility={{
         announcements,
         screenReaderInstructions: {

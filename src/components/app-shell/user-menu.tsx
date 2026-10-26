@@ -52,12 +52,15 @@ export function UserMenu({
   // Customize opens once the menu has closed and handed focus back to the
   // button, so closing Customize returns focus there too.
   const afterClose = useRef<(() => void) | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const rightClickOutside = useRef(false);
   const roleLabel = user.role === "TEACHER" ? "Teacher" : "Student";
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="flex h-10 items-center gap-2 rounded-full p-1 text-left transition-colors outline-none hover:bg-foreground/[0.06] focus-visible:ring-2 focus-visible:ring-ring min-[75rem]:pr-2"
+        ref={triggerRef}
+        className="flex h-10 items-center gap-2 rounded-full p-1 text-left transition-colors outline-none hover:bg-foreground/[0.06] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden min-[75rem]:pr-2"
         // Starts with the visible name (WCAG 2.5.3), so "click Morgan Hale" works.
         aria-label={`${user.name}, account menu`}
       >
@@ -71,7 +74,16 @@ export function UserMenu({
       <DropdownMenuContent
         align="end"
         className="w-72 max-w-[calc(100vw-1rem)] overflow-y-auto [max-height:min(var(--radix-dropdown-menu-content-available-height),40rem)]"
-        onCloseAutoFocus={() => {
+        onInteractOutside={(event) => {
+          const original = event.detail.originalEvent as PointerEvent;
+          rightClickOutside.current = original.button === 2 || (original.button === 0 && original.ctrlKey);
+        }}
+        onCloseAutoFocus={(event) => {
+          // Back to the avatar button as Radix would, but without scrolling: a plain focus() on a
+          // control in the sticky app bar scrolls the page to the top (html scroll-padding).
+          event.preventDefault();
+          if (!rightClickOutside.current) triggerRef.current?.focus({ preventScroll: true });
+          rightClickOutside.current = false;
           const next = afterClose.current;
           afterClose.current = null;
           if (next) window.setTimeout(next, 0);
@@ -114,6 +126,8 @@ export function UserMenu({
                 className={cn(
                   "relative mx-1.5 flex min-h-10 cursor-default items-center gap-3 rounded-lg px-3 py-2 text-[0.875rem] outline-none select-none",
                   "data-[highlighted]:bg-primary-soft data-[highlighted]:text-primary-soft-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
+                  // Contrast themes drop the highlight fill: outline the highlighted item instead.
+                  "forced-colors:data-[highlighted]:outline-2 forced-colors:data-[highlighted]:outline-solid forced-colors:data-[highlighted]:-outline-offset-2",
                   checked ? "font-medium text-foreground" : "text-foreground"
                 )}
               >
