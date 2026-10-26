@@ -66,11 +66,14 @@ function withoutKeys(errors: FieldErrors, predicate: (key: string) => boolean): 
  * Assignment + rubric form, laid out like Google Classroom's create screen:
  * the title and instructions card, a settings panel on the right (points,
  * due date, type, template), and the rubric (or questions and answer key)
- * below. "Create assignment" sits top right on wider screens and at the
- * bottom on phones. Holds all form state; the settings panel, answer-key
- * import, and each criterion are presentational children. For a handwritten
- * test (kind TEST) the criteria read as questions, and the description is
- * the answer key.
+ * below. Exactly one "Create assignment" button shows at a time, so it is
+ * always reachable without scrolling back up: when the content area is wide
+ * enough for two columns (`@4xl`, measured on the `<main>` container so the
+ * open drawer counts) it sits at the top of the sticky settings panel, top
+ * right like Classroom's Assign; in one column it closes the form. Holds all
+ * form state; the settings panel, answer-key import, and each criterion are
+ * presentational children. For a handwritten test (kind TEST) the criteria
+ * read as questions, and the description is the answer key.
  */
 export function RubricBuilder({
   classId,
@@ -295,22 +298,13 @@ export function RubricBuilder({
           </h1>
           <p className="max-w-2xl text-[15px] text-pretty text-muted-foreground">{heading.description}</p>
         </div>
-        {/* Tablets and up: Cancel and Create at the top right. Phones get them at the bottom. */}
-        <div className="hidden shrink-0 items-center gap-2 md:flex">
-          <Button type="button" variant="text" asChild>
-            <Link href={classworkHref}>Cancel</Link>
-          </Button>
-          <Button type="submit" disabled={pending}>
-            {submitIcon}
-            {submitLabel}
-          </Button>
-        </div>
       </div>
 
       {formError ? <FormAlert className="mb-6">{formError}</FormAlert> : null}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start lg:gap-8">
-        <div className="grid min-w-0 gap-6 rounded-xl border border-border bg-card p-4 sm:p-6 lg:col-start-1 lg:row-start-1">
+      {/* Container queries, not viewport ones: with the 288px drawer open, a 1024px window leaves too little room for two columns. */}
+      <div className="grid gap-6 @4xl:grid-cols-[minmax(0,1fr)_20rem] @4xl:items-start @4xl:gap-8">
+        <div className="grid min-w-0 gap-6 rounded-xl border border-border bg-card p-4 sm:p-6 @4xl:col-start-1 @4xl:row-start-1">
           <div className="grid gap-2">
             <Label htmlFor="assignment-title">Title</Label>
             <Input
@@ -355,8 +349,18 @@ export function RubricBuilder({
         {/* Below the tab bar (sticky at top-16, about 48px tall), so it sticks at top-32. */}
         <aside
           aria-label="Assignment settings"
-          className="min-w-0 lg:sticky lg:top-32 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start"
+          className="min-w-0 @4xl:sticky @4xl:top-32 @4xl:col-start-2 @4xl:row-span-2 @4xl:row-start-1 @4xl:self-start"
         >
+          {/* Two columns: the actions ride at the top of the sticky panel, so Create stays in view on a long rubric. */}
+          <div className="mb-4 hidden items-center justify-end gap-2 @4xl:flex">
+            <Button type="button" variant="text" asChild>
+              <Link href={classworkHref}>Cancel</Link>
+            </Button>
+            <Button type="submit" disabled={pending}>
+              {submitIcon}
+              {submitLabel}
+            </Button>
+          </div>
           <BuilderSettings
             kind={kind}
             onKindChange={changeKind}
@@ -375,7 +379,7 @@ export function RubricBuilder({
           />
         </aside>
 
-        <section aria-labelledby="rubric-heading" className="min-w-0 space-y-4 lg:col-start-1 lg:row-start-2">
+        <section aria-labelledby="rubric-heading" className="min-w-0 space-y-4 @4xl:col-start-1 @4xl:row-start-2">
           <div className="flex items-end justify-between gap-4 px-1 pt-2">
             <div className="min-w-0 space-y-1">
               <h2 id="rubric-heading" className="text-[22px] leading-tight font-normal text-foreground">
@@ -430,16 +434,17 @@ export function RubricBuilder({
           </div>
         </section>
 
-        {/* Phones: the primary action at the bottom, full width. */}
-        <div className="flex flex-col gap-2 border-t border-border pt-6 md:hidden">
-          <p className="tabular text-center text-sm text-muted-foreground">
+        {/* One column (phones, tablets, and laptops with the drawer open): the actions close the form, where a long rubric ends.
+            Phones stack them full width with Create first; from md the summary sits left and Cancel, Create sit right. */}
+        <div className="flex flex-col gap-2 border-t border-border pt-6 md:flex-row md:items-center md:justify-end @4xl:hidden">
+          <p className="tabular text-center text-sm text-muted-foreground md:mr-auto md:text-left">
             {pluralize(criteria.length, copy.noun, copy.nounPlural)} · {pluralize(totalPoints, "point")}
           </p>
-          <Button type="submit" disabled={pending} className="w-full">
+          <Button type="submit" disabled={pending} className="w-full md:order-2 md:w-auto">
             {submitIcon}
             {submitLabel}
           </Button>
-          <Button type="button" variant="text" asChild className="w-full">
+          <Button type="button" variant="text" asChild className="w-full md:order-1 md:w-auto">
             <Link href={classworkHref}>Cancel</Link>
           </Button>
         </div>

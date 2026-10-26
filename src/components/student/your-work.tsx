@@ -1,7 +1,7 @@
 import { BadgeCheck, Check, ClipboardList } from "lucide-react";
 
 import { WORK_TONE_CLASS, type WorkStatus } from "@/components/student/todo-model";
-import { formatDate, formatPercent, formatPoints } from "@/lib/format";
+import { formatDate, formatDueDate, formatPercent, formatPoints } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /*
@@ -44,11 +44,14 @@ export function ReturnedGrade({
   maxScore,
   approvedByName,
   approvedAt,
+  timeZone,
 }: {
   totalScore: number;
   maxScore: number;
   approvedByName: string;
   approvedAt: Date;
+  /** The viewer's time zone; undefined uses the server's. */
+  timeZone?: string;
 }) {
   return (
     <div className="rounded-lg bg-secondary px-4 py-3.5">
@@ -68,7 +71,7 @@ export function ReturnedGrade({
       </div>
       <p className="mt-2 text-xs text-muted-foreground">
         Approved by <span className="font-medium text-foreground">{approvedByName}</span> on{" "}
-        <span className="tabular">{formatDate(approvedAt)}</span>
+        <span className="tabular">{formatDate(approvedAt, timeZone)}</span>
       </p>
     </div>
   );
@@ -77,9 +80,9 @@ export function ReturnedGrade({
 type Step = { label: string; detail?: string; state: "done" | "current" | "upcoming" };
 
 /** Where a turned-in paper is: turned in, with the teacher, then returned. */
-export function TurnedInSteps({ doneLabel, at }: { doneLabel: string; at: Date }) {
+export function TurnedInSteps({ doneLabel, at, timeZone }: { doneLabel: string; at: Date; timeZone?: string }) {
   const steps: Step[] = [
-    { label: doneLabel, detail: formatDate(at), state: "done" },
+    { label: doneLabel, detail: formatDate(at, timeZone), state: "done" },
     { label: "Teacher review", detail: "In progress", state: "current" },
     { label: "Grade returned", state: "upcoming" },
   ];
@@ -159,7 +162,7 @@ export function PaperTestNotice({
             <>{teacher} scans any new paper for you. There&apos;s nothing to upload.</>
           ) : awaitingScan && testDay ? (
             <>
-              The test was on <span className="tabular">{formatDate(testDay)}</span>. {teacher} scans the papers, and
+              The test was on <span className="tabular">{formatDueDate(testDay)}</span>. {teacher} scans the papers, and
               your grade appears here once it&apos;s approved. There&apos;s nothing to upload.
             </>
           ) : (

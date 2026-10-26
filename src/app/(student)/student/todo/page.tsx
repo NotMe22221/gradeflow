@@ -1,34 +1,29 @@
 import type { Metadata } from "next";
 
-import { isTodoTab, toTodoItem } from "@/components/student/todo-model";
+import { toTodoItem } from "@/components/student/todo-model";
 import { TodoView } from "@/components/student/todo-view";
 import { requireStudentPage } from "@/lib/auth/session";
+import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 
 import { loadStudentWork } from "../data";
 
 export const metadata: Metadata = { title: "To-do" };
 
-type SearchParams = Promise<Record<string, string | string[] | undefined>>;
-
-function first(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-/** Classroom's To-do: the signed-in student's own work across their classes. */
-export default async function StudentTodoPage({ searchParams }: { searchParams: SearchParams }) {
+/**
+ * Classroom's To-do: the signed-in student's own work across their classes.
+ * The tab and class filter come from the URL (?tab=…&class=…), which the
+ * view reads itself so links and reloads land on the same view.
+ */
+export default async function StudentTodoPage() {
   const student = await requireStudentPage();
   const now = new Date();
-  const [{ classes, rows }, params] = await Promise.all([loadStudentWork(student.id, now), searchParams]);
-
-  const tabParam = first(params.tab);
-  const classParam = first(params.class);
+  const timeZone = await viewerTimeZone();
+  const { classes, rows } = await loadStudentWork(student.id, now, { timeZone });
 
   return (
     <TodoView
-      items={rows.map((row) => toTodoItem(row, now))}
+      items={rows.map((row) => toTodoItem(row, now, timeZone))}
       classes={classes.map(({ id, name }) => ({ id, name }))}
-      initialTab={isTodoTab(tabParam) ? tabParam : "assigned"}
-      initialClassId={classes.some((klass) => klass.id === classParam) && classParam ? classParam : "all"}
     />
   );
 }

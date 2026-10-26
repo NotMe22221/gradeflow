@@ -28,7 +28,7 @@ export function GradesSkeleton({ withClassHeader = false }: { withClassHeader?: 
         ) : null}
         <div className="overflow-hidden">
           <div className="flex items-stretch border-b border-border">
-            <div className="flex w-40 shrink-0 flex-col justify-end px-4 py-3 sm:w-60 sm:pl-6">
+            <div className="flex w-40 shrink-0 flex-col justify-end px-4 py-3 sm:w-52 sm:pl-6 xl:w-60">
               <Skeleton className="h-3.5 w-16" />
             </div>
             <div className="flex w-28 shrink-0 flex-col justify-end gap-1.5 border-l border-border px-4 py-3">
@@ -46,7 +46,7 @@ export function GradesSkeleton({ withClassHeader = false }: { withClassHeader?: 
           </div>
           {ROWS.map((row) => (
             <div key={row} className="flex h-14 items-center border-b border-border last:border-0">
-              <div className="flex w-40 shrink-0 items-center gap-3 px-4 sm:w-60 sm:pl-6">
+              <div className="flex w-40 shrink-0 items-center gap-3 px-4 sm:w-52 sm:pl-6 xl:w-60">
                 <Skeleton className="hidden size-8 rounded-full sm:block" />
                 <Skeleton className="h-4 w-28" />
               </div>

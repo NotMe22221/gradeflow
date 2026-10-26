@@ -1,15 +1,12 @@
 import { FlaskConical, Sparkles } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { EngineInfoBadge } from "@/components/grading/engine-info-badge";
 import { GRADER_DESCRIPTIONS, GRADER_LABELS, type GraderKind } from "@/lib/constants";
-import { cn } from "@/lib/utils";
-
-const focusable = "cursor-help outline-none focus-visible:ring-[3px] focus-visible:ring-ring";
 
 /**
  * Says which engine produced a suggestion. The demo grader is a local,
  * deterministic heuristic and must never be mistaken for real AI output.
+ * Click or tap the chip for what the engine does.
  */
 export function GraderBadge({
   grader,
@@ -22,26 +19,23 @@ export function GraderBadge({
 }) {
   if (grader === "demo") {
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Badge variant="outline" tabIndex={0} className={cn("border-dashed", focusable, className)}>
-            <FlaskConical aria-hidden />
-            {GRADER_LABELS.demo}
-          </Badge>
-        </TooltipTrigger>
-        <TooltipContent>{GRADER_DESCRIPTIONS.demo(null)}</TooltipContent>
-      </Tooltip>
+      <EngineInfoBadge
+        variant="outline"
+        dashed
+        icon={<FlaskConical aria-hidden />}
+        label={GRADER_LABELS.demo}
+        explanation={GRADER_DESCRIPTIONS.demo(null)}
+        className={className}
+      />
     );
   }
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Badge variant="default" tabIndex={0} className={cn(focusable, className)}>
-          <Sparkles aria-hidden />
-          {GRADER_LABELS[grader]}
-        </Badge>
-      </TooltipTrigger>
-      <TooltipContent>{GRADER_DESCRIPTIONS[grader](model ?? null)}</TooltipContent>
-    </Tooltip>
+    <EngineInfoBadge
+      variant="default"
+      icon={<Sparkles aria-hidden />}
+      label={GRADER_LABELS[grader]}
+      explanation={GRADER_DESCRIPTIONS[grader](model ?? null)}
+      className={className}
+    />
   );
 }

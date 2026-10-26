@@ -1,17 +1,14 @@
 import { FlaskConical, Sparkles } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { EngineInfoBadge } from "@/components/grading/engine-info-badge";
 import type { BriefEngine } from "@/lib/briefs/types";
 import { briefEngineLabel } from "@/lib/briefs/text";
 import { cn } from "@/lib/utils";
 
-const focusable = "cursor-help outline-none focus-visible:ring-[3px] focus-visible:ring-ring";
-
 /**
  * Which engine drafted the brief, as a chip: tonal "AI draft" for the live
  * engine, dashed "Demo brief" for the local template. The demo template must
- * never pass for AI output.
+ * never pass for AI output. Click or tap the chip for what the engine does.
  */
 export function BriefEngineBadge({
   engine,
@@ -22,30 +19,20 @@ export function BriefEngineBadge({
   model: string | null;
   className?: string;
 }) {
-  const label = briefEngineLabel(engine, model);
-  const tooltip =
-    engine === "demo"
-      ? "No OPENAI_API_KEY is set, so a local template builds this brief from the same approved grades. It is not AI output."
-      : `Drafted on the server by the OpenAI API${model ? ` (${model})` : ""} from teacher-approved grades only. Check every line before sharing it.`;
+  const demo = engine === "demo";
+  const explanation = demo
+    ? "No OPENAI_API_KEY is set, so a local template builds this brief from the same approved grades. It is not AI output."
+    : `Drafted on the server by the OpenAI API${model ? ` (${model})` : ""} from teacher-approved grades only. Check every line before sharing it.`;
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Badge
-          variant={engine === "demo" ? "outline" : "default"}
-          tabIndex={0}
-          className={cn(
-            "h-7 rounded-full px-3 text-[13px] [&>svg]:size-3.5",
-            engine === "demo" && "border-dashed",
-            focusable,
-            className
-          )}
-        >
-          {engine === "demo" ? <FlaskConical aria-hidden /> : <Sparkles aria-hidden />}
-          {label}
-        </Badge>
-      </TooltipTrigger>
-      <TooltipContent>{tooltip}</TooltipContent>
-    </Tooltip>
+    <EngineInfoBadge
+      variant={demo ? "outline" : "default"}
+      dashed={demo}
+      icon={demo ? <FlaskConical aria-hidden /> : <Sparkles aria-hidden />}
+      label={briefEngineLabel(engine, model)}
+      explanation={explanation}
+      align="end"
+      className={cn("h-7 rounded-full px-3 text-[13px] [&>svg]:size-3.5", className)}
+    />
   );
 }

@@ -91,6 +91,10 @@ describe("streaks", () => {
       detail: "Study today to keep it going",
     });
     assert.deepEqual(streakSummary({ current: 0, activeToday: false, longest: 3 }), {
+      headline: "Streak ended",
+      detail: "Study today to start a new one",
+    });
+    assert.deepEqual(streakSummary({ current: 0, activeToday: false, longest: 0 }), {
       headline: "No streak yet",
       detail: "Study today to start one",
     });

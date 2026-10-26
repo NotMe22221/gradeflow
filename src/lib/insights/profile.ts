@@ -174,15 +174,16 @@ const OPEN_WORK_ORDER: Record<OpenWorkState, number> = {
 
 /**
  * Due dates are calendar dates (stored at noon UTC), so work is missing only
- * after the whole due day has passed: the same isPastDue() rule the student
- * views use. A paper test has nothing to submit: until the teacher scans it,
- * it waits on the teacher, not the student.
+ * once the viewer's today (in `timeZone`) is after its due day: the same
+ * isPastDue() rule the student views and Grades use. A paper test has nothing
+ * to submit: until the teacher scans it, it waits on the teacher, not the student.
  */
 export function openStateFor(
   state: GradebookCellState,
   dueDate: Date | null,
   now: Date,
-  kind: AssignmentKind = "ESSAY"
+  kind: AssignmentKind = "ESSAY",
+  timeZone?: string
 ): OpenWorkState | null {
   switch (state) {
     case "published":
@@ -190,7 +191,7 @@ export function openStateFor(
     case "returned":
       return "returned";
     case "missing":
-      if (dueDate && !isPastDue(dueDate, now)) return "upcoming";
+      if (dueDate && !isPastDue(dueDate, now, timeZone)) return "upcoming";
       if (kind === "TEST") return "awaiting_scan";
       return dueDate ? "missing" : "not_submitted";
     case "ready":
@@ -201,7 +202,7 @@ export function openStateFor(
   }
 }
 
-export function buildStudentProfile(record: StudentRecord, now: Date = new Date()): StudentProfile {
+export function buildStudentProfile(record: StudentRecord, now: Date = new Date(), timeZone?: string): StudentProfile {
   const submissionByAssignment = new Map(record.submissions.map((submission) => [submission.assignmentId, submission]));
 
   const grades: PublishedGradeSummary[] = [];
@@ -225,7 +226,7 @@ export function buildStudentProfile(record: StudentRecord, now: Date = new Date(
       continue;
     }
     const state = cellStateFor(submission?.status ?? null, false, submission?.updatedAt, now.getTime());
-    const open = openStateFor(state, assignment.dueDate, now, assignment.kind);
+    const open = openStateFor(state, assignment.dueDate, now, assignment.kind, timeZone);
     if (open) {
       openWork.push({
         assignmentId: assignment.id,

@@ -15,9 +15,9 @@ import { Button } from "@/components/ui/button";
 import { formatDate, pluralize } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-/** "Posted Oct 20". */
-function postedLabel(row: StudentWorkRow): string {
-  return `Posted ${formatDate(row.postedAt)}`;
+/** "Posted Oct 20", in the viewer's zone. */
+function postedLabel(row: StudentWorkRow, timeZone: string | undefined): string {
+  return `Posted ${formatDate(row.postedAt, timeZone)}`;
 }
 
 /**
@@ -30,11 +30,14 @@ export function StudentClasswork({
   classColor,
   rows,
   now,
+  timeZone,
 }: {
   classId: string;
   classColor: string;
   rows: StudentWorkRow[];
   now: Date;
+  /** The viewer's time zone (viewerTimeZone()); undefined uses the server's. */
+  timeZone?: string;
 }) {
   const sorted = [...rows].sort((a, b) => b.postedAt.localeCompare(a.postedAt) || a.title.localeCompare(b.title));
 
@@ -83,9 +86,9 @@ export function StudentClasswork({
                         {row.title}
                       </span>
                       <span className="mt-0.5 block truncate text-xs text-muted-foreground">
-                        <span className="tabular">{relativeDue(row, now)}</span>
+                        <span className="tabular">{relativeDue(row, now, timeZone)}</span>
                         <span aria-hidden> · </span>
-                        <span className="tabular">{postedLabel(row)}</span>
+                        <span className="tabular">{postedLabel(row, timeZone)}</span>
                       </span>
                     </span>
                     <span className="flex max-w-[45%] shrink-0 flex-col items-end gap-0.5 text-right">

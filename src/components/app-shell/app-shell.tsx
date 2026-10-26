@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Menu } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { GraduationCap, Menu, School } from "lucide-react";
 
 import { GraderStatus } from "@/components/app-shell/grader-status";
 import { NavDrawer } from "@/components/app-shell/nav-drawer";
@@ -14,13 +14,18 @@ import type { EngineStatus } from "@/lib/ai/engines";
 import { cn } from "@/lib/utils";
 
 const COLLAPSE_KEY = "gs-drawer-collapsed";
+const DESKTOP_QUERY = "(min-width: 1024px)";
+const DRAWER_ID = "app-drawer";
 
 /**
  * App frame in the style of Google Classroom: a 64px top app bar (menu
  * button, logo, engine status, account) over a left navigation drawer with
  * the class list. On desktop the menu button collapses the drawer to an icon
  * rail; on phones it opens the drawer as a sheet. Pages own their padding so
- * the review queue can go full-bleed.
+ * the review queue can go full-bleed. <main id="main"> is the root layout's
+ * skip-link target, and a size container, so page grids can switch columns
+ * on the room they actually get (`@3xl:` etc.) rather than on the viewport,
+ * which the drawer shares.
  */
 export function AppShell({
   user,
@@ -53,6 +58,9 @@ export function AppShell({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Which drawer the menu button drives: the desktop drawer or the phone sheet.
+  const [isDesktop, setIsDesktop] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     try {
@@ -62,8 +70,16 @@ export function AppShell({
     }
   }, []);
 
+  useEffect(() => {
+    const query = window.matchMedia(DESKTOP_QUERY);
+    const sync = () => setIsDesktop(query.matches);
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
+
   function toggleMenu() {
-    if (window.matchMedia("(min-width: 1024px)").matches) {
+    if (window.matchMedia(DESKTOP_QUERY).matches) {
       setCollapsed((value) => {
         const next = !value;
         try {
@@ -84,6 +100,7 @@ export function AppShell({
     classes,
     classesLabel,
     classesHref,
+    classesIcon: nav === "teacher" ? School : GraduationCap,
     classHref: (id: string) => `${classHrefBase}${id}`,
     showGateNote: user.role === "TEACHER",
   };
@@ -92,11 +109,14 @@ export function AppShell({
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-1 border-b border-border bg-card px-2 sm:gap-2 sm:px-3">
         <Button
+          ref={menuButtonRef}
           variant="ghost"
           size="icon"
           onClick={toggleMenu}
-          aria-label={collapsed ? "Expand main menu" : "Main menu"}
-          aria-expanded={mobileOpen || undefined}
+          aria-label="Main menu"
+          aria-expanded={isDesktop ? !collapsed : mobileOpen}
+          aria-controls={isDesktop ? DRAWER_ID : undefined}
+          aria-haspopup={isDesktop ? undefined : "dialog"}
         >
           <Menu className="size-5" />
         </Button>
@@ -109,8 +129,9 @@ export function AppShell({
 
       <div className="flex min-h-0 flex-1">
         <aside
+          id={DRAWER_ID}
           className={cn(
-            "sticky top-16 hidden h-[calc(100dvh-4rem)] shrink-0 flex-col border-r border-sidebar-border bg-sidebar py-3 transition-[width] duration-200 lg:flex",
+            "sticky top-16 hidden h-[calc(100dvh-4rem)] shrink-0 flex-col border-r border-sidebar-border bg-sidebar py-3 transition-[width] duration-200 motion-reduce:transition-none lg:flex",
             collapsed ? "w-[88px] px-5" : "w-72 px-3"
           )}
         >
@@ -118,13 +139,20 @@ export function AppShell({
         </aside>
 
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent side="left" className="w-[300px] max-w-[85vw] gap-0 p-0">
+          <SheetContent
+            side="left"
+            className="w-[300px] max-w-[85vw] gap-0 p-0"
+            // No SheetTrigger for Radix to return focus to: go back to the menu button.
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              menuButtonRef.current?.focus();
+            }}
+          >
             <SheetHeader className="h-16 justify-center border-b border-border px-4 py-0">
-              <SheetTitle asChild>
-                <div>
-                  <Logo href={homeHref} />
-                </div>
-              </SheetTitle>
+              <div>
+                <Logo href={homeHref} />
+              </div>
+              <SheetTitle className="sr-only">Main menu</SheetTitle>
               <SheetDescription className="sr-only">Main navigation</SheetDescription>
             </SheetHeader>
             <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
@@ -133,7 +161,7 @@ export function AppShell({
           </SheetContent>
         </Sheet>
 
-        <main id="main" className="min-w-0 flex-1">
+        <main id="main" className="@container min-w-0 flex-1 scroll-mt-16 outline-none">
           {children}
         </main>
       </div>

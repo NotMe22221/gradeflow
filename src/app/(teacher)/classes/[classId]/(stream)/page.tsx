@@ -9,6 +9,7 @@ import { getOwnedClass } from "@/lib/access";
 import { AuthError, requireTeacherPage } from "@/lib/auth/session";
 import { upcomingWork } from "@/lib/classroom/due";
 import { getClassStream } from "@/lib/classroom/stream";
+import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import { pluralize } from "@/lib/format";
 import { insightsHref } from "@/lib/insights/links";
 import { classTheme } from "@/lib/ui/class-theme";
@@ -39,8 +40,9 @@ export default async function ClassStreamPage({ params }: { params: Params }) {
   const { teacher, klass } = owned;
 
   const now = new Date();
-  const stream = await getClassStream(teacher.id, klass.id);
-  const upcoming = upcomingWork(stream.assignments, now, { limit: 3 });
+  const timeZone = await viewerTimeZone();
+  const stream = await getClassStream(teacher.id, klass.id, { timeZone });
+  const upcoming = upcomingWork(stream.assignments, now, { limit: 3, timeZone });
   // The newest handwritten test, so "Scan papers" opens the scanner ready for it.
   const latestTest = stream.assignments.find((assignment) => assignment.isTest);
   const scanHref = latestTest ? `/scan?assignment=${encodeURIComponent(latestTest.id)}` : "/scan";
@@ -56,13 +58,19 @@ export default async function ClassStreamPage({ params }: { params: Params }) {
 
       <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-[13.5rem_minmax(0,1fr)]">
         <aside aria-label="Class overview" className="grid min-w-0 grid-cols-1 content-start gap-4 sm:grid-cols-2 md:grid-cols-1">
-          <StreamUpcomingCard classId={klass.id} items={upcoming} now={now} />
+          <StreamUpcomingCard classId={klass.id} items={upcoming} now={now} timeZone={timeZone} />
           <StreamToolsCard scanHref={scanHref} heatmapHref={insightsHref(klass.id)} />
         </aside>
 
         <div className="min-w-0 space-y-4">
           <StreamComposer classId={klass.id} teacherName={teacher.name} />
-          <StreamFeed items={stream.items} teacherName={teacher.name} classColor={classTheme(klass).color} now={now} />
+          <StreamFeed
+            items={stream.items}
+            teacherName={teacher.name}
+            classColor={classTheme(klass).color}
+            now={now}
+            timeZone={timeZone}
+          />
         </div>
       </div>
     </div>

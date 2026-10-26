@@ -8,6 +8,7 @@ import { GradesView } from "@/components/gradebook/grades-view";
 import { PageContainer } from "@/components/page-header";
 import { getOwnedClass } from "@/lib/access";
 import { AuthError, requireTeacherPage } from "@/lib/auth/session";
+import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import { listExporters } from "@/lib/export";
 import { getGradebook } from "@/lib/gradebook/query";
 
@@ -46,11 +47,13 @@ export default async function ClassGradesPage({ params }: { params: Params }) {
 
   // getGradebook re-checks ownership and reads scores from PublishedGrade only.
   const data = await getGradebook(owned.teacher.id, owned.klass.id);
-  const kinds = await loadAssignmentKinds(data);
+  const [kinds, timeZone] = await Promise.all([loadAssignmentKinds(data), viewerTimeZone()]);
 
   return (
     <PageContainer>
-      <GradesView data={data} kinds={kinds} formats={exportFormats()} />
+      {/* The tab bar's class name is a link, not a heading, so the page title is for screen readers. */}
+      <h1 className="sr-only">Grades · {owned.klass.name}</h1>
+      <GradesView data={data} kinds={kinds} formats={exportFormats()} timeZone={timeZone} />
     </PageContainer>
   );
 }

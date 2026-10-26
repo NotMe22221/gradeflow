@@ -9,6 +9,10 @@ import { cn } from "@/lib/utils";
  * In-page tabs with Classroom's underline indicator (To-do's Assigned /
  * Missing / Done). Same look as PageTabs, for tabs that switch content
  * without navigating. Use with Tabs and TabsContent from ui/tabs.
+ *
+ * Keyboard focus is a solid inset primary ring (about 6.5:1 on white; inset
+ * because the list scrolls sideways and would clip an outer ring). The 8%
+ * tint is only the state layer, like hover.
  */
 
 export function UnderlineTabsList({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.List>) {
@@ -31,7 +35,7 @@ export function UnderlineTabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "group/tab relative inline-flex h-12 shrink-0 items-center gap-2 rounded-t-md px-4 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.04] hover:text-foreground focus-visible:bg-primary/[0.08] data-[state=active]:text-primary",
+        "group/tab relative inline-flex h-12 shrink-0 items-center gap-2 rounded-t-md px-4 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.04] hover:text-foreground focus-visible:bg-primary/[0.08] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset data-[state=active]:text-primary",
         className
       )}
       {...props}

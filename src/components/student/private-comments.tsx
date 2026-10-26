@@ -15,7 +15,7 @@ export type PrivateComment = {
  * comments: a send-back note, or the overall feedback approved with a grade.
  * Read-only: there is no messaging in GradeSmart.
  */
-export function PrivateComments({ comments }: { comments: PrivateComment[] }) {
+export function PrivateComments({ comments, timeZone }: { comments: PrivateComment[]; timeZone?: string }) {
   if (comments.length === 0) return null;
   return (
     <section aria-labelledby="private-comments-heading" className="rounded-xl border border-border bg-card p-5">
@@ -29,7 +29,7 @@ export function PrivateComments({ comments }: { comments: PrivateComment[] }) {
             <figure className="min-w-0 flex-1">
               <figcaption className="text-[13px] leading-5">
                 <span className="font-medium text-foreground">{comment.author}</span>
-                {comment.at ? <span className="tabular text-muted-foreground"> · {formatDate(comment.at)}</span> : null}
+                {comment.at ? <span className="tabular text-muted-foreground"> · {formatDate(comment.at, timeZone)}</span> : null}
                 {comment.context ? (
                   <span className="block text-xs text-muted-foreground">{comment.context}</span>
                 ) : null}

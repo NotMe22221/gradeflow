@@ -5,9 +5,11 @@ import { describeOpenAiError, openAiConfigured } from "@/lib/ai/openai";
 import { AuthError, requireTeacher } from "@/lib/auth/session";
 import { BriefError, generateConferenceBrief } from "@/lib/briefs/generate";
 import { buildBriefInput } from "@/lib/briefs/input";
+import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import type { ConferenceBriefFailure, ConferenceBriefSuccess } from "@/lib/briefs/types";
 import { readJsonWithLimit } from "@/lib/http/body";
 import { AI_RATE_LIMITS, checkRateLimit, rateLimitMessage } from "@/lib/http/rate-limit";
+import { buildStudentProfile } from "@/lib/insights/profile";
 import { getStudentRecord } from "@/lib/insights/student";
 import { idSchema } from "@/lib/validation/id";
 
@@ -56,7 +58,8 @@ export async function POST(request: Request) {
 
     const now = new Date();
     const record = await getStudentRecord(teacher.id, parsed.data.classId, parsed.data.studentId);
-    const input = buildBriefInput(record, now);
+    // The same open-work states (upcoming vs missing) as the profile page the teacher is on.
+    const input = buildBriefInput(record, now, buildStudentProfile(record, now, await viewerTimeZone()));
     if (input.basis.publishedCount === 0) {
       return errorResponse(
         `Approve a grade for ${input.student.firstName} first. Briefs are drafted from teacher-approved grades only.`,

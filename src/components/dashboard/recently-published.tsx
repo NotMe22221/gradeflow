@@ -65,10 +65,13 @@ export function SideCardEmpty({ icon: Icon, children }: { icon: typeof CircleChe
 export function RecentlyPublished({
   items,
   now,
+  timeZone,
   className,
 }: {
   items: RecentlyPublishedItem[];
   now: Date;
+  /** The viewer's time zone for dates past a week and the tooltip; undefined uses the server's. */
+  timeZone?: string;
   className?: string;
 }) {
   return (
@@ -102,8 +105,8 @@ export function RecentlyPublished({
                     <span className="sr-only">, {formatPercent(item.totalScore, item.maxScore)}</span>
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    <time dateTime={item.publishedAt.toISOString()} title={formatDateTime(item.publishedAt)}>
-                      {formatRelative(item.publishedAt, now)}
+                    <time dateTime={item.publishedAt.toISOString()} title={formatDateTime(item.publishedAt, timeZone)}>
+                      {formatRelative(item.publishedAt, now, timeZone)}
                     </time>
                   </p>
                 </div>

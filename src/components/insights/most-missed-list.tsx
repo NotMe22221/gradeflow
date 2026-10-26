@@ -1,15 +1,15 @@
 import Link from "next/link";
 
+import { ClassAvatar } from "@/components/classroom/class-avatar";
 import { HEAT_TONE } from "@/components/insights/heat-tone";
 import { formatPoints, pluralize } from "@/lib/format";
 import { formatHeatPercent, heatBand, roundPercent, type MostMissedItem } from "@/lib/insights/heatmap";
 import { insightsHref } from "@/lib/insights/links";
-import { classTheme } from "@/lib/ui/class-theme";
 import { cn } from "@/lib/utils";
 
 /**
  * Ranked list of the criteria a class loses the most points on, as
- * Classroom-style rows: a circle in the class color holding the rank, the
+ * Classroom-style rows: a neutral tonal circle holding the rank, the
  * criterion and where it was asked, and the class average on the right. Each
  * row links to its assignment (or, with `linkTo="insights"`, to the class
  * heatmap). The bar is the class average; the percent is always printed.
@@ -17,6 +17,9 @@ import { cn } from "@/lib/utils";
  * `dense` is for a narrow rail (the dashboard): a smaller circle, the
  * question wraps to two lines, and the assignment and class get a line each,
  * so the row still says what was missed and where.
+ *
+ * Class colors stay on the small class avatar: on the rank circle a green
+ * class would read as "good" next to the lowest score on the page.
  */
 export function MostMissedList({
   items,
@@ -55,10 +58,9 @@ export function MostMissedList({
               <span
                 aria-hidden
                 className={cn(
-                  "tabular flex shrink-0 items-center justify-center self-start rounded-full font-medium text-white",
+                  "tabular flex shrink-0 items-center justify-center self-start rounded-full bg-primary-soft font-medium text-primary-soft-foreground",
                   dense ? "mt-0.5 size-8 text-[13px]" : "size-10 text-sm"
                 )}
-                style={{ backgroundColor: classTheme({ name: item.className }).color }}
               >
                 {index + 1}
               </span>
@@ -78,8 +80,9 @@ export function MostMissedList({
                       {item.assignmentTitle}
                     </span>
                     {showClass ? (
-                      <span className="block truncate text-xs text-muted-foreground" title={item.className}>
-                        {item.className}
+                      <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground" title={item.className}>
+                        <ClassAvatar name={item.className} className="size-4 text-[9px]" />
+                        <span className="truncate">{item.className}</span>
                       </span>
                     ) : null}
                   </>

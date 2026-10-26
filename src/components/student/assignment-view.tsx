@@ -12,7 +12,7 @@ import { workStatus } from "@/components/student/todo-model";
 import { TurnInForm } from "@/components/student/turn-in-form";
 import { PaperTestNotice, ReturnedGrade, TurnedInSteps, YourWorkCard } from "@/components/student/your-work";
 import { parseAssignmentKind } from "@/lib/constants";
-import { formatDate, pluralize, wordCount } from "@/lib/format";
+import { formatDate, formatDueDate, pluralize, wordCount } from "@/lib/format";
 import { parseBreakdown } from "@/lib/grades/breakdown";
 import { classTheme } from "@/lib/ui/class-theme";
 import { cn } from "@/lib/utils";
@@ -49,6 +49,8 @@ export type StudentAssignmentData = {
     } | null;
   } | null;
   now: Date;
+  /** The viewer's time zone (viewerTimeZone()) for "today" and timestamps; undefined uses the server's. */
+  timeZone?: string;
 };
 
 /**
@@ -57,26 +59,29 @@ export type StudentAssignmentData = {
  * returned grade, add work and Turn in) with the teacher's private comments.
  * Students never see AI drafts: grades come only from a PublishedGrade.
  */
-export function StudentAssignmentView({ assignment, teacherName, submission, now }: StudentAssignmentData) {
+export function StudentAssignmentView({ assignment, teacherName, submission, now, timeZone }: StudentAssignmentData) {
   const published = submission?.publishedGrade ?? null;
   const state = studentStateFor(submission?.status, published !== null);
   const kind = parseAssignmentKind(assignment.kind);
   const isTest = kind === "TEST";
   const scanned = submission?.source === "SCAN";
-  const pastDue = isOverdue(kind, state, assignment.dueDate, now);
-  const awaitingScan = isAwaitingScan(kind, state, assignment.dueDate, now);
+  const pastDue = isOverdue(kind, state, assignment.dueDate, now, timeZone);
+  const awaitingScan = isAwaitingScan(kind, state, assignment.dueDate, now, timeZone);
   const status = workStatus({ state, kind, pastDue, awaitingScan });
   const theme = classTheme(assignment.class);
   const totalPoints = assignment.criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0);
   const paperLabel = scanned ? "Transcription of your paper" : "Your paper";
+  // A scan's stored file name is its photo count ("1 photo"), but the student
+  // only ever sees the transcription, so it must not title the tile.
+  const paperFileName = scanned ? null : (submission?.fileName ?? null);
   const teacher = teacherName ?? "Your teacher";
 
   const dueText = isTest
     ? assignment.dueDate
-      ? `Test day ${formatDate(assignment.dueDate)}`
+      ? `Test day ${formatDueDate(assignment.dueDate)}`
       : "No test date"
     : assignment.dueDate
-      ? `Due ${formatDate(assignment.dueDate)}`
+      ? `Due ${formatDueDate(assignment.dueDate)}`
       : "No due date";
 
   // The teacher's notes, oldest first, like a private comment thread.
@@ -116,8 +121,9 @@ export function StudentAssignmentView({ assignment, teacherName, submission, now
           maxScore={published.maxScore}
           approvedByName={published.approvedBy.name}
           approvedAt={published.approvedAt}
+          timeZone={timeZone}
         />
-        <PaperTile words={wordCount(submission.content)} fileName={submission.fileName} label={paperLabel} />
+        <PaperTile words={wordCount(submission.content)} fileName={paperFileName} label={paperLabel} />
       </>
     );
   } else if (state === "submitted" && submission) {
@@ -133,6 +139,7 @@ export function StudentAssignmentView({ assignment, teacherName, submission, now
         <TurnedInSteps
           doneLabel={scanned ? "Scanned" : resubmitted ? "Resubmitted" : "Turned in"}
           at={submission.submittedAt}
+          timeZone={timeZone}
         />
       </>
     );
@@ -140,7 +147,7 @@ export function StudentAssignmentView({ assignment, teacherName, submission, now
     yourWork = isTest ? (
       <>
         <p className="text-sm text-pretty text-muted-foreground">
-          {submission.returnedAt ? `Sent back ${formatDate(submission.returnedAt)}. ` : ""}
+          {submission.returnedAt ? `Sent back ${formatDate(submission.returnedAt, timeZone)}. ` : ""}
           {note ? "Read your teacher's note below." : "Your teacher didn't leave a note this time."}
         </p>
         <PaperTestNotice teacherName={teacherName} testDay={assignment.dueDate} awaitingScan={false} sentBack />
@@ -148,7 +155,7 @@ export function StudentAssignmentView({ assignment, teacherName, submission, now
     ) : (
       <>
         <p className="text-sm text-pretty text-muted-foreground">
-          {submission.returnedAt ? `Sent back ${formatDate(submission.returnedAt)}. ` : ""}
+          {submission.returnedAt ? `Sent back ${formatDate(submission.returnedAt, timeZone)}. ` : ""}
           {note
             ? "Read your teacher's note below, revise your paper, and resubmit it."
             : "Your teacher didn't leave a note this time. Revise your paper and resubmit it."}
@@ -187,7 +194,7 @@ export function StudentAssignmentView({ assignment, teacherName, submission, now
                 {assignment.title}
               </h1>
               <p className="tabular mt-1 text-sm text-muted-foreground">
-                {teacher} · {formatDate(assignment.createdAt)}
+                {teacher} · {formatDate(assignment.createdAt, timeZone)}
               </p>
               <div className="tabular mt-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-sm font-medium">
                 <span className="text-foreground">
@@ -205,7 +212,7 @@ export function StudentAssignmentView({ assignment, teacherName, submission, now
           className="min-w-0 space-y-4 lg:col-start-2 lg:row-span-2 lg:row-start-1"
         >
           <YourWorkCard status={status}>{yourWork}</YourWorkCard>
-          <PrivateComments comments={comments} />
+          <PrivateComments comments={comments} timeZone={timeZone} />
         </aside>
 
         <div className="min-w-0 space-y-6 lg:col-start-1 lg:row-start-2">
@@ -229,7 +236,7 @@ export function StudentAssignmentView({ assignment, teacherName, submission, now
           />
 
           {showPaper && submission ? (
-            <SubmissionText content={submission.content} fileName={submission.fileName} label={paperLabel} />
+            <SubmissionText content={submission.content} fileName={paperFileName} label={paperLabel} />
           ) : null}
         </div>
       </div>

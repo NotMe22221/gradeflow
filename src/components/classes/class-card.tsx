@@ -21,6 +21,8 @@ export type ClassCardData = {
   readyForAi: number;
   /** Assignments with papers in the review queue, for the To review deep link. */
   pendingAssignmentIds: string[];
+  /** Assignments with papers waiting on an AI first pass, for the "ready for AI pass" link. */
+  readyAssignmentIds: string[];
   /** Up to two assignments due soon, soonest first. */
   upcoming: { id: string; title: string; dueDate: Date }[];
 };
@@ -29,6 +31,17 @@ export type ClassCardData = {
 export function classReviewHref(data: Pick<ClassCardData, "pendingAssignmentIds">): string {
   const [only, ...rest] = data.pendingAssignmentIds;
   return only && rest.length === 0 ? `/review?assignment=${encodeURIComponent(only)}` : "/review";
+}
+
+/**
+ * Where "Run AI first pass" lives: the one assignment with papers waiting,
+ * else the class's Classwork, which lists every assignment with its status.
+ */
+export function classReadyHref(data: Pick<ClassCardData, "id" | "readyAssignmentIds">): string {
+  const [only, ...rest] = data.readyAssignmentIds;
+  return only && rest.length === 0
+    ? `/assignments/${encodeURIComponent(only)}`
+    : `/classes/${encodeURIComponent(data.id)}/classwork`;
 }
 
 function FooterAction({ href, label, icon: Icon }: { href: string; label: string; icon: LucideIcon }) {
@@ -49,18 +62,22 @@ function FooterAction({ href, label, icon: Icon }: { href: string; label: string
 /**
  * A class on Home and Classes, like a Google Classroom class card: the class
  * banner (name links to the Stream), the teacher's avatar over its bottom
- * edge, work due soon, the review backlog, and footer shortcuts to Classwork,
- * Grades, and To review.
+ * edge, work due soon, the review backlog and papers ready for the AI pass
+ * (both link to where that work happens), and footer shortcuts to Classwork,
+ * Grades, and (when papers are waiting) To review.
  */
 export function ClassCard({
   data,
   teacherName,
   now,
+  timeZone,
   className,
 }: {
   data: ClassCardData;
   teacherName: string;
   now: Date;
+  /** The viewer's time zone (viewerTimeZone()) for "Due today"/"Due tomorrow"; undefined uses the server's. */
+  timeZone?: string;
   className?: string;
 }) {
   const base = `/classes/${encodeURIComponent(data.id)}`;
@@ -98,7 +115,7 @@ export function ClassCard({
                   className="group/due -mx-1 block rounded-md px-1 py-0.5 text-[13px] leading-5 outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
                 >
                   <time dateTime={item.dueDate.toISOString()} className="block text-xs text-muted-foreground">
-                    {dueLabel(item.dueDate, now)}
+                    {dueLabel(item.dueDate, now, { timeZone })}
                   </time>
                   <span className="block truncate font-medium text-foreground group-hover/due:underline">{item.title}</span>
                 </Link>
@@ -120,9 +137,12 @@ export function ClassCard({
               </Link>
             ) : null}
             {data.readyForAi > 0 ? (
-              <span className="tabular inline-flex h-8 items-center rounded-full border border-border px-3 text-[13px] text-muted-foreground">
+              <Link
+                href={classReadyHref(data)}
+                className="tabular inline-flex h-8 items-center rounded-full border border-border px-3 text-[13px] text-muted-foreground transition-shadow outline-none hover:text-foreground hover:shadow-hover focus-visible:ring-[3px] focus-visible:ring-ring"
+              >
                 {data.readyForAi} ready for AI pass
-              </span>
+              </Link>
             ) : null}
           </div>
         ) : null}
@@ -131,13 +151,14 @@ export function ClassCard({
       <div className="flex items-center justify-end gap-1 border-t border-border px-2 py-1.5">
         <FooterAction href={`${base}/classwork`} label={`Classwork for ${data.name}`} icon={FolderOpen} />
         <FooterAction href={`${base}/grades`} label={`Grades for ${data.name}`} icon={Table2} />
-        <FooterAction
-          href={classReviewHref(data)}
-          label={
-            hasReview ? `To review: ${pluralize(data.pendingReview, "paper")} in ${data.name}` : `To review for ${data.name}`
-          }
-          icon={ClipboardCheck}
-        />
+        {/* Only with papers waiting: with none, /review would open other classes' papers. */}
+        {hasReview ? (
+          <FooterAction
+            href={classReviewHref(data)}
+            label={`To review: ${pluralize(data.pendingReview, "paper")} in ${data.name}`}
+            icon={ClipboardCheck}
+          />
+        ) : null}
       </div>
     </article>
   );

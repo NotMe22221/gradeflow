@@ -162,7 +162,7 @@ export function CriterionCard({
             aria-invalid={check.error ? true : undefined}
             aria-describedby={check.error || blank ? errorId : undefined}
             className={cn(
-              "tabular h-11 w-[4.5rem] rounded-full border-input/60 px-3 text-center font-display text-lg font-semibold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+              "tabular h-11 w-[4.5rem] rounded-full px-3 text-center font-display text-lg font-semibold [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
               blank && "border-dashed bg-muted/50"
             )}
           />

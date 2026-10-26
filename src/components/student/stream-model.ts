@@ -4,7 +4,10 @@
 // Three kinds of activity, newest first, and only this student's own:
 // - "posted":    the teacher posted an assignment or paper test
 // - "graded":    the teacher approved and returned this student's grade
-// - "sent_back": the teacher sent this student's paper back for revision
+// - "sent_back": the teacher sent this student's paper back for revision.
+//                It stays in the history after a resubmission, a rescan, or
+//                a grade; `open` says whether it is still waiting on the
+//                student (or, for a paper test, on a rescan).
 //
 // Nothing here ever comes from an AI draft: "graded" needs a published,
 // teacher-approved grade.
@@ -18,7 +21,7 @@ type Base = { key: string; at: Date; assignmentId: string; title: string; isTest
 export type StudentStreamItem =
   | (Base & { kind: "posted" })
   | (Base & { kind: "graded"; score: { total: number; max: number } | null })
-  | (Base & { kind: "sent_back" });
+  | (Base & { kind: "sent_back"; open: boolean });
 
 function parse(value: string | null): Date | null {
   if (!value) return null;
@@ -39,9 +42,13 @@ export function buildStudentStream(rows: readonly StudentWorkRow[], limit = STUD
     const published = row.state === "graded" ? parse(row.publishedAt) : null;
     if (published) items.push({ kind: "graded", key: `graded:${row.id}`, at: published, score: row.score, ...base });
 
-    // A send-back stays in the history after a resubmission or a grade.
+    // A send-back stays in the history after a resubmission or a grade. A row
+    // holds only its latest send-back, so it is open exactly while the paper
+    // is still in the "returned" state.
     const returned = parse(row.returnedAt);
-    if (returned) items.push({ kind: "sent_back", key: `sent_back:${row.id}`, at: returned, ...base });
+    if (returned) {
+      items.push({ kind: "sent_back", key: `sent_back:${row.id}`, at: returned, open: row.state === "returned", ...base });
+    }
   }
   return items
     .sort(

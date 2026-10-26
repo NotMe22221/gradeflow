@@ -1,3 +1,6 @@
+"use client";
+
+import { useId } from "react";
 import { FlaskConical, Sparkles } from "lucide-react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -31,6 +34,8 @@ export function GraderStatus({ status, className }: { status: EngineStatus; clas
   const allDemo = liveCount === 0;
   const label = allDemo ? "Demo engines" : liveCount === rows.length ? "AI engines live" : "Partly demo";
   const Icon = liveCount === rows.length ? Sparkles : FlaskConical;
+  // Radix renders the popover as role="dialog"; name it by its heading.
+  const headingId = useId();
 
   return (
     <Popover>
@@ -52,8 +57,10 @@ export function GraderStatus({ status, className }: { status: EngineStatus; clas
           </span>
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[min(22rem,calc(100vw-2rem))] text-sm">
-        <p className="mb-2 font-medium text-foreground">AI engines</p>
+      <PopoverContent align="end" aria-labelledby={headingId} className="w-[min(22rem,calc(100vw-2rem))] text-sm">
+        <p id={headingId} className="mb-2 font-medium text-foreground">
+          AI engines
+        </p>
         <ul className="space-y-1.5">
           {rows.map((row) => (
             <li key={row.feature} className="flex items-start justify-between gap-4">

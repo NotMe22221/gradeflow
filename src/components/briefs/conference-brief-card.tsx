@@ -213,7 +213,8 @@ export function ConferenceBriefCard({
         </CardAction>
       </CardHeader>
 
-      <div className="px-5 pb-6 sm:px-6">
+      {/* A container, so the empty-state row below follows the card's width, not the viewport. */}
+      <div className="@container px-5 pb-6 sm:px-6">
         <div aria-live="polite" className="sr-only">
           {pending ? "Drafting the brief." : result ? "Brief ready." : ""}
         </div>
@@ -288,7 +289,7 @@ export function ConferenceBriefCard({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-start gap-4 rounded-xl bg-secondary p-5 md:flex-row md:items-center md:justify-between md:gap-6">
+          <div className="flex flex-col items-start gap-4 rounded-xl bg-secondary p-5 @xl:flex-row @xl:items-center @xl:justify-between @xl:gap-6">
             <p className="text-sm leading-6 text-pretty text-secondary-foreground">
               {canGenerate
                 ? "Strengths, growth areas, talking points, next steps, and questions for the family. Built from approved grades, your comments, upcoming work, and engagement. Nothing is saved or sent."

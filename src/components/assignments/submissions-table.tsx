@@ -318,9 +318,14 @@ function GraderNote({
   );
 }
 
-/** Row grid: avatar | name | (status) | action. On phones the status drops under the name. */
+/**
+ * Row grid: avatar | name | (status) | action. On phones the status drops under the name.
+ * The name track has a 12rem floor: a capped track like minmax(0,20rem) grows to its cap
+ * before a 1fr track gets any space, so without the floor the status column took 320px
+ * and names were cut to a few letters at 1024px with the drawer open.
+ */
 const ROW =
-  "grid min-h-16 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-4 py-3 md:grid-cols-[auto_minmax(0,1fr)_minmax(0,20rem)_9.5rem] md:gap-x-4 md:px-6";
+  "grid min-h-16 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-4 py-3 md:grid-cols-[auto_minmax(12rem,1fr)_minmax(0,20rem)_9.5rem] md:gap-x-4 md:px-6";
 const STATUS_CELL = "col-span-3 row-start-2 min-w-0 pl-11 md:col-span-1 md:col-start-3 md:row-start-1 md:pl-0";
 const ACTION_CELL = "col-start-3 row-start-1 flex items-center justify-end gap-1 md:col-start-4";
 

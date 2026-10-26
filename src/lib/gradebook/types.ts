@@ -50,7 +50,11 @@ export type GradebookRow = {
 
 export type GradebookData = {
   class: { id: string; name: string; section: string | null };
-  /** In creation order. */
+  /**
+   * In the order the query returns them: oldest due date first, undated last,
+   * ties by creation. The CSV export uses this order; the Grades view shows it
+   * reversed (gradebookColumnOrder).
+   */
   assignments: GradebookAssignment[];
   /** Enrolled students, sorted by name. */
   rows: GradebookRow[];
@@ -120,6 +124,17 @@ export function percentOf(score: number, max: number): number | null {
 export function mean(values: readonly number[]): number | null {
   if (values.length === 0) return null;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+/**
+ * Indexes into GradebookData.assignments (and each row's cells) in the order
+ * the Grades view shows its columns: newest first, like Google Classroom, so a
+ * just-created assignment is the first column instead of hiding behind the
+ * horizontal scroll. That is the reverse of the export order: undated work
+ * leads, then the latest due date.
+ */
+export function gradebookColumnOrder(data: Pick<GradebookData, "assignments">): number[] {
+  return data.assignments.map((_, index) => index).reverse();
 }
 
 function compareNames(a: GradebookStudent, b: GradebookStudent): number {

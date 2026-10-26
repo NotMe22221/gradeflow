@@ -6,6 +6,7 @@ import {
   READY_FOR_AI_STATUSES,
   STALE_GRADING_CLAIM_MS,
 } from "@/lib/constants";
+import { isPastDueDay } from "@/lib/classroom/due";
 import { db } from "@/lib/db";
 
 /*
@@ -44,6 +45,8 @@ export type ClassSummary = {
   publishedCount: number;
   /** Assignments with papers in the review queue, for deep links. */
   pendingAssignmentIds: string[];
+  /** Assignments with papers waiting on an AI first pass, for deep links. */
+  readyAssignmentIds: string[];
   nextDue?: { title: string; dueDate: Date };
 };
 
@@ -78,12 +81,6 @@ function readyForAiConditions(now: Date): Prisma.SubmissionWhereInput[] {
     { status: { in: READY_FOR_AI_STATUSES } },
     { status: "GRADING", updatedAt: { lt: new Date(now.getTime() - STALE_GRADING_CLAIM_MS) } },
   ];
-}
-
-function startOfDay(date: Date): Date {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  return start;
 }
 
 export async function getDashboardStats(teacherId: string, now: Date = new Date()): Promise<DashboardStats> {
@@ -163,24 +160,26 @@ export async function getClassSummaries(teacherId: string, now: Date = new Date(
     publishedByAssignment.set(id, (publishedByAssignment.get(id) ?? 0) + 1);
   }
 
-  const today = startOfDay(now);
-
   return classes.map((klass) => {
     let pendingReview = 0;
     let readyForAi = 0;
     let publishedCount = 0;
     const pendingAssignmentIds: string[] = [];
+    const readyAssignmentIds: string[] = [];
     let nextDue: ClassSummary["nextDue"];
 
     for (const assignment of klass.assignments) {
       const pending = pendingByAssignment.get(assignment.id) ?? 0;
       pendingReview += pending;
       if (pending > 0) pendingAssignmentIds.push(assignment.id);
-      readyForAi += readyByAssignment.get(assignment.id) ?? 0;
+      const ready = readyByAssignment.get(assignment.id) ?? 0;
+      readyForAi += ready;
+      if (ready > 0) readyAssignmentIds.push(assignment.id);
       publishedCount += publishedByAssignment.get(assignment.id) ?? 0;
 
       const due = assignment.dueDate;
-      if (due && due >= today && (!nextDue || due < nextDue.dueDate)) {
+      // Not past due by the shared rule (the server's day: summaries carry no viewer zone).
+      if (due && !isPastDueDay(due, now) && (!nextDue || due < nextDue.dueDate)) {
         nextDue = { title: assignment.title, dueDate: due };
       }
     }
@@ -196,6 +195,7 @@ export async function getClassSummaries(teacherId: string, now: Date = new Date(
       readyForAi,
       publishedCount,
       pendingAssignmentIds,
+      readyAssignmentIds,
       ...(nextDue ? { nextDue } : {}),
     };
   });

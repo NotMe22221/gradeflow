@@ -1,20 +1,65 @@
 import { FlaskConical, History, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { GoalEngine } from "@/lib/goals/types";
 import { cn } from "@/lib/utils";
 
-const focusable = "cursor-help outline-none focus-visible:ring-[3px] focus-visible:ring-ring";
-
-const DEMO_TOOLTIP =
+const DEMO_EXPLANATION =
   "No OPENAI_API_KEY is set, so a local demo planner reads your goal with simple patterns and the study tip is a template. The scores are calculated the same way either way.";
 
-const SAVED_TOOLTIP =
+const SAVED_EXPLANATION =
   "Your saved goal, re-planned against your latest teacher-approved grades. The study tip is a built-in template, not AI output.";
 
-function openAiTooltip(model: string | null): string {
+function openAiExplanation(model: string | null): string {
   return `OpenAI's ${model ?? "text model"} read your goal and wrote the study tip. It never does the math: every score is calculated by GradeSmart from your teacher-approved grades.`;
+}
+
+/**
+ * A badge that is a real button: tap, click, Enter or Space opens the
+ * explanation in a popover (a tooltip never opens on a touch screen), and an
+ * outside tap or Escape closes it.
+ */
+function ExplainedBadge({
+  variant,
+  label,
+  explanation,
+  className,
+  children,
+}: {
+  variant: "default" | "secondary" | "outline";
+  /** What the badge says, for the button's accessible name. */
+  label: string;
+  explanation: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Badge
+          asChild
+          variant={variant}
+          className={cn(
+            // The after: layer grows the tap target to about 30px without moving anything.
+            "relative cursor-pointer outline-none after:absolute after:-inset-1 after:content-[''] hover:shadow-hover focus-visible:ring-[3px] focus-visible:ring-ring",
+            className
+          )}
+        >
+          <button type="button" aria-label={`${label}: what this means`}>
+            {children}
+          </button>
+        </Badge>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        aria-label={label}
+        className="w-[min(20rem,calc(100vw-2rem))] p-3 text-xs leading-relaxed text-muted-foreground"
+      >
+        {explanation}
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 /**
@@ -33,39 +78,34 @@ export function GoalEngineBadge({
 }) {
   if (engine === "openai") {
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Badge variant="default" tabIndex={0} className={cn(focusable, className)}>
-            <Sparkles aria-hidden />
-            {model ?? "OpenAI"}
-          </Badge>
-        </TooltipTrigger>
-        <TooltipContent>{openAiTooltip(model)}</TooltipContent>
-      </Tooltip>
+      <ExplainedBadge
+        variant="default"
+        label={model ?? "OpenAI"}
+        explanation={openAiExplanation(model)}
+        className={className}
+      >
+        <Sparkles aria-hidden />
+        {model ?? "OpenAI"}
+      </ExplainedBadge>
     );
   }
   if (engine === "demo") {
     return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Badge variant="outline" tabIndex={0} className={cn("border-dashed", focusable, className)}>
-            <FlaskConical aria-hidden />
-            Demo planner
-          </Badge>
-        </TooltipTrigger>
-        <TooltipContent>{DEMO_TOOLTIP}</TooltipContent>
-      </Tooltip>
+      <ExplainedBadge
+        variant="outline"
+        label="Demo planner"
+        explanation={DEMO_EXPLANATION}
+        className={cn("border-dashed", className)}
+      >
+        <FlaskConical aria-hidden />
+        Demo planner
+      </ExplainedBadge>
     );
   }
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Badge variant="secondary" tabIndex={0} className={cn(focusable, className)}>
-          <History aria-hidden />
-          Saved goal
-        </Badge>
-      </TooltipTrigger>
-      <TooltipContent>{SAVED_TOOLTIP}</TooltipContent>
-    </Tooltip>
+    <ExplainedBadge variant="secondary" label="Saved goal" explanation={SAVED_EXPLANATION} className={className}>
+      <History aria-hidden />
+      Saved goal
+    </ExplainedBadge>
   );
 }

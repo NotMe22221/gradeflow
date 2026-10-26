@@ -43,8 +43,9 @@ export type GoalClassSource = {
  * Assignments without rubric points don't count toward the grade yet. A
  * paper test is never overdue (the student can't submit one): once its test
  * day has passed, or the teacher sent it back, it is waiting for a scan.
+ * "Passed" uses the shared past-due rule in the viewer's `timeZone`.
  */
-export function buildGoalClass(source: GoalClassSource, now: Date): GoalClass {
+export function buildGoalClass(source: GoalClassSource, now: Date, timeZone?: string): GoalClass {
   const completed: CompletedTask[] = [];
   const remaining: RemainingTask[] = [];
   const breakdowns: BreakdownItem[][] = [];
@@ -70,7 +71,7 @@ export function buildGoalClass(source: GoalClassSource, now: Date): GoalClass {
     const status = assignment.submission?.status ?? null;
     const needsWork = status === null || status === "RETURNED";
     const paperTest = parseAssignmentKind(assignment.kind) === "TEST";
-    const dueDayEnded = isPastDue(assignment.dueDate, now);
+    const dueDayEnded = isPastDue(assignment.dueDate, now, timeZone);
     remaining.push({
       assignmentId: assignment.id,
       title: assignment.title,

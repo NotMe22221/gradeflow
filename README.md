@@ -57,6 +57,8 @@ names a model.
 
 `npm run seed` resets the demo data at any time. Re-seeding signs everyone out.
 Seeded dates are relative to the day you seed, so seed on demo day.
+Dates follow the viewer's time zone ("Due today", Missing, Stream times), and a
+due date is the same calendar day for everyone.
 
 Other scripts: `npm test` (unit tests covering grading validation, prompt
 injection, the demo engines, goal math, streaks, the heatmap, briefs, the
@@ -131,7 +133,7 @@ The click path for judges. Times are a guide.
   Missing / Done, grouped by due date), pick an assignment, and use **Add or
   create → Paste text** in the **Your work** card, then **Turn in**.
 - **Saved goals.** Switch to Milo Brightwater to see a saved goal ("I need a B")
-  and a broken streak.
+  and a streak that has ended (his Home strip reads "Streak ended").
 
 ---
 
@@ -147,9 +149,9 @@ The click path for judges. Times are a guide.
 | Conference briefs | **Real with `OPENAI_API_KEY`** (gpt-4o-mini, from approved grades only). **Mocked without it:** a deterministic template over the same data, labelled "Demo brief". |
 | Goal planner | gpt-4o-mini only interprets the goal text (which class, what grade). **The scores needed are always calculated in code** from approved grades. Without a key, a regex parser reads the goal and the planner is labelled "Demo planner". |
 | Class heatmap, student profiles | **Real.** Computed from approved grades. No AI. |
-| Study streaks and XP | **Real.** Computed from the student's own actions (submitting, revising, logging study sessions, setting goals). XP is engagement only and never changes a grade. |
+| Study streaks and XP | **Real.** XP comes from the student's own actions (submitting, revising, logging study sessions, setting goals) plus a score-scaled bonus when the teacher approves and returns a grade. Only the student's own actions count toward a streak. XP is engagement only and never changes a grade. |
 | Output validation and flags | **Real.** Scores outside 0 to max are discarded. Quotes must appear in the paper or transcription. Text addressed to the grader is flagged. |
-| Review queue, edits, approval, send-back | **Real.** Enforced on the server. |
+| To review (the review queue), edits, approval, send-back | **Real.** Enforced on the server. |
 | Gradebook and CSV export | **Real.** Reads only teacher-approved grades. |
 | LMS integration (Canvas, Google Classroom) | **Not built.** CSV export is the stand-in; see *Extending*. |
 | Authentication | **Demo.** One-click sign-in to seeded accounts (no passwords), plus a teacher-only "view as a student" switcher. Roles and ownership are still checked on the server for every page, action, and API route. |

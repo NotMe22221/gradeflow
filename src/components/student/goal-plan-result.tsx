@@ -12,8 +12,8 @@ import {
 
 import { GoalEngineBadge } from "@/components/student/goal-engine-badge";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { formatDate, formatPoints, pluralize } from "@/lib/format";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { formatDate, formatDueDate, formatPoints, pluralize } from "@/lib/format";
 import { formatPercentValue, LETTER_SCALE_NOTE, type GoalStatus } from "@/lib/goals/plan";
 import type { GoalEngine, GoalPlanView } from "@/lib/goals/types";
 import { cn } from "@/lib/utils";
@@ -42,11 +42,11 @@ function percentText(value: number | null): string {
 
 /** "Due Oct 24", or "Test day Oct 24" for a paper test. */
 function taskDateLabel(task: GoalPlanView["tasks"][number]): string {
-  if (task.paperTest) return task.dueDate ? `Test day ${formatDate(task.dueDate)}` : "No test date";
-  return task.dueDate ? `Due ${formatDate(task.dueDate)}` : "No due date";
+  if (task.paperTest) return task.dueDate ? `Test day ${formatDueDate(task.dueDate)}` : "No test date";
+  return task.dueDate ? `Due ${formatDueDate(task.dueDate)}` : "No due date";
 }
 
-const STANDING_TOOLTIP =
+const STANDING_NOTE =
   "Points earned out of points possible on your approved grades. An average that counts each assignment equally can differ slightly.";
 
 // Stat tiles. Below sm each tile is a two-column row: label over hint on the
@@ -77,6 +77,8 @@ export function GoalPlanResult({
 }) {
   const required = plan.requiredPercentOnRemaining;
   const showTasks = plan.status !== "no_remaining" && plan.tasks.length > 0;
+  // Not possible: the list shows the best the student can do, which falls short.
+  const reachable = plan.status !== "not_possible";
 
   return (
     <div className="space-y-6">
@@ -104,18 +106,25 @@ export function GoalPlanResult({
             <span>
               Current standing <span className="font-normal">(by points)</span>
             </span>
-            <Tooltip>
-              <TooltipTrigger asChild>
+            {/* A popover, not a tooltip, so a tap opens it on phones. */}
+            <Popover>
+              <PopoverTrigger asChild>
                 <button
                   type="button"
                   aria-label="How current standing is calculated"
-                  className="ml-1 inline-flex size-4 translate-y-0.5 items-center justify-center rounded-full align-baseline text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring"
+                  className="relative ml-1 inline-flex size-4 translate-y-0.5 cursor-pointer items-center justify-center rounded-full align-baseline text-muted-foreground transition-colors outline-none after:absolute after:-inset-1.5 after:content-[''] hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring data-[state=open]:text-foreground"
                 >
                   <Info className="size-3.5" aria-hidden />
                 </button>
-              </TooltipTrigger>
-              <TooltipContent>{STANDING_TOOLTIP}</TooltipContent>
-            </Tooltip>
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                aria-label="How current standing is calculated"
+                className="w-[min(20rem,calc(100vw-2rem))] p-3 text-xs leading-relaxed font-normal text-muted-foreground"
+              >
+                {STANDING_NOTE}
+              </PopoverContent>
+            </Popover>
           </dt>
           <dd className={TILE_VALUE}>{percentText(plan.currentPercent)}</dd>
           <dd className={TILE_HINT}>
@@ -149,7 +158,7 @@ export function GoalPlanResult({
       {showTasks ? (
         <section aria-labelledby="plan-tasks-heading">
           <h3 id="plan-tasks-heading" className="text-sm font-semibold text-foreground">
-            Score to aim for on each remaining assignment
+            {reachable ? "Score to aim for on each remaining assignment" : "Best you can do on each remaining assignment"}
           </h3>
           <ul className="mt-3 divide-y divide-border overflow-hidden rounded-lg border border-border">
             {plan.tasks.map((task) => {
@@ -173,7 +182,7 @@ export function GoalPlanResult({
                         <p className="tabular text-sm font-semibold text-foreground">
                           {formatPoints(task.neededScore)}
                           <span className="font-normal text-muted-foreground"> / {formatPoints(task.maxScore)}</span>
-                          <span className="sr-only"> points needed</span>
+                          <span className="sr-only">{reachable ? " points needed" : " points possible"}</span>
                         </p>
                         <p className="tabular text-xs text-muted-foreground">
                           {task.neededScore >= task.maxScore ? "Full marks" : `${formatPercentValue(task.neededPercent)}%`}
@@ -186,7 +195,9 @@ export function GoalPlanResult({
             })}
           </ul>
           <p className="mt-2 text-xs text-muted-foreground">
-            Each score is rounded up to the nearest half point, so hitting every one reaches your goal.
+            {reachable
+              ? "Each score is rounded up to the nearest half point, so hitting every one reaches your goal."
+              : `Full marks on all of these brings you to ${formatPercentValue(plan.bestPossiblePercent)}%, short of this goal.`}
           </p>
         </section>
       ) : null}

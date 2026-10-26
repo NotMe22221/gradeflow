@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { ClipboardCheck, FileText, ScanLine } from "lucide-react";
 
+import { classReviewHref } from "@/components/classes/class-card";
 import { summarizeStatuses } from "@/components/classes/status-summary";
 import { ClassworkList } from "@/components/classwork/classwork-list";
 import { CreateMenu } from "@/components/classwork/create-menu";
@@ -12,9 +13,10 @@ import { PageContainer } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { getOwnedClass } from "@/lib/access";
 import { AuthError, requireTeacherPage } from "@/lib/auth/session";
+import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import { parseAssignmentKind } from "@/lib/constants";
 import { db } from "@/lib/db";
-import { formatDate, pluralize } from "@/lib/format";
+import { formatDate, formatDueDate, pluralize } from "@/lib/format";
 import { classTheme } from "@/lib/ui/class-theme";
 
 type Params = Promise<{ classId: string }>;
@@ -48,7 +50,7 @@ export default async function ClassworkPage({ params }: { params: Params }) {
   const klass = await loadOwnedClass((await params).classId);
   if (!klass) notFound();
 
-  const [assignments, rosterCount] = await Promise.all([
+  const [assignments, rosterCount, timeZone] = await Promise.all([
     db.assignment.findMany({
       where: { classId: klass.id },
       orderBy: { createdAt: "desc" },
@@ -64,14 +66,15 @@ export default async function ClassworkPage({ params }: { params: Params }) {
       },
     }),
     db.enrollment.count({ where: { classId: klass.id, student: { role: "STUDENT" } } }),
+    viewerTimeZone(),
   ]);
 
   const items: ClassworkItem[] = assignments.map((assignment) => ({
     id: assignment.id,
     title: assignment.title,
     isTest: parseAssignmentKind(assignment.kind) === "TEST",
-    dueLabel: assignment.dueDate ? `Due ${formatDate(assignment.dueDate)}` : null,
-    postedLabel: `Posted ${formatDate(assignment.createdAt)}`,
+    dueLabel: assignment.dueDate ? `Due ${formatDueDate(assignment.dueDate)}` : null,
+    postedLabel: `Posted ${formatDate(assignment.createdAt, timeZone)}`,
     excerpt: excerpt(assignment.instructions),
     totalPoints: assignment.criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0),
     criteriaCount: assignment.criteria.length,
@@ -81,15 +84,21 @@ export default async function ClassworkPage({ params }: { params: Params }) {
     ),
   }));
   const toReview = items.reduce((sum, item) => sum + item.summary.review, 0);
+  // Same deep link as the class card: straight to the one assignment with drafts, else the whole queue.
+  const reviewHref = classReviewHref({
+    pendingAssignmentIds: items.filter((item) => item.summary.review > 0).map((item) => item.id),
+  });
   const newHref = `/classes/${encodeURIComponent(klass.id)}/assignments/new`;
 
   return (
     <PageContainer className="max-w-5xl">
+      {/* The class tab bar shows the class name as a link, so the page title is for screen readers. */}
+      <h1 className="sr-only">Classwork · {klass.name}</h1>
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
         <CreateMenu classId={klass.id} />
         {toReview > 0 ? (
           <Button variant="text" asChild>
-            <Link href="/review">
+            <Link href={reviewHref}>
               <ClipboardCheck aria-hidden />
               {pluralize(toReview, "paper")} waiting for your review
             </Link>

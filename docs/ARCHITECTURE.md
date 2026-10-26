@@ -128,7 +128,7 @@ src/lib/
   gradebook/          gradebook query
   export/             GradebookExporter interface + CSV implementation
   stats.ts            dashboard stats
-  classroom/          class Stream feed (stream.ts loader, feed.ts pure) + due-date wording
+  classroom/          class Stream feed (stream.ts loader, feed.ts pure), due-date wording, viewer time zone
   ui/class-theme.ts   class colors and banner motifs (pure)
   demo/               rubric templates + sample papers (synthetic)
 src/components/
@@ -222,7 +222,12 @@ server only (`.env.local`), never logged, never sent to the client.
 - XP and streaks (`StudyActivity`) are engagement only and never touch grades.
   Streaks count only the student's own actions (`streakDates()`): a teacher
   publishing a grade earns XP but does not keep a streak alive. Calendar days
-  use the server's time zone.
+  use the server's time zone (including the ON_TIME bonus).
+- Due dates are calendar days stored at noon UTC and always read from their
+  UTC date. "Today" is the viewer's day: the browser's zone arrives in a `tz`
+  cookie (`<TimeZoneCookie />`, validated by `viewerTimeZone()`), falling back
+  to the server's zone. Relative due labels, Upcoming, To-do weeks, and the one
+  past-due rule (`isPastDueDay`: Missing, overdue, waiting for scan) all use it.
 - Every request body is read with a hard byte limit (`src/lib/http/body.ts`),
   and live OpenAI calls are rate-limited per user (`src/lib/http/rate-limit.ts`)
   with bounded timeouts (`OPENAI_BUDGETS`). The routes' `maxDuration` is

@@ -24,6 +24,7 @@ import { useReviewDrafts } from "@/components/review/use-review-drafts";
 import { useReviewShortcuts } from "@/components/review/use-review-shortcuts";
 import { viewAsStudent } from "@/lib/auth/actions";
 import { firstName, formatPoints, formatScore } from "@/lib/format";
+import { scrollBehavior } from "@/lib/motion";
 import {
   assignmentLabels,
   blockingReason,
@@ -43,7 +44,7 @@ type PaneTab = "paper" | "rubric";
 type AssignmentFilter = { id: string; title: string | null } | null;
 /** The review query parameters: ?assignment and ?s. */
 type UrlSelection = { assignment: string | null; s: string | null };
-/** Where focus goes when the approve or send-back dialog closes. */
+/** Where focus goes when the approve, send-back, or shortcuts dialog closes. */
 type ReturnFocus = { element: HTMLElement | null; openedWith: "button" | "shortcut" };
 
 function buildFilterOptions(items: ReviewItem[]): ReviewFilterOption[] {
@@ -94,8 +95,7 @@ function tryFocus(element: HTMLElement | null | undefined): boolean {
 
 /** Scroll a passage of the paper into view; flash evidence, focus flagged text. */
 function revealElement(element: HTMLElement, { flash }: { flash: boolean }) {
-  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  element.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+  element.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
   if (!flash) {
     element.focus({ preventScroll: true });
     return;
@@ -266,7 +266,7 @@ export function ReviewWorkspace({
     afterLayout(() => {
       const input = document.getElementById(scoreInputId(submissionId, criterionId));
       if (!input) return;
-      input.scrollIntoView({ behavior: "smooth", block: "center" });
+      input.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
       input.focus({ preventScroll: true });
     });
   }, []);
@@ -296,6 +296,11 @@ export function ReviewWorkspace({
     },
     [current]
   );
+
+  const openShortcuts = useCallback((openedWith: ReturnFocus["openedWith"]) => {
+    returnFocusRef.current = { element: activeElement(), openedWith };
+    setShortcutsOpen(true);
+  }, []);
 
   // The dialogs have no trigger for Radix to return focus to. Go back to
   // where the teacher was; if that left with a handled paper, land on the
@@ -421,7 +426,7 @@ export function ReviewWorkspace({
     onPrevious: () => goBy(-1),
     onApprove: () => requestApprove("shortcut"),
     onSendBack: () => requestSendBack("shortcut"),
-    onHelp: () => setShortcutsOpen(true),
+    onHelp: () => openShortcuts("shortcut"),
   });
 
   let body: React.ReactNode;
@@ -579,7 +584,7 @@ export function ReviewWorkspace({
         onNext={() => goBy(1)}
         queueOpen={queueOpen}
         onQueueOpenChange={setQueueOpen}
-        onShowShortcuts={() => setShortcutsOpen(true)}
+        onShowShortcuts={() => openShortcuts("button")}
       />
 
       {body}
@@ -612,7 +617,7 @@ export function ReviewWorkspace({
         />
       ) : null}
 
-      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} restoreFocus={restoreFocus} />
     </div>
   );
 }

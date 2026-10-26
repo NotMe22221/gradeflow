@@ -38,7 +38,7 @@ const TEACHER_FEATURES: Feature[] = [
   {
     icon: Camera,
     title: "Grade handwritten tests from a photo",
-    body: "Snap or upload each page. GPT-4o reads the handwriting and scores every question against your answer key. Then the test waits in your review queue for your approval.",
+    body: "Snap or upload each page. GPT-4o reads the handwriting and scores every question against your answer key. Then the test waits in To review for your approval.",
     engine: "GPT-4o vision",
     preview: <CameraPreview />,
   },
@@ -57,7 +57,7 @@ const TEACHER_FEATURES: Feature[] = [
   },
   {
     icon: ListChecks,
-    title: "One review queue, one gradebook",
+    title: "One place to review, one gradebook",
     body: "Typed papers and camera-graded tests wait side by side with their evidence and confidence. Approved grades land in the gradebook, ready for CSV export.",
     engine: "Claude for essays",
     preview: <QueuePreview />,
@@ -81,7 +81,7 @@ const STUDENT_FEATURES: Feature[] = [
   {
     icon: Inbox,
     title: "One inbox for every assignment",
-    body: "Every assignment from every class in one list, with quick actions beside it to submit, read feedback, or plan the grade.",
+    body: "Every assignment from every class in one list, with quick actions beside it to turn in work, read feedback, or plan the grade.",
     preview: <InboxPreview />,
   },
 ];

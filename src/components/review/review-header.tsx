@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { ArrowUpDown, ChevronDown, ChevronLeft, ChevronRight, Keyboard, ListFilter } from "lucide-react";
 
 import { Avatar } from "@/components/ui/avatar";
@@ -240,6 +241,8 @@ function StudentSwitcher({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  // Radix renders the popover as role="dialog"; name it after its visible heading.
+  const headingId = useId();
   return (
     <div className="flex min-w-0 flex-1 items-center gap-1 sm:flex-none">
       <Tooltip>
@@ -279,9 +282,13 @@ function StudentSwitcher({
             <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           </button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-[min(24rem,calc(100vw-2rem))] rounded-xl p-0">
+        <PopoverContent
+          align="end"
+          aria-labelledby={headingId}
+          className="w-[min(24rem,calc(100vw-2rem))] rounded-xl p-0"
+        >
           <div className="flex items-baseline justify-between gap-2 border-b border-border px-4 py-3">
-            <p className="font-display text-sm font-semibold text-foreground">
+            <p id={headingId} className="font-display text-sm font-semibold text-foreground">
               {pluralize(queue.length, "paper")} to review
             </p>
             <p className="truncate text-xs text-muted-foreground">{SORT_DESCRIPTIONS[sort]}</p>

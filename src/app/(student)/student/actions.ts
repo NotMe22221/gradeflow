@@ -12,9 +12,11 @@ import { XP_RULES } from "@/lib/gamification/rules";
 import { awardSubmissionXp } from "@/lib/gamification/submission-xp";
 import {
   MAX_PAPER_CHARS,
+  normalizePaperText,
   readTxtUpload,
   STUDENT_REPLACEABLE_STATUSES,
   upsertSubmission,
+  validatePaperText,
 } from "@/lib/submissions";
 import { idSchema } from "@/lib/validation/id";
 
@@ -26,7 +28,16 @@ export type SubmitPaperResult =
       /** True when the on-time bonus was part of xpAwarded. */
       onTime: boolean;
     }
-  | { ok: false; error: string };
+  | {
+      ok: false;
+      error: string;
+      /**
+       * True when the paper's state changed on the server (turned in from
+       * another tab, added by the teacher, graded, or published), so the
+       * page the student is looking at is out of date and should refresh.
+       */
+      stale?: boolean;
+    };
 
 const ModeSchema = z.enum(["paste", "upload"]);
 
@@ -82,6 +93,11 @@ export async function submitPaper(assignmentId: string, formData: FormData): Pro
       content = pasted.data;
     }
 
+    // Check the paper itself first, so every rejection after this point is a
+    // state conflict (and marked stale) rather than a problem with the text.
+    const problem = validatePaperText(normalizePaperText(content));
+    if (problem) return { ok: false, error: problem };
+
     const existing = await db.submission.findUnique({
       where: { assignmentId_studentId: { assignmentId: assignment.id, studentId: student.id } },
       select: { status: true },
@@ -89,10 +105,12 @@ export async function submitPaper(assignmentId: string, formData: FormData): Pro
     if (existing && existing.status !== "RETURNED") {
       return {
         ok: false,
+        stale: true,
         error:
           existing.status === "PUBLISHED"
             ? "This paper already has a published grade."
-            : "You already submitted this paper. Your teacher is reviewing it.",
+            : // Covers a paper the teacher added too (sample papers, a scan).
+              "Your teacher already has a paper from you for this assignment and is reviewing it.",
       };
     }
 
@@ -103,7 +121,9 @@ export async function submitPaper(assignmentId: string, formData: FormData): Pro
       fileName,
       replaceable: STUDENT_REPLACEABLE_STATUSES,
     });
-    if (!result.ok) return { ok: false, error: result.error };
+    // The text was validated above, so any failure here is a state conflict:
+    // graded, published, already with the teacher, or changed a moment ago.
+    if (!result.ok) return { ok: false, error: result.error, stale: true };
 
     try {
       const xp = await awardSubmissionXp({

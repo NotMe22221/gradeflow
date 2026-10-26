@@ -45,7 +45,7 @@ export function StudentProfileSkeleton() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border @3xl:grid-cols-4">
         {[0, 1, 2, 3].map((tile) => (
           <div key={tile} className="flex flex-col items-start gap-2.5 bg-card p-4 sm:flex-row sm:gap-4 sm:p-5">
             <Skeleton className="size-9 shrink-0 rounded-full sm:size-10" />
@@ -58,8 +58,8 @@ export function StudentProfileSkeleton() {
         ))}
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="min-w-0 space-y-6 lg:col-span-2">
+      <div className="mt-6 grid grid-cols-1 gap-6 @4xl:grid-cols-3">
+        <div className="min-w-0 space-y-6 @4xl:col-span-2">
           <Card>
             <div className="flex items-start gap-4 px-5 pt-5 pb-4 sm:px-6">
               <Skeleton className="size-10 shrink-0 rounded-full" />

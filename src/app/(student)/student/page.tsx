@@ -4,6 +4,7 @@ import { buildClassCards } from "@/components/student/class-card";
 import { StudentHomeView } from "@/components/student/home-view";
 import { inboxSummary } from "@/components/student/inbox-model";
 import { requireStudentPage } from "@/lib/auth/session";
+import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import { getStudentEngagement } from "@/lib/gamification/engagement";
 import { goalEngineInfo } from "@/lib/goals/planner";
 import { firstName } from "@/lib/format";
@@ -15,11 +16,12 @@ export const metadata: Metadata = { title: "Home" };
 export default async function StudentHomePage() {
   const student = await requireStudentPage();
   const now = new Date();
+  const timeZone = await viewerTimeZone();
 
   // Only this student's own classes, submissions, teacher-approved grades,
   // and XP. No AI suggestion, confidence, or flag ever reaches this page.
   const [dashboard, engagement] = await Promise.all([
-    loadStudentDashboard(student.id, now),
+    loadStudentDashboard(student.id, now, timeZone),
     getStudentEngagement(student.id, now),
   ]);
   const savedPlans = await loadSavedPlans(student.id, dashboard.goalClasses);
@@ -32,7 +34,7 @@ export default async function StudentHomePage() {
       firstName={firstName(student.name)}
       summary={summary}
       engagement={engagement}
-      cards={buildClassCards(dashboard.classes, dashboard.inbox, now)}
+      cards={buildClassCards(dashboard.classes, dashboard.inbox, now, timeZone)}
       inbox={dashboard.inbox}
       plannerClasses={dashboard.classes.map(({ id, name, section }) => ({ id, name, section }))}
       savedPlans={savedPlans}

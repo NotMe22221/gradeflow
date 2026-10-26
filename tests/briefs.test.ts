@@ -14,7 +14,7 @@ import {
   normalizeBriefOutput,
 } from "@/lib/briefs/validate";
 import type { BreakdownItem } from "@/lib/grades/breakdown";
-import type { StudentRecord } from "@/lib/insights/profile";
+import { buildStudentProfile, type StudentRecord } from "@/lib/insights/profile";
 
 const NOW = new Date(Date.UTC(2026, 9, 25, 15, 0, 0));
 const daysAgo = (days: number) => new Date(NOW.getTime() - days * 24 * 60 * 60 * 1000);
@@ -114,16 +114,15 @@ describe("conference brief input", () => {
 
   it("lists work due later today as upcoming, and never an unscanned paper test", () => {
     const dueToday = new Date(Date.UTC(2026, 9, 25, 12, 0, 0)); // calendar dates are stored at noon UTC
-    const input = buildBriefInput(
-      record({
-        assignments: [
-          ...record().assignments,
-          { id: "a5", title: "Due Today Essay", kind: "ESSAY", dueDate: dueToday, maxScore: 10 },
-          { id: "a6", title: "Unit 3 Quiz", kind: "TEST", dueDate: daysAgo(1), maxScore: 6 },
-        ],
-      }),
-      NOW // 15:00 UTC on the due date
-    );
+    const withToday = record({
+      assignments: [
+        ...record().assignments,
+        { id: "a5", title: "Due Today Essay", kind: "ESSAY", dueDate: dueToday, maxScore: 10 },
+        { id: "a6", title: "Unit 3 Quiz", kind: "TEST", dueDate: daysAgo(1), maxScore: 6 },
+      ],
+    });
+    // 15:00 on the due date for a viewer in UTC (the route passes the viewer's zone).
+    const input = buildBriefInput(withToday, NOW, buildStudentProfile(withToday, NOW, "UTC"));
     assert.deepEqual(
       input.upcoming.map((item) => item.assignment),
       ["Due Today Essay", "Research Proposal"]

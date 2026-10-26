@@ -2,6 +2,12 @@ import { ClassCardGridSkeleton } from "@/components/classes/class-card-skeleton"
 import { PageContainer } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 
+/**
+ * The /classes index skeleton. It lives in the (list) route group so it wraps
+ * only this page: a loading.tsx at the classes segment would also wrap the
+ * [classId] layout, and entering a class would flash this card grid instead
+ * of the class's tab bar and its own skeleton.
+ */
 export default function ClassesLoading() {
   return (
     <PageContainer aria-busy="true" aria-label="Loading classes">

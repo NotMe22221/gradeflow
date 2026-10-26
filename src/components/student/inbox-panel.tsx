@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 import { AssignmentIcon } from "@/components/classwork/assignment-icon";
-import { dueLabel, statusSummary, type InboxAssignment } from "@/components/student/inbox-model";
+import { statusSummary, type InboxAssignment, type InboxRow } from "@/components/student/inbox-model";
 import { Button } from "@/components/ui/button";
 import { formatPoints, pluralize } from "@/lib/format";
 import { classTheme } from "@/lib/ui/class-theme";
@@ -62,7 +62,7 @@ export function InboxPanel({
   studyLoggedToday,
   headingRef,
 }: {
-  row: InboxAssignment;
+  row: InboxRow;
   /** False inside the phone sheet, which shows the title in its own header. */
   showHeading?: boolean;
   /** Absent when the goal planner is not on the page. */
@@ -76,8 +76,10 @@ export function InboxPanel({
   const more = row.criteria.length - shown.length;
   const isTest = row.kind === "TEST";
 
+  // A container, so the actions sit side by side only when this panel (not the
+  // viewport) has room for both labels: the desktop pane is narrow at lg.
   return (
-    <div className="flex flex-col gap-5">
+    <div className="@container flex flex-col gap-5">
       {showHeading ? (
         <div className="flex items-start gap-4">
           <AssignmentIcon isTest={isTest} color={classTheme({ name: row.className }).color} />
@@ -92,7 +94,7 @@ export function InboxPanel({
             <p className="mt-0.5 text-[13px] text-muted-foreground">
               {row.className}
               <span aria-hidden> · </span>
-              <span className={cn("tabular", row.pastDue && "font-medium text-danger")}>{dueLabel(row)}</span>
+              <span className={cn("tabular", row.pastDue && "font-medium text-danger")}>{row.dueText}</span>
             </p>
           </div>
         </div>
@@ -100,10 +102,10 @@ export function InboxPanel({
 
       <p className="rounded-lg bg-secondary px-4 py-3 text-sm text-pretty text-foreground/90">{statusSummary(row)}</p>
 
-      <div className="grid gap-2 sm:grid-cols-2">
-        <PrimaryAction row={row} className="sm:col-span-2" />
+      <div className="grid gap-2 @min-[25rem]:grid-cols-2">
+        <PrimaryAction row={row} className="@min-[25rem]:col-span-2" />
         {onPlan ? (
-          <Button type="button" variant="outline" onClick={() => onPlan(row.classId)}>
+          <Button type="button" variant="outline" onClick={() => onPlan(row.classId)} className="min-w-0">
             <Target aria-hidden />
             Plan my grade
           </Button>
@@ -113,7 +115,7 @@ export function InboxPanel({
           variant="outline"
           onClick={() => onLogStudy(row.id)}
           disabled={studyPending}
-          className={onPlan ? undefined : "sm:col-span-2"}
+          className={cn("min-w-0", !onPlan && "@min-[25rem]:col-span-2")}
         >
           {studyPending ? <LoaderCircle className="animate-spin" aria-hidden /> : <Timer aria-hidden />}
           Log a study session

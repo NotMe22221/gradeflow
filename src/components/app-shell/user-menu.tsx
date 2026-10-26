@@ -36,7 +36,8 @@ export function UserMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         className="flex items-center gap-2 rounded-full py-1 pr-2 pl-1 text-left transition-colors outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring"
-        aria-label="Account menu"
+        // Starts with the visible name (WCAG 2.5.3), so "click Morgan Hale" works.
+        aria-label={`${user.name}, account menu`}
       >
         <Avatar name={user.name} className="size-7" />
         <span className="hidden min-w-0 flex-col leading-tight sm:flex">

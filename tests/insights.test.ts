@@ -298,21 +298,25 @@ describe("student profile", () => {
   });
 
   it("treats work as missing only after its whole due day, like the student views", () => {
-    // Due dates are calendar dates stored at noon UTC.
+    // Due dates are calendar dates stored at noon UTC; "today" is the viewer's day.
     const due = new Date(Date.UTC(2026, 9, 25, 12, 0, 0));
     const sameEvening = new Date(Date.UTC(2026, 9, 25, 21, 56, 0));
     const lastMoment = new Date(Date.UTC(2026, 9, 25, 23, 59, 59));
     const nextMorning = new Date(Date.UTC(2026, 9, 26, 0, 30, 0));
-    assert.equal(openStateFor("missing", due, sameEvening), "upcoming");
-    assert.equal(openStateFor("missing", due, lastMoment), "upcoming");
-    assert.equal(openStateFor("missing", due, nextMorning), "missing");
-    assert.equal(openStateFor("missing", null, nextMorning), "not_submitted");
-    assert.equal(openStateFor("missing", due, nextMorning, "TEST"), "awaiting_scan");
-    assert.equal(openStateFor("ready", due, nextMorning), "ready");
-    assert.equal(openStateFor("grading", due, nextMorning), "in_review");
-    assert.equal(openStateFor("in_review", due, nextMorning), "in_review");
-    assert.equal(openStateFor("returned", due, nextMorning), "returned");
-    assert.equal(openStateFor("published", due, nextMorning), null);
+    assert.equal(openStateFor("missing", due, sameEvening, "ESSAY", "UTC"), "upcoming");
+    assert.equal(openStateFor("missing", due, lastMoment, "ESSAY", "UTC"), "upcoming");
+    assert.equal(openStateFor("missing", due, nextMorning, "ESSAY", "UTC"), "missing");
+    assert.equal(openStateFor("missing", null, nextMorning, "ESSAY", "UTC"), "not_submitted");
+    assert.equal(openStateFor("missing", due, nextMorning, "TEST", "UTC"), "awaiting_scan");
+    assert.equal(openStateFor("ready", due, nextMorning, "ESSAY", "UTC"), "ready");
+    assert.equal(openStateFor("grading", due, nextMorning, "ESSAY", "UTC"), "in_review");
+    assert.equal(openStateFor("in_review", due, nextMorning, "ESSAY", "UTC"), "in_review");
+    assert.equal(openStateFor("returned", due, nextMorning, "ESSAY", "UTC"), "returned");
+    assert.equal(openStateFor("published", due, nextMorning, "ESSAY", "UTC"), null);
+    // 5:30 PM on the due day in Los Angeles is still the due day there.
+    assert.equal(openStateFor("missing", due, nextMorning, "ESSAY", "America/Los_Angeles"), "upcoming");
+    // Auckland reaches the next day while it is still the due day in UTC.
+    assert.equal(openStateFor("missing", due, sameEvening, "ESSAY", "Pacific/Auckland"), "missing");
   });
 
   it("derives strengths and growth areas from per-criterion percentages, merged by title", () => {

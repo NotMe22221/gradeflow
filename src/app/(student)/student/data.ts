@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import { isAwaitingScan, isOverdue, studentStateFor } from "@/components/student/student-status";
-import type { StudentWorkRow } from "@/components/student/todo-model";
+import { relativeDue, type StudentWorkRow } from "@/components/student/todo-model";
 import { parseAssignmentKind } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { demoCoachingTip } from "@/lib/goals/coaching";
@@ -22,17 +22,25 @@ export type StudentClass = {
   teacherName: string;
 };
 
+/**
+ * One assignment from the student's side, with its relative due label
+ * ("Due tomorrow", "Test on Friday") computed here with the request's `now`
+ * in the viewer's time zone, so every list reads the same and the browser
+ * never recomputes it.
+ */
+export type StudentWorkItem = StudentWorkRow & { dueText: string };
+
 export type StudentWorkData = {
   classes: StudentClass[];
   /** One row per assignment in those classes, with this student's own status. */
-  rows: StudentWorkRow[];
+  rows: StudentWorkItem[];
   goalClasses: GoalClass[];
 };
 
 /** Kept for the Home page: the same data under its original names. */
 export type StudentDashboardData = {
   classes: StudentClass[];
-  inbox: StudentWorkRow[];
+  inbox: StudentWorkItem[];
   goalClasses: GoalClass[];
 };
 
@@ -46,11 +54,13 @@ function iso(date: Date | null | undefined): string | null {
  * teacher-approved PublishedGrade totals and breakdowns. No AI suggestion,
  * confidence, flag, draft edit, or other student's work is ever selected.
  * With `classId`, only that class (and only if the student is enrolled).
+ * `timeZone` is the viewer's (viewerTimeZone()): "today" for the relative due
+ * labels and the past-due rule (undefined: the server's zone).
  */
 export async function loadStudentWork(
   studentId: string,
   now: Date,
-  { classId }: { classId?: string } = {}
+  { classId, timeZone }: { classId?: string; timeZone?: string } = {}
 ): Promise<StudentWorkData> {
   const enrollments = await db.enrollment.findMany({
     where: { studentId, ...(classId ? { classId } : {}) },
@@ -92,7 +102,7 @@ export async function loadStudentWork(
   });
 
   const classes: StudentClass[] = [];
-  const rows: StudentWorkRow[] = [];
+  const rows: StudentWorkItem[] = [];
   const goalClasses: GoalClass[] = [];
 
   for (const { class: klass } of enrollments) {
@@ -109,18 +119,20 @@ export async function loadStudentWork(
       const published = submission?.publishedGrade ?? null;
       const state = studentStateFor(submission?.status, published !== null);
       const kind = parseAssignmentKind(assignment.kind);
+      const dueDate = iso(assignment.dueDate);
       rows.push({
         id: assignment.id,
         title: assignment.title,
         classId: klass.id,
         className: klass.name,
         kind,
-        dueDate: iso(assignment.dueDate),
+        dueDate,
+        dueText: relativeDue({ dueDate, kind }, now, timeZone),
         submittedAt: iso(submission?.submittedAt),
         publishedAt: iso(published?.publishedAt),
         // A paper test is never overdue: the student can't submit one.
-        pastDue: isOverdue(kind, state, assignment.dueDate, now),
-        awaitingScan: isAwaitingScan(kind, state, assignment.dueDate, now),
+        pastDue: isOverdue(kind, state, assignment.dueDate, now, timeZone),
+        awaitingScan: isAwaitingScan(kind, state, assignment.dueDate, now, timeZone),
         state,
         score: published ? { total: published.totalScore, max: published.maxScore } : null,
         totalPoints: assignment.criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0),
@@ -149,7 +161,8 @@ export async function loadStudentWork(
             };
           }),
         },
-        now
+        now,
+        timeZone
       )
     );
   }
@@ -158,8 +171,12 @@ export async function loadStudentWork(
 }
 
 /** Everything the student Home shows (class cards, inbox, goal planner). */
-export async function loadStudentDashboard(studentId: string, now: Date): Promise<StudentDashboardData> {
-  const { classes, rows, goalClasses } = await loadStudentWork(studentId, now);
+export async function loadStudentDashboard(
+  studentId: string,
+  now: Date,
+  timeZone?: string
+): Promise<StudentDashboardData> {
+  const { classes, rows, goalClasses } = await loadStudentWork(studentId, now, { timeZone });
   return { classes, inbox: rows, goalClasses };
 }
 

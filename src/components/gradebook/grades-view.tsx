@@ -23,7 +23,15 @@ export function summarizeGrades(data: GradebookData): string {
   return parts.join(" · ");
 }
 
-function GradesBody({ data, kinds }: { data: GradebookData; kinds: Record<string, AssignmentKind> }) {
+function GradesBody({
+  data,
+  kinds,
+  timeZone,
+}: {
+  data: GradebookData;
+  kinds: Record<string, AssignmentKind>;
+  timeZone?: string;
+}) {
   const classHref = `/classes/${encodeURIComponent(data.class.id)}`;
 
   if (data.assignments.length === 0) {
@@ -61,7 +69,7 @@ function GradesBody({ data, kinds }: { data: GradebookData; kinds: Record<string
     );
   }
 
-  return <GradebookTable data={data} kinds={kinds} />;
+  return <GradebookTable data={data} kinds={kinds} timeZone={timeZone} />;
 }
 
 /**
@@ -74,6 +82,7 @@ export function GradesView({
   kinds,
   formats,
   header,
+  timeZone,
   className,
 }: {
   data: GradebookData;
@@ -82,6 +91,8 @@ export function GradesView({
   formats: readonly ExportFormatOption[];
   /** Optional heading row inside the card (the cross-class Gradebook names the class). */
   header?: React.ReactNode;
+  /** The viewer's time zone (viewerTimeZone()) for the Missing cells; undefined uses the server's. */
+  timeZone?: string;
   className?: string;
 }) {
   const classTitle = [data.class.name, data.class.section].filter(Boolean).join(" · ");
@@ -95,7 +106,7 @@ export function GradesView({
       </div>
       <Card className="overflow-hidden">
         {header}
-        <GradesBody data={data} kinds={kinds} />
+        <GradesBody data={data} kinds={kinds} timeZone={timeZone} />
       </Card>
       {hasTable ? <GradebookLegend className="mt-4 px-1" /> : null}
     </div>

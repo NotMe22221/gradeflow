@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { logStudySession } from "@/app/(student)/student/actions";
 import { AssignmentIcon } from "@/components/classwork/assignment-icon";
 import { EmptyState } from "@/components/empty-state";
-import { dueLabel, type InboxAssignment } from "@/components/student/inbox-model";
+import type { InboxRow as InboxRowData } from "@/components/student/inbox-model";
 import { InboxPanel } from "@/components/student/inbox-panel";
 import { usePlannerBridge } from "@/components/student/planner-bridge";
 import {
@@ -49,7 +49,17 @@ const EMPTY_COPY: Record<TodoTab, { icon: typeof Inbox; title: string; descripti
   },
 };
 
-function rowsFor(rows: readonly InboxAssignment[], tab: TodoTab): InboxAssignment[] {
+/** Below this many rows the list ends with a summary footer (desktop), so it fills its pane. */
+const FOOTER_MAX_ROWS = 5;
+
+/** The end-of-list line for each tab. */
+const END_OF_LIST: Record<TodoTab, string> = {
+  assigned: "That’s all your assigned work.",
+  missing: "That’s all your missing work.",
+  done: "That’s everything you’ve turned in.",
+};
+
+function rowsFor(rows: readonly InboxRowData[], tab: TodoTab): InboxRowData[] {
   return rows
     .filter((row) => todoTabFor(row) === tab)
     .sort((a, b) => todoSortKey(a, tab) - todoSortKey(b, tab) || a.title.localeCompare(b.title));
@@ -66,7 +76,7 @@ export function AssignmentInbox({
   summary,
   studyLoggedToday: initialStudyLogged,
 }: {
-  rows: InboxAssignment[];
+  rows: InboxRowData[];
   /** One plain line about what's waiting on the student. */
   summary?: string;
   studyLoggedToday: boolean;
@@ -82,6 +92,7 @@ export function AssignmentInbox({
   const [studyPending, startStudy] = useTransition();
 
   const optionRefs = useRef(new Map<string, HTMLButtonElement>());
+  const tabRefs = useRef(new Map<TodoTab, HTMLButtonElement>());
   const panelHeadingRef = useRef<HTMLHeadingElement>(null);
   const keepFocusOnClose = useRef(false);
 
@@ -89,6 +100,13 @@ export function AssignmentInbox({
   const tabRows = useMemo(() => rowsFor(rows, tab), [rows, tab]);
   const pickedId = picked[tab];
   const selected = tabRows.find((row) => row.id === pickedId) ?? tabRows[0] ?? null;
+
+  /** From the end-of-list footer: switch tabs and keep focus on the tab that's now showing. */
+  function showTab(next: TodoTab) {
+    setTab(next);
+    // The footer button is about to unmount; the tab is always there.
+    tabRefs.current.get(next)?.focus();
+  }
 
   function select(id: string) {
     setPicked((previous) => ({ ...previous, [tab]: id }));
@@ -188,7 +206,15 @@ export function AssignmentInbox({
         <div className="mt-2 border-b border-border px-2 sm:px-3">
           <UnderlineTabsList aria-label="Filter your work">
             {TODO_TABS.map((item) => (
-              <UnderlineTabsTrigger key={item.value} value={item.value} count={counts[item.value]}>
+              <UnderlineTabsTrigger
+                key={item.value}
+                ref={(element: HTMLButtonElement | null) => {
+                  if (element) tabRefs.current.set(item.value, element);
+                  else tabRefs.current.delete(item.value);
+                }}
+                value={item.value}
+                count={counts[item.value]}
+              >
                 {item.label}
               </UnderlineTabsTrigger>
             ))}
@@ -196,36 +222,69 @@ export function AssignmentInbox({
         </div>
 
         <div className="grid lg:grid-cols-[minmax(0,7fr)_minmax(0,6fr)]">
-          <div className="min-w-0">
+          {/* The list column is as tall as the quick-actions pane; a short list ends with a footer that fills it. */}
+          <div className="flex min-w-0 flex-col">
             {TODO_TABS.map((item) => (
-              <TabsContent key={item.value} value={item.value} className="min-w-0">
+              <TabsContent
+                key={item.value}
+                value={item.value}
+                className="min-w-0 data-[state=active]:flex data-[state=active]:flex-col"
+              >
                 {item.value !== tab ? null : tabRows.length === 0 ? (
                   <EmptyState
                     icon={EMPTY_COPY[item.value].icon}
                     title={EMPTY_COPY[item.value].title}
                     description={EMPTY_COPY[item.value].description}
-                    className="border-0 bg-transparent py-12"
+                    className="flex-1 border-0 bg-transparent py-12"
                   />
                 ) : (
-                  <ul
-                    className="divide-y divide-border lg:max-h-[32rem] lg:overflow-y-auto"
-                    aria-label={`${item.label} work`}
-                    onKeyDown={onListKeyDown}
-                  >
-                    {tabRows.map((row) => (
-                      <li key={row.id}>
-                        <InboxRow
-                          row={row}
-                          active={row.id === selected?.id}
-                          onActivate={() => activate(row.id)}
-                          buttonRef={(element) => {
-                            if (element) optionRefs.current.set(row.id, element);
-                            else optionRefs.current.delete(row.id);
-                          }}
-                        />
-                      </li>
-                    ))}
-                  </ul>
+                  <>
+                    <ul
+                      className="divide-y divide-border lg:max-h-[32rem] lg:overflow-y-auto"
+                      aria-label={`${item.label} work`}
+                      onKeyDown={onListKeyDown}
+                    >
+                      {tabRows.map((row) => (
+                        <li key={row.id}>
+                          <InboxRow
+                            row={row}
+                            active={row.id === selected?.id}
+                            onActivate={() => activate(row.id)}
+                            buttonRef={(element) => {
+                              if (element) optionRefs.current.set(row.id, element);
+                              else optionRefs.current.delete(row.id);
+                            }}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                    {tabRows.length < FOOTER_MAX_ROWS ? (
+                      <div className="hidden flex-1 flex-col items-center justify-center gap-3 border-t border-border bg-secondary/40 px-6 py-8 text-center lg:flex">
+                        <p className="text-sm text-muted-foreground">{END_OF_LIST[item.value]}</p>
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {TODO_TABS.filter((other) => other.value !== item.value && counts[other.value] > 0).map(
+                            (other) => (
+                              <Button
+                                key={other.value}
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => showTab(other.value)}
+                              >
+                                Show {other.label.toLowerCase()}
+                                <span className="tabular text-muted-foreground">{counts[other.value]}</span>
+                              </Button>
+                            )
+                          )}
+                          <Button asChild variant="text" size="sm">
+                            <Link href={item.value === "assigned" ? "/student/todo" : `/student/todo?tab=${item.value}`}>
+                              Open To-do
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
                 )}
               </TabsContent>
             ))}
@@ -264,7 +323,7 @@ export function AssignmentInbox({
                   {selected.title}
                 </SheetTitle>
                 <SheetDescription className="tabular">
-                  {selected.className} · {dueLabel(selected)}
+                  {selected.className} · {selected.dueText}
                 </SheetDescription>
               </SheetHeader>
               <div className="px-5 pb-8">
@@ -284,7 +343,7 @@ function InboxRow({
   onActivate,
   buttonRef,
 }: {
-  row: InboxAssignment;
+  row: InboxRowData;
   active: boolean;
   onActivate: () => void;
   buttonRef: (element: HTMLButtonElement | null) => void;
@@ -313,7 +372,7 @@ function InboxRow({
         <span className="mt-0.5 block truncate text-xs text-muted-foreground">
           {row.className}
           <span aria-hidden> · </span>
-          <span className={cn("tabular", row.pastDue && "font-medium text-danger")}>{dueLabel(row)}</span>
+          <span className={cn("tabular", row.pastDue && "font-medium text-danger")}>{row.dueText}</span>
         </span>
       </span>
       <span className="flex shrink-0 flex-col items-end gap-0.5 text-right">

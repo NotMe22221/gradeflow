@@ -3,23 +3,25 @@ import { Check } from "lucide-react";
 
 import { ClassAvatar } from "@/components/classroom/class-avatar";
 import type { GradebookClassOption } from "@/lib/gradebook/types";
-import { insightsHref } from "@/lib/insights/links";
 import { cn } from "@/lib/utils";
 
 /**
- * Class filter chips for Insights, built from plain links (`?class=<id>`):
- * each chip carries the class's colored avatar, and the selected one is
- * tonal with a check mark. Works without client JavaScript and every class
- * view is linkable. The chips wrap rather than scroll, so the selected class
- * is always in view on a phone.
+ * Class filter chips for cross-class pages (Gradebook, Insights), built from
+ * plain links (`<basePath>?class=<id>`): each chip carries the class's colored
+ * avatar, and the selected one is tonal with a check mark. Works without
+ * client JavaScript and every class view is linkable. The chips wrap rather
+ * than scroll, so the selected class is always in view on a phone.
  */
-export function InsightsClassChips({
+export function ClassChips({
   classes,
   selectedId,
+  basePath,
   className,
 }: {
   classes: GradebookClassOption[];
   selectedId: string;
+  /** The page the chips link to, e.g. "/gradebook" or "/insights". */
+  basePath: string;
   className?: string;
 }) {
   if (classes.length < 2) return null;
@@ -32,7 +34,7 @@ export function InsightsClassChips({
           return (
             <li key={klass.id} className="max-w-full">
               <Link
-                href={insightsHref(klass.id)}
+                href={`${basePath}?class=${encodeURIComponent(klass.id)}`}
                 scroll={false}
                 aria-current={active ? "page" : undefined}
                 className={cn(

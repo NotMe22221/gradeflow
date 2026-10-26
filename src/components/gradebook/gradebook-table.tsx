@@ -2,48 +2,56 @@ import Link from "next/link";
 
 import { isPastDueDay } from "@/components/classwork/due";
 import { formatAverage, GradebookCellView } from "@/components/gradebook/gradebook-cell";
+import { GradebookScroll } from "@/components/gradebook/gradebook-scroll";
 import { Avatar } from "@/components/ui/avatar";
 import type { AssignmentKind } from "@/lib/constants";
-import { formatDate, formatPoints } from "@/lib/format";
-import type { GradebookData } from "@/lib/gradebook/types";
+import { formatDueDate, formatPoints } from "@/lib/format";
+import { gradebookColumnOrder, type GradebookData } from "@/lib/gradebook/types";
 import { studentProfileHref } from "@/lib/insights/links";
 import { cn } from "@/lib/utils";
 
 /*
  * Google Classroom's Grades grid. Students are rows (sticky on the left), the
  * average sits beside the names, and each assignment is a column headed by
- * its due date, title, and "out of N". The table uses the separate border
- * model so the sticky first column keeps its borders while the rest scrolls
- * horizontally underneath it; sticky cells carry solid backgrounds that match
- * their row.
+ * its due date, title, and "out of N". Columns run newest first, like
+ * Classroom (gradebookColumnOrder): the CSV keeps the query's oldest-due-first
+ * order, the screen reverses it so a just-created assignment is in view.
+ * The table uses the separate border model so the sticky first column keeps
+ * its borders while the rest scrolls horizontally underneath it; sticky cells
+ * carry solid backgrounds that match their row, and cast a shadow once cells
+ * have scrolled under them (GradebookScroll sets data-more-left).
  */
 const stickyCell =
-  "sticky left-0 after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border after:content-['']";
+  "sticky left-0 transition-shadow after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-border after:content-[''] group-data-[more-left=true]/grades:shadow-[6px_0_8px_-6px_rgb(0_0_0/0.14)]";
 
 export function GradebookTable({
   data,
   kinds = {},
   now = new Date(),
+  timeZone,
 }: {
   data: GradebookData;
   /** Assignment kinds by id. A paper test that is not scanned yet is never shown as "Missing". */
   kinds?: Record<string, AssignmentKind>;
   /** For past-due checks (injectable for previews and tests). */
   now?: Date;
+  /** The viewer's time zone: work turns Missing once the viewer's today is after its due day. */
+  timeZone?: string;
 }) {
-  const columns = data.assignments.map((assignment) => ({
-    ...assignment,
-    isTest: kinds[assignment.id] === "TEST",
-    pastDue: isPastDueDay(assignment.dueDate, now),
-  }));
+  // Indexes into data.assignments and each row's cells, newest first.
+  const order = gradebookColumnOrder(data);
+  const columns = order.map((index) => {
+    const assignment = data.assignments[index];
+    return {
+      ...assignment,
+      isTest: kinds[assignment.id] === "TEST",
+      pastDue: isPastDueDay(assignment.dueDate, now, timeZone),
+    };
+  });
 
   return (
     <div className="min-w-0">
-      {/* On phones only the names and one or two columns fit; nothing else hints that the rest scrolls. */}
-      <p className="border-b border-border px-4 py-2.5 text-xs text-muted-foreground sm:hidden">
-        Swipe sideways to see every assignment.
-      </p>
-      <div className="relative w-full overflow-x-auto">
+      <GradebookScroll label={`Grades for ${data.class.name}`}>
         <table
           className="w-full border-separate border-spacing-0 text-sm"
           aria-label={`Grades for ${data.class.name}`}
@@ -54,7 +62,7 @@ export function GradebookTable({
                 scope="col"
                 className={cn(
                   stickyCell,
-                  "z-20 min-w-40 border-b border-border bg-card px-4 py-3 text-left align-bottom text-xs font-medium text-muted-foreground sm:min-w-60 sm:pl-6"
+                  "z-20 min-w-40 border-b border-border bg-card px-4 py-3 text-left align-bottom text-xs font-medium text-muted-foreground sm:min-w-52 sm:pl-6 xl:min-w-60"
                 )}
               >
                 Students
@@ -73,7 +81,7 @@ export function GradebookTable({
                   className="w-44 min-w-44 border-b border-l border-border bg-card px-4 py-3 text-left align-bottom font-normal"
                 >
                   <span className="block text-xs text-muted-foreground">
-                    {assignment.dueDate ? `Due ${formatDate(assignment.dueDate)}` : "No due date"}
+                    {assignment.dueDate ? `Due ${formatDueDate(assignment.dueDate)}` : "No due date"}
                   </span>
                   <Link
                     href={`/assignments/${encodeURIComponent(assignment.id)}`}
@@ -138,8 +146,10 @@ export function GradebookTable({
                 <td className="tabular h-14 border-b border-l border-border bg-card px-4 text-sm font-medium text-foreground group-last:border-b-0 group-hover:bg-background">
                   {formatAverage(row.averagePercent)}
                 </td>
-                {row.cells.map((cell, index) => {
-                  const column = columns[index];
+                {order.map((cellIndex, position) => {
+                  const cell = row.cells[cellIndex];
+                  const column = columns[position];
+                  if (!cell) return null;
                   return (
                     <td
                       key={cell.assignmentId}
@@ -159,7 +169,7 @@ export function GradebookTable({
             ))}
           </tbody>
         </table>
-      </div>
+      </GradebookScroll>
     </div>
   );
 }

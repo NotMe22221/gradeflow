@@ -21,13 +21,22 @@ const SHORTCUTS: { keys: string[][]; label: string }[] = [
 export function ShortcutsDialog({
   open,
   onOpenChange,
+  restoreFocus,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Opened by a key or a button, not a DialogTrigger, so Radix has nowhere to send focus back. */
+  restoreFocus: () => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent
+        className="sm:max-w-md"
+        onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          restoreFocus();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Keyboard shortcuts</DialogTitle>
           <DialogDescription>

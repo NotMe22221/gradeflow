@@ -3,14 +3,14 @@ import Link from "next/link";
 import { AssignmentIcon } from "@/components/classwork/assignment-icon";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatDate } from "@/lib/format";
+import { formatDueDate } from "@/lib/format";
 import type { OpenWorkItem, OpenWorkState } from "@/lib/insights/profile";
 
 const MAX_ITEMS = 6;
 
 /** Classroom's words for where a piece of work stands, from the teacher's side. */
 function stateDisplay(item: OpenWorkItem): { status: React.ReactNode; meta: string } {
-  const due = item.dueDate ? `Due ${formatDate(item.dueDate)}` : "No due date";
+  const due = item.dueDate ? `Due ${formatDueDate(item.dueDate)}` : "No due date";
   const map: Record<OpenWorkState, { status: React.ReactNode; meta: string }> = {
     missing: { status: <span className="font-medium text-danger">Missing</span>, meta: due },
     returned: { status: <span className="font-medium text-foreground">Sent back</span>, meta: "Waiting on student" },
@@ -26,7 +26,12 @@ function stateDisplay(item: OpenWorkItem): { status: React.ReactNode; meta: stri
   return map[item.state];
 }
 
-/** Assignments not returned to this student yet, most urgent first, as Classroom-style rows. */
+/**
+ * Assignments not returned to this student yet, most urgent first, as
+ * Classroom-style rows. The card is a container: in a narrow side column
+ * (under 20rem) the status drops under the due line, so the title keeps
+ * enough width to be read instead of shrinking to a letter or two.
+ */
 export function OpenWorkCard({
   items,
   classColor,
@@ -43,7 +48,7 @@ export function OpenWorkCard({
   const tests = new Set(testAssignmentIds);
 
   return (
-    <Card className="min-w-0 overflow-hidden">
+    <Card className="@container min-w-0 overflow-hidden">
       <CardHeader className="gap-1 px-5 pt-5 pb-4 sm:px-6">
         <CardTitle>
           <h2>Open work</h2>
@@ -68,8 +73,9 @@ export function OpenWorkCard({
                       {item.title}
                     </span>
                     <span className="tabular block truncate text-xs text-muted-foreground">{meta}</span>
+                    <span className="mt-1 block text-[13px] @xs:hidden">{status}</span>
                   </span>
-                  <span className="shrink-0 text-[13px]">{status}</span>
+                  <span className="hidden shrink-0 text-[13px] @xs:inline">{status}</span>
                 </Link>
               </li>
             );

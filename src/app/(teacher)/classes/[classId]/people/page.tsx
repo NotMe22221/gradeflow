@@ -41,6 +41,8 @@ export default async function ClassPeoplePage({ params }: { params: Params }) {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+      {/* Same wording as the student People page; the tab bar's class name is a link, not a heading. */}
+      <h1 className="sr-only">People in {klass.name}</h1>
       <TeachersSection teacherName={teacher.name} />
       <StudentsSection classId={klass.id} classTitle={klass.name} students={students} className="mt-10" />
     </div>

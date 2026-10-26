@@ -24,9 +24,10 @@ import { cn } from "@/lib/utils";
 
 /**
  * The grade panel, like the right side of Classroom's grading tool: the big
- * grade with the AI suggestion beside it, then one card per rubric criterion
- * (or test question) with its score field, evidence, and feedback, then the
- * overall note. The action footer is pinned below on desktop.
+ * grade with the AI suggestion beside it, a one-line demo note and any flags,
+ * then one card per rubric criterion (or test question) with its score field,
+ * evidence, and feedback, then the suggested summary and the overall note.
+ * The action footer is pinned below on desktop.
  */
 export function RubricPane({
   item,
@@ -124,14 +125,15 @@ export function RubricPane({
         </div>
 
         <div className="space-y-4 px-4 py-5 sm:px-5">
+          {/* One line, not a box, so the scores being approved start near the top of the panel. */}
           {demo ? (
-            <div className="flex gap-3 rounded-xl border border-dashed border-input/50 px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
-              <FlaskConical className="mt-0.5 size-4 shrink-0" aria-hidden />
-              <p>
-                <span className="font-medium text-foreground">Demo grader output.</span> These scores and quotes
-                come from a local heuristic, not real AI. Check each one before you return the grade.
-              </p>
-            </div>
+            <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+              <FlaskConical className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+              <span>
+                <span className="font-medium text-foreground">Demo grader output:</span> a local heuristic, not real
+                AI. Check each score before you return the grade.
+              </span>
+            </p>
           ) : null}
 
           {!ai ? (
@@ -147,17 +149,6 @@ export function RubricPane({
               paperNoun={paperNoun}
               onShowFlagged={layout.flaggedCount > 0 ? onShowFlagged : null}
             />
-          ) : null}
-
-          {ai?.overallComment ? (
-            <div className="rounded-xl bg-secondary px-4 py-3 text-[13px] leading-relaxed break-words text-secondary-foreground">
-              <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-foreground">
-                {demo ? <FlaskConical className="size-3.5" aria-hidden /> : <Sparkles className="size-3.5" aria-hidden />}
-                {source} summary
-                <span className="sr-only">: </span>
-              </p>
-              {ai.overallComment}
-            </div>
           ) : null}
 
           <section aria-label={kind === "TEST" ? "Questions" : "Rubric"} className="space-y-3 pt-1">
@@ -188,6 +179,18 @@ export function RubricPane({
               );
             })}
           </section>
+
+          {/* The suggested summary sits below the scores, right before the overall note it informs. */}
+          {ai?.overallComment ? (
+            <div className="rounded-xl bg-secondary px-4 py-3 text-[13px] leading-relaxed break-words text-secondary-foreground">
+              <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-foreground">
+                {demo ? <FlaskConical className="size-3.5" aria-hidden /> : <Sparkles className="size-3.5" aria-hidden />}
+                {source} summary
+                <span className="sr-only">: </span>
+              </p>
+              {ai.overallComment}
+            </div>
+          ) : null}
 
           <div className="space-y-2 rounded-xl border border-border p-4 sm:p-5">
             <Label htmlFor={feedbackId}>Overall note to student</Label>

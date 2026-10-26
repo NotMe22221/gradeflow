@@ -2,7 +2,7 @@
 // client components and unit tests. Only published scores ever appear here.
 
 import type { AssignmentKind } from "@/lib/constants";
-import { formatDate, formatPercent, formatScore, pluralize } from "@/lib/format";
+import { formatDate, formatDueDate, formatPercent, formatScore, pluralize } from "@/lib/format";
 import type { StudentAssignmentState } from "@/components/student/student-status";
 
 /**
@@ -41,6 +41,16 @@ export type InboxAssignment = {
   totalPoints: number;
   /** Rubric criteria (titles and points only; descriptions can hold a test's answer key). */
   criteria: InboxCriterion[];
+};
+
+/**
+ * An inbox row as the Home sends it, with its due label precomputed on the
+ * server. Computing it in the browser could disagree with the server render
+ * (another time zone, or just past midnight) and cause a hydration mismatch.
+ */
+export type InboxRow = InboxAssignment & {
+  /** Classroom's relative due label (todo-model's relativeDue): "Due tomorrow", "Test on Friday", "Due Nov 9". */
+  dueText: string;
 };
 
 /**
@@ -96,10 +106,13 @@ export function defaultInboxTab(rows: readonly InboxAssignment[]): InboxTab {
   return INBOX_TABS.find((tab) => counts[tab.value] > 0)?.value ?? "todo";
 }
 
-/** "Due Oct 24". A paper test has a test day instead: "Test day Oct 24". */
+/**
+ * "Due Oct 24". A paper test has a test day instead: "Test day Oct 24".
+ * The inbox shows InboxRow.dueText (relative, like Classwork and To-do) instead.
+ */
 export function dueLabel(row: Pick<InboxAssignment, "dueDate" | "kind">): string {
-  if (row.kind === "TEST") return row.dueDate ? `Test day ${formatDate(row.dueDate)}` : "No test date";
-  return row.dueDate ? `Due ${formatDate(row.dueDate)}` : "No due date";
+  if (row.kind === "TEST") return row.dueDate ? `Test day ${formatDueDate(row.dueDate)}` : "No test date";
+  return row.dueDate ? `Due ${formatDueDate(row.dueDate)}` : "No due date";
 }
 
 /** One plain sentence about where this assignment stands. */
@@ -125,11 +138,11 @@ export function statusSummary(row: InboxAssignment): string {
     case "not_submitted":
       if (row.kind === "TEST") {
         return row.awaitingScan
-          ? `The test was on ${formatDate(row.dueDate)}. Your teacher scans the papers, and your grade appears here once it's approved.`
+          ? `The test was on ${formatDueDate(row.dueDate)}. Your teacher scans the papers, and your grade appears here once it's approved.`
           : "A paper test. You take it in class and your teacher scans it, so there's nothing to upload.";
       }
-      if (row.pastDue) return `Missing since ${formatDate(row.dueDate)}. Turn it in as soon as you can.`;
-      return row.dueDate ? `Assigned. Due ${formatDate(row.dueDate)}.` : "Assigned. No due date.";
+      if (row.pastDue) return `Missing since ${formatDueDate(row.dueDate)}. Turn it in as soon as you can.`;
+      return row.dueDate ? `Assigned. Due ${formatDueDate(row.dueDate)}.` : "Assigned. No due date.";
   }
 }
 

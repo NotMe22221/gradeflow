@@ -20,7 +20,7 @@ function describe(run: BatchRun): { title: string; detail: string; tone: "runnin
       title: `Grading ${current} of ${run.total} ${papers(run.total)}…`,
       detail:
         run.status === "stopping"
-          ? "Stopping after this paper. Papers already graded stay in your review queue."
+          ? "Stopping after this paper. Papers already graded wait in To review."
           : "Each paper is graded on its own against your rubric. Nothing is published until you approve it.",
       tone: "running",
     };

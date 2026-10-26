@@ -18,25 +18,47 @@ export function pluralize(count: number, singular: string, plural = `${singular}
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-const dateFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
-const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  hour: "numeric",
-  minute: "2-digit",
-});
+// Timestamps (posted, turned in, returned) print in the viewer's time zone
+// when the caller passes it (viewerTimeZone() on the server), else in the
+// server's zone. Due dates are calendar days stored at noon UTC, so they print
+// from their UTC date (formatDueDate) and read as the same day everywhere.
 
-export function formatDate(date: Date | string | null | undefined): string {
-  if (!date) return "–";
-  return dateFormatter.format(new Date(date));
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+function formatter(kind: "date" | "dateTime", timeZone: string | undefined): Intl.DateTimeFormat {
+  const key = `${kind}:${timeZone ?? ""}`;
+  let cached = formatters.get(key);
+  if (!cached) {
+    cached = new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      ...(kind === "dateTime" ? { hour: "numeric", minute: "2-digit" } : {}),
+      timeZone,
+    });
+    formatters.set(key, cached);
+  }
+  return cached;
 }
 
-export function formatDateTime(date: Date | string | null | undefined): string {
+/** "Oct 26" for a moment in time, in `timeZone` (default: the server's zone). */
+export function formatDate(date: Date | string | null | undefined, timeZone?: string): string {
   if (!date) return "–";
-  return dateTimeFormatter.format(new Date(date));
+  return formatter("date", timeZone).format(new Date(date));
 }
 
-export function formatRelative(date: Date | string, now: Date = new Date()): string {
+/** "Oct 26, 7:45 PM" for a moment in time, in `timeZone` (default: the server's zone). */
+export function formatDateTime(date: Date | string | null | undefined, timeZone?: string): string {
+  if (!date) return "–";
+  return formatter("dateTime", timeZone).format(new Date(date));
+}
+
+/** "Nov 9" for a due date: its calendar day (the UTC date it is stored on), the same in every zone. */
+export function formatDueDate(date: Date | string | null | undefined): string {
+  if (!date) return "–";
+  return formatter("date", "UTC").format(new Date(date));
+}
+
+export function formatRelative(date: Date | string, now: Date = new Date(), timeZone?: string): string {
   const diffMs = now.getTime() - new Date(date).getTime();
   const minutes = Math.round(diffMs / 60000);
   if (minutes < 1) return "just now";
@@ -45,7 +67,7 @@ export function formatRelative(date: Date | string, now: Date = new Date()): str
   if (hours < 24) return `${hours}h ago`;
   const days = Math.round(hours / 24);
   if (days < 7) return `${days}d ago`;
-  return formatDate(date);
+  return formatDate(date, timeZone);
 }
 
 export function wordCount(text: string): number {

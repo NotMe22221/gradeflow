@@ -42,10 +42,13 @@ export function StreamUpcomingCard({
   classId,
   items,
   now,
+  timeZone,
 }: {
   classId: string;
   items: { id: string; title: string; dueDate: Date }[];
   now: Date;
+  /** The viewer's time zone (viewerTimeZone()); undefined uses the server's. */
+  timeZone?: string;
 }) {
   return (
     <SideCard title="Upcoming">
@@ -60,7 +63,7 @@ export function StreamUpcomingCard({
                 className="group -mx-2 block rounded-lg px-2 py-1.5 outline-none hover:bg-foreground/[0.04] focus-visible:ring-[3px] focus-visible:ring-ring"
               >
                 <time dateTime={item.dueDate.toISOString()} className="block text-xs text-muted-foreground">
-                  {dueLabel(item.dueDate, now)}
+                  {dueLabel(item.dueDate, now, { timeZone })}
                 </time>
                 <span className="line-clamp-2 text-[13px] leading-5 font-medium text-foreground group-hover:underline">
                   {item.title}
@@ -215,12 +218,15 @@ export function StreamFeed({
   teacherName,
   classColor,
   now,
+  timeZone,
 }: {
   items: StreamItem[];
   teacherName: string;
   /** The class color (classTheme(klass).color) for the icon circles. */
   classColor: string;
   now: Date;
+  /** The viewer's time zone (viewerTimeZone()); undefined uses the server's. */
+  timeZone?: string;
 }) {
   if (items.length === 0) {
     return (
@@ -263,8 +269,8 @@ export function StreamFeed({
                     </Link>
                   </p>
                   <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
-                    <time dateTime={item.at.toISOString()} title={formatDateTime(item.at)}>
-                      {streamTime(item.at, now)}
+                    <time dateTime={item.at.toISOString()} title={formatDateTime(item.at, timeZone)}>
+                      {streamTime(item.at, now, timeZone)}
                     </time>
                     {meta ? <span> · {meta}</span> : null}
                     {demoOnly ? (

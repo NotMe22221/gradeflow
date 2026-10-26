@@ -1,13 +1,18 @@
 // Class theme colors and banner motifs, in the style of Google Classroom.
-// Each class gets a stable color from its id, and a banner motif from its
+// Each class gets a stable color from its name, and a banner motif from its
 // subject. Pure: safe for server and client components.
 
+/**
+ * Banner and avatar colors. Every one carries white and white/90 text at
+ * 4.5:1 or better (WCAG AA for the small banner lines). The hex values mirror
+ * the --class-* tokens in src/app/globals.css: keep the two in sync.
+ */
 export const CLASS_THEMES = [
   { key: "blue", color: "var(--class-blue)", hex: "#1967d2" },
   { key: "green", color: "var(--class-green)", hex: "#137333" },
   { key: "purple", color: "var(--class-purple)", hex: "#8430ce" },
-  { key: "teal", color: "var(--class-teal)", hex: "#007b83" },
-  { key: "orange", color: "var(--class-orange)", hex: "#c26401" },
+  { key: "teal", color: "var(--class-teal)", hex: "#00707a" },
+  { key: "orange", color: "var(--class-orange)", hex: "#a35200" },
   { key: "pink", color: "var(--class-pink)", hex: "#b80672" },
 ] as const;
 

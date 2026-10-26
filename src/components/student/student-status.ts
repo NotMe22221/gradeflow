@@ -5,6 +5,8 @@
 // AI pass, grading, a failed AI pass, waiting in the review queue, mid-publish)
 // collapses into one calm "Submitted" state.
 
+import { isPastDueDay } from "@/lib/classroom/due";
+
 export type StudentAssignmentState = "not_submitted" | "submitted" | "returned" | "graded";
 
 export type StudentStateDisplay = {
@@ -63,20 +65,12 @@ export function studentStateFor(
 
 /**
  * Due dates are calendar days (stored at noon UTC by the assignment builder),
- * so an assignment is only past due once its whole due day has ended.
+ * so an assignment is only past due once the viewer's today is after its due
+ * day: the shared isPastDueDay() rule, the same day boundary as "Due today".
+ * `timeZone` is the viewer's (undefined: the server's zone).
  */
-export function isPastDue(dueDate: Date | null | undefined, now: Date): boolean {
-  if (!dueDate) return false;
-  const endOfDueDay = Date.UTC(
-    dueDate.getUTCFullYear(),
-    dueDate.getUTCMonth(),
-    dueDate.getUTCDate(),
-    23,
-    59,
-    59,
-    999
-  );
-  return now.getTime() > endOfDueDay;
+export function isPastDue(dueDate: Date | null | undefined, now: Date, timeZone?: string): boolean {
+  return isPastDueDay(dueDate, now, timeZone);
 }
 
 /**
@@ -87,9 +81,12 @@ export function isOverdue(
   kind: string,
   state: StudentAssignmentState,
   dueDate: Date | null | undefined,
-  now: Date
+  now: Date,
+  timeZone?: string
 ): boolean {
-  return kind !== "TEST" && (state === "not_submitted" || state === "returned") && isPastDue(dueDate, now);
+  return (
+    kind !== "TEST" && (state === "not_submitted" || state === "returned") && isPastDue(dueDate, now, timeZone)
+  );
 }
 
 /**
@@ -100,7 +97,8 @@ export function isAwaitingScan(
   kind: string,
   state: StudentAssignmentState,
   dueDate: Date | null | undefined,
-  now: Date
+  now: Date,
+  timeZone?: string
 ): boolean {
-  return kind === "TEST" && state === "not_submitted" && isPastDue(dueDate, now);
+  return kind === "TEST" && state === "not_submitted" && isPastDue(dueDate, now, timeZone);
 }

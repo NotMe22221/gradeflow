@@ -7,7 +7,10 @@
 // three always agree. A deployment sets TZ to the school's zone (for example
 // TZ=America/New_York); with the default UTC the day turns over in the US
 // evening. This only affects XP and streaks: due dates and grades never
-// depend on it (due dates are calendar dates, see isPastDue).
+// depend on it (due dates are calendar dates, see isPastDueDay). The ON_TIME
+// bonus uses the shared past-due rule in this same server zone, never the
+// viewer's "tz" cookie (which the browser controls), so XP is awarded the same
+// way for everyone; on a UTC server it is exactly the old UTC-end-of-day rule.
 
 export const ACTIVITY_KINDS = [
   "SUBMIT", // submitted a paper
@@ -181,9 +184,17 @@ export function describeActivity(kind: string, subject: string | null): string {
 
 export type StreakSummary = { headline: string; detail: string };
 
-/** "4-day streak" + "Active today" / "Study today to keep it going". */
+/**
+ * "4-day streak" + "Active today" / "Study today to keep it going". With no
+ * current streak, a student who had one before reads "Streak ended", so a
+ * lapsed streak never looks like a brand-new student's "No streak yet".
+ */
 export function streakSummary(streak: StreakInfo): StreakSummary {
-  if (streak.current <= 0) return { headline: "No streak yet", detail: "Study today to start one" };
+  if (streak.current <= 0) {
+    return streak.longest > 0
+      ? { headline: "Streak ended", detail: "Study today to start a new one" }
+      : { headline: "No streak yet", detail: "Study today to start one" };
+  }
   return {
     headline: `${streak.current}-day streak`,
     detail: streak.activeToday ? "Active today" : "Study today to keep it going",

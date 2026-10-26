@@ -23,8 +23,8 @@ export function InsightsSkeleton() {
         <Skeleton className="h-10 w-64 shrink-0 rounded-full" />
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+      <div className="mb-6 grid grid-cols-1 gap-6 @4xl:grid-cols-3">
+        <Card className="@4xl:col-span-2">
           <div className="space-y-2 px-4 pt-5 pb-4 sm:px-6">
             <Skeleton className="h-5 w-28" />
             <Skeleton className="h-4 w-72 max-w-full" />

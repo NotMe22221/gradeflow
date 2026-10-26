@@ -3,8 +3,11 @@ import "@fontsource-variable/roboto";
 import "@fontsource-variable/figtree";
 
 import "./globals.css";
+import { SkipLink } from "@/components/app-shell/skip-link";
+import { TimeZoneCookie } from "@/components/app-shell/time-zone-cookie";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { serverTimeZone } from "@/lib/classroom/timezone";
 
 export const metadata: Metadata = {
   title: {
@@ -23,8 +26,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+        {/* First tab stop on every page; each page's content is <main id="main">. */}
+        <SkipLink />
         <TooltipProvider>{children}</TooltipProvider>
         <Toaster />
+        {/* Sends the browser's time zone to the server ("tz" cookie) so dates use the viewer's day. */}
+        <TimeZoneCookie serverTimeZone={serverTimeZone()} />
       </body>
     </html>
   );

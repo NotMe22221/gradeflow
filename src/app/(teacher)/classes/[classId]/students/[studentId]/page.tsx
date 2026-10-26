@@ -5,6 +5,7 @@ import { cache } from "react";
 import { StudentProfileView } from "@/components/insights/student-profile-view";
 import { AuthError, requireTeacherPage } from "@/lib/auth/session";
 import { briefEngineInfo } from "@/lib/briefs/generate";
+import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import { buildStudentProfile } from "@/lib/insights/profile";
 import { getStudentRecord } from "@/lib/insights/student";
 import { idSchema } from "@/lib/validation/id";
@@ -40,7 +41,8 @@ export default async function StudentProfilePage({ params }: { params: Params })
   const record = await loadStudentRecord(classId, studentId);
   if (!record) notFound();
 
-  const profile = buildStudentProfile(record, new Date());
+  // Open work turns Missing once the viewer's today is after its due day.
+  const profile = buildStudentProfile(record, new Date(), await viewerTimeZone());
 
   return <StudentProfileView record={record} profile={profile} engine={briefEngineInfo()} />;
 }

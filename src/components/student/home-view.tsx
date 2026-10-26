@@ -5,7 +5,7 @@ import { PageContainer } from "@/components/page-header";
 import { AssignmentInbox } from "@/components/student/assignment-inbox";
 import { StudentClassCard, StudentClassCardGrid, type StudentClassCardData } from "@/components/student/class-card";
 import { GoalPlanner } from "@/components/student/goal-planner";
-import type { InboxAssignment } from "@/components/student/inbox-model";
+import type { InboxRow } from "@/components/student/inbox-model";
 import { PlannerBridgeProvider } from "@/components/student/planner-bridge";
 import { StudyHeader } from "@/components/student/study-header";
 import type { StudentEngagement } from "@/lib/gamification/engagement";
@@ -30,7 +30,7 @@ export function StudentHomeView({
   summary: string;
   engagement: Pick<StudentEngagement, "streak" | "level" | "recent" | "studyLoggedToday">;
   cards: StudentClassCardData[];
-  inbox: InboxAssignment[];
+  inbox: InboxRow[];
   plannerClasses: { id: string; name: string; section: string | null }[];
   savedPlans: GoalPlanView[];
   engine: { engine: GoalEngine; model: string | null };

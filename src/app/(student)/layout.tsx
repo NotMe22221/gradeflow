@@ -2,6 +2,7 @@ import { AppShell } from "@/components/app-shell/app-shell";
 import { isAwaitingScan, studentStateFor } from "@/components/student/student-status";
 import { todoTabFor } from "@/components/student/todo-model";
 import { requireStudentPage } from "@/lib/auth/session";
+import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import { demoLoginEnabled, parseAssignmentKind } from "@/lib/constants";
 import { db } from "@/lib/db";
 
@@ -29,11 +30,13 @@ export default async function StudentLayout({ children }: { children: React.Reac
       },
     },
   });
+  // "Today" in the viewer's zone, as on the To-do page (the shared past-due rule).
   const now = new Date();
+  const timeZone = await viewerTimeZone();
   const todo = assignments.filter((assignment) => {
     const submission = assignment.submissions[0];
     const state = studentStateFor(submission?.status, Boolean(submission?.publishedGrade));
-    const awaitingScan = isAwaitingScan(parseAssignmentKind(assignment.kind), state, assignment.dueDate, now);
+    const awaitingScan = isAwaitingScan(parseAssignmentKind(assignment.kind), state, assignment.dueDate, now, timeZone);
     return todoTabFor({ state, awaitingScan, pastDue: false }) !== "done";
   }).length;
 

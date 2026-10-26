@@ -5,6 +5,7 @@ import { cache } from "react";
 import { StudentAssignmentView } from "@/components/student/assignment-view";
 import { getEnrolledAssignment } from "@/lib/access";
 import { AuthError, requireStudentPage } from "@/lib/auth/session";
+import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import { db } from "@/lib/db";
 import { idSchema } from "@/lib/validation/id";
 
@@ -37,7 +38,7 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
 
   // Only the signed-in student's own submission, and only fields a student may
   // see. AiGrade, CriterionScore, and draft review state are never selected.
-  const [submission, teacher] = await Promise.all([
+  const [submission, teacher, timeZone] = await Promise.all([
     db.submission.findUnique({
       where: { assignmentId_studentId: { assignmentId: assignment.id, studentId: student.id } },
       select: {
@@ -61,6 +62,7 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
       },
     }),
     db.user.findUnique({ where: { id: assignment.class.teacherId }, select: { name: true } }),
+    viewerTimeZone(),
   ]);
 
   return (
@@ -83,6 +85,7 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
       teacherName={teacher?.name ?? null}
       submission={submission}
       now={new Date()}
+      timeZone={timeZone}
     />
   );
 }

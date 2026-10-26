@@ -124,20 +124,24 @@ export function StudentClassCardGrid({ className, ...props }: React.ComponentPro
   );
 }
 
-/** Card data for each class from the student's own work rows. Labels use the server's `now`. */
+/**
+ * Card data for each class from the student's own work rows. Labels use the
+ * request's `now` in the viewer's `timeZone` (undefined: the server's zone).
+ */
 export function buildClassCards(
   classes: { id: string; name: string; section: string | null; subject: string | null; teacherName: string }[],
   rows: readonly StudentWorkRow[],
-  now: Date
+  now: Date,
+  timeZone?: string
 ): StudentClassCardData[] {
   return classes.map((klass) => {
     const inClass = rows.filter((row) => row.classId === klass.id);
     return {
       ...klass,
-      dueSoon: dueSoon(inClass, now, 2).map((row) => ({
+      dueSoon: dueSoon(inClass, now, 2, { timeZone }).map((row) => ({
         id: row.id,
         title: row.title,
-        dueText: relativeDue(row, now),
+        dueText: relativeDue(row, now, timeZone),
         dueDate: row.dueDate,
       })),
       missing: inClass.filter((row) => todoTabFor(row) === "missing").length,

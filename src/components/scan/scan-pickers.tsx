@@ -30,7 +30,7 @@ function OptionItem({
     <SelectPrimitive.Item
       value={value}
       disabled={disabled}
-      className="relative flex w-full cursor-default flex-col items-start gap-0.5 rounded-md py-2 pr-8 pl-2 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+      className="relative flex w-full cursor-default flex-col items-start gap-0.5 rounded-md py-2 pr-8 pl-2 text-sm outline-hidden select-none data-[highlighted]:bg-primary-soft data-[highlighted]:text-primary-soft-foreground focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
     >
       <span className="absolute top-2 right-2 flex size-3.5 items-center justify-center">
         <SelectPrimitive.ItemIndicator>

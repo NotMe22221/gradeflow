@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { openAiConfigured } from "@/lib/ai/openai";
 import { AuthError, requireStudent } from "@/lib/auth/session";
+import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import { MAX_GOAL_CHARS } from "@/lib/goals/parse";
 import { GoalPlannerError, planStudentGoal } from "@/lib/goals/planner";
 import type { GoalPlannerFailure, GoalPlannerSuccess } from "@/lib/goals/types";
@@ -87,6 +88,7 @@ export async function POST(request: Request) {
         studentId: student.id,
         goal: parsed.data.goal,
         classId: parsed.data.classId ?? null,
+        timeZone: await viewerTimeZone(),
       });
     } catch (error) {
       // Expected failures (unclear goal, no class, OpenAI errors) carry a safe message.

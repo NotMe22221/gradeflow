@@ -53,7 +53,7 @@ export function StudentProfileView({
               <ClassAvatar name={record.class.name} className="size-5 text-[10px]" />
               <span className="truncate">{classTitle}</span>
             </p>
-            <p className="mt-0.5 text-sm break-all text-muted-foreground">{record.student.email}</p>
+            <p className="mt-0.5 text-sm [overflow-wrap:anywhere] text-muted-foreground">{record.student.email}</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 md:shrink-0 md:justify-end">
@@ -64,9 +64,9 @@ export function StudentProfileView({
             </Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href={`/gradebook?class=${encodeURIComponent(record.class.id)}`}>
+            <Link href={`/classes/${encodeURIComponent(record.class.id)}/grades`}>
               <Table2 aria-hidden />
-              Gradebook
+              Grades
             </Link>
           </Button>
         </div>
@@ -74,9 +74,13 @@ export function StudentProfileView({
 
       <StudentStats profile={profile} assignmentCount={record.assignments.length} />
 
-      {/* grid-cols-1 (minmax(0, 1fr)) keeps long text from widening the column past a phone screen. */}
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="min-w-0 space-y-6 lg:col-span-2">
+      {/*
+        grid-cols-1 (minmax(0, 1fr)) keeps long text from widening the column past a phone screen.
+        The side column follows the width <main> actually has (an `@container` in the app shell),
+        not the viewport, so the open drawer at 1024-1180px keeps one column instead of squeezing three.
+      */}
+      <div className="mt-6 grid grid-cols-1 gap-6 @4xl:grid-cols-3">
+        <div className="min-w-0 space-y-6 @4xl:col-span-2">
           <ConferenceBriefCard
             classId={record.class.id}
             studentId={record.student.id}

@@ -46,8 +46,9 @@ function StatTile({
 }
 
 /**
- * The student's standing in this class, as one strip of tiles (two by two on
- * a phone). Scores come from approved grades only. Status colors appear only
+ * The student's standing in this class, as one strip of tiles (two by two
+ * when the content area is narrower than 48rem, e.g. a phone or the open
+ * drawer at 1024px). Scores come from approved grades only. Status colors appear only
  * when something needs attention (work waiting for review, missing work).
  */
 export function StudentStats({ profile, assignmentCount }: { profile: StudentProfile; assignmentCount: number }) {
@@ -63,7 +64,7 @@ export function StudentStats({ profile, assignmentCount }: { profile: StudentPro
   return (
     <section
       aria-label="Grade summary"
-      className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border lg:grid-cols-4"
+      className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border @3xl:grid-cols-4"
     >
       <StatTile
         label="Average"

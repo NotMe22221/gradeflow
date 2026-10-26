@@ -53,7 +53,7 @@ export function AssignmentTabs({
             key={item.value}
             value={item.value}
             className={cn(
-              "relative inline-flex h-12 shrink-0 items-center rounded-t-md px-4 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.04] hover:text-foreground focus-visible:bg-primary/[0.08]",
+              "relative inline-flex h-12 shrink-0 items-center rounded-t-md px-4 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.04] hover:text-foreground focus-visible:bg-primary/[0.08] focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
               "data-[state=active]:text-primary",
               "after:absolute after:inset-x-2 after:bottom-0 after:h-[3px] after:rounded-t-full after:bg-transparent data-[state=active]:after:bg-primary"
             )}

@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/empty-state";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { requireTeacherPage } from "@/lib/auth/session";
 import { getUpcomingByClass } from "@/lib/classroom/stream";
+import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import { pluralize } from "@/lib/format";
 import { getClassSummaries } from "@/lib/stats";
 
@@ -15,11 +16,12 @@ export const metadata: Metadata = { title: "Classes" };
 export default async function ClassesPage() {
   const teacher = await requireTeacherPage();
   const now = new Date();
+  const timeZone = await viewerTimeZone();
 
   // Same per-class counts as Home (review queue and READY_FOR_AI_STATUSES).
   const [summaries, upcoming] = await Promise.all([
     getClassSummaries(teacher.id, now),
-    getUpcomingByClass(teacher.id, now, 2),
+    getUpcomingByClass(teacher.id, now, 2, timeZone),
   ]);
 
   const totalReview = summaries.reduce((sum, summary) => sum + summary.pendingReview, 0);
@@ -53,6 +55,7 @@ export default async function ClassesPage() {
                 data={{ ...summary, upcoming: upcoming.get(summary.id) ?? [] }}
                 teacherName={teacher.name}
                 now={now}
+                timeZone={timeZone}
               />
             </li>
           ))}

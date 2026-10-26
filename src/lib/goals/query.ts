@@ -60,13 +60,17 @@ export function toGoalClassSource(row: GoalClassRow): GoalClassSource {
 }
 
 /** The signed-in student's classes (enrollments only), with their own approved grades. */
-export async function loadGoalClasses(studentId: string, now: Date = new Date()): Promise<GoalClass[]> {
+export async function loadGoalClasses(
+  studentId: string,
+  now: Date = new Date(),
+  timeZone?: string
+): Promise<GoalClass[]> {
   const enrollments = await db.enrollment.findMany({
     where: { studentId },
     orderBy: { class: { name: "asc" } },
     select: { class: { select: goalClassSelect(studentId) } },
   });
-  return enrollments.map((enrollment) => buildGoalClass(toGoalClassSource(enrollment.class), now));
+  return enrollments.map((enrollment) => buildGoalClass(toGoalClassSource(enrollment.class), now, timeZone));
 }
 
 /** This student's saved goals in classes they are still enrolled in, newest first. */

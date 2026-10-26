@@ -15,6 +15,7 @@ import { PageContainer } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireTeacherPage } from "@/lib/auth/session";
 import { getUpcomingByClass } from "@/lib/classroom/stream";
+import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import { firstName, pluralize } from "@/lib/format";
 import { getMostMissedForTeacher, listBriefStudents } from "@/lib/insights/query";
 import {
@@ -26,16 +27,20 @@ import {
 
 export const metadata: Metadata = { title: "Home" };
 
-const todayFormatter = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" });
+/** "Monday, October 26": today in the viewer's zone (undefined: the server's). */
+function todayLabel(now: Date, timeZone: string | undefined): string {
+  return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone }).format(now);
+}
 
 export default async function DashboardPage() {
   const teacher = await requireTeacherPage();
   const now = new Date();
+  const timeZone = await viewerTimeZone();
 
   const [stats, classes, upcoming, recent, readyAssignments, mostMissed, briefClasses] = await Promise.all([
     getDashboardStats(teacher.id, now),
     getClassSummaries(teacher.id, now),
-    getUpcomingByClass(teacher.id, now, 2),
+    getUpcomingByClass(teacher.id, now, 2, timeZone),
     getRecentlyPublished(teacher.id, 5),
     getReadyForAiAssignments(teacher.id, now),
     getMostMissedForTeacher(teacher.id, 3),
@@ -54,7 +59,7 @@ export default async function DashboardPage() {
     <PageContainer>
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 space-y-1">
-          <p className="text-[13px] font-medium text-muted-foreground">{todayFormatter.format(now)}</p>
+          <p className="text-[13px] font-medium text-muted-foreground">{todayLabel(now, timeZone)}</p>
           <h1 className="text-[26px] leading-tight font-medium text-balance text-foreground sm:text-[28px]">
             Welcome back, {firstName(teacher.name)}
           </h1>
@@ -108,6 +113,7 @@ export default async function DashboardPage() {
                     data={{ ...summary, upcoming: upcoming.get(summary.id) ?? [] }}
                     teacherName={teacher.name}
                     now={now}
+                    timeZone={timeZone}
                   />
                 </li>
               ))}
@@ -116,7 +122,7 @@ export default async function DashboardPage() {
         </section>
 
         <div className="grid min-w-0 grid-cols-1 content-start gap-6 md:grid-cols-2 xl:grid-cols-1 xl:pt-14">
-          <RecentlyPublished items={recent} now={now} />
+          <RecentlyPublished items={recent} now={now} timeZone={timeZone} />
           {classes.length > 0 ? <MostMissedCard items={mostMissed} /> : null}
         </div>
       </div>

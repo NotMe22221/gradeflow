@@ -5,12 +5,13 @@ import { ArrowRight, BookOpen } from "lucide-react";
 import { ClassAvatar } from "@/components/classroom/class-avatar";
 import { EmptyState } from "@/components/empty-state";
 import { loadAssignmentKinds } from "@/components/gradebook/assignment-kinds";
-import { ClassSwitcher } from "@/components/gradebook/class-switcher";
+import { ClassChips } from "@/components/classroom/class-chips";
 import type { ExportFormatOption } from "@/components/gradebook/export-button";
 import { GradesView } from "@/components/gradebook/grades-view";
 import { PageContainer, PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireTeacherPage } from "@/lib/auth/session";
+import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import { listExporters } from "@/lib/export";
 import { getGradebook, listGradebookClasses } from "@/lib/gradebook/query";
 
@@ -67,19 +68,20 @@ export default async function GradebookPage({
   }
 
   const data = await getGradebook(teacher.id, selected.id);
-  const kinds = await loadAssignmentKinds(data);
+  const [kinds, timeZone] = await Promise.all([loadAssignmentKinds(data), viewerTimeZone()]);
   const gradesHref = `/classes/${encodeURIComponent(data.class.id)}/grades`;
 
   return (
     <PageContainer>
       <PageHeader title={TITLE} description={DESCRIPTION} />
 
-      <ClassSwitcher classes={classes} selectedId={selected.id} className="mb-6" />
+      <ClassChips classes={classes} selectedId={selected.id} basePath="/gradebook" className="mb-6" />
 
       <GradesView
         data={data}
         kinds={kinds}
         formats={exportFormats()}
+        timeZone={timeZone}
         header={
           <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3 sm:px-6">
             <ClassAvatar name={data.class.name} className="size-10 text-base" />

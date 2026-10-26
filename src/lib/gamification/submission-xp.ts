@@ -22,6 +22,8 @@ export async function awardSubmissionXp(input: {
   now?: Date;
 }): Promise<{ total: number; awards: XpAward[] }> {
   const now = input.now ?? new Date();
+  // The server's calendar day on purpose (no viewer time zone): XP rules use
+  // one day boundary for everyone, and the viewer's zone comes from a cookie.
   const onTime = input.dueDate !== null && !isPastDue(input.dueDate, now);
 
   return db.$transaction(async (tx) => {

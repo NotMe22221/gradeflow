@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, ExternalLink, ImageOff, ZoomIn, ZoomOut } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -35,13 +35,30 @@ export function PhotoPages({
   const [zoomIndex, setZoomIndex] = useState<number | null>(null);
   const [magnified, setMagnified] = useState(false);
   const [failed, setFailed] = useState<ReadonlySet<string>>(() => new Set());
+  // The zoom dialog has no DialogTrigger, so Radix cannot return focus on
+  // close. Remember the thumbnail that opened it and the page last viewed.
+  const thumbnailRefs = useRef(new Map<number, HTMLButtonElement>());
+  const openerRef = useRef<HTMLElement | null>(null);
+  const lastViewedRef = useRef<number | null>(null);
   const total = images.length;
   const zoomed = zoomIndex === null ? null : images[zoomIndex] ?? null;
 
+  useEffect(() => {
+    if (zoomIndex !== null) lastViewedRef.current = zoomIndex;
+  }, [zoomIndex]);
+
   const markFailed = (id: string) => setFailed((current) => new Set(current).add(id));
-  const openZoom = (index: number) => {
+  const openZoom = (index: number, opener: HTMLElement) => {
+    openerRef.current = opener;
     setMagnified(isPhoneViewport());
     setZoomIndex(index);
+  };
+  /** Back to the thumbnail of the page last viewed, else the one that opened the dialog. */
+  const restoreFocus = () => {
+    const last = lastViewedRef.current;
+    const target = (last !== null ? thumbnailRefs.current.get(last) : undefined) ?? openerRef.current;
+    openerRef.current = null;
+    if (target?.isConnected) target.focus();
   };
   const step = (offset: number) =>
     setZoomIndex((index) => (index === null ? index : Math.min(total - 1, Math.max(0, index + offset))));
@@ -63,8 +80,12 @@ export function PhotoPages({
                   </div>
                 ) : (
                   <button
+                    ref={(element) => {
+                      if (element) thumbnailRefs.current.set(index, element);
+                      else thumbnailRefs.current.delete(index);
+                    }}
                     type="button"
-                    onClick={() => openZoom(index)}
+                    onClick={(event) => openZoom(index, event.currentTarget)}
                     className="group relative block w-full overflow-hidden rounded-xl border border-border bg-card transition-shadow outline-none hover:shadow-hover focus-visible:ring-[3px] focus-visible:ring-ring"
                     aria-label={`Zoom in on page ${pageNumber}`}
                   >
@@ -96,6 +117,10 @@ export function PhotoPages({
         {zoomed && zoomIndex !== null ? (
           <DialogContent
             className="gap-3 p-4 sm:max-w-4xl sm:p-6"
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              restoreFocus();
+            }}
             onKeyDown={(event) => {
               if (event.key === "ArrowLeft") step(-1);
               if (event.key === "ArrowRight") step(1);

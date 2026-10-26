@@ -3,7 +3,7 @@ import { ArrowRight, BookOpen, ChartColumn, Inbox, Table2, Target, UserPlus } fr
 
 import { EmptyState } from "@/components/empty-state";
 import { ClassAvatar } from "@/components/classroom/class-avatar";
-import { InsightsClassChips } from "@/components/insights/class-chips";
+import { ClassChips } from "@/components/classroom/class-chips";
 import { HeatmapGrid } from "@/components/insights/heatmap-grid";
 import { HeatmapLegend } from "@/components/insights/heatmap-legend";
 import { HeatmapScrollHint, HeatmapScrollProvider } from "@/components/insights/heatmap-scroll";
@@ -48,7 +48,7 @@ function CardHeading({ id, title, description }: { id: string; title: string; de
 
 function MostMissedCard({ heatmap }: { heatmap: ClassHeatmap }) {
   return (
-    <Card aria-labelledby="most-missed-heading" role="region" className="h-full min-w-0 overflow-hidden lg:col-span-2">
+    <Card aria-labelledby="most-missed-heading" role="region" className="h-full min-w-0 overflow-hidden @4xl:col-span-2">
       <CardHeading
         id="most-missed-heading"
         title="Most missed"
@@ -112,7 +112,7 @@ function HeatmapBody({ heatmap }: { heatmap: ClassHeatmap }) {
 
   return (
     <>
-      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-6 @4xl:grid-cols-3">
         <MostMissedCard heatmap={heatmap} />
         <InsightsSnapshot heatmap={heatmap} />
       </div>
@@ -189,7 +189,7 @@ export function InsightsView({
         }
       />
 
-      <InsightsClassChips classes={classes} selectedId={selectedId} className="mb-6" />
+      <ClassChips classes={classes} selectedId={selectedId} basePath="/insights" className="mb-6" />
 
       <HeatmapBody heatmap={heatmap} />
     </PageContainer>

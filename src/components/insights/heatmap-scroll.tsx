@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { scrollStateOf, UNMEASURED_SCROLL, type ScrollState } from "@/lib/insights/scroll";
+import { scrollBehavior } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 /*
@@ -59,10 +60,9 @@ export function HeatmapScrollProvider({ children }: { children: ReactNode }) {
   const scrollByPage = useCallback(
     (direction: -1 | 1) => {
       if (!region) return;
-      const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
       region.scrollBy({
         left: direction * Math.max(160, Math.round(region.clientWidth * 0.6)),
-        behavior: reduceMotion ? "auto" : "smooth",
+        behavior: scrollBehavior(),
       });
     },
     [region]

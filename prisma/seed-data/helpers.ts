@@ -43,10 +43,12 @@ export function createClock(now: Date = new Date()) {
     /**
      * A due date as the assignment builder stores it: noon UTC on the
      * calendar day, so it shows as the same day in every time zone.
-     * Negative values are in the past.
+     * "Today" is the seeding machine's calendar day (the server's zone, the
+     * same day the app falls back to), so a seed on a US evening doesn't
+     * shift every due date by a day. Negative values are in the past.
      */
     dueInDays(days: number): Date {
-      const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12));
+      const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 12));
       return new Date(today.getTime() + days * DAY_MS);
     },
 

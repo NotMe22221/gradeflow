@@ -15,7 +15,8 @@ export type PageTab = {
 
 /**
  * Link tabs with Classroom's underline indicator (Stream / Classwork /
- * People / Grades). Horizontally scrollable on phones.
+ * People / Grades). Horizontally scrollable on phones, so the keyboard focus
+ * ring is inset (an outer ring would be clipped by the scroller).
  */
 export function PageTabs({ tabs, className, label }: { tabs: PageTab[]; className?: string; label: string }) {
   const pathname = usePathname();
@@ -29,7 +30,7 @@ export function PageTabs({ tabs, className, label }: { tabs: PageTab[]; classNam
             href={tab.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "relative inline-flex h-12 shrink-0 items-center gap-2 rounded-t-md px-4 text-sm font-medium whitespace-nowrap transition-colors outline-none focus-visible:bg-primary/[0.08] hover:bg-foreground/[0.04]",
+              "relative inline-flex h-12 shrink-0 items-center gap-2 rounded-t-md px-4 text-sm font-medium whitespace-nowrap transition-colors outline-none hover:bg-foreground/[0.04] focus-visible:bg-primary/[0.08] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
               active ? "text-primary" : "text-muted-foreground hover:text-foreground"
             )}
           >

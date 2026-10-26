@@ -34,8 +34,15 @@ export type ClassStream = {
   studentCount: number;
 };
 
-/** The class Stream: activity feed, assignments (for Upcoming), and roster size. */
-export async function getClassStream(teacherId: string, classId: string, limit = STREAM_LIMIT): Promise<ClassStream> {
+/**
+ * The class Stream: activity feed, assignments (for Upcoming), and roster
+ * size. `timeZone` is the viewer's, for grouping activity by day.
+ */
+export async function getClassStream(
+  teacherId: string,
+  classId: string,
+  { limit = STREAM_LIMIT, timeZone }: { limit?: number; timeZone?: string } = {}
+): Promise<ClassStream> {
   const inClass = { assignment: { classId, class: { teacherId } } };
 
   const [assignments, published, scans, drafts, studentCount] = await Promise.all([
@@ -58,7 +65,7 @@ export async function getClassStream(teacherId: string, classId: string, limit =
     }),
     db.submission.findMany({
       where: { status: "NEEDS_REVIEW", ...inClass },
-      select: { assignmentId: true, updatedAt: true, aiGrade: { select: { grader: true } } },
+      select: { assignmentId: true, updatedAt: true, aiGrade: { select: { grader: true, createdAt: true } } },
     }),
     db.enrollment.count({ where: { classId, class: { teacherId } } }),
   ]);
@@ -68,9 +75,17 @@ export async function getClassStream(teacherId: string, classId: string, limit =
       assignments,
       published: published.map((row) => ({ assignmentId: row.submission.assignmentId, publishedAt: row.publishedAt })),
       scans: scans.map((row) => ({ assignmentId: row.assignmentId, submittedAt: row.submittedAt, studentName: row.student.name })),
-      drafts: drafts.map((row) => ({ assignmentId: row.assignmentId, updatedAt: row.updatedAt, grader: row.aiGrade?.grader ?? null })),
+      // Dated by the latest AI pass (both AI write paths reset AiGrade.createdAt
+      // on a re-run). Submission.updatedAt moves on every draft autosave, so it
+      // is only a fallback for a NEEDS_REVIEW paper without an AiGrade row.
+      drafts: drafts.map((row) => ({
+        assignmentId: row.assignmentId,
+        readyAt: row.aiGrade?.createdAt ?? row.updatedAt,
+        grader: row.aiGrade?.grader ?? null,
+      })),
     },
-    limit
+    limit,
+    timeZone
   );
 
   return {
@@ -88,15 +103,19 @@ export async function getClassStream(teacherId: string, classId: string, limit =
 
 export type UpcomingAssignment = { id: string; title: string; dueDate: Date };
 
-/** Up to `perClass` assignments due soon in each of the teacher's classes, by class id. */
+/**
+ * Up to `perClass` assignments due soon in each of the teacher's classes, by
+ * class id. "Today" is the viewer's day in `timeZone` (undefined: the server's).
+ */
 export async function getUpcomingByClass(
   teacherId: string,
   now: Date = new Date(),
-  perClass = 2
+  perClass = 2,
+  timeZone?: string
 ): Promise<Map<string, UpcomingAssignment[]>> {
   const rows = await db.assignment.findMany({
-    // A day of slack either side of "today": upcomingWork() does the exact
-    // calendar-day check in the server's time zone.
+    // Slack either side of "today" (any zone is within a day of UTC):
+    // upcomingWork() does the exact calendar-day check in the viewer's zone.
     where: { class: { teacherId }, dueDate: { gte: new Date(now.getTime() - 2 * DAY_MS) } },
     orderBy: [{ dueDate: "asc" }, { title: "asc" }],
     select: { id: true, title: true, dueDate: true, classId: true },
@@ -111,7 +130,7 @@ export async function getUpcomingByClass(
 
   const result = new Map<string, UpcomingAssignment[]>();
   for (const [classId, list] of byClass) {
-    const upcoming = upcomingWork(list, now, { limit: perClass }).map(({ id, title, dueDate }) => ({ id, title, dueDate }));
+    const upcoming = upcomingWork(list, now, { limit: perClass, timeZone }).map(({ id, title, dueDate }) => ({ id, title, dueDate }));
     if (upcoming.length > 0) result.set(classId, upcoming);
   }
   return result;

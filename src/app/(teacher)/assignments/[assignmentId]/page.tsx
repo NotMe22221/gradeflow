@@ -20,6 +20,7 @@ import { PageContainer } from "@/components/page-header";
 import { getOwnedAssignment } from "@/lib/access";
 import { modelFor, openAiConfigured } from "@/lib/ai/openai";
 import { AuthError, requireTeacherPage } from "@/lib/auth/session";
+import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import {
   GRADER_LABELS,
   isConfidence,
@@ -28,7 +29,7 @@ import {
   parseGraderKind,
 } from "@/lib/constants";
 import { db } from "@/lib/db";
-import { formatDate, formatDateTime, formatRelative, pluralize, wordCount } from "@/lib/format";
+import { formatDateTime, formatDueDate, formatRelative, pluralize, wordCount } from "@/lib/format";
 import { getGraderInfo, type GraderInfo } from "@/lib/grading/config";
 import { describeFlag, parseFlags, type FlagCriterion } from "@/lib/grading/flags";
 import { parseSubmissionSource } from "@/lib/review/media";
@@ -108,6 +109,7 @@ export default async function AssignmentPage({ params, searchParams }: { params:
   ]);
 
   const now = new Date();
+  const timeZone = await viewerTimeZone();
   const flagCriteria: FlagCriterion[] = assignment.criteria.map(({ id, title, maxPoints }) => ({ id, title, maxPoints }));
   const rows: SubmissionRowData[] = submissions
     .map((submission) => {
@@ -120,8 +122,8 @@ export default async function AssignmentPage({ params, searchParams }: { params:
         status: interrupted ? "GRADING_FAILED" : submission.status,
         interrupted,
         submittedAt: submission.submittedAt.toISOString(),
-        submittedLabel: formatRelative(submission.submittedAt, now),
-        submittedTitle: formatDateTime(submission.submittedAt),
+        submittedLabel: formatRelative(submission.submittedAt, now, timeZone),
+        submittedTitle: formatDateTime(submission.submittedAt, timeZone),
         fileName: submission.fileName,
         source: parseSubmissionSource(submission.source),
         pageCount: submission._count.images,
@@ -152,7 +154,7 @@ export default async function AssignmentPage({ params, searchParams }: { params:
   const counts = workCounts(summarizeStatuses(submissions.map((submission) => submission.status), roster.length));
   const classworkHref = `/classes/${encodeURIComponent(assignment.classId)}/classwork`;
   const meta = [
-    assignment.dueDate ? `Due ${formatDate(assignment.dueDate)}` : "No due date",
+    assignment.dueDate ? `Due ${formatDueDate(assignment.dueDate)}` : "No due date",
     pluralize(totalPoints, "point"),
     test ? pluralize(assignment.criteria.length, "question") : pluralize(assignment.criteria.length, "criterion", "criteria"),
     test ? "Handwritten test" : null,
@@ -224,7 +226,7 @@ export default async function AssignmentPage({ params, searchParams }: { params:
                 notSubmitted={notSubmitted}
                 eligibleStudents={eligibleStudents}
                 hasRoster={roster.length > 0}
-                pastDue={isPastDueDay(assignment.dueDate, now)}
+                pastDue={isPastDueDay(assignment.dueDate, now, timeZone)}
               />
             </div>
           }

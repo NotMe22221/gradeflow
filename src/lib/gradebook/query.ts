@@ -19,6 +19,10 @@ export async function listGradebookClasses(teacherId: string): Promise<Gradebook
  *
  * Scores are read from PublishedGrade only. The submission select below
  * deliberately never touches AiGrade or CriterionScore.
+ *
+ * Assignments come back oldest due date first, with undated ones last, then
+ * by creation: the CSV export keeps this order, and the Grades view shows it
+ * reversed (newest first, like Classroom; see gradebookColumnOrder).
  */
 export async function getGradebook(teacherId: string, classId: string): Promise<GradebookData> {
   const klass = await getOwnedClass(teacherId, classId);
@@ -26,7 +30,7 @@ export async function getGradebook(teacherId: string, classId: string): Promise<
   const [assignments, enrollments, submissions] = await Promise.all([
     db.assignment.findMany({
       where: { classId: klass.id },
-      orderBy: [{ createdAt: "asc" }, { title: "asc" }],
+      orderBy: [{ dueDate: { sort: "asc", nulls: "last" } }, { createdAt: "asc" }, { title: "asc" }],
       select: {
         id: true,
         title: true,

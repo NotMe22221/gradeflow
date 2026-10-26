@@ -27,9 +27,10 @@ export function StudyHeader({
   const hasStreak = streak.current > 0;
 
   return (
-    <section aria-labelledby="home-heading" className="rounded-xl border border-border bg-card">
-      <div className="flex flex-col gap-4 px-4 py-4 sm:px-5 md:flex-row md:items-center md:gap-6">
-        <div className="min-w-0 flex-1">
+    <section aria-labelledby="home-heading" className="@container rounded-xl border border-border bg-card">
+      {/* The greeting sits beside the stats only when the strip itself is 48rem+ wide (the drawer takes 18rem at lg). */}
+      <div className="flex flex-col gap-4 px-4 py-4 sm:px-5 @3xl:flex-row @3xl:items-center @3xl:gap-6">
+        <div className="min-w-0 flex-1 @3xl:min-w-[16rem]">
           <h1 id="home-heading" className="text-[22px] leading-7 font-medium text-balance text-foreground">
             Welcome back, {firstName}
           </h1>

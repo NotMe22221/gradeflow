@@ -2,15 +2,18 @@ import {
   ArrowDown,
   ArrowRight,
   Camera,
+  Check,
   FileText,
   Flag,
   Gauge,
   Images,
+  Lock,
   LockKeyhole,
   ScanSearch,
   ShieldCheck,
   Sparkles,
   Table2,
+  TriangleAlert,
   type LucideIcon,
 } from "lucide-react";
 
@@ -34,11 +37,13 @@ const SAFEGUARDS: Safeguard[] = [
     icon: ShieldCheck,
     title: "AI never writes to the gradebook",
     body: "Essay suggestions and camera-graded tests are stored as drafts. Only your approval creates a published grade, and the server re-checks that approval before anything is written.",
+    example: <GateExample />,
   },
   {
     icon: ScanSearch,
     title: "Every score and quote is checked",
     body: "Scores must stay within each criterion's max points, and every quote must appear in the paper or the test's transcription. Anything that fails is flagged for you instead of trusted.",
+    example: <ValidationExample />,
   },
   {
     icon: FileText,
@@ -62,6 +67,7 @@ const SAFEGUARDS: Safeguard[] = [
     icon: LockKeyhole,
     title: "Roles are checked on the server",
     body: "Only the teacher who owns a class can approve or publish its grades. Students only ever see their own published grades, goals, and progress.",
+    example: <RolesExample />,
   },
 ];
 
@@ -136,6 +142,93 @@ export function ApprovalGate() {
         </ul>
       </LandingContainer>
     </section>
+  );
+}
+
+function GateExample() {
+  return (
+    <div className="rounded-xl border border-border bg-background px-3.5 py-3">
+      <div className="flex items-center gap-2.5 text-xs">
+        <span className="min-w-0">
+          <span className="block text-muted-foreground">Gradebook now</span>
+          <span className="mt-1 inline-flex rounded-full bg-warning-soft px-2 py-0.5 font-medium text-warning-soft-foreground">
+            Needs review
+          </span>
+        </span>
+        <ArrowRight className="size-3.5 shrink-0 text-muted-foreground/60" aria-hidden />
+        <span className="min-w-0">
+          <span className="block text-muted-foreground">After Approve &amp; return</span>
+          <span className="tabular mt-1 inline-flex rounded-full bg-success-soft px-2 py-0.5 font-medium text-success-soft-foreground">
+            17/20
+          </span>
+        </span>
+      </div>
+      <span className="mt-2.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+        <ShieldCheck className="size-3.5 shrink-0 text-success" aria-hidden />
+        Students never see the AI draft.
+      </span>
+    </div>
+  );
+}
+
+// Worded as the review screen words these flags (describeFlag in src/lib/grading/flags.ts).
+const VALIDATION_FLAGS: { criterion: string; message: React.ReactNode }[] = [
+  {
+    criterion: "2. Evidence",
+    message: (
+      <>
+        The AI score was outside <span className="tabular whitespace-nowrap">0–10</span>, so it was discarded.
+      </>
+    ),
+  },
+  { criterion: "3. Reasoning", message: "The quoted evidence does not appear in the paper." },
+];
+
+function ValidationExample() {
+  return (
+    <div className="rounded-xl bg-warning-soft px-3.5 py-3">
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-warning-soft-foreground">
+        <TriangleAlert className="size-3.5 shrink-0" aria-hidden />
+        Check before you return this grade
+      </span>
+      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[13px] leading-relaxed text-warning-soft-foreground marker:text-warning">
+        {VALIDATION_FLAGS.map((flag) => (
+          <li key={flag.criterion}>
+            <span className="font-medium">{flag.criterion}:</span> {flag.message}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+const ROLE_SAMPLES = [
+  { who: "Class teacher", can: "Approve and publish", allowed: true },
+  { who: "Another teacher", can: "No access", allowed: false },
+  { who: "Student", can: "Own published grades", allowed: true },
+];
+
+function RolesExample() {
+  return (
+    <ul className="divide-y divide-border rounded-xl border border-border bg-background px-3.5 text-xs">
+      {ROLE_SAMPLES.map((role) => {
+        const Icon = role.allowed ? Check : Lock;
+        return (
+          <li key={role.who} className="flex items-center justify-between gap-3 py-2">
+            <span className="min-w-0 truncate font-medium text-foreground">{role.who}</span>
+            <span
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1.5",
+                role.allowed ? "text-foreground" : "text-muted-foreground"
+              )}
+            >
+              <Icon className={cn("size-3.5 shrink-0", role.allowed && "text-success")} aria-hidden />
+              {role.can}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

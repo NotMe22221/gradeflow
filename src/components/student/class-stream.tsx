@@ -92,7 +92,14 @@ function describe(
             {teacherName} sent back your work for {title}
           </>
         ),
-        meta: item.isTest ? "Your teacher will rescan it" : "See the note, then revise and resubmit",
+        // Only an open send-back asks for anything; afterwards it is history.
+        meta: item.open
+          ? item.isTest
+            ? "Your teacher will rescan it"
+            : "See the note, then revise and resubmit"
+          : item.isTest
+            ? "Sent back for a rescan"
+            : "Sent back for revision",
       };
   }
 }
@@ -103,12 +110,15 @@ export function StudentStreamFeed({
   teacherName,
   classColor,
   now,
+  timeZone,
 }: {
   items: StudentStreamItem[];
   teacherName: string;
   /** The class color (classTheme(klass).color) for the icon circles. */
   classColor: string;
   now: Date;
+  /** The viewer's time zone (viewerTimeZone()); undefined uses the server's. */
+  timeZone?: string;
 }) {
   if (items.length === 0) {
     return (
@@ -149,8 +159,8 @@ export function StudentStreamFeed({
                     </Link>
                   </p>
                   <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
-                    <time dateTime={item.at.toISOString()} title={formatDateTime(item.at)}>
-                      {streamTime(item.at, now)}
+                    <time dateTime={item.at.toISOString()} title={formatDateTime(item.at, timeZone)}>
+                      {streamTime(item.at, now, timeZone)}
                     </time>
                     {meta ? <span className="tabular"> · {meta}</span> : null}
                   </p>
@@ -169,15 +179,18 @@ export function StudentClassStreamView({
   klass,
   rows,
   now,
+  timeZone,
 }: {
   klass: { id: string; name: string; section: string | null; subject: string | null; teacherName: string };
   rows: StudentWorkRow[];
   now: Date;
+  /** The viewer's time zone (viewerTimeZone()); undefined uses the server's. */
+  timeZone?: string;
 }) {
-  const upcoming = dueSoon(rows, now, 3).map((row) => ({
+  const upcoming = dueSoon(rows, now, 3, { timeZone }).map((row) => ({
     id: row.id,
     title: row.title,
-    dueText: relativeDue(row, now),
+    dueText: relativeDue(row, now, timeZone),
     dueDate: row.dueDate,
   }));
   return (
@@ -199,6 +212,7 @@ export function StudentClassStreamView({
             teacherName={klass.teacherName}
             classColor={classTheme(klass).color}
             now={now}
+            timeZone={timeZone}
           />
         </div>
       </div>

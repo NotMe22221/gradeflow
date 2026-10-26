@@ -125,9 +125,11 @@ export async function planStudentGoal(input: {
   goal: string;
   classId: string | null;
   now?: Date;
+  /** The viewer's time zone, for which work counts as overdue in the plan. */
+  timeZone?: string;
 }): Promise<GoalPlannerSuccess> {
   const now = input.now ?? new Date();
-  const classes = await loadGoalClasses(input.studentId, now);
+  const classes = await loadGoalClasses(input.studentId, now, input.timeZone);
   if (classes.length === 0) {
     throw new GoalPlannerError("You're not enrolled in any classes yet.", 400, "NO_CLASSES");
   }

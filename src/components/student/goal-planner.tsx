@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { MAX_GOAL_CHARS } from "@/lib/goals/parse";
 import type { GoalEngine, GoalPlannerResponse, GoalPlanView } from "@/lib/goals/types";
+import { scrollBehavior } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 export type PlannerClass = { id: string; name: string; section: string | null };
@@ -52,6 +53,8 @@ export function GoalPlanner({
     Object.fromEntries(savedPlans.map((plan) => [plan.classId, { plan, engine: null, model: null }]))
   );
   const [error, setError] = useState<string | null>(null);
+  /** The field the error is about: it gets aria-invalid and points at the message. */
+  const [errorField, setErrorField] = useState<"goal" | "class">("goal");
   const [note, setNote] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const [pending, setPending] = useState(false);
@@ -80,8 +83,7 @@ export function GoalPlanner({
       setError(null);
       setNote(null);
     }
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    sectionRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    sectionRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
     inputRef.current?.focus({ preventScroll: true });
   }, [request, classes]);
 
@@ -99,6 +101,7 @@ export function GoalPlanner({
     const text = goal.trim();
     if (!text) {
       setError("Type your goal first, like “I need a B+”.");
+      setErrorField("goal");
       inputRef.current?.focus();
       return;
     }
@@ -121,10 +124,12 @@ export function GoalPlanner({
       const data = (await response.json().catch(() => null)) as GoalPlannerResponse | null;
       if (!data || !data.ok) {
         const message = data && !data.ok ? data.error : "Your goal could not be planned. Try again.";
+        const field = data && !data.ok && data.code === "NEEDS_CLASS" ? "class" : "goal";
         setError(message);
-        setAnnouncement(message);
-        if (data && !data.ok && data.code === "NEEDS_CLASS") selectRef.current?.focus();
-        else inputRef.current?.focus();
+        setErrorField(field);
+        // The role="alert" message announces the error; the status region only clears "Planning…".
+        setAnnouncement("");
+        (field === "class" ? selectRef : inputRef).current?.focus();
         return;
       }
 
@@ -145,9 +150,9 @@ export function GoalPlanner({
       }
     } catch {
       if (controller.signal.aborted) return;
-      const message = "Couldn't reach GradeSmart. Check your connection and try again.";
-      setError(message);
-      setAnnouncement(message);
+      setError("Couldn't reach GradeSmart. Check your connection and try again.");
+      setErrorField("goal");
+      setAnnouncement("");
     } finally {
       if (abortRef.current === controller) {
         abortRef.current = null;
@@ -180,14 +185,10 @@ export function GoalPlanner({
         <GoalEngineBadge engine={engine.engine} model={engine.model} className="self-start max-sm:ml-14" />
       </div>
 
-      <form
-        onSubmit={plan}
-        noValidate
-        className="space-y-3 px-4 pt-5 pb-5 sm:px-5"
-        aria-describedby={error ? errorId : undefined}
-      >
+      <form onSubmit={plan} noValidate className="space-y-3 px-4 pt-5 pb-5 sm:px-5">
         <div className="grid gap-3 sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)_auto] sm:items-end">
-          <div className="min-w-0 space-y-1.5">
+          {/* flex + gap, not space-y: Radix adds a hidden native <select> last, which space-y would count. */}
+          <div className="flex min-w-0 flex-col gap-1.5">
             <Label htmlFor={classSelectId}>Class</Label>
             <Select
               value={classId}
@@ -197,7 +198,13 @@ export function GoalPlanner({
                 setNote(null);
               }}
             >
-              <SelectTrigger ref={selectRef} id={classSelectId} className="w-full">
+              <SelectTrigger
+                ref={selectRef}
+                id={classSelectId}
+                className="w-full"
+                aria-invalid={error && errorField === "class" ? true : undefined}
+                aria-describedby={error && errorField === "class" ? errorId : undefined}
+              >
                 {/* The class name alone, so it fits; the list shows the section too. */}
                 <SelectValue placeholder="Pick a class">{selectedClass?.name}</SelectValue>
               </SelectTrigger>
@@ -211,7 +218,7 @@ export function GoalPlanner({
               </SelectContent>
             </Select>
           </div>
-          <div className="min-w-0 space-y-1.5">
+          <div className="flex min-w-0 flex-col gap-1.5">
             <Label htmlFor={goalInputId}>What&apos;s your goal?</Label>
             <Input
               ref={inputRef}
@@ -226,7 +233,8 @@ export function GoalPlanner({
               autoComplete="off"
               enterKeyHint="go"
               readOnly={pending}
-              aria-invalid={error ? true : undefined}
+              aria-invalid={error && errorField === "goal" ? true : undefined}
+              aria-describedby={error && errorField === "goal" ? errorId : undefined}
             />
           </div>
           <Button type="submit" disabled={pending} className="w-full sm:w-auto">
@@ -243,7 +251,7 @@ export function GoalPlanner({
               type="button"
               onClick={() => applyExample(example)}
               disabled={pending}
-              className="inline-flex h-8 items-center rounded-lg border border-input/40 bg-card px-3 text-[13px] font-medium text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring disabled:opacity-50"
+              className="inline-flex h-8 items-center rounded-lg border border-input bg-card px-3 text-[13px] font-medium text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring disabled:opacity-50"
             >
               {example}
             </button>

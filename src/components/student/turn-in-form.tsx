@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   CircleAlert,
@@ -10,6 +10,7 @@ import {
   LoaderCircle,
   Pencil,
   Plus,
+  RotateCcw,
   ShieldCheck,
   X,
 } from "lucide-react";
@@ -55,6 +56,11 @@ function previewOf(text: string): string {
  * a .txt file), the attached paper as a tile, then "Turn in". The paper is
  * checked here with the same rules the server applies, and the server
  * re-checks everything (enrollment, send-back state, limits) on submit.
+ *
+ * Nothing the student typed is thrown away by closing the paste dialog: the
+ * draft lives here until it is added, and only "Discard changes" (editing a
+ * saved paper) reverts it. After "Remove" on a sent-back paper, "Paste text"
+ * (or "Restore your previous paper") brings the previous paper back.
  */
 export function TurnInForm({
   assignmentId,
@@ -69,16 +75,25 @@ export function TurnInForm({
   const router = useRouter();
   const [work, setWork] = useState<Work | null>(() => (defaultText ? { kind: "text", text: defaultText } : null));
   const [pasteOpen, setPasteOpen] = useState(false);
-  const [draft, setDraft] = useState("");
+  // Starts from the previous paper (when resubmitting) and survives every way of
+  // closing the dialog, so Escape, a stray backdrop tap, or Remove never loses it.
+  const [draft, setDraft] = useState(defaultText);
   const [draftError, setDraftError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState("");
   const [dragging, setDragging] = useState(false);
   const [pending, startTransition] = useTransition();
+  const formRef = useRef<HTMLFormElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addRef = useRef<HTMLButtonElement>(null);
   const turnInRef = useRef<HTMLButtonElement>(null);
   /** Set when "Paste text" is chosen; the dialog opens once the menu has closed. */
   const openingDialog = useRef(false);
+  /**
+   * Where focus goes once the attached paper changes. Remove and a new upload
+   * unmount the control that had focus, so focus moves to the next step.
+   */
+  const focusAfterChange = useRef<"add" | "turnIn" | null>(null);
 
   const textareaId = useId();
   const textHelpId = useId();
@@ -92,11 +107,42 @@ export function TurnInForm({
   const overLimit = draftText.length > MAX_PAPER_CHARS;
 
   const workText = work ? normalizePaperText(work.text) : "";
+  const editing = work?.kind === "text";
+  /** Editing a saved paper, with changes that haven't been saved yet. */
+  const unsavedEdits = editing && draft !== work.text;
+
+  useEffect(() => {
+    const target = focusAfterChange.current;
+    if (!target) return;
+    focusAfterChange.current = null;
+    // Only move focus if it was lost (the focused control unmounted) or is
+    // still in this form, e.g. not after a file dropped while typing elsewhere.
+    const active = document.activeElement;
+    if (active && active !== document.body && !formRef.current?.contains(active)) return;
+    (target === "add" ? addRef : turnInRef).current?.focus();
+  }, [work]);
 
   function openPaste() {
-    setDraft(work?.kind === "text" ? work.text : "");
+    // The draft is kept as it is: a new paste picks up where the student left
+    // off, and editing a saved paper keeps any changes not saved yet.
     setDraftError(null);
     setPasteOpen(true);
+  }
+
+  function removeWork() {
+    if (!work) return;
+    focusAfterChange.current = "add";
+    setAnnouncement(work.kind === "file" ? `${work.file.name} removed.` : "Paper removed.");
+    setWork(null);
+    setError(null);
+  }
+
+  function restorePrevious() {
+    focusAfterChange.current = "turnIn";
+    // The draft is left alone: if it differs, "Edit your paper" offers it as unsaved changes.
+    setWork({ kind: "text", text: defaultText });
+    setError(null);
+    setAnnouncement("Your previous paper is back.");
   }
 
   function savePaste(event: React.FormEvent<HTMLFormElement>) {
@@ -110,6 +156,7 @@ export function TurnInForm({
     }
     setWork({ kind: "text", text: draft });
     setError(null);
+    setAnnouncement(editing ? "Paper updated." : "Paper added.");
     setPasteOpen(false);
   }
 
@@ -134,6 +181,8 @@ export function TurnInForm({
       setError(textProblem);
       return;
     }
+    focusAfterChange.current = "turnIn";
+    setAnnouncement(`${file.name} attached.`);
     setWork({ kind: "file", file, text: contents });
   }
 
@@ -162,7 +211,14 @@ export function TurnInForm({
     startTransition(async () => {
       const result = await submitPaper(assignmentId, formData);
       if (!result.ok) {
-        setError(result.error);
+        if (result.stale) {
+          // Another tab, or the teacher, changed this paper: show the real
+          // state. The toast keeps the reason once the form is replaced.
+          toast.error(resubmit ? "Couldn't resubmit" : "Couldn't turn in", { description: result.error });
+          router.refresh();
+        } else {
+          setError(result.error);
+        }
         return;
       }
       toast.success(resubmit ? "Resubmitted. Your teacher will review it." : "Turned in. Your teacher will review it.");
@@ -178,6 +234,7 @@ export function TurnInForm({
   return (
     <>
       <form
+        ref={formRef}
         onSubmit={handleSubmit}
         noValidate
         aria-describedby={error ? errorId : undefined}
@@ -244,10 +301,7 @@ export function TurnInForm({
                 type="button"
                 variant="ghost"
                 size="icon"
-                onClick={() => {
-                  setWork(null);
-                  setError(null);
-                }}
+                onClick={removeWork}
                 disabled={pending}
                 aria-label={work.kind === "file" ? `Remove ${work.file.name}` : "Remove your paper"}
               >
@@ -293,6 +347,17 @@ export function TurnInForm({
           </DropdownMenu>
         )}
 
+        {!work && resubmit && defaultText ? (
+          <Button type="button" variant="text" size="sm" onClick={restorePrevious} disabled={pending} className="-mt-1">
+            <RotateCcw aria-hidden />
+            Restore your previous paper
+          </Button>
+        ) : null}
+
+        <p className="sr-only" role="status" aria-live="polite">
+          {announcement}
+        </p>
+
         {error ? (
           <div
             id={errorId}
@@ -335,7 +400,7 @@ export function TurnInForm({
           <form onSubmit={savePaste} noValidate className="grid gap-4">
             <DialogHeader>
               <DialogTitle className="font-display text-[22px] font-normal">
-                {work?.kind === "text" ? "Edit your paper" : "Paste your paper"}
+                {editing ? "Edit your paper" : "Paste your paper"}
               </DialogTitle>
               <DialogDescription>Plain text only. Formatting like bold or headings is not kept.</DialogDescription>
             </DialogHeader>
@@ -377,10 +442,25 @@ export function TurnInForm({
               ) : null}
             </div>
             <DialogFooter>
-              <Button type="button" variant="text" onClick={() => setPasteOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">{work?.kind === "text" ? "Save" : "Add"}</Button>
+              {unsavedEdits ? (
+                <Button
+                  type="button"
+                  variant="text"
+                  onClick={() => {
+                    // The one explicit way to drop edits: the saved paper is still attached.
+                    setDraft(work.text);
+                    setDraftError(null);
+                    setPasteOpen(false);
+                  }}
+                >
+                  Discard changes
+                </Button>
+              ) : (
+                <Button type="button" variant="text" onClick={() => setPasteOpen(false)}>
+                  Cancel
+                </Button>
+              )}
+              <Button type="submit">{editing ? "Save" : "Add"}</Button>
             </DialogFooter>
           </form>
         </DialogContent>

@@ -28,6 +28,20 @@ the branding: no Google logos, product names, or proprietary fonts.
   on clickable cards and `shadow-raised` for menus and dialogs.
 - **Spacing:** 8pt rhythm (Tailwind 2/4/6/8/12/16). Content max width `max-w-6xl`.
 - **Icons:** lucide, 18–20px, outline style (close to Material Symbols outlined).
+- **Focus:** the `--ring` token is opaque primary (6.4:1 on white). Buttons use
+  `ring-2` with a 2px offset; tabs, menu items, and anything inside a scroller
+  use an inset ring so it is never clipped. Every page starts with a "Skip to
+  main content" link.
+- **Contrast:** every class color carries white text at 4.5:1 or better
+  (orange is `#a35200`, teal `#00707a`; keep `globals.css` and
+  `class-theme.ts` in sync). Banner art sits on the right behind a class-color
+  scrim, so text never runs over line art.
+- **Layout:** `<main>` is a container (`@container`), so page grids switch on
+  the content width (`@3xl`, `@4xl`) rather than the viewport, and the open
+  drawer never squeezes a two-column layout.
+- **Dates:** due dates are calendar days. "Today", "Due tomorrow", week groups,
+  and Missing all use the viewer's time zone (a `tz` cookie set by the
+  browser), with one shared past-due rule.
 
 ## Components
 
@@ -75,7 +89,9 @@ the branding: no Google logos, product names, or proprietary fonts.
 
 Use Classroom's vocabulary where it fits: Stream, Classwork, People, Grades,
 To review, To-do, Turned in, Assigned, Missing, Returned, Your work, Turn in.
-An AI draft is a "draft" only inside To review; no other page shows its score.
+An AI draft shows its score only inside To review and on the Paper Scanner's
+result card right after a scan (both teacher-only, both labelled as a draft).
+Every other page shows "Needs review", and students never see it.
 Our approval action is **Approve & return**: the teacher approves the grade and
 returns it to the student. It still publishes only through the approval gate.
 **Send back** asks for a revision.

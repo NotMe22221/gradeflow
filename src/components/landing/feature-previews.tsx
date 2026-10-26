@@ -8,8 +8,8 @@ import {
   Flame,
   ImageIcon,
   MessagesSquare,
+  Plus,
   ScrollText,
-  Send,
   ShieldCheck,
   Sparkles,
   Sprout,
@@ -21,8 +21,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { AssignmentIcon } from "@/components/classwork/assignment-icon";
 import { HEAT_TONE } from "@/components/insights/heat-tone";
+import { WORK_TONE_CLASS, type WorkTone } from "@/components/student/todo-model";
 import { heatBand } from "@/lib/insights/heatmap";
+import { classTheme } from "@/lib/ui/class-theme";
 import { cn } from "@/lib/utils";
 
 /*
@@ -419,7 +422,7 @@ export function StreakPreview() {
           </span>
           <span className="min-w-0">
             <span className="tabular block text-[13px] font-semibold text-foreground">6-day streak</span>
-            <span className="block text-[11px] font-medium text-success-soft-foreground">Studied today</span>
+            <span className="block text-[11px] font-medium text-success-soft-foreground">Active today</span>
           </span>
         </div>
         <div className="flex items-center gap-2.5 rounded-xl border border-border bg-card p-3">
@@ -453,50 +456,117 @@ export function StreakPreview() {
 
 /* --- Student: assignment inbox --------------------------------------------- */
 
-const INBOX_ROWS = [
-  { title: "Unit 4 Quiz", meta: "Due Friday", dot: "border border-muted-foreground/60", active: true },
-  { title: "Persuasive Essay", meta: "Graded", dot: "bg-success", active: false },
-  { title: "Lab Report", meta: "Revise and resubmit", dot: "bg-warning", active: false },
+type InboxPreviewRow = {
+  title: string;
+  /** Picks the icon circle's class color, as classTheme() does in the real inbox. */
+  className: string;
+  /** Relative due text, as the inbox and To-do show it. */
+  due: string;
+  isTest: boolean;
+  /** workStatus() wording and tone for this row. */
+  status: string;
+  tone: WorkTone;
+  active?: boolean;
+};
+
+// The Assigned tab, sorted as the real inbox sorts it: work sent back first,
+// then by due date. A paper test reads "Paper test": the student takes it in
+// class and the teacher scans it, so there is nothing to upload.
+const INBOX_ROWS: InboxPreviewRow[] = [
+  {
+    title: "Lab Report",
+    className: "Environmental Science",
+    due: "Due Thursday",
+    isTest: false,
+    status: "Sent back",
+    tone: "attention",
+  },
+  {
+    title: "Persuasive Essay",
+    className: "English 10",
+    due: "Due Friday",
+    isTest: false,
+    status: "Assigned",
+    tone: "assigned",
+    active: true,
+  },
+  {
+    title: "Unit 4 Quiz",
+    className: "Environmental Science",
+    due: "Test on Friday",
+    isTest: true,
+    status: "Paper test",
+    tone: "neutral",
+  },
 ];
 
+const INBOX_TABS = [
+  { label: "Assigned", count: INBOX_ROWS.length, active: true },
+  { label: "Missing", count: 0, active: false },
+  { label: "Done", count: 2, active: false },
+];
+
+// The quick actions the real inbox offers for an essay that hasn't been turned in.
 const INBOX_ACTIONS: { icon: LucideIcon; label: string; primary?: boolean }[] = [
-  { icon: Send, label: "Submit paper", primary: true },
+  { icon: Plus, label: "Add your work", primary: true },
   { icon: Target, label: "Plan my grade" },
   { icon: Timer, label: "Log a study session" },
 ];
 
 export function InboxPreview() {
   return (
-    // Split like the real inbox; stacks only when the card is too narrow for both panes.
-    <div className="grid gap-2 @min-[17rem]:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-      <ul className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
+      {/* Assigned / Missing / Done with counts, like the real underline tabs. */}
+      <div className="flex gap-0.5 border-b border-border px-1.5">
+        {INBOX_TABS.map((tab) => (
+          <span
+            key={tab.label}
+            className={cn(
+              "relative inline-flex h-8 items-center gap-1 px-2 text-[11px] font-medium whitespace-nowrap",
+              tab.active ? "text-primary" : "text-muted-foreground"
+            )}
+          >
+            {tab.label}
+            <span
+              className={cn(
+                "tabular min-w-4 rounded-full px-1 text-center text-[9px] leading-[14px] font-semibold",
+                tab.active ? "bg-primary-soft text-primary-soft-foreground" : "bg-secondary text-muted-foreground"
+              )}
+            >
+              {tab.count}
+            </span>
+            {tab.active ? <span className="absolute inset-x-1.5 bottom-0 h-0.5 rounded-t-full bg-primary" /> : null}
+          </span>
+        ))}
+      </div>
+      <ul className="divide-y divide-border">
         {INBOX_ROWS.map((row) => (
           <li
             key={row.title}
-            className={cn(
-              "border-b border-border px-2.5 py-2 last:border-b-0",
-              row.active && "bg-accent"
-            )}
+            className={cn("flex items-center gap-2.5 px-3 py-2", row.active && "bg-primary-soft/45")}
           >
-            <span className={cn("block truncate text-xs text-foreground", row.active ? "font-semibold" : "font-medium")}>
-              {row.title}
+            <AssignmentIcon
+              isTest={row.isTest}
+              color={classTheme({ name: row.className }).color}
+              className="size-6 [&_svg]:size-3.5"
+            />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-xs font-medium text-foreground">{row.title}</span>
+              <span className="block truncate text-[10px] text-muted-foreground">{row.due}</span>
             </span>
-            <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-              <span className={cn("size-1.5 shrink-0 rounded-full", row.dot)} />
-              <span className="truncate">{row.meta}</span>
-            </span>
+            <span className={cn("shrink-0 text-[10px] font-medium", WORK_TONE_CLASS[row.tone])}>{row.status}</span>
           </li>
         ))}
       </ul>
-      <div className="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-1.5">
-        <p className="truncate px-1 pt-0.5 text-[11px] font-semibold text-foreground">Unit 4 Quiz</p>
+      {/* Quick actions for the selected row, laid out like the real panel. */}
+      <div className="grid grid-cols-2 gap-1.5 border-t border-border p-2">
         {INBOX_ACTIONS.map((action) => (
           <span
             key={action.label}
             className={cn(
-              "inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[11px] font-medium",
+              "inline-flex h-7 min-w-0 items-center justify-center gap-1 rounded-full px-2.5 text-[11px] font-medium",
               action.primary
-                ? "bg-primary text-primary-foreground"
+                ? "col-span-2 bg-primary text-primary-foreground"
                 : "border border-input/60 bg-card text-primary"
             )}
           >

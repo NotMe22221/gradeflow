@@ -2,12 +2,14 @@
 
 import { useId, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ChevronDown, CircleCheck, Inbox, PartyPopper } from "lucide-react";
 
 import { AssignmentIcon } from "@/components/classwork/assignment-icon";
 import { EmptyState } from "@/components/empty-state";
 import {
   groupTodoItems,
+  isTodoTab,
   TODO_TABS,
   WORK_TONE_CLASS,
   type TodoGroup,
@@ -44,23 +46,18 @@ const EMPTY_COPY: Record<TodoTab, { icon: typeof Inbox; title: string; descripti
  * Google Classroom's To-do page: Assigned / Missing / Done tabs, a class
  * filter, and the student's work grouped by due date. Every label is computed
  * on the server, so the page reads the same before and after hydration.
+ *
+ * The URL (?tab=…&class=…) is the only source of truth for the tab and the
+ * filter. Changes write it with history.replaceState, which Next.js feeds back
+ * into useSearchParams, and a link to plain /student/todo (the drawer's To-do)
+ * resets the view, so the URL and what's shown never disagree.
  */
-export function TodoView({
-  items,
-  classes,
-  initialTab,
-  initialClassId,
-}: {
-  items: TodoItem[];
-  classes: { id: string; name: string }[];
-  initialTab: TodoTab;
-  /** A class id, or "all". */
-  initialClassId: string;
-}) {
-  const [tab, setTab] = useState<TodoTab>(initialTab);
-  const [classId, setClassId] = useState(
-    initialClassId !== ALL && classes.some((klass) => klass.id === initialClassId) ? initialClassId : ALL
-  );
+export function TodoView({ items, classes }: { items: TodoItem[]; classes: { id: string; name: string }[] }) {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const classParam = searchParams.get("class");
+  const tab: TodoTab = isTodoTab(tabParam) ? tabParam : "assigned";
+  const classId = classParam && classes.some((klass) => klass.id === classParam) ? classParam : ALL;
   const selectId = useId();
 
   const visible = useMemo(
@@ -85,14 +82,7 @@ export function TodoView({
   const selectedClass = classes.find((klass) => klass.id === classId);
 
   return (
-    <Tabs
-      value={tab}
-      onValueChange={(value) => {
-        setTab(value as TodoTab);
-        syncUrl(value as TodoTab, classId);
-      }}
-      className="gap-0"
-    >
+    <Tabs value={tab} onValueChange={(value) => syncUrl(value as TodoTab, classId)} className="gap-0">
       <div className="sticky top-16 z-30 border-b border-border bg-card">
         <div className="mx-auto w-full max-w-6xl px-2 sm:px-4 lg:px-6">
           <UnderlineTabsList aria-label="To-do">
@@ -112,13 +102,7 @@ export function TodoView({
             <label htmlFor={selectId} className="sr-only">
               Filter by class
             </label>
-            <Select
-              value={classId}
-              onValueChange={(value) => {
-                setClassId(value);
-                syncUrl(tab, value);
-              }}
-            >
+            <Select value={classId} onValueChange={(value) => syncUrl(tab, value)}>
               <SelectTrigger id={selectId} className="w-full">
                 <SelectValue>{selectedClass?.name ?? "All classes"}</SelectValue>
               </SelectTrigger>

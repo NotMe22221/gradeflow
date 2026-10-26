@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { StudentClassStreamView } from "@/components/student/class-stream";
 import { requireStudentPage } from "@/lib/auth/session";
+import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 
 import { getEnrolledClass, loadStudentWork } from "../../data";
 
@@ -21,8 +22,9 @@ export default async function StudentClassStreamPage({ params }: { params: Param
   if (!klass) notFound();
 
   const now = new Date();
+  const timeZone = await viewerTimeZone();
   // Scoped to this student's enrollment and their own submissions only.
-  const { rows } = await loadStudentWork(student.id, now, { classId: klass.id });
+  const { rows } = await loadStudentWork(student.id, now, { classId: klass.id, timeZone });
 
-  return <StudentClassStreamView klass={klass} rows={rows} now={now} />;
+  return <StudentClassStreamView klass={klass} rows={rows} now={now} timeZone={timeZone} />;
 }

@@ -44,6 +44,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { firstName, pluralize } from "@/lib/format";
+import { scrollBehavior } from "@/lib/motion";
 import { MAX_PAPER_CHARS } from "@/lib/paper";
 import { MAX_SCAN_PAGES, SCAN_IMAGE_TYPES } from "@/lib/scan/images";
 import type { SampleTestPhoto } from "@/lib/scan/samples";
@@ -117,7 +118,7 @@ export function ScanWorkspace({
 
   useEffect(() => {
     if (phase === "done") resultRef.current?.focus();
-    if (phase !== "idle") sideRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    if (phase !== "idle") sideRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: "nearest" });
   }, [phase]);
 
   useEffect(() => {
@@ -371,7 +372,7 @@ export function ScanWorkspace({
     setMatchNotice(null);
     setStudentId("");
     setPhase("idle");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: scrollBehavior() });
   }
 
   function handleDrop(event: React.DragEvent<HTMLDivElement>) {

@@ -5,7 +5,7 @@ import { HeroMock } from "@/components/landing/hero-mock";
 import { LandingContainer } from "@/components/landing/section-intro";
 
 const PITCH =
-  "Grade typed papers and photographed handwritten tests in one review queue. AI drafts rubric scores with quoted evidence, and nothing publishes until you approve it.";
+  "Grade typed papers and photographed handwritten tests side by side in To review. AI drafts rubric scores with quoted evidence, and nothing publishes until you approve it.";
 
 export function Hero({ demoLogin }: { demoLogin: boolean }) {
   return (

@@ -7,7 +7,7 @@
 // "Done" is "Submitted" + "Graded". So the dashboard summary (inboxSummary)
 // still names exactly what is waiting on the student.
 
-import { daysUntil, dueLabel as relativeDueLabel } from "@/lib/classroom/due";
+import { daysUntil, DUE_SOON_DAYS, dueLabel as relativeDueLabel, weekdayIndex } from "@/lib/classroom/due";
 import { formatScore } from "@/lib/format";
 import { tabFor, type InboxAssignment } from "@/components/student/inbox-model";
 
@@ -118,15 +118,16 @@ function parse(value: string | null): Date | null {
  * Relative due label in Classroom's style: "Due tomorrow", "Due Wednesday",
  * "Due Nov 9", or "No due date". A paper test has a test day instead:
  * "Test tomorrow", "Test on Friday", "Test day Nov 9", "No test date".
+ * "Today" is the viewer's day in `timeZone` (undefined: the server's zone).
  */
-export function relativeDue(row: Pick<InboxAssignment, "dueDate" | "kind">, now: Date): string {
+export function relativeDue(row: Pick<InboxAssignment, "dueDate" | "kind">, now: Date, timeZone?: string): string {
   const due = parse(row.dueDate);
   const test = row.kind === "TEST";
   if (!due) return test ? "No test date" : "No due date";
-  const label = relativeDueLabel(due, now);
+  const label = relativeDueLabel(due, now, { timeZone });
   if (!test) return label;
   // "Test today", "Test tomorrow", "Test on Wednesday", else "Test day Nov 9".
-  const days = daysUntil(due, now);
+  const days = daysUntil(due, now, timeZone);
   if (days === 0 || days === 1) return label.replace(/^Due/, "Test");
   if (days > 1 && days < 7) return label.replace(/^Due/, "Test on");
   return label.replace(/^Due/, "Test day");
@@ -155,13 +156,18 @@ export const TODO_GROUP_ORDER: Record<TodoTab, TodoGroupKey[]> = {
 
 /**
  * The due-date group for a row in its tab. Weeks run Sunday to Saturday in
- * local calendar days, as Classroom shows them in the US.
+ * the viewer's calendar days (`timeZone`), as Classroom shows them in the US.
  */
-export function todoGroupFor(row: Pick<InboxAssignment, "dueDate">, tab: TodoTab, now: Date): TodoGroupKey {
+export function todoGroupFor(
+  row: Pick<InboxAssignment, "dueDate">,
+  tab: TodoTab,
+  now: Date,
+  timeZone?: string
+): TodoGroupKey {
   const due = parse(row.dueDate);
   if (!due) return tab === "missing" ? "earlier" : "no_due";
-  const days = daysUntil(due, now);
-  const startOfWeek = -now.getDay(); // days from today back to Sunday
+  const days = daysUntil(due, now, timeZone);
+  const startOfWeek = -weekdayIndex(now, timeZone); // days from today back to Sunday
   const endOfWeek = startOfWeek + 6;
 
   if (tab === "done" && days > 0) return "done_early";
@@ -205,7 +211,7 @@ export type TodoItem = {
   note: string | null;
 };
 
-export function toTodoItem(row: InboxAssignment, now: Date): TodoItem {
+export function toTodoItem(row: InboxAssignment, now: Date, timeZone?: string): TodoItem {
   const tab = todoTabFor(row);
   const isTest = row.kind === "TEST";
   return {
@@ -215,9 +221,9 @@ export function toTodoItem(row: InboxAssignment, now: Date): TodoItem {
     className: row.className,
     isTest,
     tab,
-    group: todoGroupFor(row, tab, now),
+    group: todoGroupFor(row, tab, now, timeZone),
     sortKey: todoSortKey(row, tab),
-    dueText: relativeDue(row, now),
+    dueText: relativeDue(row, now, timeZone),
     status: workStatus(row),
     score: scoreText(row),
     note: isTest && row.state === "not_submitted" ? PAPER_TEST_NOTE : null,
@@ -241,13 +247,18 @@ export function groupTodoItems(items: readonly TodoItem[], tab: TodoTab): TodoGr
 }
 
 /** Work due soon that the student still has to do (Assigned only), soonest first. */
-export function dueSoon<T extends InboxAssignment>(rows: readonly T[], now: Date, limit: number, days = 14): T[] {
+export function dueSoon<T extends InboxAssignment>(
+  rows: readonly T[],
+  now: Date,
+  limit: number,
+  { days = DUE_SOON_DAYS, timeZone }: { days?: number; timeZone?: string } = {}
+): T[] {
   return rows
     .filter((row) => todoTabFor(row) === "assigned")
     .map((row) => ({ row, due: parse(row.dueDate) }))
     .filter((entry): entry is { row: T; due: Date } => {
       if (!entry.due) return false;
-      const until = daysUntil(entry.due, now);
+      const until = daysUntil(entry.due, now, timeZone);
       return until >= 0 && until <= days;
     })
     .sort((a, b) => a.due.getTime() - b.due.getTime() || a.row.title.localeCompare(b.row.title))

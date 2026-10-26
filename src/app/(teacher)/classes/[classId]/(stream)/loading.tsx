@@ -1,6 +1,11 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-/** Stream skeleton: banner, Upcoming and tools cards, composer, activity cards. */
+/**
+ * Stream skeleton: banner, Upcoming and tools cards, composer, activity cards.
+ * It sits in the (stream) route group beside the Stream page so it covers only
+ * the Stream: Classwork, People, Grades, student profiles, and the builder
+ * show their own skeletons under the class tab bar.
+ */
 export default function ClassStreamLoading() {
   return (
     <div
