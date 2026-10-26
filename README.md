@@ -28,11 +28,13 @@ and route map.
 
 ## Quick start
 
-Requirements: **Node.js 22.12 or newer** (`.nvmrc` pins 22) and npm.
+Requirements: **Node.js 22.12 or newer** (`.nvmrc` pins 22) and npm. No
+database to install: the scripts start Prisma's built-in local Postgres server
+for you (the first run downloads it, so it needs internet once).
 
 ```bash
 npm install        # installs dependencies and generates the Prisma client
-npm run seed       # creates the local SQLite database and loads the demo data
+npm run seed       # starts the local Postgres, creates the tables, loads the demo data
 npm run dev        # http://localhost:3000
 ```
 
@@ -51,7 +53,8 @@ labelled local demo engine. To use real AI, copy `.env.example` to
 | `ANTHROPIC_API_KEY` | unset | Turns on Claude for the AI first pass on typed essays. |
 | `ANTHROPIC_MODEL` | `claude-opus-5-5` | Claude model for essays. |
 | `ANTHROPIC_EFFORT` | `medium` | `low` / `medium` / `high` / `xhigh` / `max`. |
-| `DATABASE_URL` | `file:./prisma/dev.db` | Local SQLite file. |
+| `DATABASE_URL` | local Postgres (started for you) | Postgres connection string. Set it to use your own database; hosts like Vercel + Neon set it for you. |
+| `DATABASE_URL_UNPOOLED` | same as `DATABASE_URL` | Direct (unpooled) connection used for schema changes (`prisma db push`). Neon on Vercel sets it. |
 | `SESSION_SECRET` | built-in demo secret | Signs the session cookie. Set a long random string anywhere but a local demo. Required in production once demo sign-in is off. |
 | `SESSION_COOKIE_SECURE` | Secure except plain HTTP on localhost or a private LAN address | Force `true` or `false`. Behind a TLS proxy, make sure it sends `X-Forwarded-Proto`. |
 | `GRADESMART_DEMO_LOGIN` | on | Set to `off` to hide the one-click demo sign-in. |
@@ -74,8 +77,48 @@ review queue, the class Stream and To-do, CSV export, and the seed dataset),
 `http://<your-laptop-ip>:3000` on the phone. The webcam capture needs HTTPS or
 localhost; on a phone over plain HTTP, **Upload photos** opens the camera instead.
 
+**Local database:** `npm run db:start` starts it on its own and `npm run db:stop`
+stops it. Its address is saved in `prisma/.local-database-url`. To use another
+Postgres, set `DATABASE_URL` in `.env.local`.
+
 **Troubleshooting:** if `npm run seed` reports a schema change that would lose
-data, delete `prisma/dev.db` and run it again.
+data, run `npx prisma dev rm gradesmart` (deletes the local demo database), then
+`npm run seed` again.
+
+---
+
+## Deploy to Vercel
+
+GradeSmart AI needs a Postgres database when it runs on Vercel (serverless
+functions can't keep a local file). Neon's free tier works well.
+
+1. **Import the repo** at vercel.com/new. Keep **Root Directory** as the repo
+   root (`gradeflow`). Vercel detects Next.js and runs `npm run vercel-build`.
+2. **Add a database** before (or right after) the first deploy: in the project,
+   open **Storage → Create Database → Neon (Postgres)**, pick the region
+   closest to your Vercel functions (`iad1` / US East by default), and connect
+   it to the project. This sets `DATABASE_URL` and `DATABASE_URL_UNPOOLED`.
+3. **Set environment variables** in **Settings → Environment Variables**:
+   - `SESSION_SECRET`: a long random string (any 32+ characters).
+   - Optional: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`. Without them the labelled
+     demo engines run. Keys stay on the server.
+4. **Deploy** (or **Redeploy** if the first build ran before the database
+   existed). Each build creates or updates the tables (`prisma db push`), loads
+   the demo data only when the database is empty, then builds the app. Later
+   deploys keep your data.
+
+Notes:
+- The demo dates are relative to the day the data was seeded. To reset the
+  demo, run `npm run seed` on your computer with `DATABASE_URL` set to the
+  Neon connection string (Neon → Connection details), or delete and recreate
+  the database and redeploy.
+- Preview deployments use the same database unless you turn on Neon's preview
+  branches in the integration settings. A preview with a schema change updates
+  that database.
+- The public deployment keeps the one-click demo sign-in. Set
+  `GRADESMART_DEMO_LOGIN=off` once real accounts exist.
+- AI routes allow up to 120 seconds (`maxDuration`); Vercel's default Fluid
+  compute covers that on every plan.
 
 ---
 
@@ -156,7 +199,7 @@ The click path for judges. Times are a guide.
 
 | Area | Status |
 | --- | --- |
-| Classes, rosters, assignments, rubrics, answer keys | **Real.** Stored in SQLite through Prisma. |
+| Classes, rosters, assignments, rubrics, answer keys | **Real.** Stored in Postgres through Prisma. |
 | Essay submissions (pasted text or `.txt` upload) | **Real.** Stored verbatim as untrusted data. |
 | Essay first pass | **Real with `ANTHROPIC_API_KEY`** (Claude, structured output against the rubric). **Mocked without it:** a deterministic **demo grader**, labelled on every screen. |
 | Camera grader for handwritten tests | **Real with `OPENAI_API_KEY`:** **gpt-4o** reads the photo, transcribes the answers, and scores each question against the answer key. **Mocked without it:** the **demo scanner** recognises the bundled sample photos and uses their stored transcriptions. For other photos, you type the transcription. It scores by keyword overlap and is labelled as demo output. |
@@ -171,7 +214,7 @@ The click path for judges. Times are a guide.
 | LMS integration (Canvas, Google Classroom) | **Not built.** CSV export is the stand-in; see *Extending*. |
 | Authentication | **Demo.** One-click sign-in to seeded accounts (no passwords), plus a teacher-only "view as a student" switcher. Roles and ownership are still checked on the server for every page, action, and API route. |
 | Students, papers, photos, classes | **Synthetic.** Fictional names, schools, sources, and statistics. The handwritten sample photos are rendered from a handwriting font. |
-| Appearance and layout settings | **Real.** Saved per user in SQLite (`UserPreferences`), validated on the server, and rendered on the server so pages load in the chosen theme. |
+| Appearance and layout settings | **Real.** Saved per user in Postgres (`UserPreferences`), validated on the server, and rendered on the server so pages load in the chosen theme. |
 | Search | **Real.** Built on the server from the signed-in user's own classes (teachers also see their students); no AI involved. |
 | Landing page screenshots | **Real screenshots** of the demo app with synthetic data, captured by `scripts/capture-screenshots.mjs`. No testimonials or usage numbers are claimed. |
 | Dashboard stats | **Real counts** from approved grades. Time saved is an **illustrative estimate** (it assumes about 6 minutes per paper, is not a measurement, and is labelled that way). |
@@ -219,7 +262,7 @@ Test photo ───gpt-4o / demo scanner───┘           │  teacher edi
 
 ```
 prisma/
-  schema.prisma          data model (SQLite)
+  schema.prisma          data model (Postgres)
   seed.ts, seed-data/    synthetic demo data
 public/samples/          synthetic handwritten test and answer-key photos
 src/

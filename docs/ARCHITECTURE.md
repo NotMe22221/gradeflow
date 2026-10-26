@@ -8,10 +8,20 @@ grades. AI drafts the first pass, and a teacher always makes the final call.
 - Next.js 16 (App Router, Turbopack), React 19, TypeScript (strict)
 - Tailwind CSS v4 with shadcn/ui-style components in `src/components/ui`
   (hand-written new-york v4 components on the unified `radix-ui` package)
-- Prisma 7 with SQLite through `@prisma/adapter-better-sqlite3`. The client is
+- Prisma 7 with Postgres through `@prisma/adapter-pg`. The client is
   generated to `src/generated/prisma` and imported as
   `import { PrismaClient } from "@/generated/prisma/client"`. Use the shared
-  instance: `import { db } from "@/lib/db"`.
+  instance: `import { db } from "@/lib/db"`, and `transaction()` from the same
+  module for any read-then-write step: it runs SERIALIZABLE and retries when
+  Postgres aborts it for a concurrent conflict (so two requests can never both
+  pass the same check), and its callback must only touch the database.
+- Database location (`src/lib/db-url.ts`): `DATABASE_URL` (pooled) for the app
+  and `DATABASE_URL_UNPOOLED` / `DIRECT_URL` for `prisma db push`; with nothing
+  set, Prisma's local Postgres server started by `scripts/local-db.mjs` (its
+  reported address is saved to `prisma/.local-database-url`).
+- Deploys: `npm run vercel-build` runs `prisma db push` (never with
+  `--accept-data-loss`), seeds only an empty database (`seed --if-empty`), then
+  `next build`.
 - `@anthropic-ai/sdk` for the optional Claude grader. A local deterministic
   "demo grader" runs when `ANTHROPIC_API_KEY` is not set.
 
@@ -117,7 +127,8 @@ data a page loads, only where it is shown.
 ```
 src/lib/
   constants.ts        statuses + status groupings, roles, confidence, grader labels, demo emails
-  db.ts, db-url.ts    Prisma client; SQLite location shared with prisma.config.ts and the seed
+  db.ts, db-url.ts    Prisma client + transaction(); database URLs shared with prisma.config.ts and the seed
+  db-retry.ts         which transaction errors are safe to retry (pure)
   auth/               session + demo sign-in actions
   access.ts           ownership checks
   paper.ts            paper intake rules (limits, normalization, .txt checks), client-safe
