@@ -15,6 +15,7 @@ import {
 import {
   ACCENT_OPTIONS,
   DENSITY_OPTIONS,
+  LOOK_OPTIONS,
   PAPER_SIDE_OPTIONS,
   TEXT_SIZE_OPTIONS,
   THEME_OPTIONS,
@@ -112,8 +113,8 @@ export function CustomizeDialog({
   // elsewhere (quick toggle, a failed save reverting, the server re-rendering <html>).
   const [shown, setShown] = useState<Appearance>(() => pickAppearance(live));
   useEffect(() => {
-    setShown({ theme: live.theme, accent: live.accent, textSize: live.textSize, density: live.density });
-  }, [live.theme, live.accent, live.textSize, live.density]);
+    setShown({ theme: live.theme, accent: live.accent, textSize: live.textSize, density: live.density, look: live.look });
+  }, [live.theme, live.accent, live.textSize, live.density, live.look]);
 
   const [paperSide, setPaperSide] = useState<PaperSide>(preferences.layout.reviewPaperSide);
   useEffect(() => setPaperSide(preferences.layout.reviewPaperSide), [preferences.layout.reviewPaperSide]);
@@ -374,6 +375,52 @@ export function CustomizeDialog({
             </div>
           </fieldset>
 
+          {/* Look */}
+          <fieldset className="mt-8 min-w-0">
+            <legend>
+              <h3 className={sectionTitle}>Look</h3>
+            </legend>
+            <p className="mt-0.5 text-[0.8125rem] text-muted-foreground">
+              Decoration only. Papers, rubrics and grades always sit on plain backgrounds.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              {LOOK_OPTIONS.map((option) => {
+                const checked = shown.look === option.value;
+                return (
+                  <label
+                    key={option.value}
+                    className={cn(
+                      "relative flex cursor-pointer flex-col gap-3 rounded-xl border p-3 transition-colors select-none",
+                      checked ? cn("border-primary bg-primary-soft/50", forcedSelected) : "border-border hover:bg-foreground/[0.04]",
+                      choiceFocus
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name={`${ids}-look`}
+                      value={option.value}
+                      checked={checked}
+                      onChange={() => change({ look: option.value })}
+                      aria-labelledby={`${ids}-look-${option.value}`}
+                      aria-describedby={`${ids}-look-${option.value}-hint`}
+                      className={radioInput}
+                    />
+                    <LookPicture bold={option.value === "bold"} />
+                    <span className="min-w-0 pr-5">
+                      <span id={`${ids}-look-${option.value}`} className="block text-sm font-medium text-foreground">
+                        {option.label}
+                      </span>
+                      <span id={`${ids}-look-${option.value}-hint`} className="block text-[0.8125rem] text-muted-foreground">
+                        {option.description}
+                      </span>
+                    </span>
+                    {checked ? <Check aria-hidden className={cn("absolute right-2.5 bottom-3 size-5 text-primary", forcedIcon)} /> : null}
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
+
           {/* Density */}
           <fieldset className="mt-8 min-w-0">
             <legend>
@@ -502,6 +549,31 @@ export function CustomizeDialog({
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+/**
+ * A tiny page header, with paint shapes and an X grid (Bold) or plain (Calm),
+ * to show what the look changes. Decorative. Drawn with the real decor
+ * colors, so it previews them in the current theme.
+ */
+function LookPicture({ bold }: { bold: boolean }) {
+  return (
+    <span aria-hidden className="relative flex h-14 items-center overflow-hidden rounded-lg bg-background px-2.5">
+      {bold ? (
+        <>
+          <span className="absolute -top-3 -right-2 size-10 rounded-[45%_55%_60%_40%] bg-pop-yellow" />
+          <span className="absolute -bottom-4 left-10 size-9 rounded-[60%_40%_45%_55%] bg-pop-mint" />
+          <span className="absolute top-2 right-9 text-[0.625rem] leading-none font-bold tracking-[0.2em] text-pop-ink">
+            ×××
+          </span>
+        </>
+      ) : null}
+      <span className="relative flex flex-col gap-1.5">
+        <span className="h-2 w-14 rounded-full bg-foreground/70" />
+        <span className="h-1.5 w-10 rounded-full bg-muted-foreground/40" />
+      </span>
+    </span>
   );
 }
 

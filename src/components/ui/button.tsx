@@ -5,21 +5,27 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 /**
- * Material 3 buttons, as in Google Classroom: pill-shaped, 40px tall.
- * default = filled (primary actions), tonal = secondary container,
- * outline = outlined, ghost = icon/text button on neutral surfaces,
- * text = primary-colored text button.
+ * Liquid Glass buttons: pill-shaped, 40px tall, on the glass utilities in
+ * globals.css (solid fills when transparency is reduced or unsupported).
+ * default = accent glass (the one primary action), destructive = danger
+ * glass, tonal = soft accent glass, secondary = neutral glass, outline =
+ * frosted card glass with accent text, ghost = icon/text button on neutral
+ * surfaces, text = accent text button, link = underlined link.
  */
 const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-medium tracking-[0.01em] transition-[color,background-color,border-color,box-shadow] outline-none select-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[18px]",
+  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-medium tracking-[0.01em] transition-[color,background-color,border-color,box-shadow,filter,scale] duration-150 outline-none select-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-[18px]",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/92 hover:shadow-hover",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/92 hover:shadow-hover",
-        tonal: "bg-primary-soft text-primary-soft-foreground hover:shadow-hover hover:bg-primary-soft/85",
-        outline: "border border-input/60 bg-transparent text-primary hover:bg-primary/[0.08]",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-primary/[0.08]",
+        default: "liquid font-semibold text-primary-foreground hover:brightness-[1.07] active:scale-[0.98] motion-reduce:active:scale-100",
+        destructive:
+          "liquid font-semibold text-destructive-foreground [--liquid:var(--destructive)] hover:brightness-[1.07] active:scale-[0.98] motion-reduce:active:scale-100",
+        tonal:
+          "liquid text-primary-soft-foreground [--liquid:var(--primary-soft)] hover:brightness-[0.97] active:scale-[0.98] motion-reduce:active:scale-100 dark:hover:brightness-[1.12]",
+        outline:
+          "glass text-primary hover:[--glass-frost:94%] active:scale-[0.98] motion-reduce:active:scale-100",
+        secondary:
+          "liquid text-secondary-foreground [--liquid:var(--secondary)] hover:brightness-[0.97] active:scale-[0.98] motion-reduce:active:scale-100 dark:hover:brightness-[1.12]",
         ghost: "text-muted-foreground hover:bg-foreground/[0.08] hover:text-foreground",
         text: "text-primary hover:bg-primary/[0.08]",
         link: "rounded-md text-primary underline-offset-4 hover:underline",

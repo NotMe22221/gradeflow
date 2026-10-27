@@ -5,24 +5,25 @@
  * Markwise design tokens, in the style of Google Classroom (Material 3).
  *
  * HOW THEMING WORKS
- * The root <html> carries four attributes, server-rendered from the viewer's
+ * The root <html> carries five attributes, server-rendered from the viewer's
  * saved preferences (src/lib/preferences/schema.ts, htmlAttributes()):
  *   data-theme      system | light | dark   ("system" follows prefers-color-scheme)
- *   data-accent     blue | teal | green | orange | pink | slate
+ *   data-accent     pink | blue | teal | green | orange | slate
  *   data-text-size  small | default | large | larger  (root font size 87.5-125%)
  *   data-density    comfortable | compact
+ *   data-look       bold | calm  (calm hides the decor and turns bands plain)
  * Every color below is a CSS variable, so server-rendered markup and portals
  * (dialogs, menus, toasts) restyle without JavaScript. Use the token
  * utilities, never hex / white / black / gray-* (white text on a class color
  * fill is the one exception).
  *
  * SURFACES (light / dark)
- *   bg-background   page canvas                      #f8fafd / #131314
- *   bg-card         cards, app bar, panels           #ffffff / #1e1f20
- *   bg-popover      raised: menus, dialogs, sheets   #ffffff / #282a2c
- *   bg-secondary    tonal fill: info panels, chips   #edf0f6 / #333537
- *   bg-muted        skeletons, tracks, selected rows #edf0f4 / #282a2c
- *   bg-accent       neutral hover fill               #eaeff5 / #333537
+ *   bg-background   page canvas (warm cream / ink)   #fbf7ef / #131116
+ *   bg-card         cards, panels                    #ffffff / #1d1a21
+ *   bg-popover      raised: menus, dialogs, sheets   #ffffff / #27232c
+ *   bg-secondary    tonal fill: info panels, chips   #f3ece0 / #2f2a35
+ *   bg-muted        skeletons, tracks, selected rows #f1ebdf / #27232c
+ *   bg-accent       neutral hover fill               #efe7d8 / #2f2a35
  *   bg-surface-bright  the selected segment of a segmented control
  *   bg-paper / text-paper-foreground  student work (never inverted; slightly
  *                   dimmed in dark so a white page doesn't glare)
@@ -36,6 +37,13 @@
  * Status: success / warning / danger, each with -foreground (text on the solid
  * fill), -soft (container) and -soft-foreground (text on the container). Pair
  * a status color with a word or an icon; color is never the only signal.
+ * Pop colors (the Bold look): fill-pop-yellow / -coral / -mint / -sky / -pink
+ * / -lilac for decor only, marks in pop-ink, text on a pop fill in
+ * pop-ink-on. Section bands: bg-band-* with text-band-foreground (pop colors
+ * in Bold, plain secondary in Calm). Decor components: src/components/decor.
+ * Glass: liquid (tinted glass, set --liquid), glass (frosted card), glass-bar
+ * (sticky bars); see LIQUID GLASS below.
+ * Display type: display-hero, display-section, display-title (Figtree 800).
  * Class colors: classTheme() in src/lib/ui/class-theme.ts. `color` is a fill
  * that carries white text in both themes (tone 30 banners in dark); `accent` /
  * `onAccent` are for dots, text and avatars on ordinary surfaces.
@@ -95,49 +103,50 @@
  * The themes below map tones to roles: light uses 40 / 100 / 90 / 10, dark
  * uses 80 / 20 / 30 / 90. Any element with data-accent gets that palette,
  * so a swatch can preview an accent with bg-[var(--primary-40)].
- * Blue is Google's own palette; the others come from material-color-utilities
- * with container tones (30, 90) at lower chroma so they stay calm.
+ * Bright, saturated tone 40s for the Bold look (pink is the default accent),
+ * each still 4.5:1+ with white text and as text on the cream canvas; the
+ * container tones (30, 90) are the same hue, lighter or darker.
  */
 :where(:root),
 :where([data-accent="blue"]) {
-  --primary-10: #041e49;
-  --primary-20: #062e6f;
-  --primary-30: #0842a0;
-  --primary-40: #0b57d0;
-  --primary-80: #a8c7fa;
-  --primary-90: #d3e3fd;
+  --primary-10: #000d4d;
+  --primary-20: #0c1f86;
+  --primary-30: #1a35c4;
+  --primary-40: #2b4fe8;
+  --primary-80: #bac3ff;
+  --primary-90: #dfe0ff;
 }
 :where([data-accent="teal"]) {
-  --primary-10: #00201e;
-  --primary-20: #003735;
-  --primary-30: #0c4f4c;
-  --primary-40: #006a66;
-  --primary-80: #73d7d0;
-  --primary-90: #c5ece8;
+  --primary-10: #00201c;
+  --primary-20: #003d37;
+  --primary-30: #005a52;
+  --primary-40: #00776d;
+  --primary-80: #5edbcb;
+  --primary-90: #b9f2e8;
 }
 :where([data-accent="green"]) {
-  --primary-10: #002110;
-  --primary-20: #00391e;
-  --primary-30: #22503a;
-  --primary-40: #146c45;
-  --primary-80: #7fd9a4;
-  --primary-90: #c9ecd5;
+  --primary-10: #002108;
+  --primary-20: #003e14;
+  --primary-30: #0b5a22;
+  --primary-40: #1d7a35;
+  --primary-80: #84dc8c;
+  --primary-90: #c6f5c4;
 }
 :where([data-accent="orange"]) {
-  --primary-10: #341100;
-  --primary-20: #562000;
-  --primary-30: #6b3a20;
-  --primary-40: #984717;
-  --primary-80: #ffb692;
-  --primary-90: #ffdbcb;
+  --primary-10: #350f00;
+  --primary-20: #5a1f00;
+  --primary-30: #873200;
+  --primary-40: #b0460b;
+  --primary-80: #ffb68f;
+  --primary-90: #ffdbca;
 }
 :where([data-accent="pink"]) {
-  --primary-10: #3d0023;
-  --primary-20: #5d1139;
-  --primary-30: #68374c;
-  --primary-40: #964168;
-  --primary-80: #ffb0cf;
-  --primary-90: #ffd9e5;
+  --primary-10: #3f0020;
+  --primary-20: #66003a;
+  --primary-30: #8f0f55;
+  --primary-40: #c2166b;
+  --primary-80: #ffb0cd;
+  --primary-90: #ffd9e4;
 }
 :where([data-accent="slate"]) {
   --primary-10: #121c28;
@@ -153,12 +162,12 @@
   color-scheme: light;
   --radius: 0.75rem;
 
-  --background: #f8fafd;
-  --foreground: #1f1f1f;
+  --background: #fbf7ef;
+  --foreground: #1b1814;
   --card: #ffffff;
-  --card-foreground: #1f1f1f;
+  --card-foreground: #1b1814;
   --popover: #ffffff;
-  --popover-foreground: #1f1f1f;
+  --popover-foreground: #1b1814;
   --surface-bright: #ffffff;
   --paper: #ffffff;
   --paper-foreground: #1f1f1f;
@@ -169,12 +178,12 @@
   --primary-soft: var(--primary-90);
   --primary-soft-foreground: var(--primary-10);
 
-  --secondary: #edf0f6;
-  --secondary-foreground: #2a2e33;
-  --muted: #edf0f4;
-  --muted-foreground: #575c59;
-  --accent: #eaeff5;
-  --accent-foreground: #1f1f1f;
+  --secondary: #f3ece0;
+  --secondary-foreground: #2c2620;
+  --muted: #f1ebdf;
+  --muted-foreground: #5d564c;
+  --accent: #efe7d8;
+  --accent-foreground: #1b1814;
 
   --destructive: #b3261e;
   --destructive-foreground: #ffffff;
@@ -192,15 +201,15 @@
   --danger-soft: #f9dedc;
   --danger-soft-foreground: #8c1d18;
 
-  --border: #dadce0;
-  /* Field outlines (M3 outline): 4.6:1 on white. */
-  --input: #747775;
+  --border: #e6dccb;
+  /* Field outlines: 4.8:1 on white, 4.5:1 on the canvas. */
+  --input: #7a7268;
   /* Focus rings: opaque primary, 6.4:1 on white and 5:1 on primary-soft (WCAG 1.4.11). */
   --ring: var(--primary-40);
 
-  --sidebar: #f8fafd;
-  --sidebar-foreground: #2b2f2d;
-  --sidebar-border: #dadce0;
+  --sidebar: #fbf7ef;
+  --sidebar-foreground: #2c2620;
+  --sidebar-border: #e6dccb;
   --sidebar-primary: var(--primary);
   --sidebar-primary-foreground: var(--primary-foreground);
   --sidebar-accent: var(--primary-soft); /* active nav pill */
@@ -211,8 +220,42 @@
   --highlight-strong: #f6d56b;
 
   /* Elevation: flat resting cards; level 1 on hover, level 2 for raised surfaces. */
-  --elevation-1: 0 1px 2px 0 rgb(60 64 67 / 0.3), 0 1px 3px 1px rgb(60 64 67 / 0.15);
-  --elevation-2: 0 1px 3px 0 rgb(60 64 67 / 0.3), 0 4px 8px 3px rgb(60 64 67 / 0.15);
+  --elevation-1: 0 1px 2px 0 rgb(60 45 20 / 0.22), 0 2px 6px 1px rgb(60 45 20 / 0.12);
+  --elevation-2: 0 1px 3px 0 rgb(60 45 20 / 0.22), 0 8px 20px 2px rgb(60 45 20 / 0.14);
+
+  /*
+   * Pop colors: the Bold look's paint blobs, patterns and section bands.
+   * Decoration only: text on a pop fill is --pop-ink-on (4.5:1+ on each),
+   * and --pop-ink draws marks (X grids, dots) on the canvas.
+   */
+  --pop-yellow: #ffd23f;
+  --pop-coral: #ff9473;
+  --pop-mint: #7ee8c8;
+  --pop-sky: #7cc8ff;
+  --pop-pink: #ff5fa2;
+  --pop-lilac: #b79cff;
+  --pop-ink: #1b1814;
+  --pop-ink-on: #1b1814;
+  /* Section bands: a pop color in the Bold look, plain secondary in Calm. */
+  --band-yellow: var(--pop-yellow);
+  --band-coral: var(--pop-coral);
+  --band-mint: var(--pop-mint);
+  --band-sky: var(--pop-sky);
+  --band-pink: var(--pop-pink);
+  --band-lilac: var(--pop-lilac);
+  --band-foreground: var(--pop-ink-on);
+  /* How strongly paint blobs show (dark tones them down a little). */
+  --decor-opacity: 1;
+
+  /*
+   * Liquid Glass (the glass utilities below): how much of the card color a
+   * frosted fill keeps, its light rim, the specular sheen, edge and shadow.
+   */
+  --glass-frost: 78%;
+  --glass-rim: rgb(255 255 255 / 0.85);
+  --glass-sheen: rgb(255 255 255 / 0.55);
+  --glass-edge: rgb(27 24 20 / 0.1);
+  --glass-shadow: 0 1px 1px rgb(27 24 20 / 0.05), 0 10px 26px -14px rgb(27 24 20 / 0.45);
 
   /*
    * Class colors. --class-X is a fill for banners and icon circles with white
@@ -264,13 +307,13 @@
  */
 :where(:root[data-theme="dark"]) {
   color-scheme: dark;
-  --background: #131314;
-  --foreground: #e3e3e3;
-  --card: #1e1f20;
-  --card-foreground: #e3e3e3;
-  --popover: #282a2c;
-  --popover-foreground: #e3e3e3;
-  --surface-bright: #46484a;
+  --background: #131116;
+  --foreground: #f1ece4;
+  --card: #1d1a21;
+  --card-foreground: #f1ece4;
+  --popover: #27232c;
+  --popover-foreground: #f1ece4;
+  --surface-bright: #46414c;
   --paper: #e8e8e6;
   --paper-foreground: #1f1f1f;
   --scrim: rgb(0 0 0 / 0.6);
@@ -278,12 +321,12 @@
   --primary-foreground: var(--primary-20);
   --primary-soft: var(--primary-30);
   --primary-soft-foreground: var(--primary-90);
-  --secondary: #333537;
-  --secondary-foreground: #e3e3e3;
-  --muted: #282a2c;
-  --muted-foreground: #c4c7c5;
-  --accent: #333537;
-  --accent-foreground: #e3e3e3;
+  --secondary: #2f2a35;
+  --secondary-foreground: #f1ece4;
+  --muted: #27232c;
+  --muted-foreground: #cbc4bb;
+  --accent: #2f2a35;
+  --accent-foreground: #f1ece4;
   --destructive: #f2b8b5;
   --destructive-foreground: #601410;
   --success: #6dd58c;
@@ -298,12 +341,12 @@
   --danger-foreground: #601410;
   --danger-soft: #4f2724;
   --danger-soft-foreground: #f9dedc;
-  --border: #444746;
-  --input: #8e918f;
+  --border: #443e4a;
+  --input: #928b98;
   --ring: var(--primary-80);
-  --sidebar: #131314;
-  --sidebar-foreground: #c4c7c5;
-  --sidebar-border: #444746;
+  --sidebar: #131116;
+  --sidebar-foreground: #cbc4bb;
+  --sidebar-border: #443e4a;
   --highlight: #4a3f12;
   --highlight-strong: #6b5917;
   --elevation-1: 0 1px 2px 0 rgb(0 0 0 / 0.5), 0 1px 3px 1px rgb(0 0 0 / 0.3);
@@ -327,18 +370,32 @@
   --class-pink-accent: #ffb0cf;
   --class-pink-on-accent: #5d1139;
   --banner-art-opacity: 0.6;
+  --pop-yellow: #e9bd2a;
+  --pop-coral: #f07a58;
+  --pop-mint: #3fcfa6;
+  --pop-sky: #4ea9ee;
+  --pop-pink: #f2509a;
+  --pop-lilac: #9a7bff;
+  --pop-ink: #f1ece4;
+  --pop-ink-on: #1b1814;
+  --decor-opacity: 0.85;
+  --glass-frost: 70%;
+  --glass-rim: rgb(255 255 255 / 0.16);
+  --glass-sheen: rgb(255 255 255 / 0.2);
+  --glass-edge: rgb(0 0 0 / 0.4);
+  --glass-shadow: 0 1px 1px rgb(0 0 0 / 0.3), 0 12px 30px -14px rgb(0 0 0 / 0.8);
 }
 
 @media (prefers-color-scheme: dark) {
   :where(:root:not([data-theme="light"], [data-theme="dark"])) {
     color-scheme: dark;
-    --background: #131314;
-    --foreground: #e3e3e3;
-    --card: #1e1f20;
-    --card-foreground: #e3e3e3;
-    --popover: #282a2c;
-    --popover-foreground: #e3e3e3;
-    --surface-bright: #46484a;
+    --background: #131116;
+    --foreground: #f1ece4;
+    --card: #1d1a21;
+    --card-foreground: #f1ece4;
+    --popover: #27232c;
+    --popover-foreground: #f1ece4;
+    --surface-bright: #46414c;
     --paper: #e8e8e6;
     --paper-foreground: #1f1f1f;
     --scrim: rgb(0 0 0 / 0.6);
@@ -346,12 +403,12 @@
     --primary-foreground: var(--primary-20);
     --primary-soft: var(--primary-30);
     --primary-soft-foreground: var(--primary-90);
-    --secondary: #333537;
-    --secondary-foreground: #e3e3e3;
-    --muted: #282a2c;
-    --muted-foreground: #c4c7c5;
-    --accent: #333537;
-    --accent-foreground: #e3e3e3;
+    --secondary: #2f2a35;
+    --secondary-foreground: #f1ece4;
+    --muted: #27232c;
+    --muted-foreground: #cbc4bb;
+    --accent: #2f2a35;
+    --accent-foreground: #f1ece4;
     --destructive: #f2b8b5;
     --destructive-foreground: #601410;
     --success: #6dd58c;
@@ -366,12 +423,12 @@
     --danger-foreground: #601410;
     --danger-soft: #4f2724;
     --danger-soft-foreground: #f9dedc;
-    --border: #444746;
-    --input: #8e918f;
+    --border: #443e4a;
+    --input: #928b98;
     --ring: var(--primary-80);
-    --sidebar: #131314;
-    --sidebar-foreground: #c4c7c5;
-    --sidebar-border: #444746;
+    --sidebar: #131116;
+    --sidebar-foreground: #cbc4bb;
+    --sidebar-border: #443e4a;
     --highlight: #4a3f12;
     --highlight-strong: #6b5917;
     --elevation-1: 0 1px 2px 0 rgb(0 0 0 / 0.5), 0 1px 3px 1px rgb(0 0 0 / 0.3);
@@ -395,6 +452,20 @@
     --class-pink-accent: #ffb0cf;
     --class-pink-on-accent: #5d1139;
     --banner-art-opacity: 0.6;
+    --pop-yellow: #e9bd2a;
+    --pop-coral: #f07a58;
+    --pop-mint: #3fcfa6;
+    --pop-sky: #4ea9ee;
+    --pop-pink: #f2509a;
+    --pop-lilac: #9a7bff;
+    --pop-ink: #f1ece4;
+    --pop-ink-on: #1b1814;
+    --decor-opacity: 0.85;
+    --glass-frost: 70%;
+    --glass-rim: rgb(255 255 255 / 0.16);
+    --glass-sheen: rgb(255 255 255 / 0.2);
+    --glass-edge: rgb(0 0 0 / 0.4);
+    --glass-shadow: 0 1px 1px rgb(0 0 0 / 0.3), 0 12px 30px -14px rgb(0 0 0 / 0.8);
   }
 }
 
@@ -505,6 +576,21 @@
   --color-class-purple: var(--class-purple);
   --color-class-teal: var(--class-teal);
   --color-class-pink: var(--class-pink);
+  --color-pop-yellow: var(--pop-yellow);
+  --color-pop-coral: var(--pop-coral);
+  --color-pop-mint: var(--pop-mint);
+  --color-pop-sky: var(--pop-sky);
+  --color-pop-pink: var(--pop-pink);
+  --color-pop-lilac: var(--pop-lilac);
+  --color-pop-ink: var(--pop-ink);
+  --color-pop-ink-on: var(--pop-ink-on);
+  --color-band-yellow: var(--band-yellow);
+  --color-band-coral: var(--band-coral);
+  --color-band-mint: var(--band-mint);
+  --color-band-sky: var(--band-sky);
+  --color-band-pink: var(--band-pink);
+  --color-band-lilac: var(--band-lilac);
+  --color-band-foreground: var(--band-foreground);
 
   /* Density spacing: py-row, min-h-row-min, py-cell, h-cell-head, p-card, gap-list, gap-section. */
   --spacing-row: var(--row-pad-y);
@@ -525,6 +611,17 @@
   --shadow-card: 0 0 0 0 transparent;
   --shadow-hover: var(--elevation-1);
   --shadow-raised: var(--elevation-2);
+
+  --animate-float: float 14s ease-in-out infinite;
+  @keyframes float {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 0 -0.75rem;
+    }
+  }
 
   --animate-flash: flash 1.4s ease-out;
   @keyframes flash {
@@ -576,6 +673,158 @@
 @layer utilities {
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+}
+
+/*
+ * DISPLAY TYPE (the Bold look's big headings): Figtree at 800 with tight
+ * tracking. Sized in rem plus a little vw, so the text-size preference still
+ * scales them.
+ */
+@utility display-hero {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+  font-size: clamp(2.75rem, 1.5rem + 5.2vw, 6.25rem);
+  text-wrap: balance;
+}
+@utility display-section {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+  font-size: clamp(2rem, 1.35rem + 2.4vw, 3.5rem);
+  text-wrap: balance;
+}
+@utility display-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  font-size: clamp(1.75rem, 1.45rem + 1.1vw, 2.375rem);
+  text-wrap: balance;
+}
+
+/*
+ * LIQUID GLASS
+ *   liquid     tinted glass: --liquid (default --primary) at 90% over a
+ *              blurred, saturated backdrop, a light rim, a specular sheen on
+ *              the top half, and a soft shadow in its own color. Text on it is
+ *              the token that pairs with --liquid; the fill is nearly opaque,
+ *              so the backdrop can't wash that pair below 4.5:1.
+ *   glass      frosted card: --card at --glass-frost over the blurred backdrop,
+ *              a light rim and a soft shadow. Outline buttons and floating
+ *              panels; text stays foreground or primary.
+ *   glass-bar  sticky bars: a lighter frost with a hairline under it.
+ * Fallbacks: without backdrop-filter support, and with
+ * prefers-reduced-transparency or prefers-contrast: more, each becomes a solid
+ * fill of the color it stands for and the sheen goes. Forced colors (Windows
+ * High Contrast) draws a system-colored border instead.
+ */
+@utility liquid {
+  position: relative;
+  isolation: isolate;
+  background-color: color-mix(in oklab, var(--liquid, var(--primary)) 90%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(170%);
+  backdrop-filter: blur(14px) saturate(170%);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-sheen),
+    inset 0 -1px 0 0 rgb(0 0 0 / 0.16),
+    inset 0 0 0 1px color-mix(in oklab, var(--glass-rim) 30%, transparent),
+    0 1px 2px rgb(0 0 0 / 0.12),
+    0 10px 24px -12px color-mix(in oklab, var(--liquid, var(--primary)) 75%, transparent);
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(to bottom, var(--glass-sheen), transparent 58%);
+    mix-blend-mode: soft-light;
+  }
+}
+@utility glass {
+  background-color: color-mix(in oklab, var(--card) var(--glass-frost), transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  backdrop-filter: blur(18px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 0 var(--glass-rim),
+    inset 0 0 0 1px var(--glass-edge),
+    var(--glass-shadow);
+}
+@utility glass-bar {
+  background-color: color-mix(in oklab, var(--card) 74%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: inset 0 -1px 0 0 var(--border);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .liquid {
+    background-color: var(--liquid, var(--primary));
+  }
+  .glass,
+  .glass-bar {
+    background-color: var(--card);
+  }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .liquid {
+    background-color: var(--liquid, var(--primary));
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .liquid::before {
+    display: none;
+  }
+  .glass,
+  .glass-bar {
+    background-color: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (forced-colors: active) {
+  .liquid,
+  .glass {
+    border: 1px solid ButtonText;
+  }
+  .liquid::before {
+    display: none;
+  }
+}
+
+/*
+ * DECOR (src/components/decor): paint blobs, X grids, dot grids, squiggles.
+ * Never under body text, never read aloud (aria-hidden), never printed, and
+ * gone in the Calm look, where section bands also turn plain.
+ */
+[data-decor] {
+  pointer-events: none;
+  user-select: none;
+}
+:where([data-look="calm"]) [data-decor] {
+  display: none !important;
+}
+:where([data-look="calm"]) {
+  --band-yellow: var(--secondary);
+  --band-coral: var(--secondary);
+  --band-mint: var(--secondary);
+  --band-sky: var(--secondary);
+  --band-pink: var(--secondary);
+  --band-lilac: var(--secondary);
+  --band-foreground: var(--secondary-foreground);
+}
+@media print {
+  [data-decor] {
+    display: none !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-decor] {
+    animation: none !important;
   }
 }
 

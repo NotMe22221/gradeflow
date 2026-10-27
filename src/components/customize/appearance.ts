@@ -1,7 +1,7 @@
 "use client";
 
 // Client helpers for the appearance preferences (theme, accent, text size,
-// density). The server renders them as data-* attributes on <html>, so pages
+// density, look). The server renders them as data-* attributes on <html>, so pages
 // are right on first paint; these helpers change them instantly in the
 // browser and save them, and let client components follow the current theme.
 
@@ -15,18 +15,20 @@ import {
   ACCENTS,
   DEFAULT_PREFERENCES,
   DENSITIES,
+  LOOKS,
   TEXT_SIZES,
   THEMES,
   type Preferences,
 } from "@/lib/preferences/schema";
 
-export type Appearance = Pick<Preferences, "theme" | "accent" | "textSize" | "density">;
+export type Appearance = Pick<Preferences, "theme" | "accent" | "textSize" | "density" | "look">;
 
 const ATTRIBUTES = {
   theme: "data-theme",
   accent: "data-accent",
   textSize: "data-text-size",
   density: "data-density",
+  look: "data-look",
 } as const satisfies Record<keyof Appearance, string>;
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
@@ -44,11 +46,12 @@ export function readAppearance(): Appearance {
     accent: pick(root.getAttribute(ATTRIBUTES.accent), ACCENTS, DEFAULT_PREFERENCES.accent),
     textSize: pick(root.getAttribute(ATTRIBUTES.textSize), TEXT_SIZES, DEFAULT_PREFERENCES.textSize),
     density: pick(root.getAttribute(ATTRIBUTES.density), DENSITIES, DEFAULT_PREFERENCES.density),
+    look: pick(root.getAttribute(ATTRIBUTES.look), LOOKS, DEFAULT_PREFERENCES.look),
   };
 }
 
 export function pickAppearance(prefs: Appearance): Appearance {
-  return { theme: prefs.theme, accent: prefs.accent, textSize: prefs.textSize, density: prefs.density };
+  return { theme: prefs.theme, accent: prefs.accent, textSize: prefs.textSize, density: prefs.density, look: prefs.look };
 }
 
 /** "light" or "dark": what a "system" theme resolves to right now. */
@@ -155,7 +158,14 @@ function subscribe(onChange: () => void) {
 
 function snapshotKey(): string {
   const appearance = readAppearance();
-  return [appearance.theme, appearance.accent, appearance.textSize, appearance.density, resolveTheme(appearance.theme)].join("|");
+  return [
+    appearance.theme,
+    appearance.accent,
+    appearance.textSize,
+    appearance.density,
+    appearance.look,
+    resolveTheme(appearance.theme),
+  ].join("|");
 }
 
 const SERVER_KEY = [
@@ -163,6 +173,7 @@ const SERVER_KEY = [
   DEFAULT_PREFERENCES.accent,
   DEFAULT_PREFERENCES.textSize,
   DEFAULT_PREFERENCES.density,
+  DEFAULT_PREFERENCES.look,
   "light",
 ].join("|");
 
@@ -176,12 +187,13 @@ function useAppearanceKey(): string {
  * OS switching between light and dark). `resolved` is "light" or "dark".
  */
 export function useAppearance(): Appearance & { resolved: "light" | "dark" } {
-  const [theme, accent, textSize, density, resolved] = useAppearanceKey().split("|");
+  const [theme, accent, textSize, density, look, resolved] = useAppearanceKey().split("|");
   return {
     theme: theme as Appearance["theme"],
     accent: accent as Appearance["accent"],
     textSize: textSize as Appearance["textSize"],
     density: density as Appearance["density"],
+    look: look as Appearance["look"],
     resolved: resolved as "light" | "dark",
   };
 }

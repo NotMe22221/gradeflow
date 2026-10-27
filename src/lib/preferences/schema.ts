@@ -21,6 +21,10 @@ export type TextSize = (typeof TEXT_SIZES)[number];
 export const DENSITIES = ["comfortable", "compact"] as const;
 export type Density = (typeof DENSITIES)[number];
 
+/** "bold": bright paint shapes, patterns and color bands. "calm": the same colors without them. */
+export const LOOKS = ["bold", "calm"] as const;
+export type Look = (typeof LOOKS)[number];
+
 export const PAPER_SIDES = ["left", "right"] as const;
 export type PaperSide = (typeof PAPER_SIDES)[number];
 
@@ -63,6 +67,7 @@ export type Preferences = {
   accent: Accent;
   textSize: TextSize;
   density: Density;
+  look: Look;
   /** Single-letter shortcuts in To review (J, K, A, S, ?). WCAG 2.1.4: users can turn them off. */
   singleKeyShortcuts: boolean;
   layout: {
@@ -86,9 +91,10 @@ export function defaultSectionLayout(surface: LayoutSurface): SectionLayout {
 
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: "system",
-  accent: "blue",
+  accent: "pink",
   textSize: "default",
   density: "comfortable",
+  look: "bold",
   singleKeyShortcuts: true,
   layout: {
     teacherHome: defaultSectionLayout("teacherHome"),
@@ -110,6 +116,7 @@ export const preferencesPatchSchema = z
     accent: z.enum(ACCENTS).optional(),
     textSize: z.enum(TEXT_SIZES).optional(),
     density: z.enum(DENSITIES).optional(),
+    look: z.enum(LOOKS).optional(),
     singleKeyShortcuts: z.boolean().optional(),
     layout: z
       .object({
@@ -168,6 +175,7 @@ export function normalizePreferences(raw: unknown): Preferences {
     accent: pick(value.accent, ACCENTS, DEFAULT_PREFERENCES.accent),
     textSize: pick(value.textSize, TEXT_SIZES, DEFAULT_PREFERENCES.textSize),
     density: pick(value.density, DENSITIES, DEFAULT_PREFERENCES.density),
+    look: pick(value.look, LOOKS, DEFAULT_PREFERENCES.look),
     singleKeyShortcuts:
       typeof value.singleKeyShortcuts === "boolean" ? value.singleKeyShortcuts : DEFAULT_PREFERENCES.singleKeyShortcuts,
     layout: {
@@ -207,11 +215,12 @@ export function orderByIds<T extends { id: string }>(items: readonly T[], order:
 }
 
 /** The data-* attributes the root <html> carries so CSS can theme everything (including portals). */
-export function htmlAttributes(prefs: Pick<Preferences, "theme" | "accent" | "textSize" | "density">) {
+export function htmlAttributes(prefs: Pick<Preferences, "theme" | "accent" | "textSize" | "density" | "look">) {
   return {
     "data-theme": prefs.theme,
     "data-accent": prefs.accent,
     "data-text-size": prefs.textSize,
     "data-density": prefs.density,
+    "data-look": prefs.look,
   } as const;
 }

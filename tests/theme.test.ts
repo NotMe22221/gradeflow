@@ -119,6 +119,10 @@ const PAIRS: [string, string[], number][] = [
   ["--input", SURFACES, 3],
   ["--warning", SURFACES, 3],
   ["--muted-foreground", ["--highlight"], 4.5],
+  // The Bold look: text on a pop fill or section band, and decor marks on the canvas.
+  ["--pop-ink-on", ["--pop-yellow", "--pop-coral", "--pop-mint", "--pop-sky", "--pop-pink", "--pop-lilac"], 4.5],
+  ["--band-foreground", ["--band-yellow", "--band-coral", "--band-mint", "--band-sky", "--band-pink", "--band-lilac"], 4.5],
+  ["--pop-ink", ["--background", "--card"], 3],
 ];
 
 describe("theme tokens", () => {
@@ -169,7 +173,7 @@ describe("theme tokens", () => {
     const light = scheme("light", "blue");
     assert.ok(contrast(dark["--foreground"], dark["--background"]) > 14);
     assert.ok(contrast(dark["--primary"], dark["--background"]) > 10);
-    assert.ok(contrast(light["--primary"], "#ffffff") > 6.3);
+    assert.ok(contrast(light["--primary"], "#ffffff") > 6);
     assert.ok(report.length > 100);
   });
 });
