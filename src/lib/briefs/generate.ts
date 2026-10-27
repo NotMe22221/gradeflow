@@ -2,6 +2,7 @@ import "server-only";
 
 import { zodResponseFormat } from "openai/helpers/zod";
 
+import { guardedOpenAiCall } from "@/lib/ai/guard";
 import { getOpenAI, modelFor, openAiConfigured, openAiRequestOptions } from "@/lib/ai/openai";
 import { buildDemoBrief } from "@/lib/briefs/demo";
 import { BRIEF_SYSTEM_PROMPT, buildBriefUserPrompt } from "@/lib/briefs/prompt";
@@ -30,16 +31,19 @@ export type GeneratedBrief = { engine: BriefEngine; model: string | null; brief:
  */
 async function draftWithOpenAI(input: BriefInput): Promise<GeneratedBrief> {
   const model = modelFor("text");
-  const completion = await getOpenAI().chat.completions.parse({
+  const request = {
     model,
     temperature: 0.3,
     max_completion_tokens: 1500,
     messages: [
-      { role: "system", content: BRIEF_SYSTEM_PROMPT },
-      { role: "user", content: buildBriefUserPrompt(input) },
+      { role: "system" as const, content: BRIEF_SYSTEM_PROMPT },
+      { role: "user" as const, content: buildBriefUserPrompt(input) },
     ],
     response_format: zodResponseFormat(BriefOutputSchema, "conference_brief"),
-  }, openAiRequestOptions("text"));
+  };
+  const completion = await guardedOpenAiCall("brief", request, () =>
+    getOpenAI().chat.completions.parse(request, openAiRequestOptions("text"))
+  );
 
   const message = completion.choices[0]?.message;
   if (message?.refusal) throw new BriefError("OpenAI declined to draft this brief. Try again.", 502);

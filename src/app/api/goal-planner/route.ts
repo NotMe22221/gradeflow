@@ -2,7 +2,8 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { openAiConfigured } from "@/lib/ai/openai";
+import { aiLimitResponse } from "@/lib/ai/guard";
+import { AiLimitError } from "@/lib/ai/usage";
 import { AuthError, requireStudent } from "@/lib/auth/session";
 import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import { MAX_GOAL_CHARS } from "@/lib/goals/parse";
@@ -10,7 +11,6 @@ import { GoalPlannerError, planStudentGoal } from "@/lib/goals/planner";
 import type { GoalPlannerFailure, GoalPlannerSuccess } from "@/lib/goals/types";
 import { stripNul } from "@/lib/text/sanitize";
 import { readJsonWithLimit } from "@/lib/http/body";
-import { AI_RATE_LIMITS, checkRateLimit, rateLimitMessage } from "@/lib/http/rate-limit";
 import { idSchema } from "@/lib/validation/id";
 
 export const dynamic = "force-dynamic";
@@ -36,16 +36,11 @@ const bodySchema = z.object({
   classId: idSchema.optional().nullable(),
 });
 
-function errorResponse(
-  error: string,
-  status: number,
-  code?: GoalPlannerFailure["code"],
-  headers?: Record<string, string>
-) {
-  return NextResponse.json<GoalPlannerFailure>(
-    code ? { ok: false, error, code } : { ok: false, error },
-    { status, headers: { ...NO_STORE, ...headers } }
-  );
+function errorResponse(error: string, status: number, code?: GoalPlannerFailure["code"]) {
+  return NextResponse.json<GoalPlannerFailure>(code ? { ok: false, error, code } : { ok: false, error }, {
+    status,
+    headers: NO_STORE,
+  });
 }
 
 /**
@@ -58,8 +53,8 @@ function errorResponse(
  * and awards GOAL_SET XP once per day.
  *
  * The body is read with a hard byte cap (a chunked request can't stream an
- * unbounded body into memory). With a live key, each student gets a limited
- * number of planner calls per window (429 with Retry-After past it); the
+ * unbounded body into memory). A live planner call goes through the usage
+ * caps (lib/ai/guard.ts): past one, 429 with the reason and Retry-After. The
  * demo parser costs nothing and is not limited.
  */
 export async function POST(request: Request) {
@@ -77,15 +72,6 @@ export async function POST(request: Request) {
       const issue = parsed.error.issues[0];
       if (issue?.path[0] === "classId") return errorResponse("Class not found.", 404);
       return errorResponse(issue?.message ?? "Type your goal first.", 400);
-    }
-
-    if (openAiConfigured()) {
-      const limit = checkRateLimit(`${student.id}:text`, AI_RATE_LIMITS.text);
-      if (!limit.ok) {
-        return errorResponse(rateLimitMessage(limit.retryAfterSeconds), 429, undefined, {
-          "Retry-After": String(limit.retryAfterSeconds),
-        });
-      }
     }
 
     let result: GoalPlannerSuccess;
@@ -106,6 +92,7 @@ export async function POST(request: Request) {
     return NextResponse.json<GoalPlannerSuccess>(result, { headers: NO_STORE });
   } catch (error) {
     if (error instanceof AuthError) return errorResponse(error.message, error.status);
+    if (error instanceof AiLimitError) return aiLimitResponse(error, NO_STORE);
     // Log the error type only: never the key, request headers, or the goal text.
     console.error("[markwise] Goal planner route failed", {
       type: error instanceof Error ? error.name : typeof error,

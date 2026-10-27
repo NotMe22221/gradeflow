@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { describeOpenAiError, openAiConfigured } from "@/lib/ai/openai";
+import { aiLimitResponse } from "@/lib/ai/guard";
+import { describeOpenAiError } from "@/lib/ai/openai";
+import { AiLimitError } from "@/lib/ai/usage";
 import { AuthError, requireTeacher } from "@/lib/auth/session";
 import { BriefError, generateConferenceBrief } from "@/lib/briefs/generate";
 import { buildBriefInput } from "@/lib/briefs/input";
 import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import type { ConferenceBriefFailure, ConferenceBriefSuccess } from "@/lib/briefs/types";
 import { readJsonWithLimit } from "@/lib/http/body";
-import { AI_RATE_LIMITS, checkRateLimit, rateLimitMessage } from "@/lib/http/rate-limit";
 import { buildStudentProfile } from "@/lib/insights/profile";
 import { getStudentRecord } from "@/lib/insights/student";
 import { idSchema } from "@/lib/validation/id";
@@ -24,8 +25,8 @@ const bodySchema = z.object({ classId: idSchema, studentId: idSchema });
 
 const NO_STORE = { "Cache-Control": "no-store" };
 
-function errorResponse(error: string, status: number, headers?: Record<string, string>) {
-  return NextResponse.json<ConferenceBriefFailure>({ ok: false, error }, { status, headers: { ...NO_STORE, ...headers } });
+function errorResponse(error: string, status: number) {
+  return NextResponse.json<ConferenceBriefFailure>({ ok: false, error }, { status, headers: NO_STORE });
 }
 
 /**
@@ -39,9 +40,9 @@ function errorResponse(error: string, status: number, headers?: Record<string, s
  * deterministic demo brief, labelled as such.
  *
  * The body is read with a hard byte cap, so a chunked request can't stream an
- * unbounded body into memory. With a live key, each teacher gets a limited
- * number of drafts per window (429 with Retry-After past it); the demo brief
- * costs nothing and is not limited.
+ * unbounded body into memory. A live draft goes through the usage caps
+ * (lib/ai/guard.ts): past one, 429 with the reason and Retry-After. The demo
+ * brief costs nothing and is not limited.
  */
 export async function POST(request: Request) {
   try {
@@ -67,21 +68,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Only a live model call costs money, so only it counts against the limit.
-    if (openAiConfigured()) {
-      const limited = checkRateLimit(`${teacher.id}:text`, AI_RATE_LIMITS.text);
-      if (!limited.ok) {
-        return errorResponse(rateLimitMessage(limited.retryAfterSeconds), 429, {
-          "Retry-After": String(limited.retryAfterSeconds),
-        });
-      }
-    }
-
     let generated;
     try {
       generated = await generateConferenceBrief(input);
     } catch (error) {
       if (error instanceof BriefError) return errorResponse(error.message, error.status);
+      if (error instanceof AiLimitError) return aiLimitResponse(error, NO_STORE);
       return errorResponse(describeOpenAiError(error, "Conference brief"), 502);
     }
 

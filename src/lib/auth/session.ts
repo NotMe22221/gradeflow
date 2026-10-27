@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { clientIpFrom, usageKey } from "@/lib/ai/usage";
 import { db } from "@/lib/db";
 import { demoLoginEnabled, isRole, type Role } from "@/lib/constants";
 
@@ -137,6 +138,22 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   });
   if (!user || !isRole(user.role)) return null;
   return { ...user, role: user.role };
+}
+
+/**
+ * Who is making a live AI call, for the usage caps (lib/ai/guard.ts): keyed
+ * hashes of this browser's session cookie and of the client IP, plus the
+ * signed-in user id. Every sign-in gets its own cookie, so this tells apart
+ * visitors who share the demo account. Raw values never leave this module.
+ */
+export async function usageSubject(): Promise<{ sessionKey: string; ipKey: string; userId: string | null }> {
+  const token = (await cookies()).get(COOKIE_NAME)?.value;
+  const key = secret();
+  return {
+    sessionKey: usageKey(key, "session", token ?? "no-session"),
+    ipKey: usageKey(key, "ip", clientIpFrom(await headers())),
+    userId: decode(token),
+  };
 }
 
 export class AuthError extends Error {

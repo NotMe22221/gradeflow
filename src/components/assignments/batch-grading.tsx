@@ -41,8 +41,9 @@ export type BatchRun = {
 };
 
 type GradeOutcome =
-  | { ok: true; confidence: Confidence | null; flagCount: number; grader: GraderKind }
-  | { ok: false; error: string };
+  | { ok: true; confidence: Confidence | null; flagCount: number; grader: GraderKind; reused: boolean }
+  /** `limit`: a live AI usage cap stopped the call before it was sent; the paper is unchanged. */
+  | { ok: false; error: string; limit?: boolean };
 
 type BatchGradingContextValue = {
   assignmentId: string;
@@ -112,15 +113,19 @@ async function requestGrade(submissionId: string): Promise<GradeOutcome> {
 
   const body: unknown = await response.json().catch(() => null);
   if (response.ok && body && typeof body === "object" && "ok" in body && body.ok === true && "submission" in body) {
-    const submission = body.submission as { confidence?: unknown; flagCount?: unknown; grader?: unknown };
+    const submission = body.submission as { confidence?: unknown; flagCount?: unknown; grader?: unknown; reused?: unknown };
     return {
       ok: true,
       confidence: typeof submission.confidence === "string" && isConfidence(submission.confidence) ? submission.confidence : null,
       flagCount: typeof submission.flagCount === "number" ? submission.flagCount : 0,
       grader: parseGraderKind(typeof submission.grader === "string" ? submission.grader : null),
+      reused: submission.reused === true,
     };
   }
   if (response.status === 401) return { ok: false, error: "Your session ended. Sign in again to keep grading." };
+  if (body && typeof body === "object" && "code" in body && body.code === "AI_LIMIT") {
+    return { ok: false, error: errorFrom(body) ?? "A live AI limit was reached. Try again later.", limit: true };
+  }
   return { ok: false, error: errorFrom(body) ?? "The AI pass failed. Try again." };
 }
 
@@ -216,14 +221,22 @@ export function BatchGradingProvider({
         let processed = 0;
         let succeeded = 0;
         let failed = 0;
+        let reused = 0;
+        let limitMessage: string | null = null;
 
         for (const id of ids) {
           if (stopRef.current) break;
           setLive((current) => ({ ...current, [id]: { phase: "grading", submittedAt: version(id) } }));
           const outcome = await requestGrade(id);
+          // A usage cap applies to every paper left: stop, and leave this one as it was.
+          if (!outcome.ok && outcome.limit) {
+            limitMessage = outcome.error;
+            break;
+          }
           processed++;
           if (outcome.ok) {
             succeeded++;
+            if (outcome.reused) reused++;
             setLive((current) => ({
               ...current,
               [id]: {
@@ -259,6 +272,10 @@ export function BatchGradingProvider({
 
         if (succeeded > 0) {
           toast.success(`${pluralize(succeeded, "paper")} ${succeeded === 1 ? "is" : "are"} ready for your review`, {
+            description:
+              reused > 0
+                ? `${reused === succeeded ? "All" : reused} reused a saved result for the same paper and rubric (no new AI call).`
+                : undefined,
             action: {
               label: "Review now",
               onClick: () => router.push(`/review?assignment=${encodeURIComponent(assignmentId)}`),
@@ -270,7 +287,11 @@ export function BatchGradingProvider({
             description: "Use Retry in the student list to try again.",
           });
         }
-        if (stopped) {
+        if (limitMessage) {
+          toast.error("Live AI limit reached", {
+            description: `${limitMessage} ${pluralize(ids.length - processed, "paper")} not graded yet.`,
+          });
+        } else if (stopped) {
           toast.message("AI pass stopped", {
             description: `${pluralize(ids.length - processed, "paper")} not graded yet.`,
           });

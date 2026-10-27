@@ -855,13 +855,13 @@ describe("scan routes", () => {
     }
   });
 
-  it("bounds request bodies and rate-limits live AI calls", () => {
+  it("bounds request bodies and answers a usage cap with its reason", () => {
     for (const route of [["grade"], ["answer-key"]]) {
       const source = read("app", "api", ...route, "route.ts");
       assert.ok(!source.includes("request.formData()"), `${route} must not buffer an unbounded body`);
       assert.match(source, /readFormDataWithLimit\(request,/);
-      assert.match(source, /if \(openAiConfigured\(\)\) \{\s+const limited = checkRateLimit\(`\$\{user\.id\}:vision`/);
-      assert.match(source, /"Retry-After"/);
+      // The caps themselves are checked at the provider call (tests/ai-usage.test.ts).
+      assert.match(source, /if \(error instanceof AiLimitError\) return aiLimitResponse\(error/);
     }
   });
 

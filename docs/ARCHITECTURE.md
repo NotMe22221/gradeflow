@@ -42,8 +42,18 @@ grades. AI drafts the first pass, and a teacher always makes the final call.
   alone (previews may share production's) unless `ALLOW_PREVIEW_DB_CHANGES=1`
   is set for Neon preview branches; they only diff the schema read-only and
   warn on drift. Logs show the database host, never the connection string.
-- `@anthropic-ai/sdk` for the optional Claude grader. A local deterministic
-  "demo grader" runs when `ANTHROPIC_API_KEY` is not set.
+- `@anthropic-ai/sdk` for the optional Claude grader (default model
+  `claude-haiku-5-5`). A local deterministic "demo grader" runs when
+  `ANTHROPIC_API_KEY` is not set or `AI_KILL_SWITCH` is on.
+- Live AI usage guard (`src/lib/ai/usage.ts`, pure; `usage-store.ts` for the
+  `AiCall` table; `guard.ts` for the request wiring). Every paid call is
+  reserved at its worst-case cost before it is sent and settled at its
+  reported usage after. The caps are per session and per IP over a rolling
+  hour, plus calls and estimated spend per UTC day for the site. A reservation
+  reads the counts and inserts its row in one `transaction()`, so concurrent
+  calls can't both take the last slot. Claude first passes are cached in
+  `AiGradeCache` by (paper, rubric, model, prompt) hash
+  (`src/lib/grading/cache.ts`).
 
 Next 16 notes: `params` and `searchParams` are Promises (`const { id } = await params`),
 `cookies()` is async, and there is no `next lint`. After a mutation, call
@@ -276,9 +286,9 @@ server only (`.env.local`), never logged, never sent to the client.
   cookie (`<TimeZoneCookie />`, validated by `viewerTimeZone()`), falling back
   to the server's zone. Relative due labels, Upcoming, To-do weeks, and the one
   past-due rule (`isPastDueDay`: Missing, overdue, waiting for scan) all use it.
-- Every request body is read with a hard byte limit (`src/lib/http/body.ts`),
-  and live OpenAI calls are rate-limited per user (`src/lib/http/rate-limit.ts`)
-  with bounded timeouts (`OPENAI_BUDGETS`). The routes' `maxDuration` is
+- Every request body is read with a hard byte limit (`src/lib/http/body.ts`).
+  Live AI calls go through the usage guard and have bounded timeouts
+  (`OPENAI_BUDGETS`, `CLAUDE_REQUEST_BUDGET`). The routes' `maxDuration` is
   longer than those deadlines.
 - Paper tests that the teacher has not scanned yet are never shown as overdue
   to students or as missing on the teacher's student profile.

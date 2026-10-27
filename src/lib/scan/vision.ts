@@ -3,7 +3,9 @@ import "server-only";
 import { zodResponseFormat } from "openai/helpers/zod";
 import type { ChatCompletionContentPart } from "openai/resources/chat/completions";
 
+import { guardedOpenAiCall } from "@/lib/ai/guard";
 import { describeOpenAiError, getOpenAI, modelFor, openAiErrorKind, openAiRequestOptions } from "@/lib/ai/openai";
+import { AiLimitError } from "@/lib/ai/usage";
 import type { GradingInput } from "@/lib/grading/types";
 import type { CheckedImage } from "@/lib/scan/form";
 import {
@@ -71,19 +73,19 @@ export async function gradeWithVision(
 
   let parsed: VisionGradingOutput | null;
   try {
-    // The vision budget bounds the whole call, retries included (lib/ai/openai.ts).
-    const completion = await getOpenAI().chat.completions.parse(
-      {
-        model: modelFor("vision"),
-        temperature: 0,
-        max_completion_tokens: 8000,
-        messages: [
-          { role: "system", content: buildVisionSystemPrompt() },
-          { role: "user", content },
-        ],
-        response_format: zodResponseFormat(VisionGradingSchema, "handwritten_test_grading"),
-      },
-      openAiRequestOptions("vision")
+    const request = {
+      model: modelFor("vision"),
+      temperature: 0,
+      max_completion_tokens: 8000,
+      messages: [
+        { role: "system" as const, content: buildVisionSystemPrompt() },
+        { role: "user" as const, content },
+      ],
+      response_format: zodResponseFormat(VisionGradingSchema, "handwritten_test_grading"),
+    };
+    // The usage caps come first; the vision budget bounds the whole call, retries included (lib/ai/openai.ts).
+    const completion = await guardedOpenAiCall("scan", request, () =>
+      getOpenAI().chat.completions.parse(request, openAiRequestOptions("vision"))
     );
     const message = completion.choices[0]?.message;
     if (message?.refusal) {
@@ -92,7 +94,7 @@ export async function gradeWithVision(
     }
     parsed = message?.parsed ?? null;
   } catch (error) {
-    if (error instanceof VisionGradingError) throw error;
+    if (error instanceof VisionGradingError || error instanceof AiLimitError) throw error;
     throw new VisionGradingError(safeMessage(error));
   }
 

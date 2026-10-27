@@ -53,8 +53,13 @@ labelled local demo engine. To use real AI, copy `.env.example` to
 | --- | --- | --- |
 | `OPENAI_API_KEY` | unset | Turns on OpenAI. The camera grader and answer-key reader use **gpt-4o** (vision). The goal planner and conference briefs use **gpt-4o-mini**. |
 | `ANTHROPIC_API_KEY` | unset | Turns on Claude for the AI first pass on typed essays. |
-| `ANTHROPIC_MODEL` | `claude-opus-5-5` | Claude model for essays. |
+| `ANTHROPIC_MODEL` | `claude-haiku-5-5` | Claude model for essays. The default is the small, cheap model. |
 | `ANTHROPIC_EFFORT` | `medium` | `low` / `medium` / `high` / `xhigh` / `max`. |
+| `AI_KILL_SWITCH` | off | `1` turns every live AI call off. Each feature then runs its labelled demo engine, as with no keys. |
+| `AI_LIMIT_PER_SESSION_HOUR` | `20` | Live AI calls one browser session may make in any hour. |
+| `AI_LIMIT_PER_IP_HOUR` | `60` | Live AI calls one network (client IP) may make in any hour, across sessions. |
+| `AI_LIMIT_PER_DAY` | `400` | Live AI calls the whole site may make per UTC day. |
+| `AI_DAILY_BUDGET_USD` | `2` | Estimated live AI spend the whole site may reach per UTC day. |
 | `DATABASE_URL` | local Postgres (started for you) | Postgres connection string. Set it to use your own database; hosts like Vercel + Neon set it for you. |
 | `DATABASE_URL_UNPOOLED` | same as `DATABASE_URL` | Direct (unpooled) connection used for schema changes (`prisma db push`). Neon on Vercel sets it. |
 | `SESSION_SECRET` | built-in demo secret | Signs the session cookie. Set a long random string anywhere but a local demo. Required in production once demo sign-in is off. |
@@ -64,6 +69,24 @@ labelled local demo engine. To use real AI, copy `.env.example` to
 **Model routing is fixed** in `src/lib/ai/openai.ts`: vision tasks always use
 `gpt-4o`, and text and logic tasks always use `gpt-4o-mini`. No other file
 names a model.
+
+**Live AI limits.** Every paid call (Claude or OpenAI) goes through one usage
+guard (`src/lib/ai/usage.ts`). Before a call is sent, the guard records it in
+the `AiCall` table at its worst-case cost. That cost comes from the request
+size, `max_tokens`, and the price table in `src/lib/ai/pricing.ts`. The guard
+then checks the caps above:
+- per session and per network, over a rolling hour;
+- for the whole site, calls and estimated spend per UTC day.
+
+A call past a cap is never sent. The page says which limit was hit and when it
+resets, and the route answers 429 with `Retry-After`. After the call, its row is
+settled at the provider's reported token usage. The table lives in Postgres, so
+the caps hold across every server instance. It stores keyed hashes of the
+session cookie and IP, never the raw values.
+
+Claude first passes are also saved by (paper hash, rubric hash, model, prompt
+hash). Grading the same paper against the same rubric again reuses the saved
+result instead of paying for a new call.
 
 `npm run seed` resets the demo data on the local dev server at any time.
 Re-seeding signs everyone out. Seeded dates are relative to the day you seed,
@@ -273,6 +296,7 @@ The click path for judges. Times are a guide.
 | Landing page screenshots | **Real screenshots** of the demo app with synthetic data, captured by `scripts/capture-screenshots.mjs`. No testimonials or usage numbers are claimed. |
 | Dashboard stats | **Real counts** from approved grades. Time saved is an **illustrative estimate** (it assumes about 6 minutes per paper, is not a measurement, and is labelled that way). |
 | AI confidence | The model's **self-reported, uncalibrated** confidence. Used only to sort the queue, never shown as a probability. |
+| Live AI limits | **Real.** Per-session, per-network and daily caps plus a kill switch, enforced on the server from the `AiCall` table before any paid call is sent. Spend is an **estimate** from list prices, not a bill. |
 
 When `OPENAI_API_KEY` is set, test photos, answer-key photos, and the
 approved-grade summaries behind briefs and goal plans are sent to OpenAI. Use

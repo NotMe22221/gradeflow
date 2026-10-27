@@ -28,13 +28,13 @@ model User {
   role      String // "TEACHER" | "STUDENT"
   createdAt DateTime @default(now())
 
-  classesTaught  Class[]          @relation("TeacherClasses")
-  enrollments    Enrollment[]
-  submissions    Submission[]
-  approvals      PublishedGrade[] @relation("ApprovedBy")
-  activities     StudyActivity[]
-  goals          StudentGoal[]
-  preferences    UserPreferences?
+  classesTaught Class[]          @relation("TeacherClasses")
+  enrollments   Enrollment[]
+  submissions   Submission[]
+  approvals     PublishedGrade[] @relation("ApprovedBy")
+  activities    StudyActivity[]
+  goals         StudentGoal[]
+  preferences   UserPreferences?
 }
 
 /// Per-user look and layout (theme, accent, text size, density, section order).
@@ -55,7 +55,7 @@ model Class {
   teacherId String
   createdAt DateTime @default(now())
 
-  teacher     User         @relation("TeacherClasses", fields: [teacherId], references: [id], onDelete: Cascade)
+  teacher     User          @relation("TeacherClasses", fields: [teacherId], references: [id], onDelete: Cascade)
   enrollments Enrollment[]
   assignments Assignment[]
   goals       StudentGoal[]
@@ -122,7 +122,7 @@ model Submission {
 
   // SUBMITTED -> GRADING -> NEEDS_REVIEW -> APPROVED -> PUBLISHED
   //                     \-> GRADING_FAILED      \-> RETURNED (sent back with a note)
-  status       String   @default("SUBMITTED")
+  status String @default("SUBMITTED")
 
   // Teacher review state (draft edits live on CriterionScore).
   teacherFeedback String?
@@ -133,8 +133,8 @@ model Submission {
 
   updatedAt DateTime @updatedAt
 
-  assignment     Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  student        User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  assignment     Assignment        @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student        User              @relation(fields: [studentId], references: [id], onDelete: Cascade)
   aiGrade        AiGrade?
   scores         CriterionScore[]
   publishedGrade PublishedGrade?
@@ -178,19 +178,19 @@ model AiGrade {
 
 // Per-criterion AI suggestion plus the teacher's working (draft) values.
 model CriterionScore {
-  id             String  @id @default(cuid())
-  submissionId   String
-  criterionId    String
+  id           String @id @default(cuid())
+  submissionId String
+  criterionId  String
 
   // AI suggestion. aiScore is null when the AI output failed validation.
-  aiScore        Float?
+  aiScore         Float?
   aiJustification String?
-  aiEvidence     String?
-  evidenceFound  Boolean @default(false)
+  aiEvidence      String?
+  evidenceFound   Boolean @default(false)
 
   // Teacher edits. null means "not edited yet - use the AI value".
-  finalScore     Float?
-  finalComment   String?
+  finalScore   Float?
+  finalComment String?
 
   submission Submission      @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   criterion  RubricCriterion @relation(fields: [criterionId], references: [id], onDelete: Cascade)
@@ -253,4 +253,47 @@ model StudentGoal {
   class   Class @relation(fields: [classId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, classId])
+}
+
+// One live (paid) AI call. The usage guard (src/lib/ai/usage.ts) records it
+// before the request is sent, at its worst-case cost, and settles it with the
+// provider's reported token usage afterwards. Read for the per-session,
+// per-IP and daily caps. Keys are HMACs: no raw cookie or IP is stored.
+model AiCall {
+  id           String    @id @default(cuid())
+  // "anthropic" | "openai"
+  provider     String
+  // "essay" | "scan" | "answer_key" | "brief" | "goal"
+  feature      String
+  model        String
+  userId       String?
+  sessionKey   String
+  ipKey        String
+  // "reserved" | "ok" | "failed"
+  status       String    @default("reserved")
+  // Estimated, in millionths of a USD: the worst case until settled.
+  costMicroUsd Int
+  inputTokens  Int?
+  outputTokens Int?
+  createdAt    DateTime  @default(now())
+  settledAt    DateTime?
+
+  @@index([createdAt])
+  @@index([sessionKey, createdAt])
+  @@index([ipKey, createdAt])
+}
+
+// A saved Claude first pass, keyed by (paper hash, rubric hash, model,
+// prompt hash), so grading the same paper against the same rubric again
+// reuses it instead of paying for a new call. Holds the raw output: it is
+// validated against the paper again each time it is used.
+model AiGradeCache {
+  key        String   @id
+  paperHash  String
+  rubricHash String
+  model      String
+  promptHash String
+  // JSON of RawGradingResult plus the model that served it.
+  result     String
+  createdAt  DateTime @default(now())
 }

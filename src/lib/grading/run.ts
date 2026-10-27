@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getOwnedSubmission } from "@/lib/access";
+import { AiLimitError } from "@/lib/ai/usage";
 import {
   AI_RERUNNABLE_STATUSES,
   parseAssignmentKind,
@@ -40,6 +41,8 @@ export type RunResult = {
   confidence: Confidence | null;
   grader: GraderKind;
   flagCount: number;
+  /** True when a saved result for this exact paper, rubric and model was reused (no new AI call). */
+  reused: boolean;
 };
 
 /** The submission is not in a state that can be graded right now (HTTP 409). */
@@ -83,6 +86,23 @@ async function claimSubmission(submissionId: string): Promise<void> {
 
   const current = await db.submission.findUnique({ where: { id: submissionId }, select: { status: true } });
   throw new GradingConflictError(conflictMessage(current?.status ?? ""));
+}
+
+/**
+ * Give the paper back in the state it was claimed from: a usage cap stopped
+ * the call before anything was sent, so nothing failed and a previous draft
+ * stays as it was.
+ */
+async function releaseClaim(submissionId: string, previous: string): Promise<void> {
+  const status = (AI_RERUNNABLE_STATUSES as string[]).includes(previous) ? previous : "GRADING_FAILED";
+  try {
+    await db.submission.updateMany({ where: { id: submissionId, status: "GRADING" }, data: { status } });
+  } catch (error) {
+    console.error("[markwise] Could not release a grading claim", {
+      submissionId,
+      type: error instanceof Error ? error.name : typeof error,
+    });
+  }
 }
 
 async function markFailed(submissionId: string): Promise<void> {
@@ -171,6 +191,7 @@ export async function runAiFirstPass(teacherId: string, submissionId: string): P
     throw new GradingError("Add at least one rubric criterion before running the AI pass.", 422);
   }
 
+  const previousStatus = submission.status;
   await claimSubmission(submission.id);
 
   const grader = getGrader();
@@ -200,6 +221,10 @@ export async function runAiFirstPass(teacherId: string, submissionId: string): P
     await saveGrading(submission.id, grader, result);
   } catch (error) {
     if (error instanceof GradingConflictError) throw error;
+    if (error instanceof AiLimitError) {
+      await releaseClaim(submission.id, previousStatus);
+      throw error;
+    }
     await markFailed(submission.id);
     if (error instanceof GradingError) throw error;
     console.error("[markwise] AI first pass failed", {
@@ -215,5 +240,6 @@ export async function runAiFirstPass(teacherId: string, submissionId: string): P
     confidence: result.confidence,
     grader: grader.kind,
     flagCount: result.flags.length,
+    reused: grader.cacheHit === true,
   };
 }

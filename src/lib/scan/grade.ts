@@ -25,6 +25,7 @@ import {
   type TranscriptionSource,
 } from "@/lib/scan/types";
 import { gradeWithVision, VisionGradingError } from "@/lib/scan/vision";
+import { AiLimitError } from "@/lib/ai/usage";
 import type { Legibility, MappedVisionOutput } from "@/lib/scan/vision-prompt";
 import { TEACHER_REPLACEABLE_STATUSES } from "@/lib/submissions";
 import { stripNul, stripNulOptional } from "@/lib/text/sanitize";
@@ -122,6 +123,8 @@ async function readWithVision(input: Omit<GradingInput, "paper">, request: ScanR
     output = await gradeWithVision(input, request.pages, request.answerKey);
   } catch (error) {
     if (error instanceof VisionGradingError) throw new ScanError(error.message, 502);
+    // A usage cap stopped the call before it was sent: the route answers 429 with the reason.
+    if (error instanceof AiLimitError) throw error;
     console.error("[markwise] Camera grading failed", { type: error instanceof Error ? error.name : typeof error });
     throw new ScanError("The AI request failed. Try again.", 502);
   }

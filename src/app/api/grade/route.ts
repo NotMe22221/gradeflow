@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { openAiConfigured } from "@/lib/ai/openai";
+import { aiLimitResponse } from "@/lib/ai/guard";
+import { AiLimitError } from "@/lib/ai/usage";
 import { AuthError, requireTeacher } from "@/lib/auth/session";
 import { readFormDataWithLimit } from "@/lib/http/body";
-import { AI_RATE_LIMITS, checkRateLimit, rateLimitMessage } from "@/lib/http/rate-limit";
 import {
   ANSWER_KEY_LABEL,
   MAX_SCAN_REQUEST_BYTES,
@@ -23,9 +23,9 @@ export const dynamic = "force-dynamic";
 // route always answers with JSON before this limit.
 export const maxDuration = 120;
 
-function errorResponse(error: string, status: number, code?: ScanErrorCode, headers?: HeadersInit) {
+function errorResponse(error: string, status: number, code?: ScanErrorCode) {
   const body: ScanGradeFailure = code ? { ok: false, error, code } : { ok: false, error };
-  return NextResponse.json(body, { status, headers });
+  return NextResponse.json(body, { status });
 }
 
 /**
@@ -34,21 +34,13 @@ function errorResponse(error: string, status: number, code?: ScanErrorCode, head
  * optional transcription (demo mode only).
  *
  * The graded draft lands in the review queue as NEEDS_REVIEW. Nothing is
- * published from here: publishing needs an explicit teacher approval.
+ * published from here: publishing needs an explicit teacher approval. The
+ * live GPT-4o call goes through the usage caps (lib/ai/guard.ts): past one,
+ * the route answers 429 with the reason and Retry-After.
  */
 export async function POST(request: Request) {
   try {
     const user = await requireTeacher();
-
-    // Live GPT-4o calls cost money: cap them per teacher. The demo scanner is free.
-    if (openAiConfigured()) {
-      const limited = checkRateLimit(`${user.id}:vision`, AI_RATE_LIMITS.vision);
-      if (!limited.ok) {
-        return errorResponse(rateLimitMessage(limited.retryAfterSeconds), 429, undefined, {
-          "Retry-After": String(limited.retryAfterSeconds),
-        });
-      }
-    }
 
     // The same limits on every host, set under Vercel's 4.5 MB function body
     // limit (Vercel rejects a larger body before this runs). The browser
@@ -90,6 +82,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof AuthError) return errorResponse(error.message, error.status);
     if (error instanceof ScanError) return errorResponse(error.message, error.status, error.code);
+    if (error instanceof AiLimitError) return aiLimitResponse(error);
     console.error("[markwise] Scan route failed", { type: error instanceof Error ? error.name : typeof error });
     return errorResponse("Grading the scan failed. Try again.", 500);
   }

@@ -36,6 +36,8 @@ export type RawGradingResult = {
 export interface Grader {
   kind: GraderKind;
   model: string | null;
+  /** True when the last grade() reused a saved result instead of calling a paid API. */
+  readonly cacheHit?: boolean;
   grade(input: GradingInput): Promise<RawGradingResult>;
 }
 

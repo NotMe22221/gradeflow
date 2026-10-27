@@ -3,6 +3,8 @@ import "server-only";
 import OpenAI from "openai";
 import { ContentFilterFinishReasonError, LengthFinishReasonError } from "openai/core/error";
 
+import { liveAiAllowed } from "@/lib/ai/usage";
+
 /**
  * OpenAI access for the camera grader, the answer-key scanner, the
  * conference brief, and the goal planner.
@@ -15,8 +17,9 @@ import { ContentFilterFinishReasonError, LengthFinishReasonError } from "openai/
  *
  * The key is read from OPENAI_API_KEY on the server only (put it in
  * .env.local). It is never sent to the browser, never logged, and never
- * committed. When it is not set, every feature falls back to a labelled
- * local demo implementation.
+ * committed. When it is not set, or the kill switch (AI_KILL_SWITCH) is on,
+ * every feature falls back to a labelled local demo implementation. Every
+ * live call goes through the usage guard (guardedOpenAiCall in guard.ts).
  */
 export const OPENAI_MODELS = {
   vision: "gpt-4o",
@@ -25,8 +28,9 @@ export const OPENAI_MODELS = {
 
 export type OpenAiTask = keyof typeof OPENAI_MODELS;
 
+/** Whether the live OpenAI engines run: a key is set and the kill switch is off. */
 export function openAiConfigured(): boolean {
-  return Boolean(process.env.OPENAI_API_KEY);
+  return liveAiAllowed(process.env.OPENAI_API_KEY);
 }
 
 /**

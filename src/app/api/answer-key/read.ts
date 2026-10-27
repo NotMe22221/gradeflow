@@ -3,6 +3,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { zodResponseFormat } from "openai/helpers/zod";
 
+import { guardedOpenAiCall } from "@/lib/ai/guard";
 import { getOpenAI, modelFor, openAiErrorKind, openAiRequestOptions } from "@/lib/ai/openai";
 import {
   ANSWER_KEY_SYSTEM_PROMPT,
@@ -39,23 +40,25 @@ export async function readAnswerKeyWithOpenAI(bytes: Uint8Array, mimeType: ScanI
 
   let completion;
   try {
-    completion = await getOpenAI().chat.completions.parse(
-      {
-        model,
-        temperature: 0,
-        messages: [
-          { role: "system", content: ANSWER_KEY_SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: ANSWER_KEY_USER_PROMPT },
-              { type: "image_url", image_url: { url: dataUrl, detail: "high" } },
-            ],
-          },
-        ],
-        response_format: zodResponseFormat(AnswerKeyOutputSchema, "answer_key"),
-      },
-      openAiRequestOptions("vision")
+    const request = {
+      model,
+      temperature: 0,
+      // Ample for a full answer key, and a bound on what one read can cost.
+      max_completion_tokens: 4000,
+      messages: [
+        { role: "system" as const, content: ANSWER_KEY_SYSTEM_PROMPT },
+        {
+          role: "user" as const,
+          content: [
+            { type: "text" as const, text: ANSWER_KEY_USER_PROMPT },
+            { type: "image_url" as const, image_url: { url: dataUrl, detail: "high" as const } },
+          ],
+        },
+      ],
+      response_format: zodResponseFormat(AnswerKeyOutputSchema, "answer_key"),
+    };
+    completion = await guardedOpenAiCall("answer_key", request, () =>
+      getOpenAI().chat.completions.parse(request, openAiRequestOptions("vision"))
     );
   } catch (error) {
     // parse() raises these when the model stops early. Anything else goes to the caller.

@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { AnswerKeyError, readAnswerKeyDemo, readAnswerKeyWithOpenAI } from "@/app/api/answer-key/read";
+import { aiLimitResponse } from "@/lib/ai/guard";
 import { describeOpenAiError, openAiConfigured } from "@/lib/ai/openai";
+import { AiLimitError } from "@/lib/ai/usage";
 import { AuthError, requireTeacher } from "@/lib/auth/session";
 import { readFormDataWithLimit } from "@/lib/http/body";
-import { AI_RATE_LIMITS, checkRateLimit, rateLimitMessage } from "@/lib/http/rate-limit";
 import type { AnswerKeyFailure, AnswerKeySuccess } from "@/lib/scan/answer-key";
 import {
   MAX_SCAN_IMAGE_BYTES,
@@ -25,11 +26,10 @@ export const maxDuration = 120;
  */
 const MAX_BODY_BYTES = MAX_UPLOAD_REQUEST_BYTES;
 
-function errorResponse(error: string, status: number, headers?: Record<string, string>) {
-  return NextResponse.json<AnswerKeyFailure>(
-    { ok: false, error },
-    { status, headers: { "Cache-Control": "no-store", ...headers } }
-  );
+const NO_STORE = { "Cache-Control": "no-store" };
+
+function errorResponse(error: string, status: number) {
+  return NextResponse.json<AnswerKeyFailure>({ ok: false, error }, { status, headers: NO_STORE });
 }
 
 /**
@@ -42,17 +42,7 @@ function errorResponse(error: string, status: number, headers?: Record<string, s
  */
 export async function POST(request: Request) {
   try {
-    const user = await requireTeacher();
-
-    // Live GPT-4o calls cost money: they share the camera grader's per-teacher cap.
-    if (openAiConfigured()) {
-      const limited = checkRateLimit(`${user.id}:vision`, AI_RATE_LIMITS.vision);
-      if (!limited.ok) {
-        return errorResponse(rateLimitMessage(limited.retryAfterSeconds), 429, {
-          "Retry-After": String(limited.retryAfterSeconds),
-        });
-      }
-    }
+    await requireTeacher();
 
     // Never buffers more than the limit, even for a chunked upload with no Content-Length.
     let form: FormData | null;
@@ -80,6 +70,8 @@ export async function POST(request: Request) {
         result = await readAnswerKeyWithOpenAI(bytes, mimeType);
       } catch (error) {
         if (error instanceof AnswerKeyError) return errorResponse(error.message, error.status);
+        // The usage caps (lib/ai/guard.ts) stopped the call before it was sent.
+        if (error instanceof AiLimitError) return aiLimitResponse(error, NO_STORE);
         return errorResponse(describeOpenAiError(error, "Answer key import"), 502);
       }
     } else {

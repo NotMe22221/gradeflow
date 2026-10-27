@@ -2,7 +2,9 @@ import "server-only";
 
 import { zodResponseFormat } from "openai/helpers/zod";
 
+import { guardedOpenAiCall } from "@/lib/ai/guard";
 import { describeOpenAiError, getOpenAI, modelFor, openAiConfigured, openAiRequestOptions } from "@/lib/ai/openai";
+import { AiLimitError } from "@/lib/ai/usage";
 import { transaction } from "@/lib/db";
 import { insertAwards, unearnedAwards, type AwardInput } from "@/lib/gamification/award";
 import { XP_RULES } from "@/lib/gamification/rules";
@@ -59,20 +61,22 @@ type Extraction = {
 async function extractWithOpenAI(goal: string, classes: GoalClass[]): Promise<Extraction> {
   let completion;
   try {
-    completion = await getOpenAI().chat.completions.parse(
-      {
-        model: modelFor("text"),
-        temperature: 0.2,
-        max_completion_tokens: 400,
-        messages: [
-          { role: "system", content: GOAL_SYSTEM_PROMPT },
-          { role: "user", content: buildGoalUserPrompt(goal, classes) },
-        ],
-        response_format: zodResponseFormat(GoalExtractionSchema, "goal_extraction"),
-      },
-      openAiRequestOptions("text")
+    const request = {
+      model: modelFor("text"),
+      temperature: 0.2,
+      max_completion_tokens: 400,
+      messages: [
+        { role: "system" as const, content: GOAL_SYSTEM_PROMPT },
+        { role: "user" as const, content: buildGoalUserPrompt(goal, classes) },
+      ],
+      response_format: zodResponseFormat(GoalExtractionSchema, "goal_extraction"),
+    };
+    completion = await guardedOpenAiCall("goal", request, () =>
+      getOpenAI().chat.completions.parse(request, openAiRequestOptions("text"))
     );
   } catch (error) {
+    // A usage cap stopped the call before it was sent: the route answers 429 with the reason.
+    if (error instanceof AiLimitError) throw error;
     // Logs the error class and status only; never the key or the goal text.
     throw new GoalPlannerError(describeOpenAiError(error, "Goal planner"), 502);
   }

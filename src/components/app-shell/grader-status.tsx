@@ -95,10 +95,13 @@ export function GraderStatus({ status, className }: { status: EngineStatus; clas
           ))}
         </ul>
         <p className="mt-3 text-[0.75rem] text-pretty text-muted-foreground">
-          {allDemo
-            ? "No API keys are set, so labelled local demo engines run. Their output is a placeholder, not real AI."
-            : "Every AI result is a draft: nothing publishes until you approve it."}
+          {status.killSwitch
+            ? "Live AI is switched off on this server (AI_KILL_SWITCH), so labelled local demo engines run. Their output is a placeholder, not real AI."
+            : allDemo
+              ? "No API keys are set, so labelled local demo engines run. Their output is a placeholder, not real AI."
+              : "Every AI result is a draft: nothing publishes until you approve it."}
         </p>
+        {!allDemo && <p className="mt-2 text-[0.75rem] text-pretty text-muted-foreground">{status.limits}</p>}
       </PopoverContent>
     </Popover>
   );

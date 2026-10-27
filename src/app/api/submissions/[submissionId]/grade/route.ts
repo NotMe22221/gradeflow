@@ -1,11 +1,16 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
+import { aiLimitResponse } from "@/lib/ai/guard";
+import { AiLimitError } from "@/lib/ai/usage";
 import { AuthError, requireTeacher } from "@/lib/auth/session";
 import { GradingConflictError, GradingError, runAiFirstPass } from "@/lib/grading/run";
 import { idSchema } from "@/lib/validation/id";
 
 export const dynamic = "force-dynamic";
+// One Claude call, capped at 110 seconds with its retry (CLAUDE_REQUEST_BUDGET
+// in lib/grading/claude-grader.ts), plus the database work.
+export const maxDuration = 120;
 
 function errorResponse(error: string, status: number) {
   return NextResponse.json({ ok: false, error }, { status });
@@ -14,7 +19,8 @@ function errorResponse(error: string, status: number) {
 /**
  * Run the AI first pass for one submission. Teacher only, and only for
  * submissions in the teacher's own classes. The result lands in the review
- * queue; nothing is published from here.
+ * queue; nothing is published from here. A live call that a usage cap stops
+ * answers 429 with the reason and Retry-After, and the paper is left as it was.
  */
 export async function POST(_request: Request, { params }: { params: Promise<{ submissionId: string }> }) {
   try {
@@ -28,6 +34,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ su
   } catch (error) {
     if (error instanceof AuthError) return errorResponse(error.message, error.status);
     if (error instanceof GradingConflictError) return errorResponse(error.message, 409);
+    if (error instanceof AiLimitError) return aiLimitResponse(error);
     // The submission may now be GRADING_FAILED, so refresh the sidebar counts.
     revalidatePath("/", "layout");
     if (error instanceof GradingError) return errorResponse(error.message, error.status);

@@ -1,8 +1,13 @@
 import "server-only";
 
+import { liveAiAllowed } from "@/lib/ai/usage";
 import { GRADER_LABELS, type GraderKind } from "@/lib/constants";
 
-export const DEFAULT_CLAUDE_MODEL = "claude-opus-5-5";
+/**
+ * A small, cheap model for first-pass grading ($0.10 / $0.50 per million
+ * input / output tokens). ANTHROPIC_MODEL overrides it.
+ */
+export const DEFAULT_CLAUDE_MODEL = "claude-haiku-5-5";
 
 /**
  * The single switch for which grader runs the AI first pass. getGrader()
@@ -13,7 +18,7 @@ export const DEFAULT_CLAUDE_MODEL = "claude-opus-5-5";
 export type EssayGraderKind = Extract<GraderKind, "claude" | "demo">;
 
 export function activeGraderKind(): EssayGraderKind {
-  return process.env.ANTHROPIC_API_KEY ? "claude" : "demo";
+  return liveAiAllowed(process.env.ANTHROPIC_API_KEY) ? "claude" : "demo";
 }
 
 export function claudeModel(): string {
