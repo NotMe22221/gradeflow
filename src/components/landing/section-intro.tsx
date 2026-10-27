@@ -52,6 +52,3 @@ export function SectionIntro({
 export function LandingContainer({ className, ...props }: React.ComponentProps<"div">) {
   return <div className={cn("mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8", className)} {...props} />;
 }
-
-/** Vertical rhythm for a landing section (8pt scale). */
-export const SECTION_SPACING = "py-16 sm:py-24";

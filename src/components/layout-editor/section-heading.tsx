@@ -23,7 +23,10 @@ export function SectionHeading({
   return (
     <div className={cn("mb-3 flex min-h-10 items-center justify-between gap-4", className)}>
       <div className="min-w-0">
-        <h2 id={id} className="text-[1.125rem] leading-6 font-medium text-balance text-foreground">
+        <h2
+          id={id}
+          className="font-display text-[1.375rem] leading-7 font-extrabold tracking-[-0.015em] text-balance text-foreground"
+        >
           {title}
         </h2>
         {description ? (

@@ -1,5 +1,6 @@
-// Decor compositions for the student side: its color bands (the Home
-// greeting and the goal planner) and the corners of its page titles. Built from the primitives in decor.tsx, so every
+// Decor compositions for the student side's color bands (the Home greeting and
+// the goal planner); page titles use HeaderDecor from page-header.tsx, like the
+// teacher's pages. Built from the primitives in decor.tsx, so every
 // piece is aria-hidden, ignores the pointer, never prints, and disappears in
 // the Calm look.
 //
@@ -52,27 +53,6 @@ export function PlannerDecor() {
       />
       <XGrid cols={4} rows={2} className={`${WIDE} top-[3.5cqw] right-[5cqw] w-[10cqw]`} />
       <DotGrid cols={8} rows={3} className={`${WIDE} top-[4cqw] right-[25cqw] w-[11cqw]`} />
-    </>
-  );
-}
-
-/**
- * Corner art for a student page's title (PageHeader's `decor` slot, which
- * spans the header's height plus the page's top padding, at its right, from
- * md up). Every piece is anchored to the box's bottom edge, so however short
- * the header is (Classwork is a title and one button), nothing reaches the
- * content under it. The big blob rises out of the top of the page: give the
- * page `overflow-y-clip`, so it tucks under the bars there instead of
- * showing through them.
- */
-export function PageCornerDecor({ tones }: { tones: [PopTone, PopTone] }) {
-  const [main, second] = tones;
-  return (
-    <>
-      <Blob shape={4} tone={main} className="-right-24 bottom-0 w-64 lg:-right-20 lg:w-72" />
-      <XGrid cols={4} rows={2} className="right-4 bottom-4 w-24 lg:right-8 lg:w-28" />
-      <Blob shape={2} tone={second} className="right-[12rem] bottom-1 w-14 lg:right-[15rem] lg:w-16" />
-      <Squiggle tone="pink" waves={2} className="right-[15rem] top-[38%] hidden w-16 lg:right-[19.5rem] lg:block" />
     </>
   );
 }

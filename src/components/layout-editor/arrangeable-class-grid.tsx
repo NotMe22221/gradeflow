@@ -262,14 +262,14 @@ function SortableCard({
       <div
         inert
         className={cn(
-          "h-full rounded-xl select-none",
+          "h-full rounded-3xl select-none",
           isDragging ? "shadow-raised ring-2 ring-primary" : "ring-1 ring-primary/25"
         )}
       >
         {item.node}
       </div>
       {/* Arrange controls over the card's footer row (same height, so nothing moves). */}
-      <div className="absolute inset-x-px bottom-px flex h-[3.3125rem] items-center gap-1 rounded-b-[0.6875rem] border-t border-border bg-card px-2">
+      <div className="absolute inset-x-px bottom-px flex h-[3.3125rem] items-center gap-1 rounded-b-[calc(1.5rem-1px)] border-t border-border bg-card px-2">
         <button
           type="button"
           ref={setActivatorNodeRef}

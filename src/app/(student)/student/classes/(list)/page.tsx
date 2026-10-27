@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 
 import { BookOpen } from "@/components/icons";
-import { PageCornerDecor } from "@/components/decor/student";
 import { EmptyState } from "@/components/empty-state";
 import { ArrangeableClassGrid } from "@/components/layout-editor/arrangeable-class-grid";
 import { ArrangeButton, FixedRegion, LayoutEditorProvider } from "@/components/layout-editor/editor-context";
-import { PageContainer, PageHeader } from "@/components/page-header";
+import { HeaderDecor, PageContainer, PageHeader } from "@/components/page-header";
 import { buildClassCards, StudentClassCard } from "@/components/student/class-card";
 import { todoTabFor } from "@/components/student/todo-model";
 import { requireStudentPage } from "@/lib/auth/session";
@@ -59,7 +58,7 @@ export default async function StudentClassesPage({
             title="Classes"
             description={description}
             actions={cards.length > 1 ? <ArrangeButton /> : null}
-            decor={<PageCornerDecor tones={["mint", "coral"]} />}
+            decor={<HeaderDecor tones={["mint", "coral"]} />}
           />
         </FixedRegion>
         <ArrangeableClassGrid

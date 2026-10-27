@@ -2,10 +2,11 @@ import { cn } from "@/lib/utils";
 
 /*
  * Shared pieces for the landing page's middle sections in the Bold look: the
- * band fills, the section rhythm, a heading's closing period that is safe on
- * a band, and the organic number stickers. Headings themselves come from
- * SectionIntro (section-intro.tsx). Bands turn plain (bg-secondary) and decor
- * disappears in the Calm look, so everything here still reads there.
+ * band fills, the section rhythm and the organic number stickers. Headings
+ * come from SectionIntro (section-intro.tsx; tone="band" on a band), and a
+ * heading SectionIntro can't hold ends in Period onBand (decor/period.tsx).
+ * Bands turn plain (bg-secondary) and decor disappears in the Calm look, so
+ * everything here still reads there.
  */
 
 export type BandTone = "yellow" | "coral" | "mint" | "sky" | "pink" | "lilac";
@@ -22,8 +23,6 @@ export const BAND_BG: Record<BandTone, string> = {
 
 /** Vertical rhythm for a Bold landing section: roomier than the app's, so the type and color can breathe. */
 export const BOLD_SECTION_Y = "py-20 sm:py-28";
-
-export { Period } from "@/components/decor/period";
 
 /** Organic outlines, like the paint blobs, for the number stickers. */
 const STICKER_SHAPES = [

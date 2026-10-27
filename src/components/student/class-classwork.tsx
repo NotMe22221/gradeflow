@@ -2,9 +2,8 @@ import Link from "next/link";
 import { ClipboardList, SquareUserRound } from "@/components/icons";
 
 import { AssignmentIcon } from "@/components/classwork/assignment-icon";
-import { PageCornerDecor } from "@/components/decor/student";
 import { EmptyState } from "@/components/empty-state";
-import { PageHeader } from "@/components/page-header";
+import { HeaderDecor, PageHeader } from "@/components/page-header";
 import {
   dueWhen,
   dueWhenText,
@@ -58,7 +57,7 @@ export function StudentClasswork({
             </Link>
           </Button>
         }
-        decor={<PageCornerDecor tones={["lilac", "yellow"]} />}
+        decor={<HeaderDecor tones={["lilac", "yellow"]} />}
       />
 
       {sorted.length === 0 ? (

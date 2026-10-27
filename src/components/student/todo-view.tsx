@@ -6,9 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { ChevronDown, CircleAlert, CircleCheck, ClipboardList, Inbox } from "@/components/icons";
 
 import { AssignmentIcon } from "@/components/classwork/assignment-icon";
-import { PageCornerDecor } from "@/components/decor/student";
 import { EmptyState } from "@/components/empty-state";
-import { PageHeader } from "@/components/page-header";
+import { HeaderDecor, PageHeader } from "@/components/page-header";
 import {
   groupTodoItems,
   isTodoTab,
@@ -95,7 +94,7 @@ export function TodoView({ items, classes }: { items: TodoItem[]; classes: { id:
         <PageHeader
           title="To-do"
           description={selectedClass ? `Your work in ${selectedClass.name}.` : "Your work from every class, soonest due first."}
-          decor={<PageCornerDecor tones={["sky", "yellow"]} />}
+          decor={<HeaderDecor tones={["sky", "yellow"]} />}
           className="mb-5"
         />
         <div className="flex w-full flex-col gap-1.5 sm:w-60">

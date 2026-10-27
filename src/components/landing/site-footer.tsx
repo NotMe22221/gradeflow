@@ -1,4 +1,5 @@
 import { LogoMark } from "@/components/brand/logo";
+import { Period } from "@/components/decor/period";
 import { LandingContainer } from "@/components/landing/section-intro";
 import { SECTION_LINKS } from "@/components/landing/site-header";
 
@@ -11,7 +12,8 @@ export function SiteFooter({ sectionBase = "" }: { sectionBase?: string }) {
           <p className="flex items-center gap-3">
             <LogoMark className="size-10" />
             <span className="display-title text-foreground">
-              Markwise<span className="text-primary">.</span>
+              Markwise
+              <Period />
             </span>
           </p>
           <p className="mt-5 max-w-[48ch] text-pretty">

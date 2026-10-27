@@ -8,7 +8,7 @@ import { loadAssignmentKinds } from "@/components/gradebook/assignment-kinds";
 import { ClassChips } from "@/components/classroom/class-chips";
 import type { ExportFormatOption } from "@/components/gradebook/export-button";
 import { GradesView } from "@/components/gradebook/grades-view";
-import { PageContainer, PageHeader } from "@/components/page-header";
+import { HeaderDecor, PageContainer, PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { requireTeacherPage } from "@/lib/auth/session";
 import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
@@ -49,7 +49,7 @@ export default async function GradebookPage({
   if (!selected) {
     return (
       <PageContainer>
-        <PageHeader title={TITLE} description={DESCRIPTION} />
+        <PageHeader title={TITLE} description={DESCRIPTION} decor={<HeaderDecor tones={["mint", "yellow"]} />} />
         <EmptyState
           icon={BookOpen}
           title="Create a class to start a gradebook."
@@ -73,7 +73,7 @@ export default async function GradebookPage({
 
   return (
     <PageContainer>
-      <PageHeader title={TITLE} description={DESCRIPTION} />
+      <PageHeader title={TITLE} description={DESCRIPTION} decor={<HeaderDecor tones={["mint", "yellow"]} />} />
 
       <ClassChips classes={classes} selectedId={selected.id} basePath="/gradebook" className="mb-6" />
 

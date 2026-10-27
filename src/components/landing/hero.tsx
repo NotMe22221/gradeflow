@@ -1,9 +1,11 @@
 import { ArrowDown, CircleCheck } from "@/components/icons";
 
 import { Blob, DotGrid, Squiggle, XGrid } from "@/components/decor/decor";
+import { Period } from "@/components/decor/period";
 import { DemoCtas } from "@/components/landing/demo-ctas";
 import { ScreenshotFrame } from "@/components/landing/screenshot";
 import type { Theme } from "@/lib/preferences/schema";
+import { cn } from "@/lib/utils";
 
 /**
  * The outcome first, then how it works and who stays in control, then the
@@ -17,12 +19,14 @@ export function Hero({ demoLogin, theme }: { demoLogin: boolean; theme: Theme })
   return (
     <section aria-labelledby="hero-heading" className="relative isolate overflow-hidden pt-12 pb-16 sm:pt-20 sm:pb-24">
       {/* Top right: a big yellow blob (the one that drifts), a coral one over its edge, X marks on it. On
-          phones only the yellow corner shows, above the headline. */}
+          phones only the yellow corner shows, above the headline.
+          overflow-visible: the blob's outline reaches a little past its 200 x 200 box, and a clipped
+          box would cut a straight edge into it. */}
       <Blob
         shape={4}
         tone="yellow"
         float
-        className="-top-[22vw] -right-[10vw] w-[38vw] sm:-top-[20vw] lg:-top-[13vw] lg:-right-[9vw] lg:w-[40vw]"
+        className="-top-[22vw] -right-[10vw] w-[38vw] overflow-visible sm:-top-[20vw] lg:-top-[13vw] lg:-right-[9vw] lg:w-[40vw]"
       />
       <Blob shape={2} tone="coral" className="hidden lg:block lg:-top-[5vw] lg:right-[20vw] lg:w-[17vw]" />
       <XGrid cols={6} rows={4} className="hidden md:block md:top-[4.5vw] md:right-[5vw] md:w-[12vw]" />
@@ -36,7 +40,8 @@ export function Hero({ demoLogin, theme }: { demoLogin: boolean; theme: Theme })
           <h1 id="hero-heading" className="display-hero relative mt-6 max-w-[9em] text-foreground">
             <span className="block">Get through the stack faster.</span>
             <span className="block">
-              Keep the final say<span className="text-primary">.</span>
+              Keep the final say
+              <Period />
             </span>
             {/* Trails the second line ("stack faster."), placed in em so it follows the headline's size. */}
             <Squiggle tone="pink" className="top-[1.33em] left-[5.75em] hidden w-[1.35em] lg:block" />
@@ -61,14 +66,24 @@ export function Hero({ demoLogin, theme }: { demoLogin: boolean; theme: Theme })
             </a>
           </p>
         </div>
-        <div className="relative isolate mt-10 hidden self-start justify-self-end lg:col-span-5 lg:block">
-          <Blob shape={3} tone="sky" className="-right-20 -bottom-24 w-80" />
-          <DotGrid cols={8} rows={5} className="-bottom-12 -left-12 w-40" />
-          <SampleScore />
+        {/* From xl, a sample of the first pass with paint behind its lower right, where it can't reach the
+            lede. Below xl the column is too narrow to keep the card clear of the lede, so only the paint
+            shows, bleeding off the right edge. */}
+        <div className="relative isolate mt-10 hidden lg:col-span-5 lg:block xl:self-start xl:justify-self-end">
+          <Blob
+            shape={3}
+            tone="sky"
+            className="lg:top-6 lg:-right-36 lg:w-80 xl:top-auto xl:-right-20 xl:-bottom-24"
+          />
+          <DotGrid cols={8} rows={5} className="w-40 lg:right-16 lg:-bottom-6 xl:-right-10 xl:-bottom-12" />
+          <SampleScore className="hidden xl:block" />
         </div>
       </div>
 
       <figure className="relative isolate mx-auto mt-14 w-full max-w-7xl px-4 sm:mt-20 sm:px-6 lg:px-8">
+        {/* Phones: coral peeks over the panel's top right, so the first screen carries more than one color.
+            From lg it moves to the bottom left. */}
+        <Blob shape={5} tone="coral" className="-top-14 -right-24 w-64 sm:hidden" />
         <Blob shape={5} tone="coral" className="hidden lg:block lg:-bottom-16 lg:-left-28 lg:w-72" />
         <div className="rounded-[1.75rem] bg-band-mint p-3 sm:rounded-[2.5rem] sm:p-8 lg:p-12">
           <ScreenshotFrame
@@ -93,12 +108,12 @@ export function Hero({ demoLogin, theme }: { demoLogin: boolean; theme: Theme })
  * the quote from the paper behind it. One picture with a text alternative, so
  * a screen reader hears one sentence instead of a stray score.
  */
-function SampleScore() {
+function SampleScore({ className }: { className?: string }) {
   return (
     <div
       role="img"
       aria-label="An example from the demo: a suggested 9 out of 10 for Evidence and reasoning, with the quote from the paper behind it."
-      className="glass w-full max-w-sm rounded-3xl p-6"
+      className={cn("glass w-full max-w-sm rounded-3xl p-6", className)}
     >
       <p className="text-[0.8125rem] font-medium text-muted-foreground">Suggested score</p>
       <div className="mt-1 flex items-baseline justify-between gap-4">

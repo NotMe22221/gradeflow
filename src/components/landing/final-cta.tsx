@@ -6,13 +6,17 @@ import { LandingContainer } from "@/components/landing/section-intro";
 /**
  * The closing call to action: a full-width sunshine band with poster-sized
  * type. Text on the band is the band's own text color (a plain secondary panel
- * in the Calm look); the decor stays on the right, clear of the copy.
+ * in the Calm look); the decor stays on the right, clear of the copy. Focus
+ * rings take the band's text color, since the accent ring (light pink in dark
+ * mode) is faint on yellow, and their offset gap takes the band's fill
+ * (--background here only feeds ring-offset-background), so a dark ring never
+ * runs into a dark glass button.
  */
 export function FinalCta({ demoLogin }: { demoLogin: boolean }) {
   return (
     <section
       aria-labelledby="final-cta-heading"
-      className="relative isolate overflow-hidden bg-band-yellow text-band-foreground"
+      className="relative isolate overflow-hidden bg-band-yellow text-band-foreground [--background:var(--band-yellow)] [--ring:var(--band-foreground)]"
     >
       <Blob
         shape={1}

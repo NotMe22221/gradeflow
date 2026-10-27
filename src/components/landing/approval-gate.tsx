@@ -1,6 +1,6 @@
 import { Blob, Ring, XGrid } from "@/components/decor/decor";
-import { BOLD_SECTION_Y, Period } from "@/components/landing/bold-section";
-import { LandingContainer } from "@/components/landing/section-intro";
+import { BOLD_SECTION_Y } from "@/components/landing/bold-section";
+import { LandingContainer, SectionIntro } from "@/components/landing/section-intro";
 import { cn } from "@/lib/utils";
 
 const FACTS: { title: string; body: string }[] = [
@@ -49,13 +49,12 @@ export function ApprovalGate() {
       <Ring tone="mint" className="bottom-10 left-[30%] hidden w-16 lg:block" />
       <LandingContainer className="grid gap-12 lg:grid-cols-12">
         <div className="lg:col-span-5">
-          <h2 id="trust-heading" className="display-section text-band-foreground">
-            Nothing reaches a student until you approve it
-            <Period onBand />
-          </h2>
-          <p className="mt-5 max-w-[65ch] text-base leading-7 text-pretty sm:text-[1.125rem] sm:leading-8">
-            The AI can only suggest. Every grade passes through one gate, and you hold it.
-          </p>
+          <SectionIntro
+            tone="band"
+            id="trust-heading"
+            title="Nothing reaches a student until you approve it"
+            description="The AI can only suggest. Every grade passes through one gate, and you hold it."
+          />
           <ol aria-label="How a grade reaches a student" className="mt-8 space-y-3">
             {GATE.map((stage, index) => (
               <li key={stage.label} className="flex items-center gap-4 rounded-full bg-card py-2.5 pr-5 pl-2.5">

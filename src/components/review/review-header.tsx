@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { QueueList } from "@/components/review/queue-list";
+import { TitlePeriod } from "@/components/page-header";
 import type { PaperSide } from "@/lib/preferences/schema";
 import { pluralize } from "@/lib/format";
 import type { QueueSort, ReviewFilterOption, ReviewItem } from "@/lib/review/types";
@@ -126,7 +127,10 @@ export function ReviewHeader({
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <div className="min-w-0 flex-1 basis-44">
           <div className="flex items-center gap-2.5">
-            <h1 className="truncate text-[1.625rem] leading-8 font-medium text-foreground">To review</h1>
+            <h1 className="display-title truncate text-[1.75rem] leading-9 text-foreground sm:text-[2rem]">
+              To review
+              <TitlePeriod />
+            </h1>
             {totalCount > 0 ? (
               <span
                 aria-hidden

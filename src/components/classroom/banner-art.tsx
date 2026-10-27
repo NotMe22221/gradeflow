@@ -1,5 +1,6 @@
 import { Blob, DotGrid, type PopTone } from "@/components/decor/decor";
 import type { BannerMotif, ClassTheme } from "@/lib/ui/class-theme";
+import { cn } from "@/lib/utils";
 
 /** Two paint colors per class color, picked to pop against it (never the same hue). */
 const BLOB_TONES: Record<ClassTheme["key"], [PopTone, PopTone]> = {
@@ -12,28 +13,55 @@ const BLOB_TONES: Record<ClassTheme["key"], [PopTone, PopTone]> = {
 };
 
 /**
- * The Bold look's paint for a class banner: a big blob bleeding off the top
- * right corner, a smaller one rising from the bottom edge, and (on the page
- * banner) a white dot grid. Behind the line art and behind the banner text's
- * scrim, so the white text always sits on the class color. Decor: hidden in
- * the Calm look, where the line art carries the banner alone.
+ * The Bold look's paint for a class banner. Render it as a flex item right
+ * after the banner's text (the banner is a flex row): it takes the room left
+ * beside the text, so the paint never runs behind a line of text or into the
+ * text's scrim, however long the class name is. Every shape stays inside this
+ * column, bleeding off the banner's top, right and bottom edges only, so no
+ * shape is ever cut by a seam; a shape that doesn't fit isn't drawn.
+ *
+ * - The main blob sits in a square box in the top right corner, as wide as
+ *   the column up to a cap, and is sized from that box, so with less room it
+ *   shrinks instead of being cut; under 2.75rem of room it's left out.
+ * - On a page banner with the room, a second blob rises from the bottom edge
+ *   and a white dot grid sits left of the main blob.
+ *
+ * The column is at -z-20, under the line art and the scrims (both -z-10), so
+ * the art's white lines draw over the paint. Decor: hidden in the Calm look,
+ * where the line art carries the banner alone.
  */
 export function BannerBlobs({ theme, size }: { theme: ClassTheme["key"]; size: "page" | "card" }) {
   const [main, second] = BLOB_TONES[theme];
-  if (size === "card") {
-    return (
-      <>
-        <Blob shape={4} tone={main} className="-top-14 -right-12 w-36" />
-        <Blob shape={6} tone={second} className="right-28 -bottom-12 w-20" />
-      </>
-    );
-  }
   return (
-    <>
-      <Blob shape={4} tone={main} className="-top-16 -right-14 w-36 sm:-top-36 sm:-right-24 sm:w-80" />
-      <Blob shape={6} tone={second} className="right-[40%] -bottom-24 hidden w-40 sm:block lg:w-48" />
-      <DotGrid cols={6} rows={3} className="top-6 right-[28%] hidden w-28 fill-white opacity-70 sm:block" />
-    </>
+    <div aria-hidden data-decor="" className="@container/paint relative -z-20 min-w-0 flex-1 self-stretch">
+      <div
+        className={cn(
+          "absolute top-0 right-0 hidden aspect-square @min-[2.75rem]/paint:block",
+          size === "card" ? "w-[min(7rem,100%)]" : "w-[min(9rem,100%)] sm:w-[min(16rem,100%)]"
+        )}
+      >
+        {/* Wider than the box by what bleeds past the right edge, so its left edge stays inside the box. */}
+        <Blob
+          shape={4}
+          tone={main}
+          className={
+            size === "card"
+              ? "-top-[60%] -right-1/2 w-[150%]"
+              : "-top-[40%] -right-1/2 w-[150%] sm:-top-[55%] sm:-right-[40%] sm:w-[130%]"
+          }
+        />
+      </div>
+      {size === "page" ? (
+        <>
+          <Blob shape={6} tone={second} className="right-[48%] -bottom-24 hidden w-40 @min-[28rem]/paint:block lg:w-48" />
+          <DotGrid
+            cols={6}
+            rows={3}
+            className="top-6 right-[16rem] hidden w-28 fill-white opacity-70 @min-[25rem]/paint:block"
+          />
+        </>
+      ) : null}
+    </div>
   );
 }
 

@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 /** Loading stand-in for a ClassCard: banner, avatar, due-soon lines, footer icons. */
 export function ClassCardSkeleton() {
   return (
-    <div className="relative flex min-h-[18.5rem] flex-col overflow-hidden rounded-xl border border-border bg-card">
+    <div className="relative flex min-h-[18.5rem] flex-col overflow-hidden rounded-3xl border border-border bg-card">
       <div className="h-[104px] space-y-2 bg-muted px-4 pt-4">
         <Skeleton className="h-6 w-40 max-w-[70%] bg-foreground/[0.07]" />
         <Skeleton className="h-4 w-28 bg-foreground/[0.07]" />

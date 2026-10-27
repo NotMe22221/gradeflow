@@ -103,8 +103,9 @@ export function Faq() {
           <XGrid cols={4} rows={3} className="relative mt-10 hidden w-28 lg:block" />
         </div>
         <div className="relative isolate lg:col-span-8">
-          {/* Peeks out from behind the card's right edge, into the page margin. */}
-          <Blob shape={3} tone="coral" className="top-12 -right-28 hidden w-64 xl:block" />
+          {/* Peeks out from behind the card's right edge, into the page margin. Lilac, not coral: the final
+              call to action's coral blob sits right below it on the same edge. */}
+          <Blob shape={3} tone="lilac" className="top-12 -right-28 hidden w-64 xl:block" />
           <div className="rounded-[2rem] border border-border bg-card px-5 sm:rounded-[2.5rem] sm:px-8">
             {QUESTIONS.map((item) => (
               <details key={item.question} className="group border-t border-border first:border-t-0">

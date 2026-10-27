@@ -9,7 +9,7 @@ import {
 } from "@/components/icons";
 
 import { Blob, XGrid } from "@/components/decor/decor";
-import { BAND_BG, Period, type BandTone } from "@/components/landing/bold-section";
+import { BAND_BG, type BandTone } from "@/components/landing/bold-section";
 import { LandingContainer, SectionIntro } from "@/components/landing/section-intro";
 import { cn } from "@/lib/utils";
 
@@ -76,12 +76,7 @@ export function Features() {
         <SectionIntro
           tone="band"
           id="tools-heading"
-          title={
-            <>
-              The rest of the grading week
-              <Period onBand />
-            </>
-          }
+          title="The rest of the grading week"
           description="Everything around the first pass, built for the same job: getting papers graded well and back to students."
         />
         <ul className="mt-12 grid gap-4 sm:mt-16 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">

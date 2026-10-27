@@ -55,7 +55,7 @@ export default async function ClassesPage({
           <PageHeader
             title="Classes"
             description={description}
-            decor={<HeaderDecor tones={["sky", "yellow"]} />}
+            decor={<HeaderDecor tones={["yellow", "coral"]} />}
             actions={
               summaries.length > 0 ? (
                 <>

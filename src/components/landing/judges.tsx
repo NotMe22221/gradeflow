@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ChevronDown, CircleCheck } from "@/components/icons";
 
 import { Blob, DotGrid, XGrid } from "@/components/decor/decor";
-import { NumberSticker, Period, type BandTone } from "@/components/landing/bold-section";
+import { NumberSticker, type BandTone } from "@/components/landing/bold-section";
 import {
   CHECKED_ON,
   COMPETITORS,
@@ -16,7 +16,7 @@ import {
 import { ComparisonTable } from "@/components/landing/comparison-table";
 import { DemoCtas } from "@/components/landing/demo-ctas";
 import { ExternalAnchor } from "@/components/landing/external-anchor";
-import { LandingContainer } from "@/components/landing/section-intro";
+import { LandingContainer, SectionIntro } from "@/components/landing/section-intro";
 
 /** What Markwise puts together that the comparison didn't find documented together elsewhere. */
 const DIFFERENCES = [
@@ -129,14 +129,17 @@ export function Judges({ demoLogin }: { demoLogin: boolean }) {
         <LandingContainer>
           <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-6">
-              <h2 id="judges-heading" className="display-section text-band-foreground">
-                For judges: how Markwise is different
-                <Period onBand />
-              </h2>
-              <p className="mt-5 max-w-[65ch] text-base leading-7 text-pretty sm:text-[1.125rem] sm:leading-8">
-                Plenty of tools draft feedback on student writing, and a few read handwriting. Markwise combines five
-                things we didn&apos;t find documented together in any of the six tools we compared.
-              </p>
+              <SectionIntro
+                tone="band"
+                id="judges-heading"
+                title="For judges: how Markwise is different"
+                description={
+                  <>
+                    Plenty of tools draft feedback on student writing, and a few read handwriting. Markwise combines
+                    five things we didn&apos;t find documented together in any of the six tools we compared.
+                  </>
+                }
+              />
               <p className="mt-4 max-w-[65ch] text-base leading-7 text-pretty sm:text-[1.125rem] sm:leading-8">
                 It is a hackathon project, not a production LMS. The table below shows where it is behind as plainly as
                 where it leads.

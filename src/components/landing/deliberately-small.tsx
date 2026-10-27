@@ -1,7 +1,7 @@
 import { X } from "@/components/icons";
 
 import { Blob, DotGrid } from "@/components/decor/decor";
-import { Period } from "@/components/landing/bold-section";
+import { Period } from "@/components/decor/period";
 import { LandingContainer } from "@/components/landing/section-intro";
 
 /** What Markwise leaves to the tools a school already has. */

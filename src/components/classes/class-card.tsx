@@ -88,7 +88,7 @@ export function ClassCard({
     <article
       aria-label={data.name}
       className={cn(
-        "relative flex h-full min-h-[18.5rem] min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-hover",
+        "relative flex h-full min-h-[18.5rem] min-w-0 flex-col overflow-hidden rounded-3xl border border-border bg-card transition-shadow hover:shadow-hover",
         className
       )}
     >
