@@ -69,8 +69,9 @@ motion, and disappears in Calm (`[data-decor]`). Place it inside a
 `relative isolate` parent, absolutely, with `-z-10`, clipped so phones never
 scroll sideways, and never under text. `PageHeader` takes a `decor` slot
 (`HeaderDecor` with two tones) that stays inside the header's box. On a band
-with focusable controls, set `[--ring:var(--band-foreground)]` and
-`[--background:var(--band-*)]` so focus rings stay visible.
+with focusable controls, set `[--ring:var(--band-foreground)]` and the band's
+own fill as `--background` (for example `[--background:var(--band-yellow)]`)
+so focus rings stay visible.
 
 ## Personalization
 
