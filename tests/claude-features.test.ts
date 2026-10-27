@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 
 import Anthropic from "@anthropic-ai/sdk";
+import { z } from "zod";
 
 import {
   buildClaudeJsonRequest,
@@ -16,7 +17,8 @@ import {
   type ClaudeCreateClient,
   type ClaudeJsonCall,
 } from "@/lib/ai/claude-call";
-import { CLAUDE_TOKENS_PER_IMAGE, worstCaseCostMicroUsd } from "@/lib/ai/pricing";
+import { claudeOutputFormat, claudeWorstCaseMicroUsd } from "@/lib/ai/claude-format";
+import { CLAUDE_TOKENS_PER_IMAGE, UNKNOWN_MODEL_PRICE, worstCaseCostMicroUsd, worstCaseRerunMicroUsd } from "@/lib/ai/pricing";
 import {
   AiLimitError,
   createMemoryUsageStore,
@@ -25,10 +27,11 @@ import {
   type UsageSubject,
 } from "@/lib/ai/usage";
 import { BriefOutputSchema } from "@/lib/briefs/validate";
-import { GoalExtractionSchema } from "@/lib/goals/prompt";
+import { GOAL_LETTER_VALUES, GoalExtractionSchema } from "@/lib/goals/prompt";
+import { buildClaudeGradingRequest, CLAUDE_REQUEST_BUDGET } from "@/lib/grading/claude-grader";
 import { AnswerKeyOutputSchema, parseAnswerKeyResponse } from "@/lib/scan/answer-key";
 import { transcriptionCaption } from "@/lib/review/media";
-import { mapVisionOutput, VisionGradingSchema, visionParts } from "@/lib/scan/vision-prompt";
+import { LEGIBILITY_LEVELS, mapVisionOutput, VisionGradingSchema, visionParts } from "@/lib/scan/vision-prompt";
 
 // The features that started on OpenAI (handwritten tests, answer-key photos,
 // conference briefs, the goal planner) run on Claude when only an Anthropic
@@ -230,20 +233,80 @@ describe("Claude structured-output request", () => {
     assert.ok(CLAUDE_TOKENS_PER_IMAGE >= Math.ceil((2048 * 2048) / 750));
   });
 
-  it("uses the schemas the OpenAI path uses, which Claude's structured outputs accept", () => {
+  it("uses schemas Claude can enforce in full: no bounds the API would only describe", () => {
+    // Checked on the schema zod generates, before the SDK's transform folds
+    // unsupported keywords into descriptions: a bound there would be enforced
+    // only by our own safeParse, after the call was paid for.
     for (const schema of [VisionGradingSchema, AnswerKeyOutputSchema, BriefOutputSchema, GoalExtractionSchema]) {
-      const request = buildClaudeJsonRequest({ ...visionCall(), schema } as ClaudeJsonCall<typeof schema>);
-      const json = JSON.stringify(request.output_config.format.schema);
-      assert.match(json, /"additionalProperties":false/);
-      assert.doesNotMatch(json, /"(minimum|maximum|minLength|maxLength)"/, "no numeric or length bounds");
+      const raw = JSON.stringify(z.toJSONSchema(schema));
+      assert.doesNotMatch(raw, /"(minimum|maximum|exclusiveMinimum|exclusiveMaximum|minLength|maxLength|pattern|maxItems|multipleOf)"/);
+      assert.doesNotMatch(raw, /"minItems":([2-9]|\d{2,})/);
+      assert.doesNotMatch(raw, /"additionalProperties":(true|\{)/);
+      const sent = JSON.stringify(buildClaudeJsonRequest({ ...visionCall(), schema } as ClaudeJsonCall<typeof schema>).output_config.format.schema);
+      assert.doesNotMatch(sent, /\{(enum|minimum|maximum|minLength|maxLength): /, "nothing folded into a description");
     }
+  });
+
+  it("keeps every enum in the schema it sends, so Claude can only answer an allowed value", () => {
+    const vision = buildClaudeJsonRequest(visionCall()).output_config.format.schema as {
+      properties: Record<string, { enum?: unknown; description?: string }>;
+    };
+    assert.deepEqual(vision.properties.confidence.enum, ["high", "medium", "low"]);
+    assert.deepEqual(vision.properties.legibility.enum, [...LEGIBILITY_LEVELS]);
+    assert.doesNotMatch(vision.properties.confidence.description ?? "", /enum/, "the folded copy is removed");
+    assert.match(vision.properties.confidence.description ?? "", /self-assessment/, "the real description stays");
+
+    const goal = claudeOutputFormat(GoalExtractionSchema).schema as {
+      properties: { target_letter: { anyOf: { type: string; enum?: unknown }[] } };
+    };
+    assert.deepEqual(goal.properties.target_letter.anyOf[0].enum, [...GOAL_LETTER_VALUES]);
+    assert.equal(goal.properties.target_letter.anyOf[1].type, "null");
+
+    // The essay grader's request, too.
+    const essay = buildClaudeGradingRequest(
+      { assignmentTitle: "T", instructions: "I", criteria: [{ id: "c1", title: "Thesis", description: "Clear.", maxPoints: 4 }], paper: "Text." },
+      "claude-haiku-5-5",
+      "medium"
+    ).output_config.format.schema as { properties: { confidence: { enum?: unknown } } };
+    assert.deepEqual(essay.properties.confidence.enum, ["high", "medium", "low"]);
+
+    // The SDK's parse still runs against the zod schema.
+    assert.deepEqual(claudeOutputFormat(GoalExtractionSchema).parse(JSON.stringify({
+      class_id: null, target_letter: "B+", target_percent: null, interpretation: "A B+.", coaching_tip: "Read.", clarifying_question: null,
+    })).target_letter, "B+");
+  });
+
+  it("lets one attempt use the whole deadline, so a retry never starts with less time than the try that stalled", () => {
+    for (const budget of [CLAUDE_TASK_BUDGETS.vision, CLAUDE_TASK_BUDGETS.text, CLAUDE_REQUEST_BUDGET]) {
+      assert.equal(budget.timeout, budget.deadlineMs);
+      assert.equal(budget.maxRetries, 1);
+    }
+    assert.ok(CLAUDE_TASK_BUDGETS.vision.deadlineMs < 120_000, "inside /api/grade's maxDuration");
+    assert.ok(CLAUDE_TASK_BUDGETS.text.deadlineMs < 90_000, "inside the brief and goal routes' maxDuration");
+  });
+
+  it("holds a second pass at the top tier when a fallback can rerun the call", () => {
+    const size = { textChars: 2_000, images: 1, tokensPerImage: CLAUDE_TOKENS_PER_IMAGE, maxOutputTokens: 16_000 };
+    assert.equal(claudeWorstCaseMicroUsd("claude-haiku-5-5", size), worstCaseCostMicroUsd("claude-haiku-5-5", size));
+    assert.equal(
+      claudeWorstCaseMicroUsd("claude-opus-5-5", size),
+      worstCaseCostMicroUsd("claude-opus-5-5", size) + worstCaseRerunMicroUsd(size)
+    );
+    assert.equal(worstCaseRerunMicroUsd(size), Math.ceil((1_000 + CLAUDE_TOKENS_PER_IMAGE) * UNKNOWN_MODEL_PRICE.input + 16_000 * UNKNOWN_MODEL_PRICE.output));
+    const opus = visionCall({ model: "claude-opus-5-5" });
+    assert.equal(claudeReserveMicroUsd(opus), claudeWorstCaseMicroUsd("claude-opus-5-5", {
+      textChars: opus.system.length + opus.parts.reduce((sum, part) => sum + (part.type === "text" ? part.text.length : 0), 0),
+      images: 2,
+      tokensPerImage: CLAUDE_TOKENS_PER_IMAGE,
+      maxOutputTokens: 16_000,
+    }));
   });
 });
 
 // --- The call ----------------------------------------------------------------------
 
 describe("callClaudeJson (stubbed provider)", () => {
-  it("parses the answer, returns the serving model, and records the real cost under its feature", async () => {
+  it("parses the answer and records the real cost under its feature", async () => {
     const { client, calls } = stubClient();
     const { store, guard } = guardFor();
     const result = await callClaudeJson({ client, guard }, visionCall());
@@ -261,6 +324,17 @@ describe("callClaudeJson (stubbed provider)", () => {
     assert.equal(store.rows[0].status, "ok");
     assert.deepEqual(store.rows[0].usage, { inputTokens: 4_000, outputTokens: 900 });
     assert.equal(store.rows[0].costMicroUsd, Math.ceil(4_000 * 0.1 + 900 * 0.5));
+  });
+
+  it("names and prices the model that answered, when a fallback served the call", async () => {
+    const { client } = stubClient(() => message({ model: "claude-opus-4-8" }));
+    const { store, guard } = guardFor();
+    const result = await callClaudeJson({ client, guard }, visionCall({ model: "claude-opus-5-5" }));
+    assert.equal(result.model, "claude-opus-4-8", "the serving model, not the requested one");
+    assert.equal(store.rows[0].model, "claude-opus-4-8");
+    // A model the price table doesn't list is priced at the top tier.
+    assert.equal(store.rows[0].costMicroUsd, Math.ceil(4_000 * UNKNOWN_MODEL_PRICE.input + 900 * UNKNOWN_MODEL_PRICE.output));
+    assert.match(read("src", "lib", "goals", "planner.ts"), /model: extraction\.model \?\? engine\.model/, "the goal planner shows it too");
   });
 
   it("names a refusal before reading the output, and still counts the call", async () => {

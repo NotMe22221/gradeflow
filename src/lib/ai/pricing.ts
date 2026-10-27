@@ -38,7 +38,10 @@ export type TokenUsage = { inputTokens: number; outputTokens: number };
  * per-million price is already micro-dollars, so no float division is needed.
  */
 export function costMicroUsd(model: string, usage: TokenUsage): number {
-  const price = priceFor(model);
+  return costAtPrice(priceFor(model), usage);
+}
+
+function costAtPrice(price: ModelPrice, usage: TokenUsage): number {
   const card =
     price.longPrompt && usage.inputTokens > price.longPrompt.aboveInputTokens ? price.longPrompt : price;
   const input = Math.max(0, usage.inputTokens);
@@ -66,17 +69,19 @@ export const CLAUDE_TOKENS_PER_IMAGE = 7_000;
  * rate, so the estimate stays above the real input; the output is the
  * request's max_tokens.
  */
-export function worstCaseCostMicroUsd(
-  model: string,
-  {
-    textChars,
-    images = 0,
-    tokensPerImage = MAX_TOKENS_PER_IMAGE,
-    maxOutputTokens,
-  }: { textChars: number; images?: number; tokensPerImage?: number; maxOutputTokens: number }
-): number {
-  const inputTokens = Math.ceil(Math.max(0, textChars) / 2) + images * tokensPerImage;
-  return costMicroUsd(model, { inputTokens, outputTokens: maxOutputTokens });
+export type CallSize = { textChars: number; images?: number; tokensPerImage?: number; maxOutputTokens: number };
+
+function worstCaseUsage({ textChars, images = 0, tokensPerImage = MAX_TOKENS_PER_IMAGE, maxOutputTokens }: CallSize): TokenUsage {
+  return { inputTokens: Math.ceil(Math.max(0, textChars) / 2) + images * tokensPerImage, outputTokens: maxOutputTokens };
+}
+
+export function worstCaseCostMicroUsd(model: string, size: CallSize): number {
+  return costMicroUsd(model, worstCaseUsage(size));
+}
+
+/** The same call run again on a model not named up front (a server-side fallback), at the top tier. */
+export function worstCaseRerunMicroUsd(size: CallSize): number {
+  return costAtPrice(UNKNOWN_MODEL_PRICE, worstCaseUsage(size));
 }
 
 export function formatUsd(microUsd: number): string {

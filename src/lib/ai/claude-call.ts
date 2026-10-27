@@ -10,25 +10,29 @@
 // validate the parsed output against their own rules before storing it.
 
 import Anthropic from "@anthropic-ai/sdk";
-import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import type { z } from "zod";
 
-import { CLAUDE_TOKENS_PER_IMAGE, worstCaseCostMicroUsd } from "@/lib/ai/pricing";
+import { claudeOutputFormat, claudeWorstCaseMicroUsd, serverFallbackFields } from "@/lib/ai/claude-format";
+import { CLAUDE_TOKENS_PER_IMAGE } from "@/lib/ai/pricing";
 import type { AiFeature, UsageGuard } from "@/lib/ai/usage";
-import { supportsServerFallback, type Effort } from "@/lib/grading/claude-grader";
+import type { Effort } from "@/lib/grading/claude-grader";
 
 /** Reading photos (handwritten tests, answer keys), or short text tasks (briefs, goals). */
 export type ClaudeTask = "vision" | "text";
 
 /**
- * How long one call may wait: `timeout` per attempt, `maxRetries` extra
- * attempts, and `deadlineMs` for the whole call, retries included, so it
- * always ends inside the route's maxDuration (120 s for /api/grade and
- * /api/answer-key, 90 s for the brief and the goal planner).
+ * How long one call may wait: `deadlineMs` for the whole call, retries
+ * included, so it always ends inside the route's maxDuration (120 s for
+ * /api/grade and /api/answer-key, 90 s for the brief and the goal planner).
+ * One attempt may use the whole deadline: the answer is not streamed, so a
+ * slow but valid one (four dense pages plus thinking) arrives only at the
+ * end. The one retry is for errors that come back fast (overloaded, a 5xx, a
+ * dropped connection); a stalled attempt ends at the deadline instead of
+ * starting a second paid one that could not finish.
  */
 export const CLAUDE_TASK_BUDGETS = {
-  vision: { timeout: 60_000, maxRetries: 1, deadlineMs: 110_000 },
-  text: { timeout: 30_000, maxRetries: 1, deadlineMs: 65_000 },
+  vision: { timeout: 110_000, maxRetries: 1, deadlineMs: 110_000 },
+  text: { timeout: 65_000, maxRetries: 1, deadlineMs: 65_000 },
 } as const satisfies Record<ClaudeTask, { timeout: number; maxRetries: number; deadlineMs: number }>;
 
 /** The image types the scanner accepts (lib/scan/images.ts), all of which Claude reads. */
@@ -71,18 +75,16 @@ export function buildClaudeJsonRequest<S extends z.ZodType>(call: ClaudeJsonCall
         ),
       },
     ],
-    output_config: { effort: call.effort, format: betaZodOutputFormat(call.schema) },
-    ...(supportsServerFallback(call.model)
-      ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }
-      : {}),
+    output_config: { effort: call.effort, format: claudeOutputFormat(call.schema) },
+    ...serverFallbackFields(call.model),
   };
 }
 
-/** The most this call can cost, held by the usage guard until it settles. */
+/** The most this call can cost (a fallback rerun included), held by the usage guard until it settles. */
 export function claudeReserveMicroUsd<S extends z.ZodType>(call: ClaudeJsonCall<S>): number {
   const textChars = call.system.length + call.parts.reduce((sum, part) => sum + (part.type === "text" ? part.text.length : 0), 0);
   const images = call.parts.filter((part) => part.type === "image").length;
-  return worstCaseCostMicroUsd(call.model, {
+  return claudeWorstCaseMicroUsd(call.model, {
     textChars,
     images,
     tokensPerImage: CLAUDE_TOKENS_PER_IMAGE,
@@ -156,7 +158,7 @@ export function claudeErrorMessage(kind: ClaudeErrorKind, status: number | null 
     case "rate_limit":
       return "Claude is rate limited right now. Wait a minute and try again.";
     case "bad_request":
-      return "Claude couldn't process that request. Try a clearer photo or shorter input.";
+      return "Claude couldn't process this request. Check the model settings on the server, then try again.";
     case "server":
       return "Claude is temporarily unavailable. Try again in a minute.";
     case "timeout":

@@ -27,7 +27,8 @@ import { fileURLToPath } from "node:url";
 
 import Anthropic from "@anthropic-ai/sdk";
 
-import { costMicroUsd, formatUsd, worstCaseCostMicroUsd } from "../../src/lib/ai/pricing";
+import { claudeWorstCaseMicroUsd } from "../../src/lib/ai/claude-format";
+import { costMicroUsd, formatUsd } from "../../src/lib/ai/pricing";
 import { createMemoryUsageStore, createUsageGuard, type UsageLimits } from "../../src/lib/ai/usage";
 import {
   ELLIPSE_CRITERIA,
@@ -113,7 +114,7 @@ if (!live) {
     const input = ellipseGradingInput(essay);
     if (await cache.get(claudeCacheKey(input, model, effort).key)) continue;
     planned++;
-    worstCase += worstCaseCostMicroUsd(model, {
+    worstCase += claudeWorstCaseMicroUsd(model, {
       textChars: buildGradingSystemPrompt().length + buildGradingUserMessage(input).length,
       maxOutputTokens: CLAUDE_MAX_TOKENS,
     });

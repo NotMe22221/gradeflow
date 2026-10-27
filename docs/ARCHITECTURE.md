@@ -354,7 +354,7 @@ Fields: `assignmentId`, `studentId`, `pages` (1–4 image files; JPEG, PNG, or
 WebP, checked by magic bytes; the browser shrinks photos to fit, and one request carries at most 3.5 MB of photos and 4 MB in all, under Vercel's 4.5 MB function body limit; 413 with a message otherwise), optional `answerKey` (image file),
 optional `transcription` (demo mode only: what is written on an unknown photo).
 
-`200 { ok: true, submissionId, status: "NEEDS_REVIEW", grader: "openai" | "demo", model, confidence, flagCount }`
+`200 { ok: true, submissionId, status: "NEEDS_REVIEW", grader: "openai" | "claude" | "demo", model, confidence, flagCount }`
 
 Errors `{ ok: false, error, code? }`: `400` invalid input (`code:
 "NEEDS_TRANSCRIPTION"` when the demo scanner cannot read an unknown photo),
@@ -380,7 +380,7 @@ stored text also saves `"claude"`.
 
 ### `POST /api/answer-key` (teacher, multipart/form-data)
 
-Field `image`. `200 { ok: true, engine: "openai" | "demo", questions: [{ title, expectedAnswer, maxPoints }] }`
+Field `image`. `200 { ok: true, engine: "openai" | "claude" | "demo", questions: [{ title, expectedAnswer, maxPoints }] }`
 (1–20 questions; integer points 1–100). The rubric builder uses it to fill a
 `TEST` assignment's criteria: one criterion per question, with the expected
 answer as its full-credit description.

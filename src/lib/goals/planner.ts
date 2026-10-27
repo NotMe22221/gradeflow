@@ -49,6 +49,8 @@ export function goalEngineInfo(): { engine: GoalEngine; model: string | null } {
 }
 
 type Extraction = {
+  /** The model that answered (Claude), which a server-side fallback can change. */
+  model?: string;
   classId: string | null;
   target: ParsedTarget | null;
   /** A tip that passed the checks, or null to use the template. */
@@ -113,7 +115,7 @@ const CLAUDE_GOAL_MAX_TOKENS = 2_000;
  */
 async function extractWithClaude(goal: string, classes: GoalClass[], model: string): Promise<Extraction> {
   try {
-    const { parsed } = await runClaudeJson({
+    const { parsed, model: answeredBy } = await runClaudeJson({
       feature: "goal",
       task: "text",
       model,
@@ -123,7 +125,7 @@ async function extractWithClaude(goal: string, classes: GoalClass[], model: stri
       schema: GoalExtractionSchema,
       maxTokens: CLAUDE_GOAL_MAX_TOKENS,
     });
-    return toExtraction(parsed);
+    return { ...toExtraction(parsed), model: answeredBy };
   } catch (error) {
     // A usage cap stopped the call before it was sent: the route answers 429 with the reason.
     if (error instanceof AiLimitError) throw error;
@@ -236,7 +238,7 @@ export async function planStudentGoal(input: {
   return {
     ok: true,
     engine: engine.engine,
-    model: engine.model,
+    model: extraction.model ?? engine.model,
     xpAwarded,
     plan: buildPlanView({
       goalClass,

@@ -70,8 +70,8 @@ export function Features() {
         </ul>
         <p className="mt-6 max-w-[75ch] rounded-xl bg-secondary px-5 py-4 text-[0.9375rem] leading-6 text-pretty text-secondary-foreground">
           <span className="font-medium">Which AI does the reading?</span> Uses Claude for essays, handwriting, briefs and
-          goals when an Anthropic API key is set (GPT-4o reads photos instead if an OpenAI key is set); without keys,
-          labelled demo engines run locally.
+          goals when an Anthropic API key is set. If an OpenAI key is also set, GPT-4o reads photos and GPT-4o mini
+          drafts briefs and reads goals. Without keys, labelled demo engines run locally.
         </p>
       </LandingContainer>
     </section>

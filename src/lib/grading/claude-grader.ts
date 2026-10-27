@@ -7,10 +7,9 @@
 // validate.ts before anything is stored.
 
 import Anthropic from "@anthropic-ai/sdk";
-import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 
-import { worstCaseCostMicroUsd } from "@/lib/ai/pricing";
+import { claudeOutputFormat, claudeWorstCaseMicroUsd, serverFallbackFields } from "@/lib/ai/claude-format";
 import { AiLimitError, type AiFeature, type UsageGuard } from "@/lib/ai/usage";
 import {
   gradeCacheKey,
@@ -33,15 +32,7 @@ export function parseEffort(value: string | undefined): Effort {
   return (EFFORT_LEVELS as readonly string[]).includes(normalized) ? (normalized as Effort) : "medium";
 }
 
-/**
- * Models that accept the server-side refusal fallback. Claude Haiku 5.5 has
- * none (a declined request stays declined), so it is sent without one.
- */
-const SERVER_FALLBACK_MODELS = new Set(["claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5"]);
-
-export function supportsServerFallback(model: string): boolean {
-  return SERVER_FALLBACK_MODELS.has(model);
-}
+export { supportsServerFallback } from "@/lib/ai/claude-format";
 
 /**
  * Room for adaptive thinking plus the JSON for a rubric of a dozen criteria.
@@ -50,11 +41,15 @@ export function supportsServerFallback(model: string): boolean {
 export const CLAUDE_MAX_TOKENS = 8_000;
 
 /**
- * How long one grading call may wait: `timeout` per attempt, one retry, and
- * `deadlineMs` for the whole call, retries included, so it always ends before
- * the grade route's 120 s maxDuration.
+ * How long one grading call may wait: `deadlineMs` for the whole call,
+ * retries included, so it always ends before the grade route's 120 s
+ * maxDuration. One attempt may use all of it (the answer is not streamed, so
+ * a slow but valid one arrives only at the end). The one retry is for errors
+ * that come back fast (overloaded, a 5xx, a dropped connection); a stalled
+ * attempt ends at the deadline instead of starting a second paid one that
+ * could not finish.
  */
-export const CLAUDE_REQUEST_BUDGET = { timeout: 60_000, maxRetries: 1, deadlineMs: 110_000 } as const;
+export const CLAUDE_REQUEST_BUDGET = { timeout: 110_000, maxRetries: 1, deadlineMs: 110_000 } as const;
 
 /** Bump when the request format changes in a way the prompt text doesn't show. */
 const REQUEST_FORMAT_VERSION = 1;
@@ -96,10 +91,8 @@ export function buildClaudeGradingRequest(input: GradingInput, model: string, ef
     max_tokens: CLAUDE_MAX_TOKENS,
     system: buildGradingSystemPrompt(),
     messages: [{ role: "user" as const, content: buildGradingUserMessage(input) }],
-    output_config: { effort, format: betaZodOutputFormat(GradingOutputSchema) },
-    ...(supportsServerFallback(model)
-      ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }
-      : {}),
+    output_config: { effort, format: claudeOutputFormat(GradingOutputSchema) },
+    ...serverFallbackFields(model),
   };
 }
 
@@ -212,7 +205,7 @@ export class ClaudeGrader implements Grader {
           provider: "anthropic",
           feature: this.deps.feature ?? "essay",
           model: this.deps.model,
-          reserveMicroUsd: worstCaseCostMicroUsd(this.deps.model, {
+          reserveMicroUsd: claudeWorstCaseMicroUsd(this.deps.model, {
             textChars: request.system.length + request.messages[0].content.length,
             maxOutputTokens: CLAUDE_MAX_TOKENS,
           }),
