@@ -16,6 +16,8 @@ export default defineConfig({
   datasource: {
     // Schema changes use a direct (unpooled) connection when the host offers
     // one; with nothing configured, Prisma's local Postgres (npm run db:start).
+    // For a URL that asks for TLS it carries sslaccept=strict, so the CLI
+    // checks the server's certificate like the app does (cliDatabaseUrl()).
     url: DIRECT_DATABASE_URL,
   },
 });

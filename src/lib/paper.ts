@@ -2,6 +2,8 @@
 // student submit form, and the server (src/lib/submissions.ts). Pure: safe
 // for client components, server code, and unit tests.
 
+import { stripNul } from "@/lib/text/sanitize";
+
 export const MIN_PAPER_CHARS = 20;
 export const MAX_PAPER_CHARS = 40_000;
 /** Generous byte cap for a .txt upload holding MAX_PAPER_CHARS characters. */
@@ -9,10 +11,10 @@ export const MAX_PAPER_FILE_BYTES = MAX_PAPER_CHARS * 4;
 
 /** Normalize pasted or uploaded text without changing its meaning. */
 export function normalizePaperText(raw: string): string {
-  return raw
+  // NUL can't be stored in Postgres (see src/lib/text/sanitize.ts).
+  return stripNul(raw)
     .replace(/^﻿/, "") // byte-order mark
     .replace(/\r\n?/g, "\n")
-    .replace(/\u0000/g, "")
     .replace(/[ \t]+\n/g, "\n")
     .trim();
 }

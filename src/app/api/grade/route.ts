@@ -10,9 +10,11 @@ import {
   pageLabel,
   readScanForm,
   readScanImage,
+  scanFormPhotosProblem,
   type CheckedImage,
 } from "@/lib/scan/form";
 import { gradeScannedTest, ScanError } from "@/lib/scan/grade";
+import { SCAN_PHOTOS_TOO_LARGE_MESSAGE } from "@/lib/scan/images";
 import type { ScanErrorCode, ScanGradeFailure, ScanGradeSuccess } from "@/lib/scan/types";
 
 export const dynamic = "force-dynamic";
@@ -48,16 +50,21 @@ export async function POST(request: Request) {
       }
     }
 
+    // The same limits on every host, set under Vercel's 4.5 MB function body
+    // limit (Vercel rejects a larger body before this runs). The browser
+    // shrinks the photos to fit before it sends them.
     let form: FormData | null;
     try {
       form = await readFormDataWithLimit(request, MAX_SCAN_REQUEST_BYTES);
     } catch {
       return errorResponse("Send the test photos as a multipart form.", 400);
     }
-    if (!form) return errorResponse("Those photos are too large. Each photo must be 5 MB or less.", 413);
+    if (!form) return errorResponse(SCAN_PHOTOS_TOO_LARGE_MESSAGE, 413);
 
     const fields = readScanForm(form);
     if (!fields.ok) return errorResponse(fields.error, 400);
+    const tooLarge = scanFormPhotosProblem(fields.value);
+    if (tooLarge) return errorResponse(tooLarge, 413);
 
     const pages: CheckedImage[] = [];
     for (const [index, file] of fields.value.pages.entries()) {

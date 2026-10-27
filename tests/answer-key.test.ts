@@ -22,6 +22,7 @@ import {
   parseAnswerKeyResponse,
   type AnswerKeyOutput,
 } from "@/lib/scan/answer-key";
+import { PHOTO_TOO_LARGE_MESSAGE } from "@/lib/scan/images";
 import { SAMPLE_ANSWER_KEY_PHOTOS } from "@/lib/scan/samples";
 import { kindOfInput, parseAssignmentInput, rubricLimitsFor } from "@/lib/validation/assignment";
 
@@ -277,7 +278,7 @@ describe("parseAnswerKeyResponse", () => {
       error: DEMO_UNKNOWN_ANSWER_KEY_ERROR,
     });
     assert.match((parseAnswerKeyResponse(null, 401) as { error: string }).error, /session ended/);
-    assert.match((parseAnswerKeyResponse(null, 413) as { error: string }).error, /5 MB/);
+    assert.equal((parseAnswerKeyResponse(null, 413) as { error: string }).error, PHOTO_TOO_LARGE_MESSAGE);
     assert.match((parseAnswerKeyResponse("<html>", 500) as { error: string }).error, /could not be read/);
   });
 });

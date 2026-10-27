@@ -12,10 +12,12 @@
     "start": "node scripts/local-db.mjs && next start",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
-    "seed": "node scripts/local-db.mjs && prisma db push && tsx prisma/seed.ts",
+    "seed": "node scripts/local-db.mjs && tsx prisma/seed.ts --push-schema",
     "db:start": "node scripts/local-db.mjs",
-    "db:stop": "prisma dev stop gradesmart",
-    "vercel-build": "node scripts/local-db.mjs && prisma db push && tsx prisma/seed.ts --if-empty && next build",
+    "db:stop": "node scripts/local-db.mjs stop",
+    "db:status": "node scripts/local-db.mjs status",
+    "db:delete": "node scripts/local-db.mjs delete",
+    "vercel-build": "node scripts/vercel-build.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {

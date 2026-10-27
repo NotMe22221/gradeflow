@@ -8,6 +8,7 @@ import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import { MAX_GOAL_CHARS } from "@/lib/goals/parse";
 import { GoalPlannerError, planStudentGoal } from "@/lib/goals/planner";
 import type { GoalPlannerFailure, GoalPlannerSuccess } from "@/lib/goals/types";
+import { stripNul } from "@/lib/text/sanitize";
 import { readJsonWithLimit } from "@/lib/http/body";
 import { AI_RATE_LIMITS, checkRateLimit, rateLimitMessage } from "@/lib/http/rate-limit";
 import { idSchema } from "@/lib/validation/id";
@@ -24,9 +25,14 @@ const NO_STORE = { "Cache-Control": "no-store" };
 const bodySchema = z.object({
   goal: z
     .string({ error: "Type your goal first." })
-    .trim()
-    .min(1, "Type your goal first.")
-    .max(MAX_GOAL_CHARS, `Keep your goal under ${MAX_GOAL_CHARS} characters.`),
+    .transform(stripNul)
+    .pipe(
+      z
+        .string()
+        .trim()
+        .min(1, "Type your goal first.")
+        .max(MAX_GOAL_CHARS, `Keep your goal under ${MAX_GOAL_CHARS} characters.`)
+    ),
   classId: idSchema.optional().nullable(),
 });
 

@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { Prisma } from "@/generated/prisma/client";
 import type { SessionUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { getPreferences } from "@/lib/preferences/server";
@@ -14,6 +15,17 @@ import type { SearchIndex } from "@/lib/search/types";
 
 const CLASS_FIELDS = { id: true, name: true, section: true, subject: true } as const;
 const ASSIGNMENT_FIELDS = { id: true, title: true, classId: true, kind: true, dueDate: true } as const;
+
+/**
+ * Latest due date first, undated work last (Postgres sorts NULLs first on
+ * DESC unless told otherwise), then newest first. The id makes ties
+ * deterministic, which matters for the MAX_SEARCH_ASSIGNMENTS cut.
+ */
+const ASSIGNMENT_ORDER = [
+  { dueDate: { sort: "desc", nulls: "last" } },
+  { createdAt: "desc" },
+  { id: "desc" },
+] satisfies Prisma.AssignmentOrderByWithRelationInput[];
 
 /**
  * The search index for a signed-in user, scoped in the query itself:
@@ -41,7 +53,7 @@ export async function loadSearchIndex(user: SessionUser): Promise<SearchIndex> {
     const [assignments, enrollments] = await Promise.all([
       db.assignment.findMany({
         where: { classId: { in: classIds }, class: { teacherId: user.id } },
-        orderBy: [{ dueDate: "desc" }, { createdAt: "desc" }],
+        orderBy: ASSIGNMENT_ORDER,
         select: ASSIGNMENT_FIELDS,
         take: MAX_SEARCH_ASSIGNMENTS,
       }),
@@ -75,7 +87,7 @@ export async function loadSearchIndex(user: SessionUser): Promise<SearchIndex> {
       classId: { in: classes.map((klass) => klass.id) },
       class: { enrollments: { some: { studentId: user.id } } },
     },
-    orderBy: [{ dueDate: "desc" }, { createdAt: "desc" }],
+    orderBy: ASSIGNMENT_ORDER,
     select: ASSIGNMENT_FIELDS,
     take: MAX_SEARCH_ASSIGNMENTS,
   });

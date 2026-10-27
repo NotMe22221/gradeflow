@@ -6,16 +6,24 @@ import { AuthError, requireTeacher } from "@/lib/auth/session";
 import { readFormDataWithLimit } from "@/lib/http/body";
 import { AI_RATE_LIMITS, checkRateLimit, rateLimitMessage } from "@/lib/http/rate-limit";
 import type { AnswerKeyFailure, AnswerKeySuccess } from "@/lib/scan/answer-key";
-import { MAX_SCAN_IMAGE_BYTES, scanImageProblem, sniffImageType } from "@/lib/scan/images";
+import {
+  MAX_SCAN_IMAGE_BYTES,
+  MAX_UPLOAD_REQUEST_BYTES,
+  PHOTO_TOO_LARGE_MESSAGE,
+  scanImageProblem,
+  sniffImageType,
+} from "@/lib/scan/images";
 
 export const dynamic = "force-dynamic";
 // The GPT-4o call is capped at 110 seconds, retries included (OPENAI_BUDGETS.vision).
 export const maxDuration = 120;
 
-/** Room for the multipart envelope around one maximum-size photo. */
-const MAX_BODY_BYTES = MAX_SCAN_IMAGE_BYTES + 256 * 1024;
-
-const TOO_LARGE_MESSAGE = "That photo is larger than 5 MB. Try a smaller photo.";
+/**
+ * One photo and its multipart envelope: the same limit on every host, set
+ * under Vercel's 4.5 MB function body limit (Vercel rejects a larger body
+ * before this runs). The browser shrinks the photo to fit before it sends it.
+ */
+const MAX_BODY_BYTES = MAX_UPLOAD_REQUEST_BYTES;
 
 function errorResponse(error: string, status: number, headers?: Record<string, string>) {
   return NextResponse.json<AnswerKeyFailure>(
@@ -53,12 +61,12 @@ export async function POST(request: Request) {
     } catch {
       return errorResponse("Upload a photo of the answer key.", 400);
     }
-    if (!form) return errorResponse(TOO_LARGE_MESSAGE, 413);
+    if (!form) return errorResponse(PHOTO_TOO_LARGE_MESSAGE, 413);
 
     const files = form.getAll("image").filter((value): value is File => value instanceof File);
     if (files.length !== 1) return errorResponse("Upload one photo of the answer key.", 400);
     const [file] = files;
-    if (file.size > MAX_SCAN_IMAGE_BYTES) return errorResponse(TOO_LARGE_MESSAGE, 400);
+    if (file.size > MAX_SCAN_IMAGE_BYTES) return errorResponse(PHOTO_TOO_LARGE_MESSAGE, 413);
 
     // The declared type and file name are never trusted: check the bytes.
     const bytes = new Uint8Array(await file.arrayBuffer());

@@ -9,6 +9,7 @@
 
 import { z } from "zod";
 
+import { PHOTO_TOO_LARGE_MESSAGE } from "@/lib/scan/images";
 import { findSampleAnswerKeyByHash, type SampleAnswerKeyPhoto } from "@/lib/scan/samples";
 
 export const ANSWER_KEY_LIMITS = {
@@ -249,7 +250,7 @@ export function parseAnswerKeyResponse(body: unknown, status: number): AnswerKey
     return { ok: false, error: body.error.trim().slice(0, 300) };
   }
   if (status === 401) return { ok: false, error: "Your session ended. Sign in again, then retry." };
-  if (status === 413) return { ok: false, error: "That photo is larger than 5 MB. Try a smaller photo." };
+  if (status === 413) return { ok: false, error: PHOTO_TOO_LARGE_MESSAGE };
   return { ok: false, error: "The answer key could not be read. Try again." };
 }
 

@@ -30,7 +30,9 @@ and route map.
 
 Requirements: **Node.js 22.12 or newer** (`.nvmrc` pins 22) and npm. No
 database to install: the scripts start Prisma's built-in local Postgres server
-for you (the first run downloads it, so it needs internet once).
+for you. The very first start downloads Prisma's dev server from npm (a pinned
+version, cached in `node_modules/.cache`), so it needs internet once; after
+that, starting works offline.
 
 ```bash
 npm install        # installs dependencies and generates the Prisma client
@@ -64,7 +66,10 @@ labelled local demo engine. To use real AI, copy `.env.example` to
 names a model.
 
 `npm run seed` resets the demo data at any time. Re-seeding signs everyone out.
-Seeded dates are relative to the day you seed, so seed on demo day.
+Seeded dates are relative to the day you seed, so seed on demo day. It erases
+the database it seeds, so when `DATABASE_URL` points anywhere but the local dev
+server (say, a hosted database after `vercel env pull`), it names that
+database and stops. Run `npm run seed -- --yes` if you do mean to reset it.
 Dates follow the viewer's time zone ("Due today", Missing, Stream times), and a
 due date is the same calendar day for everyone.
 
@@ -77,13 +82,26 @@ review queue, the class Stream and To-do, CSV export, and the seed dataset),
 `http://<your-laptop-ip>:3000` on the phone. The webcam capture needs HTTPS or
 localhost; on a phone over plain HTTP, **Upload photos** opens the camera instead.
 
-**Local database:** `npm run db:start` starts it on its own and `npm run db:stop`
-stops it. Its address is saved in `prisma/.local-database-url`. To use another
-Postgres, set `DATABASE_URL` in `.env.local`.
+**Local database:** Prisma's local Postgres server is named `gradesmart`.
+`npm run dev`, `npm run seed`, and `npm start` use it straight away when it is
+running and start it when it isn't (after a reboot, say); several of them can
+start at once. `npm run db:start` starts it on its own, `npm run db:stop` stops
+it, `npm run db:status` lists Prisma's local servers, and `npm run db:delete`
+deletes it with its demo data. Its address is saved in
+`prisma/.local-database-url`. To use another Postgres, set `DATABASE_URL` in
+`.env.local`.
 
-**Troubleshooting:** if `npm run seed` reports a schema change that would lose
-data, run `npx prisma dev rm gradesmart` (deletes the local demo database), then
-`npm run seed` again.
+**Troubleshooting:**
+- `npm run seed` reports a schema change that would lose data: run
+  `npm run db:delete` (deletes the local demo database), then `npm run seed`.
+- The local database won't start: `npm run db:status` shows its state
+  (the same as `npx prisma dev ls`). Try `npm run db:stop`, then the command
+  again; if it still fails, `npm run db:delete` and `npm run seed` start over
+  with a fresh one (`npx prisma dev rm --force gradesmart` does the same
+  delete). Right after a crash, a start keeps trying for up to a minute
+  while the old server's lock clears.
+- "Couldn't download Prisma's local Postgres server": the first start needs
+  the npm registry. Connect once, or set `DATABASE_URL` to any Postgres.
 
 ---
 
@@ -93,32 +111,65 @@ GradeSmart AI needs a Postgres database when it runs on Vercel (serverless
 functions can't keep a local file). Neon's free tier works well.
 
 1. **Import the repo** at vercel.com/new. Keep **Root Directory** as the repo
-   root (`gradeflow`). Vercel detects Next.js and runs `npm run vercel-build`.
+   root (`gradeflow`). Vercel detects Next.js and runs `npm run vercel-build`
+   (`scripts/vercel-build.mjs`).
 2. **Add a database** before (or right after) the first deploy: in the project,
    open **Storage → Create Database → Neon (Postgres)**, pick the region
    closest to your Vercel functions (`iad1` / US East by default), and connect
    it to the project. This sets `DATABASE_URL` and `DATABASE_URL_UNPOOLED`.
+   Recommended: in the same dialog (or later in the Neon integration's
+   settings), turn on Neon's database branch for each **Preview** deployment,
+   so previews get their own copy of the data (see *Preview deployments*).
 3. **Set environment variables** in **Settings → Environment Variables**:
    - `SESSION_SECRET`: a long random string (any 32+ characters).
    - Optional: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`. Without them the labelled
      demo engines run. Keys stay on the server.
 4. **Deploy** (or **Redeploy** if the first build ran before the database
-   existed). Each build creates or updates the tables (`prisma db push`), loads
-   the demo data only when the database is empty, then builds the app. Later
-   deploys keep your data.
+   existed). A Production build creates or updates the tables
+   (`prisma db push`), loads the demo data only when the database is empty
+   (it never erases anything), then builds the app. Later deploys keep your
+   data. The build log shows each step and the database host (never the
+   connection string).
+
+**Preview deployments.** Preview builds don't change the database by default:
+unless Neon gives each preview its own branch, previews share the production
+database, and pushing a branch's schema would change production's (dropping
+columns that branch removed). A preview build only compares its schema with
+the database (read-only) and warns in the build log when they differ; that
+preview then fails wherever it uses the difference. To let previews change
+their own database, turn on Neon's preview branches (step 2), then add
+`ALLOW_PREVIEW_DB_CHANGES=1` in **Settings → Environment Variables** for the
+**Preview** environment only. Each preview build then pushes the schema to its
+own branch (which starts as a copy of production's data, so the demo seed is
+skipped). Never set it while previews share the production database.
+
+**Schema changes.** Production builds run `prisma db push` without
+`--accept-data-loss`. Additive changes (a new table, an optional column, a
+column with a default) deploy by themselves. A change that would delete data
+(dropping or renaming a column that has values, a unique constraint over
+duplicates) stops the build with an explanation and nothing is deployed. Split
+it into additive steps, or apply it to the database yourself after checking
+what it deletes. The schema changes before `next build`, and Instant Rollback
+doesn't undo it, so keep each change compatible with the version before it.
+
+**Resetting the hosted demo.** The demo dates are relative to the day the data
+was seeded. To reset them, run `npm run seed -- --yes` on your computer with
+`DATABASE_URL` and `DATABASE_URL_UNPOOLED` set to the Neon connection strings
+(Neon → Connection details, or `vercel env pull .env.local`). It names the
+database host and erases everything in it; without `--yes` it stops before
+changing anything. Or delete and recreate the database and redeploy.
 
 Notes:
-- The demo dates are relative to the day the data was seeded. To reset the
-  demo, run `npm run seed` on your computer with `DATABASE_URL` set to the
-  Neon connection string (Neon → Connection details), or delete and recreate
-  the database and redeploy.
-- Preview deployments use the same database unless you turn on Neon's preview
-  branches in the integration settings. A preview with a schema change updates
-  that database.
+- The build tells Production from Preview by Vercel's system variables
+  (`VERCEL`, `VERCEL_ENV`). If a Vercel build log says "Build outside Vercel"
+  or "without VERCEL_ENV", turn on **Settings → Environment Variables →
+  Automatically expose System Environment Variables**.
 - The public deployment keeps the one-click demo sign-in. Set
   `GRADESMART_DEMO_LOGIN=off` once real accounts exist.
 - AI routes allow up to 120 seconds (`maxDuration`); Vercel's default Fluid
   compute covers that on every plan.
+- Vercel accepts request bodies up to 4.5 MB, so the browser shrinks scanned
+  photos before upload (one scan sends at most 3.5 MB of photos).
 
 ---
 
@@ -300,7 +351,8 @@ src/
     preferences/         per-user look and layout (validated JSON, server actions)
     search/              role-scoped search index for the command palette
     export/              GradebookExporter interface + CSV exporter
-scripts/                 build-icons.mjs (icons), capture-screenshots.mjs (landing images)
+scripts/                 local-db.mjs (local Postgres), vercel-build.mjs (Vercel build),
+                         build-icons.mjs (icons), capture-screenshots.mjs (landing images)
 tests/                   unit tests (node:test via tsx)
 ```
 

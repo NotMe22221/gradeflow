@@ -3,13 +3,17 @@
 
 import { z } from "zod";
 
+import { stripNul } from "@/lib/text/sanitize";
 import type { FieldErrors } from "@/lib/validation/form";
 
 export const NAME_MAX = 40;
 
-/** Collapse runs of whitespace so "Ava   Quillon" is stored as "Ava Quillon". */
+/**
+ * Collapse runs of whitespace so "Ava   Quillon" is stored as "Ava Quillon",
+ * and drop NUL characters, which Postgres can't store.
+ */
 function tidy(value: string): string {
-  return value.replace(/\s+/g, " ").trim();
+  return stripNul(value).replace(/\s+/g, " ").trim();
 }
 
 const optionalText = (max: number, message: string) =>

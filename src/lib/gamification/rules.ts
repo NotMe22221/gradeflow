@@ -33,6 +33,25 @@ export const XP_RULES = {
 /** Kinds that can be earned at most once per calendar day. */
 export const ONCE_PER_DAY: ActivityKind[] = ["STUDY_SESSION", "GOAL_SET"];
 
+/** Kinds that can be earned at most once per submission (refId is the submission id). */
+export const ONCE_PER_SUBMISSION: ActivityKind[] = ["SUBMIT", "ON_TIME", "RESUBMIT", "GRADE_PUBLISHED"];
+
+/**
+ * What makes an award "the same award" for the once-only rules: the kind and
+ * student plus the calendar day (dayKey) for once-per-day kinds, or the
+ * submission for once-per-submission kinds. Two awards with the same key are
+ * never both stored: the key becomes the row's primary key (see
+ * src/lib/gamification/award.ts), so the database itself refuses the second
+ * one, with no read-then-write race. Null when no once rule applies.
+ */
+export function xpOnceKey(input: { studentId: string; kind: ActivityKind; refId?: string | null; now: Date }): string | null {
+  if (ONCE_PER_DAY.includes(input.kind)) return ["xp", input.kind, input.studentId, dayKey(input.now)].join("|");
+  if (ONCE_PER_SUBMISSION.includes(input.kind) && input.refId) {
+    return ["xp", input.kind, input.studentId, input.refId].join("|");
+  }
+  return null;
+}
+
 /**
  * Kinds that are not the student's own action. A grade published by the
  * teacher still earns XP, but it is not study: it never starts, extends, or
@@ -90,6 +109,13 @@ export function startOfDay(date: Date): Date {
   const start = new Date(date);
   start.setHours(0, 0, 0, 0);
   return start;
+}
+
+/** [start, end) of `date`'s calendar day, in the same time zone as dayKey(). */
+export function dayBounds(date: Date): { start: Date; end: Date } {
+  const start = startOfDay(date);
+  const end = startOfDay(new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1));
+  return { start, end };
 }
 
 export type StreakInfo = {

@@ -11,14 +11,22 @@ import { MAX_PAPER_CHARS, normalizePaperText } from "@/lib/paper";
 import {
   MAX_SCAN_IMAGE_BYTES,
   MAX_SCAN_PAGES,
+  MAX_UPLOAD_REQUEST_BYTES,
+  PHOTO_TOO_LARGE_MESSAGE,
   scanImageProblem,
+  scanPhotosProblem,
   sniffImageType,
   type ScanImageType,
 } from "@/lib/scan/images";
 import { idSchema } from "@/lib/validation/id";
 
-/** Upper bound for the whole request: every photo at the limit, plus room for fields. */
-export const MAX_SCAN_REQUEST_BYTES = (MAX_SCAN_PAGES + 1) * MAX_SCAN_IMAGE_BYTES + 1024 * 1024;
+/**
+ * Upper bound for the whole request, set under Vercel's 4.5 MB function body
+ * limit so every host enforces the same cap (Vercel itself rejects a larger
+ * body before the route runs). scanFormPhotosProblem() then holds the photos
+ * to MAX_SCAN_PHOTOS_BYTES.
+ */
+export const MAX_SCAN_REQUEST_BYTES = MAX_UPLOAD_REQUEST_BYTES;
 
 export type ScanFormFields = {
   assignmentId: string;
@@ -82,6 +90,13 @@ export function readScanForm(form: FormData): FormCheck<ScanFormFields> {
   };
 }
 
+/** The pages and answer key photo together must fit one scan request (null when they do). */
+export function scanFormPhotosProblem(fields: Pick<ScanFormFields, "pages" | "answerKey">): string | null {
+  const sizes = fields.pages.map((file) => file.size);
+  if (fields.answerKey) sizes.push(fields.answerKey.size);
+  return scanPhotosProblem(sizes);
+}
+
 export type CheckedImage = {
   bytes: Uint8Array<ArrayBuffer>;
   /** Sniffed from the bytes, never taken from the client. */
@@ -100,7 +115,7 @@ export function checkScanImage(bytes: Uint8Array<ArrayBuffer>, label: string): F
 /** Read and check one uploaded photo. Oversized files are rejected before they are read. */
 export async function readScanImage(file: File, label: string): Promise<FormCheck<CheckedImage>> {
   if (file.size > MAX_SCAN_IMAGE_BYTES) {
-    return { ok: false, error: `${label}: That photo is larger than 5 MB. Try a smaller photo.` };
+    return { ok: false, error: `${label}: ${PHOTO_TOO_LARGE_MESSAGE}` };
   }
   const bytes = new Uint8Array(await file.arrayBuffer());
   return checkScanImage(bytes, label);

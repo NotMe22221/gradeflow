@@ -1,20 +1,31 @@
-// GradeSmart AI demo seed: `npm run seed` (prisma db push, then this script).
-// With --if-empty (used by the Vercel build), it only seeds a database that has
-// no users yet, so redeploying never wipes a live demo.
+// GradeSmart AI demo seed.
+//
+//   npm run seed            (= tsx prisma/seed.ts --push-schema) resets the demo:
+//                           `prisma db push`, then this script.
+//   npm run seed -- --yes   the same for a database that isn't the local dev server.
+//   --if-empty              (the Vercel build) seeds only a database with no users
+//                           yet and never erases anything, so redeploys keep data.
 //
 // Idempotent and self-resetting. It deletes every row, children first, and
 // inserts the fully synthetic demo dataset in one transaction, so running it
 // twice leaves the same demo state and a failed run leaves the old data intact.
 // Every person, school, place, survey, quiz answer, and story in the dataset
 // is fictional.
+//
+// Erasing a database other than Prisma's local dev server (a hosted one, say,
+// after `vercel env pull`) needs --yes, and the script names the host first.
 
 import "./load-env";
+
+import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
+import path from "node:path";
 
 import { PrismaPg } from "@prisma/adapter-pg";
 
 import { PrismaClient, type Prisma } from "../src/generated/prisma/client";
 import { DEMO_STUDENT_EMAIL, DEMO_TEACHER_EMAIL } from "../src/lib/constants";
-import { DATABASE_URL } from "../src/lib/db-url";
+import { DATABASE_URL, poolSettings, USES_LOCAL_DATABASE } from "../src/lib/db-url";
 import { serializeBreakdown, type BreakdownItem } from "../src/lib/grades/breakdown";
 import { findEvidenceSpan } from "../src/lib/grading/evidence";
 import { SAMPLE_TEST_PHOTOS } from "../src/lib/scan/samples";
@@ -35,10 +46,23 @@ import { ASSIGNMENTS, type AssignmentKey } from "./seed-data/rubrics";
 import { engagementFor, questionAverage, validateDataset } from "./seed-data/validate";
 
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: DATABASE_URL }),
+  adapter: new PrismaPg({ connectionString: DATABASE_URL, ...poolSettings(DATABASE_URL, USES_LOCAL_DATABASE) }),
 });
 
-const IF_EMPTY = process.argv.includes("--if-empty");
+const ARGS = process.argv.slice(2);
+/** Seed only a database with no users yet; never erase anything. */
+const IF_EMPTY = ARGS.includes("--if-empty");
+/** The go-ahead to erase a database that isn't the local dev server. */
+const CONFIRMED = ARGS.includes("--yes");
+/** Run `prisma db push` first (npm run seed), once the target is confirmed. */
+const PUSH_SCHEMA = ARGS.includes("--push-schema");
+
+/**
+ * Concurrent seeds (two Vercel builds on one empty database) take turns on
+ * this transaction-scoped advisory lock. Released at commit or rollback, so it
+ * also works through a transaction-mode pooler such as Neon's.
+ */
+const SEED_LOCK_KEY = 724_242;
 
 type Tx = Prisma.TransactionClient;
 
@@ -395,13 +419,20 @@ async function printSummary(clock: Clock, activities: SeedActivity[]) {
   );
 }
 
-async function seed() {
+/** Seeds the demo data; false when --if-empty found data (under the lock) and left it alone. */
+async function seed(): Promise<boolean> {
   const clock = createClock();
   // Checked before anything is deleted; also plans the XP history.
   const activities = validateDataset(clock);
 
-  await prisma.$transaction(
+  const seeded = await prisma.$transaction(
     async (tx) => {
+      // One seed at a time. A concurrent seed waits here, and the count below
+      // then sees what it committed (READ COMMITTED: each statement takes a
+      // fresh snapshot), so two --if-empty builds never both seed.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${SEED_LOCK_KEY})`;
+      // Every row belongs to a user, so no users means an empty database.
+      if (IF_EMPTY && (await tx.user.count()) > 0) return false;
       await resetDatabase(tx);
       const { classes, ...people } = await seedPeopleAndClasses(tx, clock);
       const ids: Ids = {
@@ -414,19 +445,71 @@ async function seed() {
       for (const record of PUBLISHED) await seedPublished(tx, clock, ids, record);
       await seedActivities(tx, ids, activities);
       await seedGoals(tx, clock, ids);
+      return true;
     },
-    // Generous: a hosted database is a network hop away for every insert.
+    // Generous: a hosted database is a network hop away for every insert, and
+    // a concurrent build may wait here for another seed to finish.
     { maxWait: 30_000, timeout: 180_000 }
   );
 
-  await printSummary(clock, activities);
+  if (seeded) await printSummary(clock, activities);
+  return seeded;
+}
+
+// --- Run -----------------------------------------------------------------------------
+
+/** "host:port/database" for messages: never the user name or password. */
+function describeDatabase(url: string): string {
+  try {
+    const parsed = new URL(url);
+    const database = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+    return `${parsed.host}${database ? `/${database}` : ""}`;
+  } catch {
+    return "(an unreadable DATABASE_URL)";
+  }
+}
+
+/** `prisma db push` with the same configuration (prisma.config.ts); true when it succeeded. */
+function pushSchema(): boolean {
+  const require = createRequire(import.meta.url);
+  const prismaBin = path.join(path.dirname(require.resolve("prisma/package.json")), "build", "index.js");
+  return spawnSync(process.execPath, [prismaBin, "db", "push"], { stdio: "inherit" }).status === 0;
+}
+
+const target = describeDatabase(DATABASE_URL);
+const SKIPPED = USES_LOCAL_DATABASE
+  ? "The database already has data, so the demo seed was skipped. Run `npm run seed` to reset it."
+  : `The database at ${target} already has data, so the demo seed was skipped (--if-empty never erases anything).`;
+
+if (!IF_EMPTY && !USES_LOCAL_DATABASE && !CONFIRMED) {
+  // Before the schema push and before any connection: nothing has changed yet.
+  console.error(
+    [
+      "",
+      `This would erase everything in the database at ${target} (classes, papers, grades,`,
+      "accounts) and replace it with the demo data. That isn't the local dev server, so",
+      "the seed needs an explicit go-ahead. If that is the database you mean to reset, run:",
+      "",
+      "  npm run seed -- --yes",
+      "",
+      "To seed the local dev server instead, unset DATABASE_URL (in .env.local, .env, or",
+      "your shell).",
+      "",
+    ].join("\n")
+  );
+  process.exit(1);
 }
 
 try {
-  if (IF_EMPTY && (await prisma.user.count()) > 0) {
-    console.log("The database already has data, so the demo seed was skipped. Run `npm run seed` to reset it.");
-  } else {
-    await seed();
+  if (!IF_EMPTY && !USES_LOCAL_DATABASE) console.log(`Resetting the demo data in ${target} (--yes).`);
+  if (PUSH_SCHEMA && !pushSchema()) {
+    console.error("\nThe schema couldn't be updated (see above), so the demo data wasn't loaded.\n");
+    process.exitCode = 1;
+  } else if (IF_EMPTY && (await prisma.user.count()) > 0) {
+    // Fast path; seed() checks again under the lock.
+    console.log(SKIPPED);
+  } else if (!(await seed())) {
+    console.log(SKIPPED);
   }
 } catch (error) {
   console.error("\nSeeding failed. The previous data was left unchanged.\n");

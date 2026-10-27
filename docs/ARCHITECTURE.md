@@ -19,9 +19,29 @@ grades. AI drafts the first pass, and a teacher always makes the final call.
   and `DATABASE_URL_UNPOOLED` / `DIRECT_URL` for `prisma db push`; with nothing
   set, Prisma's local Postgres server started by `scripts/local-db.mjs` (its
   reported address is saved to `prisma/.local-database-url`).
-- Deploys: `npm run vercel-build` runs `prisma db push` (never with
-  `--accept-data-loss`), seeds only an empty database (`seed --if-empty`), then
-  `next build`.
+- Local dev server (`scripts/local-db.mjs`, pure parts in `local-db-lib.mjs`):
+  `prisma dev` server `gradesmart`, with the dev-server CLI pinned
+  (`PRISMA_DEV_VERSION`) and cached in `node_modules/.cache` so only the first
+  start needs the network. When Prisma's record of the server (`server.json`:
+  live process, fresh lock) says it runs and its port answers, the script
+  doesn't run `prisma dev` at all. Otherwise it starts it under a per-checkout
+  start lock (concurrent `npm run dev` / `npm run seed` wait and reuse it) and
+  retries the passing failures (a crashed server's leftover lock). `stop`,
+  `status`, and `delete` back `npm run db:stop|db:status|db:delete`.
+- Seed (`prisma/seed.ts`): `npm run seed` resets the demo in one transaction.
+  For any database but the local dev server it needs `--yes` and names the
+  host first (the check runs before the schema push, which the seed runs
+  itself with `--push-schema`). `--if-empty` never erases: it takes a
+  transaction-scoped advisory lock and re-checks for users under it, so
+  concurrent builds seed once.
+- Deploys: `npm run vercel-build` (`scripts/vercel-build.mjs`, rules in
+  `vercel-build-plan.mjs`). Production builds (and builds off Vercel) run
+  `prisma db push` (never with `--accept-data-loss`; one retry for a
+  concurrent first push or a waking database), seed only an empty database
+  (`seed --if-empty`), then `next build`. Preview builds leave the database
+  alone (previews may share production's) unless `ALLOW_PREVIEW_DB_CHANGES=1`
+  is set for Neon preview branches; they only diff the schema read-only and
+  warn on drift. Logs show the database host, never the connection string.
 - `@anthropic-ai/sdk` for the optional Claude grader. A local deterministic
   "demo grader" runs when `ANTHROPIC_API_KEY` is not set.
 
@@ -266,7 +286,7 @@ server only (`.env.local`), never logged, never sent to the client.
 ### `POST /api/grade` (teacher, multipart/form-data)
 
 Fields: `assignmentId`, `studentId`, `pages` (1–4 image files; JPEG, PNG, or
-WebP; ≤ 5 MB each, checked by magic bytes), optional `answerKey` (image file),
+WebP, checked by magic bytes; the browser shrinks photos to fit, and one request carries at most 3.5 MB of photos and 4 MB in all, under Vercel's 4.5 MB function body limit; 413 with a message otherwise), optional `answerKey` (image file),
 optional `transcription` (demo mode only: what is written on an unknown photo).
 
 `200 { ok: true, submissionId, status: "NEEDS_REVIEW", grader: "openai" | "demo", model, confidence, flagCount }`

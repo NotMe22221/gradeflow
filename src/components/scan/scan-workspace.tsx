@@ -45,7 +45,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { firstName, pluralize } from "@/lib/format";
 import { scrollBehavior } from "@/lib/motion";
 import { MAX_PAPER_CHARS } from "@/lib/paper";
-import { MAX_SCAN_PAGES, SCAN_IMAGE_TYPES } from "@/lib/scan/images";
+import {
+  MAX_SCAN_PAGES,
+  SCAN_IMAGE_TYPES,
+  SCAN_PHOTOS_TOO_LARGE_MESSAGE,
+  scanPhotosProblem,
+} from "@/lib/scan/images";
 import type { SampleTestPhoto } from "@/lib/scan/samples";
 import type { ScanErrorCode, ScanGradeResponse, ScanGradeSuccess } from "@/lib/scan/types";
 import { cn } from "@/lib/utils";
@@ -309,6 +314,11 @@ export function ScanWorkspace({
       return fail("student", `${firstName(student.name)}'s paper is ${paper.label.toLowerCase()}, so it can't be replaced.`);
     }
 
+    // A safety net: prepareScanImage() already fits each photo to its share
+    // of the request. /api/grade checks the same total.
+    const tooLarge = scanPhotosProblem([...pages.map((page) => page.blob.size), answerKey?.blob.size ?? 0]);
+    if (tooLarge) return setError({ message: tooLarge });
+
     const form = new FormData();
     form.set("assignmentId", assignment.id);
     form.set("studentId", student.id);
@@ -326,12 +336,8 @@ export function ScanWorkspace({
       const data = (await response.json().catch(() => null)) as ScanGradeResponse | null;
       if (!data || typeof data !== "object" || typeof data.ok !== "boolean") {
         setPhase("idle");
-        setError({
-          message:
-            response.status === 413
-              ? "Those photos are too large. Each photo must be 5 MB or less."
-              : "Grading failed. Try again.",
-        });
+        // A 413 that isn't JSON came from the host before the route ran.
+        setError({ message: response.status === 413 ? SCAN_PHOTOS_TOO_LARGE_MESSAGE : "Grading failed. Try again." });
         return;
       }
       if (!data.ok) {
@@ -480,7 +486,7 @@ export function ScanWorkspace({
                 <p className="font-display text-lg font-medium text-foreground">Add photos of one student&apos;s test</p>
                 <p className="mt-1 max-w-md text-[0.9375rem] text-pretty text-muted-foreground">
                   Drop photos here, or choose how to add them. Up to {MAX_SCAN_PAGES} pages, in order. JPEG, PNG, or
-                  WebP, 5 MB each.
+                  WebP; large photos are resized for upload.
                 </p>
                 <div className="mt-6 flex w-full flex-col items-stretch gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
                   {captureButtons}

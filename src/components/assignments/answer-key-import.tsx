@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, CheckCircle2, FlaskConical, ImageIcon, Loader2, ScanLine, ScanSearch, Upload, X } from "@/components/icons";
 
 import { FormAlert } from "@/components/classes/form-feedback";
+import { extensionFor, ImagePrepError, prepareScanImage } from "@/components/scan/image-prep";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +26,7 @@ import {
   type AnswerKeyResponse,
   type AnswerKeySuccess,
 } from "@/lib/scan/answer-key";
-import { MAX_SCAN_EDGE_PX, MAX_SCAN_IMAGE_BYTES, SCAN_IMAGE_TYPES } from "@/lib/scan/images";
+import { MAX_SCAN_IMAGE_BYTES, PHOTO_TOO_LARGE_MESSAGE } from "@/lib/scan/images";
 import { SAMPLE_ANSWER_KEY_PHOTOS } from "@/lib/scan/samples";
 import { cn } from "@/lib/utils";
 
@@ -50,35 +51,26 @@ function totalPoints(result: AnswerKeySuccess): number {
 }
 
 /**
- * Re-encode a photo only when it is not JPEG/PNG/WebP or is over the upload
- * limit (phone cameras often are). The bundled sample is never re-encoded,
- * so the demo reader can recognize its exact bytes.
+ * Fit the photo to one upload request (under Vercel's 4.5 MB body limit): it
+ * is the only photo, so it may use the whole MAX_SCAN_IMAGE_BYTES. A JPEG,
+ * PNG, or WebP within both limits is sent byte-for-byte; anything larger, or
+ * in another format the browser can open (HEIC), is resized as a JPEG. The
+ * bundled sample is never re-encoded, so the demo reader recognizes its bytes.
  */
 async function preparePhoto(file: File): Promise<{ blob: Blob; name: string } | { error: string }> {
   if (file.type && !file.type.startsWith("image/")) return { error: "Choose a photo: JPEG, PNG, or WebP." };
-  const supported = (SCAN_IMAGE_TYPES as readonly string[]).includes(file.type);
-  if (supported && file.size <= MAX_SCAN_IMAGE_BYTES) return { blob: file, name: file.name || "answer-key.jpg" };
-
-  let bitmap: ImageBitmap;
   try {
-    bitmap = await createImageBitmap(file);
-  } catch {
-    return { error: "That photo couldn't be opened. Use a JPEG, PNG, or WebP photo." };
+    const prepared = await prepareScanImage(file, MAX_SCAN_IMAGE_BYTES);
+    const name = prepared.resized || !file.name ? `answer-key.${extensionFor(prepared.type)}` : file.name;
+    return { blob: prepared.blob, name };
+  } catch (caught) {
+    return { error: caught instanceof ImagePrepError ? caught.message : "That photo couldn't be opened. Try another photo." };
   }
-  const scale = Math.min(1, MAX_SCAN_EDGE_PX / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-  const context = canvas.getContext("2d");
-  if (!context) return { error: "That photo couldn't be prepared in this browser. Try a smaller JPEG." };
-  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
+}
 
-  for (const quality of [0.85, 0.7]) {
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
-    if (blob && blob.size <= MAX_SCAN_IMAGE_BYTES) return { blob, name: "answer-key.jpg" };
-  }
-  return { error: "That photo is larger than 5 MB. Try a smaller photo." };
+/** True when the response body carries the route's own error message. */
+function hasErrorMessage(body: unknown): boolean {
+  return Boolean(body && typeof body === "object" && "error" in body && typeof body.error === "string" && body.error.trim());
 }
 
 /** POST the photo with real upload progress (fetch has no upload progress events). */
@@ -105,6 +97,12 @@ function postAnswerKey(
         parsed = JSON.parse(xhr.responseText);
       } catch {
         parsed = null;
+      }
+      // A 413 without the route's JSON came from the host (Vercel's body
+      // limit) before the route ran: name the limit the app actually uses.
+      if (xhr.status === 413 && !hasErrorMessage(parsed)) {
+        resolve({ ok: false, error: PHOTO_TOO_LARGE_MESSAGE });
+        return;
       }
       resolve(parseAnswerKeyResponse(parsed, xhr.status));
     };

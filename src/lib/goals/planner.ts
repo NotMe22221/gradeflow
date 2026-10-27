@@ -4,7 +4,7 @@ import { zodResponseFormat } from "openai/helpers/zod";
 
 import { describeOpenAiError, getOpenAI, modelFor, openAiConfigured, openAiRequestOptions } from "@/lib/ai/openai";
 import { transaction } from "@/lib/db";
-import { awardXp } from "@/lib/gamification/award";
+import { insertAwards, unearnedAwards, type AwardInput } from "@/lib/gamification/award";
 import { XP_RULES } from "@/lib/gamification/rules";
 import {
   acceptCoachingTip,
@@ -19,6 +19,7 @@ import { buildGoalUserPrompt, GOAL_SYSTEM_PROMPT, GoalExtractionSchema } from "@
 import { loadGoalClasses } from "@/lib/goals/query";
 import type { GoalClass, GoalEngine, GoalPlannerErrorCode, GoalPlannerSuccess } from "@/lib/goals/types";
 import { buildPlanView } from "@/lib/goals/view";
+import { stripNul } from "@/lib/text/sanitize";
 
 /** An expected failure with a message that is safe to show the student. */
 export class GoalPlannerError extends Error {
@@ -129,6 +130,9 @@ export async function planStudentGoal(input: {
   timeZone?: string;
 }): Promise<GoalPlannerSuccess> {
   const now = input.now ?? new Date();
+  // Stored as the goal's rawText: drop NUL, which Postgres can't store.
+  const goal = stripNul(input.goal).trim();
+  if (!goal) throw new GoalPlannerError("Type your goal first.", 400);
   const classes = await loadGoalClasses(input.studentId, now, input.timeZone);
   if (classes.length === 0) {
     throw new GoalPlannerError("You're not enrolled in any classes yet.", 400, "NO_CLASSES");
@@ -139,10 +143,10 @@ export async function planStudentGoal(input: {
 
   const engine = goalEngineInfo();
   const extraction =
-    engine.engine === "openai" ? await extractWithOpenAI(input.goal, classes) : extractWithDemo(input.goal, classes);
+    engine.engine === "openai" ? await extractWithOpenAI(goal, classes) : extractWithDemo(goal, classes);
 
-  if (!extraction.target || isGpaMisread(extraction.target, input.goal)) {
-    const message = mentionsGpa(input.goal) ? GPA_GOAL_MESSAGE : (extraction.clarifyingQuestion ?? UNCLEAR_GOAL_MESSAGE);
+  if (!extraction.target || isGpaMisread(extraction.target, goal)) {
+    const message = mentionsGpa(goal) ? GPA_GOAL_MESSAGE : (extraction.clarifyingQuestion ?? UNCLEAR_GOAL_MESSAGE);
     throw new GoalPlannerError(message, 400, "UNCLEAR_GOAL");
   }
 
@@ -156,27 +160,26 @@ export async function planStudentGoal(input: {
   const tipSource = extraction.tip ? "model" : "template";
   const coachingTip = extraction.tip ?? demoCoachingTip(goalClass.weakest, plan.status);
 
+  // GOAL_SET XP is once per day. Checked before the transaction (a plain
+  // read, see award.ts); the award's key stops a concurrent second copy.
+  const goalXp: AwardInput = { kind: "GOAL_SET", xp: XP_RULES.GOAL_SET, refId: goalClass.id };
+  const pendingXp = await unearnedAwards({ studentId: input.studentId, awards: [goalXp], now });
+
   const { saved, xpAwarded } = await transaction(async (tx) => {
     const saved = await tx.studentGoal.upsert({
       where: { studentId_classId: { studentId: input.studentId, classId: goalClass.id } },
       create: {
         studentId: input.studentId,
         classId: goalClass.id,
-        rawText: input.goal,
+        rawText: goal,
         targetPercent: plan.targetPercent,
         targetLabel: target.label,
       },
-      update: { rawText: input.goal, targetPercent: plan.targetPercent, targetLabel: target.label },
+      update: { rawText: goal, targetPercent: plan.targetPercent, targetLabel: target.label },
       select: { updatedAt: true },
     });
-    const xpAwarded = await awardXp(tx, {
-      studentId: input.studentId,
-      kind: "GOAL_SET",
-      xp: XP_RULES.GOAL_SET,
-      refId: goalClass.id,
-      now,
-    });
-    return { saved, xpAwarded };
+    const awarded = await insertAwards(tx, { studentId: input.studentId, awards: pendingXp, now });
+    return { saved, xpAwarded: awarded.reduce((sum, award) => sum + award.xp, 0) };
   });
 
   return {
@@ -186,7 +189,7 @@ export async function planStudentGoal(input: {
     xpAwarded,
     plan: buildPlanView({
       goalClass,
-      goalText: input.goal,
+      goalText: goal,
       target,
       plan,
       coachingTip,

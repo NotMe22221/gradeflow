@@ -27,6 +27,7 @@ import {
 import { gradeWithVision, VisionGradingError } from "@/lib/scan/vision";
 import type { Legibility, MappedVisionOutput } from "@/lib/scan/vision-prompt";
 import { TEACHER_REPLACEABLE_STATUSES } from "@/lib/submissions";
+import { stripNul, stripNulOptional } from "@/lib/text/sanitize";
 import { demoScanModel } from "@/lib/review/media";
 
 /**
@@ -166,7 +167,9 @@ async function saveScan(args: {
   const { assignmentId, studentId, result } = args;
   return transaction(async (tx) => {
     const submissionData = {
-      content: args.transcription,
+      // Already normalized (normalizePaperText drops NUL); stripped again
+      // because Postgres can't store NUL and this is the last stop before it.
+      content: stripNul(args.transcription),
       fileName: photoLabel(args.pages.length),
       source: "SCAN",
       submittedAt: new Date(),
@@ -211,7 +214,8 @@ async function saveScan(args: {
       grader: args.grader,
       model: args.model,
       confidence: result.confidence,
-      overallComment: result.overallComment || null,
+      // Model text: NUL can't be stored in Postgres (src/lib/text/sanitize.ts).
+      overallComment: stripNul(result.overallComment) || null,
       flags: serializeFlags(result.flags),
     };
     await tx.aiGrade.upsert({
@@ -226,8 +230,8 @@ async function saveScan(args: {
         submissionId,
         criterionId: criterion.criterionId,
         aiScore: criterion.aiScore,
-        aiJustification: criterion.justification,
-        aiEvidence: criterion.evidence,
+        aiJustification: stripNul(criterion.justification),
+        aiEvidence: stripNulOptional(criterion.evidence),
         evidenceFound: criterion.evidenceFound,
         finalScore: null,
         finalComment: null,

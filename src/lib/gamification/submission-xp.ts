@@ -1,8 +1,8 @@
 import "server-only";
 
 import { isPastDue } from "@/components/student/student-status";
-import { transaction } from "@/lib/db";
-import { awardXp } from "@/lib/gamification/award";
+import { db } from "@/lib/db";
+import { insertAwards } from "@/lib/gamification/award";
 import { submissionXpAwards, type XpAward } from "@/lib/gamification/rules";
 
 const SUBMISSION_KINDS = ["SUBMIT", "ON_TIME", "RESUBMIT"];
@@ -10,8 +10,11 @@ const SUBMISSION_KINDS = ["SUBMIT", "ON_TIME", "RESUBMIT"];
 /**
  * Award XP after a successful student submission: SUBMIT (+ ON_TIME when the
  * due day has not ended) for a first submission, RESUBMIT for a resubmission
- * after a send-back. Existing rows for this submission (refId + kind) are
- * checked inside the same transaction, so the same kind is never awarded twice.
+ * after a send-back. A submission never earns the same kind twice: kinds it
+ * already has are skipped, and each award is stored under a key made from
+ * the kind and the submission (see award.ts), so even two requests at the
+ * same moment store it once. No transaction: one INSERT ... ON CONFLICT DO
+ * NOTHING, so unrelated students submitting together never conflict.
  * Returns what was awarded. Engagement only: XP never touches the grade.
  */
 export async function awardSubmissionXp(input: {
@@ -29,27 +32,21 @@ export async function awardSubmissionXp(input: {
   // spread of real zones (about a day); XP is engagement only.
   const onTime = input.dueDate !== null && !isPastDue(input.dueDate, now, input.timeZone);
 
-  return transaction(async (tx) => {
-    const existing = await tx.studyActivity.findMany({
-      where: { studentId: input.studentId, refId: input.submissionId, kind: { in: SUBMISSION_KINDS } },
-      select: { kind: true },
-    });
-    const awards = submissionXpAwards({
-      resubmission: input.resubmission,
-      onTime,
-      alreadyAwarded: new Set(existing.map((row) => row.kind)),
-    });
-    const granted: XpAward[] = [];
-    for (const award of awards) {
-      const xp = await awardXp(tx, {
-        studentId: input.studentId,
-        kind: award.kind,
-        xp: award.xp,
-        refId: input.submissionId,
-        now,
-      });
-      if (xp > 0) granted.push({ kind: award.kind, xp });
-    }
-    return { total: granted.reduce((sum, award) => sum + award.xp, 0), awards: granted };
+  // A plain read, outside any transaction: it finds kinds earned before the
+  // keyed inserts existed. Newer rows are caught by their key on insert.
+  const existing = await db.studyActivity.findMany({
+    where: { studentId: input.studentId, refId: input.submissionId, kind: { in: SUBMISSION_KINDS } },
+    select: { kind: true },
   });
+  const awards = submissionXpAwards({
+    resubmission: input.resubmission,
+    onTime,
+    alreadyAwarded: new Set(existing.map((row) => row.kind)),
+  });
+  const granted = await insertAwards(db, {
+    studentId: input.studentId,
+    awards: awards.map((award) => ({ ...award, refId: input.submissionId })),
+    now,
+  });
+  return { total: granted.reduce((sum, award) => sum + award.xp, 0), awards: granted };
 }

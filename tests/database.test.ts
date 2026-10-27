@@ -13,6 +13,23 @@ describe("transaction retries", () => {
     assert.equal(isRetryableConflict(new Error("wrapped", { cause: { code: "40001" } })), true);
   });
 
+  it("retries a conflict Postgres reports at COMMIT (the adapter's error, not P2034)", () => {
+    // What Prisma 7 + @prisma/adapter-pg throw when COMMIT fails with 40001.
+    assert.equal(
+      isRetryableConflict({
+        name: "DriverAdapterError",
+        message: "TransactionWriteConflict",
+        cause: {
+          originalCode: "40001",
+          originalMessage: "could not serialize access due to read/write dependencies among transactions",
+          kind: "TransactionWriteConflict",
+        },
+      }),
+      true
+    );
+    assert.equal(isRetryableConflict({ name: "DriverAdapterError", cause: { kind: "TransactionWriteConflict", originalCode: "40P01" } }), true);
+  });
+
   it("never retries other errors", () => {
     assert.equal(isRetryableConflict(new Error("This paper was already handled")), false);
     assert.equal(isRetryableConflict({ code: "P2002" }), false);
@@ -21,10 +38,17 @@ describe("transaction retries", () => {
     assert.equal(isRetryableConflict("40001"), false);
   });
 
-  it("backs off with jitter", () => {
-    assert.equal(retryDelayMs(1, 0), 15);
-    assert.equal(retryDelayMs(3, 1), 180);
+  it("never retries a connection lost during COMMIT (it may have committed)", () => {
+    assert.equal(isRetryableConflict({ name: "DriverAdapterError", cause: { kind: "ConnectionClosed" } }), false);
+    assert.equal(isRetryableConflict({ name: "DriverAdapterError", cause: { kind: "SocketTimeout" } }), false);
+    assert.equal(isRetryableConflict({ code: "P1017", message: "Server has closed the connection." }), false);
+  });
+
+  it("backs off exponentially with jitter, capped", () => {
+    assert.equal(retryDelayMs(1, 0), 10);
+    assert.equal(retryDelayMs(3, 1), 120);
     assert.ok(retryDelayMs(2, 0.5) > retryDelayMs(1, 0.5));
+    assert.equal(retryDelayMs(20, 0.5), 500);
   });
 });
 

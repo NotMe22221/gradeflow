@@ -10,6 +10,7 @@
 import { z } from "zod";
 
 import { parseAssignmentKind, type AssignmentKind } from "@/lib/constants";
+import { stripNul } from "@/lib/text/sanitize";
 import type { FieldErrors } from "@/lib/validation/form";
 
 export type RubricLimits = {
@@ -107,22 +108,27 @@ function messagesFor(kind: AssignmentKind, limits: RubricLimits): Messages {
   };
 }
 
+/**
+ * Required free text: NUL characters (which Postgres can't store) are dropped
+ * first, then the trimmed text must be 1..max characters. Issues keep the
+ * field's own path ("title", "criteria.2.description").
+ */
+function requiredText(max: number, emptyMessage: string, tooLongMessage: string) {
+  return z.string().transform(stripNul).pipe(z.string().trim().min(1, emptyMessage).max(max, tooLongMessage));
+}
+
 function buildSchema(kind: AssignmentKind) {
   const limits = rubricLimitsFor(kind);
   const messages = messagesFor(kind, limits);
   const pointsMessage = `Use a whole number from ${limits.minPoints} to ${limits.maxPoints}.`;
 
   const criterion = z.object({
-    title: z
-      .string()
-      .trim()
-      .min(1, messages.criterionTitle)
-      .max(limits.criterionTitleMax, messages.criterionTitleTooLong),
-    description: z
-      .string()
-      .trim()
-      .min(1, messages.criterionDescription)
-      .max(limits.criterionDescriptionMax, messages.criterionDescriptionTooLong),
+    title: requiredText(limits.criterionTitleMax, messages.criterionTitle, messages.criterionTitleTooLong),
+    description: requiredText(
+      limits.criterionDescriptionMax,
+      messages.criterionDescription,
+      messages.criterionDescriptionTooLong
+    ),
     maxPoints: z
       .number({ error: pointsMessage })
       .int(pointsMessage)
@@ -131,19 +137,12 @@ function buildSchema(kind: AssignmentKind) {
   });
 
   return z.object({
-    title: z
-      .string()
-      .trim()
-      .min(1, "Give the assignment a title.")
-      .max(limits.titleMax, `Keep the title under ${limits.titleMax} characters.`),
-    instructions: z
-      .string()
-      .trim()
-      .min(1, messages.instructions)
-      .max(
-        limits.instructionsMax,
-        `Keep this under ${limits.instructionsMax.toLocaleString("en-US")} characters.`
-      ),
+    title: requiredText(limits.titleMax, "Give the assignment a title.", `Keep the title under ${limits.titleMax} characters.`),
+    instructions: requiredText(
+      limits.instructionsMax,
+      messages.instructions,
+      `Keep this under ${limits.instructionsMax.toLocaleString("en-US")} characters.`
+    ),
     dueDate: z
       .string()
       .trim()

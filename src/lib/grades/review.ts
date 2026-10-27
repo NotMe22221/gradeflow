@@ -1,19 +1,18 @@
 import "server-only";
 
-import { z } from "zod";
-
 import type { Prisma } from "@/generated/prisma/client";
 import { getOwnedAssignment, getOwnedSubmission } from "@/lib/access";
 import { AuthError, requireTeacher } from "@/lib/auth/session";
 import { db, transaction } from "@/lib/db";
-import { awardXp } from "@/lib/gamification/award";
+import { insertAwards } from "@/lib/gamification/award";
 import { xpForPublishedGrade } from "@/lib/gamification/rules";
 import { publishApprovedGrade } from "@/lib/grades/publish";
+import { parsePayload, parseReturnNote, ReviewError } from "@/lib/grades/review-input";
 import { toReviewItem } from "@/lib/review/map";
-import { MAX_COMMENT_CHARS, MAX_FEEDBACK_CHARS, MAX_RETURN_NOTE_CHARS } from "@/lib/review/model";
-import { isOnScoreStep } from "@/lib/review/scores";
 import type { ReviewItem, ReviewPayload } from "@/lib/review/types";
 import { idSchema } from "@/lib/validation/id";
+
+export { ReviewError } from "@/lib/grades/review-input";
 
 /**
  * Teacher review logic: draft edits, approve + publish, and send back.
@@ -24,62 +23,10 @@ import { idSchema } from "@/lib/validation/id";
  * which re-checks the approval inside the same transaction.
  */
 
-/** An expected, teacher-facing failure (bad input or a stale review). */
-export class ReviewError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ReviewError";
-  }
-}
-
-const HALF_POINTS_MESSAGE = "Scores must be whole or half points, like 7 or 7.5.";
-
-const payloadSchema = z.object({
-  scores: z
-    .array(
-      z.object({
-        criterionId: z.string().min(1).max(64),
-        // Half-point steps keep every published score exactly what the
-        // teacher saw (the app shows one decimal, the CSV keeps two).
-        score: z.number().refine(isOnScoreStep, HALF_POINTS_MESSAGE).nullable(),
-        comment: z.string().max(MAX_COMMENT_CHARS),
-      })
-    )
-    .max(100),
-  feedback: z.string().max(MAX_FEEDBACK_CHARS),
-});
-
-const noteSchema = z
-  .string()
-  .trim()
-  .min(1, "Add a note so the student knows what to revise.")
-  .max(MAX_RETURN_NOTE_CHARS, `Keep the note under ${MAX_RETURN_NOTE_CHARS.toLocaleString()} characters.`);
-
 function parseSubmissionId(value: unknown): string {
   const parsed = idSchema.safeParse(value);
   if (!parsed.success) throw new AuthError("Submission not found.", 404);
   return parsed.data;
-}
-
-function parsePayload(value: unknown): ReviewPayload {
-  const parsed = payloadSchema.safeParse(value);
-  if (parsed.success) return parsed.data;
-  const issue = parsed.error.issues[0];
-  const path = issue?.path ?? [];
-  if (path[0] === "feedback") {
-    throw new ReviewError(
-      `The overall note is limited to ${MAX_FEEDBACK_CHARS.toLocaleString()} characters.`
-    );
-  }
-  if (path.includes("comment")) {
-    throw new ReviewError(
-      `Feedback for each criterion is limited to ${MAX_COMMENT_CHARS.toLocaleString()} characters.`
-    );
-  }
-  if (path.includes("score")) {
-    throw new ReviewError(issue?.code === "custom" ? HALF_POINTS_MESSAGE : "Scores must be numbers.");
-  }
-  throw new ReviewError("Those review changes could not be read. Reload the page and try again.");
 }
 
 function statusMessage(status: string): string {
@@ -289,12 +236,12 @@ export async function approveAndPublish(submissionId: unknown, payload: unknown)
     const result = await publishApprovedGrade(tx, id, teacher.id);
 
     // Engagement only: XP never touches the grade itself. Inside the same
-    // transaction, so XP exists exactly when the grade was published.
-    await awardXp(tx, {
+    // transaction, so XP exists exactly when the grade was published. A
+    // single keyed insert (once per submission, see award.ts): no predicate
+    // read that could conflict with other students' XP.
+    await insertAwards(tx, {
       studentId: submission.student.id,
-      kind: "GRADE_PUBLISHED",
-      xp: xpForPublishedGrade(result.totalScore, result.maxScore),
-      refId: id,
+      awards: [{ kind: "GRADE_PUBLISHED", xp: xpForPublishedGrade(result.totalScore, result.maxScore), refId: id }],
       now,
     });
 
@@ -314,15 +261,12 @@ export async function approveAndPublish(submissionId: unknown, payload: unknown)
 export async function sendBackToStudent(submissionId: unknown, note: unknown) {
   const teacher = await requireTeacher();
   const id = parseSubmissionId(submissionId);
-  const parsedNote = noteSchema.safeParse(typeof note === "string" ? note : "");
-  if (!parsedNote.success) {
-    throw new ReviewError(parsedNote.error.issues[0]?.message ?? "Add a note for the student.");
-  }
+  const returnNote = parseReturnNote(note);
   const submission = await getReviewableSubmission(teacher.id, id);
 
   const updated = await db.submission.updateMany({
     where: { id, status: "NEEDS_REVIEW", assignment: { class: { teacherId: teacher.id } } },
-    data: { status: "RETURNED", returnNote: parsedNote.data, returnedAt: new Date() },
+    data: { status: "RETURNED", returnNote, returnedAt: new Date() },
   });
   if (updated.count !== 1) throw new ReviewError(statusMessage("UNKNOWN"));
 

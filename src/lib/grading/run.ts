@@ -14,6 +14,7 @@ import { getGrader } from "@/lib/grading";
 import type { Grader, GradingInput, ValidatedGrading } from "@/lib/grading/types";
 import { GradingError, validateGrading } from "@/lib/grading/validate";
 import { gradeTestAnswers } from "@/lib/scan/finalize";
+import { stripNul, stripNulOptional } from "@/lib/text/sanitize";
 
 export { GradingError } from "@/lib/grading/validate";
 
@@ -130,11 +131,13 @@ async function saveGrading(
       throw new GradingConflictError("This paper changed while it was being graded. Refresh and try again.");
     }
 
+    // Model text is stored as-is apart from NUL, which Postgres can't store
+    // (src/lib/text/sanitize.ts). JSON.stringify already escapes it in flags.
     const aiGrade = {
       grader: grader.kind,
       model: grader.model,
       confidence: result.confidence,
-      overallComment: result.overallComment || null,
+      overallComment: stripNul(result.overallComment) || null,
       flags: JSON.stringify(result.flags),
     };
     await tx.aiGrade.upsert({
@@ -150,8 +153,8 @@ async function saveGrading(
         submissionId,
         criterionId: criterion.criterionId,
         aiScore: criterion.aiScore,
-        aiJustification: criterion.justification,
-        aiEvidence: criterion.evidence,
+        aiJustification: stripNul(criterion.justification),
+        aiEvidence: stripNulOptional(criterion.evidence),
         evidenceFound: criterion.evidenceFound,
         finalScore: null,
         finalComment: null,

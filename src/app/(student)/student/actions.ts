@@ -7,7 +7,7 @@ import { getEnrolledAssignment } from "@/lib/access";
 import { AuthError, requireStudent } from "@/lib/auth/session";
 import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import { parseAssignmentKind } from "@/lib/constants";
-import { db, transaction } from "@/lib/db";
+import { db } from "@/lib/db";
 import { awardXp } from "@/lib/gamification/award";
 import { XP_RULES } from "@/lib/gamification/rules";
 import { awardSubmissionXp } from "@/lib/gamification/submission-xp";
@@ -130,7 +130,9 @@ export async function submitPaper(assignmentId: string, formData: FormData): Pro
       const xp = await awardSubmissionXp({
         studentId: student.id,
         submissionId: result.submissionId,
-        resubmission: existing?.status === "RETURNED",
+        // What the write actually did: replacing a paper is only allowed
+        // after a send-back, so a replace is always a resubmission.
+        resubmission: !result.created,
         dueDate: assignment.dueDate,
         timeZone: await viewerTimeZone(),
       });
@@ -170,14 +172,13 @@ export async function logStudySession(assignmentId: string): Promise<LogStudySes
     if (!id.success) return { ok: false, error: "Assignment not found." };
     const assignment = await getEnrolledAssignment(student.id, id.data);
 
-    xpAwarded = await transaction((tx) =>
-      awardXp(tx, {
-        studentId: student.id,
-        kind: "STUDY_SESSION",
-        xp: XP_RULES.STUDY_SESSION,
-        refId: assignment.id,
-      })
-    );
+    // Once per day is enforced by the award's key, so no transaction is needed.
+    xpAwarded = await awardXp({
+      studentId: student.id,
+      kind: "STUDY_SESSION",
+      xp: XP_RULES.STUDY_SESSION,
+      refId: assignment.id,
+    });
   } catch (error) {
     if (error instanceof AuthError) return { ok: false, error: error.message };
     console.error("[gradesmart] Study session log failed", {

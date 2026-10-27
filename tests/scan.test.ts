@@ -19,6 +19,10 @@ import {
   MAX_SCAN_EDGE_PX,
   MAX_SCAN_IMAGE_BYTES,
   MAX_SCAN_PAGES,
+  MAX_SCAN_PHOTOS,
+  MAX_SCAN_PHOTOS_BYTES,
+  PHOTO_TOO_LARGE_MESSAGE,
+  SCAN_PHOTO_TARGET_BYTES,
   scanImageProblem,
   sniffImageType,
 } from "@/lib/scan/images";
@@ -168,7 +172,7 @@ describe("sniffImageType / scanImageProblem", () => {
 
   it("explains every problem, and accepts a valid photo", () => {
     assert.equal(scanImageProblem(new Uint8Array(0)), "That photo is empty.");
-    assert.match(scanImageProblem(bytes(JPEG_HEAD, MAX_SCAN_IMAGE_BYTES + 1)) ?? "", /larger than 5 MB/);
+    assert.equal(scanImageProblem(bytes(JPEG_HEAD, MAX_SCAN_IMAGE_BYTES + 1)), PHOTO_TOO_LARGE_MESSAGE);
     assert.match(scanImageProblem(new TextEncoder().encode("hello world, not an image")) ?? "", /JPEG, PNG, or WebP/);
     assert.equal(scanImageProblem(bytes(PNG_HEAD)), null);
     assert.equal(scanImageProblem(bytes(JPEG_HEAD, MAX_SCAN_IMAGE_BYTES)), null);
@@ -201,7 +205,9 @@ describe("sniffImageType / scanImageProblem", () => {
     const result = await readScanImage(huge, "Page 3");
     assert.equal(result.ok, false);
     assert.equal(read, false);
-    assert.ok(MAX_SCAN_REQUEST_BYTES >= (MAX_SCAN_PAGES + 1) * MAX_SCAN_IMAGE_BYTES);
+    // Every photo of one scan fits in the request, under Vercel's 4.5 MB body limit.
+    assert.ok(MAX_SCAN_REQUEST_BYTES > MAX_SCAN_PHOTOS_BYTES);
+    assert.ok(SCAN_PHOTO_TARGET_BYTES * MAX_SCAN_PHOTOS <= MAX_SCAN_PHOTOS_BYTES);
   });
 });
 
