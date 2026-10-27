@@ -599,7 +599,15 @@ function SortableSection({
           {/* Sized by its real text, so the controls wrap below only when they don't fit beside it;
               capped at the room beside the handle, so the title itself never wraps away from it. */}
           <div className="min-w-0 flex-auto max-w-[calc(100%-3rem)]">
-            <h3 className="truncate font-display text-[1.375rem] leading-7 font-extrabold tracking-[-0.015em] text-foreground">
+            {/* A section that draws its own heading shows it right below, so the tile's name stays small there. */}
+            <h3
+              className={cn(
+                "truncate font-display text-foreground",
+                spec.ownHeading
+                  ? "text-[1.125rem] leading-6 font-medium"
+                  : "text-[1.375rem] leading-7 font-extrabold tracking-[-0.015em]"
+              )}
+            >
               {name}
             </h3>
             {spec.essential ? (

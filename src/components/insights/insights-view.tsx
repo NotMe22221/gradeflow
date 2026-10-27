@@ -9,7 +9,7 @@ import { HeatmapLegend } from "@/components/insights/heatmap-legend";
 import { HeatmapScrollHint, HeatmapScrollProvider } from "@/components/insights/heatmap-scroll";
 import { InsightsSnapshot } from "@/components/insights/insights-snapshot";
 import { MostMissedList } from "@/components/insights/most-missed-list";
-import { PageContainer, PageHeader } from "@/components/page-header";
+import { HeaderDecor, PageContainer, PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { pluralize } from "@/lib/format";
@@ -147,7 +147,7 @@ function HeatmapBody({ heatmap }: { heatmap: ClassHeatmap }) {
 export function InsightsNoClasses() {
   return (
     <PageContainer>
-      <PageHeader title={TITLE} description={DESCRIPTION} />
+      <PageHeader title={TITLE} description={DESCRIPTION} decor={<HeaderDecor tones={["lilac", "coral"]} />} />
       <EmptyState
         icon={BookOpen}
         title="Create a class to see where students lose points."
@@ -176,6 +176,7 @@ export function InsightsView({
   return (
     <PageContainer>
       <PageHeader
+        decor={<HeaderDecor tones={["lilac", "coral"]} />}
         title={TITLE}
         description={DESCRIPTION}
         className="mb-6"

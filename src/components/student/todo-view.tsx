@@ -86,8 +86,7 @@ export function TodoView({ items, classes }: { items: TodoItem[]; classes: { id:
   const selectedClass = classes.find((klass) => klass.id === classId);
 
   return (
-    // overflow-y-clip: the title's paint tucks under the app bar instead of showing through it.
-    <div className="mx-auto w-full max-w-3xl overflow-y-clip px-4 pt-6 pb-10 sm:px-6 sm:pt-8">
+    <div className="mx-auto w-full max-w-3xl px-4 pt-6 pb-10 sm:px-6 sm:pt-8">
       {/* The display title with paint in the page's top right corner; the class filter sits under
           it, so no field ever sits on the decor. */}
       <header>

@@ -46,8 +46,7 @@ export default async function StudentClassesPage({
         : `You're in ${pluralize(cards.length, "class", "classes")}. Nothing is missing.`;
 
   return (
-    // overflow-y-clip: the title's paint tucks under the app bar instead of showing through it.
-    <PageContainer className="overflow-y-clip">
+    <PageContainer>
       <LayoutEditorProvider
         classOrder={preferences.layout.classOrder}
         label="your classes"

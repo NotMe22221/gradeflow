@@ -17,14 +17,13 @@ export default function NotFound() {
         </LandingContainer>
       </header>
       {/* Paint at the corners, clear of the text: a yellow blob (it drifts) with X marks top right, a mint one
-          bottom left, dots bottom right. The big blob is overflow-visible so its box can't cut a straight edge
-          into its outline. */}
+          bottom left, dots bottom right. */}
       <main id="main" className="relative isolate flex flex-1 items-center overflow-hidden py-16 sm:py-24">
         <Blob
           shape={1}
           tone="yellow"
           float
-          className="-top-20 -right-20 w-48 overflow-visible sm:-top-32 sm:-right-24 sm:w-80 lg:-top-40 lg:-right-32 lg:w-[36rem]"
+          className="-top-20 -right-20 w-48 sm:-top-32 sm:-right-24 sm:w-80 lg:-top-40 lg:-right-32 lg:w-[36rem]"
         />
         <XGrid cols={6} rows={4} className="hidden sm:block sm:top-10 sm:right-10 sm:w-32 lg:top-16 lg:right-16 lg:w-44" />
         <Blob shape={6} tone="mint" className="-bottom-24 -left-20 w-48 sm:-bottom-32 sm:-left-24 sm:w-80" />

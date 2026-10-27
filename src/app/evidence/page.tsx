@@ -44,13 +44,6 @@ const RESULTS_URL = `${REPO_URL}/tree/main/eval/results`;
 const H2 = "display-title text-foreground";
 const BODY = "max-w-[65ch] text-base leading-7 text-pretty text-muted-foreground";
 
-/** A heading's closing period in the accent color (on the canvas or a card only). Screen readers skip it. */
-const PERIOD = (
-  <span aria-hidden className="text-primary">
-    .
-  </span>
-);
-
 async function signedInHref(): Promise<string | null> {
   try {
     const user = await getCurrentUser();
@@ -91,7 +84,7 @@ export default async function EvidencePage() {
             className="-top-[24vw] -right-[14vw] w-[40vw] sm:-top-[19vw] sm:w-[34vw] lg:-top-[13vw] lg:-right-[9vw] lg:w-[33vw]"
           />
           <XGrid cols={5} rows={4} className="hidden md:block md:top-[3vw] md:right-[4.5vw] md:w-[10vw]" />
-          <Blob shape={4} tone="lilac" className="hidden lg:block lg:right-[4vw] lg:-bottom-[12vw] lg:w-[24vw]" />
+          <Blob shape={4} tone="lilac" className="hidden lg:block lg:-right-[8vw] lg:bottom-[3vw] lg:w-[17vw]" />
           <DotGrid cols={8} rows={5} className="hidden lg:block lg:right-[29vw] lg:bottom-[4vw] lg:w-[10vw]" />
           <Ring tone="yellow" className="hidden lg:block lg:top-[22vw] lg:right-[24vw] lg:w-[4vw]" />
 
@@ -124,10 +117,14 @@ export default async function EvidencePage() {
 
         <LandingContainer>
           <div className="relative isolate">
-            {/* Paint peeking out from behind the band's corners. */}
+            {/* Paint and marks peeking out from behind the band's bottom corners. The X grid's top-left marks sit
+                fully behind the band's corner (each mark is either wholly hidden or wholly clear of the band, so
+                none is cut), and it wraps the corner in an L. */}
             <Blob shape={5} tone="coral" className="hidden lg:block lg:-bottom-10 lg:-left-28 lg:w-72" />
-            <XGrid cols={2} rows={5} className="hidden xl:block xl:top-40 xl:-right-[4.5rem] xl:w-12" />
-            <div className="rounded-[1.75rem] bg-band-sky p-3 text-band-foreground sm:rounded-[2.5rem] sm:p-6 lg:p-10">
+            <XGrid cols={4} rows={4} className="hidden xl:block xl:-right-[3.75rem] xl:-bottom-[3.75rem] xl:w-32" />
+            {/* Focus rings on the band take its text color (the accent ring is faint on sky in dark mode); the
+                cards on it put the accent ring back. */}
+            <div className="rounded-[1.75rem] bg-band-sky p-3 text-band-foreground [--ring:var(--band-foreground)] sm:rounded-[2.5rem] sm:p-6 lg:p-10">
               <div role="note" className="flex gap-3 px-2 pt-2 pb-1 sm:gap-4 sm:px-0 sm:pt-0">
                 <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-full bg-card text-foreground">
                   <TriangleAlert className="size-6" />
@@ -177,11 +174,13 @@ export default async function EvidencePage() {
 
         <section
           aria-labelledby="limits-heading"
-          className="relative isolate mt-20 overflow-hidden bg-band-yellow py-16 text-band-foreground sm:mt-28 sm:py-24"
+          className="relative isolate mt-20 overflow-hidden bg-band-yellow py-16 text-band-foreground [--ring:var(--band-foreground)] sm:mt-28 sm:py-24"
         >
-          {/* In the empty corner under the heading: marks, and a blob bleeding off the bottom left. */}
-          <XGrid cols={6} rows={3} className="hidden stroke-pop-ink-on lg:block lg:bottom-24 lg:left-[8vw] lg:w-40" />
+          {/* In the empty corner under the heading: a blob bleeding off the bottom left with marks printed on it.
+              The grid comes after the blob so it paints on top, and both are placed from the same corner in
+              rem, so the marks stay wholly on the paint at every width. */}
           <Blob shape={6} tone="mint" className="-bottom-24 -left-20 hidden w-72 lg:block" />
+          <XGrid cols={4} rows={3} className="bottom-9 left-5 hidden w-[6.5rem] stroke-pop-ink-on lg:block" />
           <LandingContainer className="grid gap-8 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-4">
               <h2 id="limits-heading" className="display-section">
@@ -209,7 +208,8 @@ export default async function EvidencePage() {
               className="rounded-[1.75rem] border border-border bg-card p-6 shadow-raised sm:rounded-[2.5rem] sm:p-10"
             >
               <h2 id="data-heading" className="display-section scroll-mt-24 text-foreground">
-                The data and how to rerun it{PERIOD}
+                The data and how to rerun it
+                <Period />
               </h2>
               <div className="mt-6 grid gap-8 lg:grid-cols-2 lg:gap-12">
                 <div className="space-y-4 text-[0.9375rem] leading-6 text-pretty text-muted-foreground">
@@ -303,7 +303,7 @@ function RunCard({ results }: { results: EvalResults }) {
   return (
     <section
       aria-labelledby={`run-${run.grader}`}
-      className="rounded-[1.25rem] bg-card p-5 text-foreground shadow-raised sm:rounded-3xl sm:p-7"
+      className="rounded-[1.25rem] bg-card p-5 text-foreground shadow-raised [--ring:var(--primary)] sm:rounded-3xl sm:p-7"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id={`run-${run.grader}`} className="font-display text-[1.375rem] leading-snug font-bold text-foreground">
@@ -366,7 +366,7 @@ function LiveNotRun() {
   return (
     <section
       aria-labelledby="run-live"
-      className="flex flex-col rounded-[1.25rem] border-2 border-dashed border-border bg-card p-5 text-foreground sm:rounded-3xl sm:p-7"
+      className="flex flex-col rounded-[1.25rem] border-2 border-dashed border-border bg-card p-5 text-foreground [--ring:var(--primary)] sm:rounded-3xl sm:p-7"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="run-live" className="font-display text-[1.375rem] leading-snug font-bold text-foreground">

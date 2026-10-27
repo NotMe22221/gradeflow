@@ -36,7 +36,7 @@ function SectionHeadingSkeleton({ action = true }: { action?: boolean }) {
   return (
     <div className="mb-3 flex min-h-10 items-center justify-between gap-4">
       <div className="min-w-0 flex-1 space-y-1.5">
-        <Skeleton className="h-5 w-40" />
+        <Skeleton className="h-7 w-40" />
         <Skeleton className="h-3.5 w-72 max-w-full" />
       </div>
       {action ? <Skeleton className="h-4 w-20 shrink-0" /> : null}

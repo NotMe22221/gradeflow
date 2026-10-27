@@ -19,14 +19,12 @@ export function Hero({ demoLogin, theme }: { demoLogin: boolean; theme: Theme })
   return (
     <section aria-labelledby="hero-heading" className="relative isolate overflow-hidden pt-12 pb-16 sm:pt-20 sm:pb-24">
       {/* Top right: a big yellow blob (the one that drifts), a coral one over its edge, X marks on it. On
-          phones only the yellow corner shows, above the headline.
-          overflow-visible: the blob's outline reaches a little past its 200 x 200 box, and a clipped
-          box would cut a straight edge into it. */}
+          phones only the yellow corner shows, above the headline. */}
       <Blob
         shape={4}
         tone="yellow"
         float
-        className="-top-[22vw] -right-[10vw] w-[38vw] overflow-visible sm:-top-[20vw] lg:-top-[13vw] lg:-right-[9vw] lg:w-[40vw]"
+        className="-top-[22vw] -right-[10vw] w-[38vw] sm:-top-[20vw] lg:-top-[13vw] lg:-right-[9vw] lg:w-[40vw]"
       />
       <Blob shape={2} tone="coral" className="hidden lg:block lg:-top-[5vw] lg:right-[20vw] lg:w-[17vw]" />
       <XGrid cols={6} rows={4} className="hidden md:block md:top-[4.5vw] md:right-[5vw] md:w-[12vw]" />
@@ -76,7 +74,8 @@ export function Hero({ demoLogin, theme }: { demoLogin: boolean; theme: Theme })
             className="lg:top-6 lg:-right-36 lg:w-80 xl:top-auto xl:-right-20 xl:-bottom-24"
           />
           <DotGrid cols={8} rows={5} className="w-40 lg:right-16 lg:-bottom-6 xl:-right-10 xl:-bottom-12" />
-          <SampleScore className="hidden xl:block" />
+          {/* From xl with paint around it; in Calm (no paint to crowd the lede) from lg. */}
+          <SampleScore className="hidden xl:block lg:calm:block" />
         </div>
       </div>
 

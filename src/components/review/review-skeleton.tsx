@@ -18,7 +18,7 @@ export function ReviewSkeleton({ paperSide = "left" }: { paperSide?: PaperSide }
       <div className="border-b border-border bg-card px-4 py-3 sm:px-6">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
           <div className="min-w-0 flex-1 basis-44 space-y-2">
-            <Skeleton className="h-7 w-36 max-w-full" />
+            <Skeleton className="h-9 w-36 max-w-full" />
             <Skeleton className="h-4 w-56 max-w-full" />
           </div>
           <div className="order-last flex w-full items-center gap-2 @6xl:order-none @6xl:w-auto">

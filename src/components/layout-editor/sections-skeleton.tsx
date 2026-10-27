@@ -41,7 +41,7 @@ export function SectionsSkeleton({
       <div key={id} className="min-w-0">
         {spec.ownHeading ? null : (
           <div className="mb-3 flex min-h-10 items-center justify-between gap-4">
-            <Skeleton className="h-5 w-36" />
+            <Skeleton className="h-7 w-36" />
             {spec.action ? <Skeleton className="h-4 w-16" /> : null}
           </div>
         )}

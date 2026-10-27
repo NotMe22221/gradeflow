@@ -74,7 +74,7 @@ export function Accessibility({ theme }: { theme: Theme }) {
             tone="yellow"
             className="-top-10 -right-14 w-44 sm:-top-14 sm:-right-20 sm:w-64 xl:-top-16 xl:-right-24 xl:w-72"
           />
-          <XGrid cols={4} rows={2} className="-top-9 -left-6 hidden w-28 sm:block" />
+          <XGrid cols={4} rows={1} className="-top-9 -left-6 hidden w-28 sm:block" />
           <div className="grid grid-cols-2 gap-3 rounded-[2rem] bg-band-pink p-3 sm:gap-6 sm:rounded-[2.5rem] sm:p-6">
             {(["light", "dark"] as const).map((variant) => (
               <div key={variant} className="flex min-w-0 flex-col items-center gap-3">

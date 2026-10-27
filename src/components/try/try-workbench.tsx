@@ -2,7 +2,7 @@
 
 import { useId, useMemo, useRef, useState } from "react";
 
-import { Blob, DotGrid } from "@/components/decor/decor";
+import { Blob } from "@/components/decor/decor";
 import { CircleAlert, CircleCheck, CloudCheck, Flag, FlaskConical, TriangleAlert } from "@/components/icons";
 import { ConfidenceBadge } from "@/components/grading/confidence-badge";
 import { GraderBadge } from "@/components/grading/grader-badge";
@@ -97,16 +97,17 @@ export function TryWorkbench({
         {/* Paint peeking out from behind the band: sky at the top left (clear of the hero's buttons and the
             result's heading), dots at the right edge. */}
         <Blob shape={3} tone="sky" className="hidden lg:block lg:-top-10 lg:-left-28 lg:w-72" />
-        <DotGrid cols={3} rows={8} className="hidden xl:block xl:top-[28rem] xl:-right-[4.5rem] xl:w-[3.75rem]" />
+        {/* Focus rings on the band take its text color (the accent ring is faint on mint in dark mode); the
+            form's card puts the accent ring back (--ring is --primary in every theme and accent). */}
         <div
           id="sandbox"
-          className="scroll-mt-24 rounded-[1.75rem] bg-band-mint p-3 text-band-foreground sm:rounded-[2.5rem] sm:p-6 lg:p-10"
+          className="scroll-mt-24 rounded-[1.75rem] bg-band-mint p-3 text-band-foreground [--ring:var(--band-foreground)] sm:rounded-[2.5rem] sm:p-6 lg:p-10"
         >
           <EngineStrip allowance={allowance} />
 
           <form
             onSubmit={submit}
-            className="mt-3 space-y-7 rounded-[1.25rem] bg-card p-4 text-foreground shadow-raised sm:mt-6 sm:rounded-3xl sm:p-8"
+            className="mt-3 space-y-7 rounded-[1.25rem] bg-card p-4 text-foreground shadow-raised [--ring:var(--primary)] sm:mt-6 sm:rounded-3xl sm:p-8"
             aria-describedby={error ? errorId : undefined}
           >
             <fieldset>

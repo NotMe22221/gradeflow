@@ -30,7 +30,11 @@ const STROKE: Record<PopTone, string> = {
   lilac: "stroke-pop-lilac",
 };
 
-/** Organic paint-blob outlines in a 200 x 200 box (generated once, then fixed). */
+/**
+ * Organic paint-blob outlines, generated once in a 200 x 200 box. A few
+ * overshoot it by up to 4 units, so the SVG's viewBox has a 4-unit margin:
+ * an SVG clips at its own box, which would cut a straight edge into a blob.
+ */
 const BLOB_PATHS = [
   "M198 91.1C198.3 111.5 183.4 153.3 171.7 171.2C160.1 189 147.1 197.6 128 198C109 198.4 78.5 181.2 57.5 173.5C36.5 165.8 9.4 171.5 2 151.6C-5.4 131.8 5.6 76.2 13 54.2C20.4 32.1 29.1 28 46.2 19.3C63.3 10.6 95.1 -2.9 115.7 2C136.3 6.9 155.9 34.1 169.7 49C183.4 63.8 197.7 70.8 198 91.1Z",
   "M198 100.3C198.6 119.5 199.1 150.7 185 167C170.9 183.2 138.6 194.8 113.4 198C88.2 201.2 52.5 199.5 33.9 186.4C15.3 173.3 0.3 141.6 2 119.2C3.7 96.9 28.9 72 44.4 52.4C59.9 32.9 72.2 2.1 95.1 2C117.9 1.9 164.4 35.4 181.5 51.7C198.7 68.1 197.4 81.1 198 100.3Z",
@@ -60,7 +64,7 @@ export function Blob({
   return (
     <svg
       {...decorProps}
-      viewBox="0 0 200 200"
+      viewBox="-4 -4 208 208"
       className={cn("pointer-events-none absolute -z-10 opacity-(--decor-opacity)", float && "motion-safe:animate-float", className)}
     >
       <path d={BLOB_PATHS[shape - 1]} className={FILL[tone]} />

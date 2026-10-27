@@ -110,7 +110,8 @@ export function NavDrawer({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-x-hidden overflow-y-auto overscroll-contain px-3 [scrollbar-width:thin] @max-[11rem]/nav:px-1">
+    // pt-1: room for the first link's focus ring, which sits just outside its pill (the scroll box would clip it).
+    <div className="flex h-full min-h-0 flex-col overflow-x-hidden overflow-y-auto overscroll-contain px-3 pt-1 [scrollbar-width:thin] @max-[11rem]/nav:px-1">
       <nav aria-label="Main" className="flex shrink-0 flex-col gap-0.5 @max-[11rem]/nav:gap-1">
         {items.map((item) => {
           const active = item.id === current;

@@ -25,10 +25,11 @@ export { TitlePeriod };
  * second tone and, on wide screens, a pink ring. Pass it as
  * `decor={<HeaderDecor tones={["mint", "yellow"]} />}`.
  *
- * It stays inside PageHeader's slot (see there): the big blob is as tall as
- * the slot (8rem at most) and every other piece keeps to the slot's top
- * 4.5rem, so nothing reaches the app bar above or the content below. The
- * actions (bottom right) sit on the big blob's plain paint, under the X marks.
+ * It stays inside PageHeader's slot (see there), which is at least 7rem tall:
+ * the big blob is as tall as the slot (10rem at most) and every other piece
+ * keeps to its top 5.5rem, so nothing reaches the app bar above or the
+ * content below. The actions (bottom right) sit on the blobs' plain paint,
+ * under the X marks.
  */
 export function HeaderDecor({ tones = ["yellow", "coral"] }: { tones?: [PopTone, PopTone] }) {
   const [main, second] = tones;
@@ -51,10 +52,11 @@ export function HeaderDecor({ tones = ["yellow", "coral"] }: { tones?: [PopTone,
  * padding (1.5rem; pages pad at least 2rem there from md up, so it stays
  * clear of the app bar) and out over the page's right padding, and it clips
  * anything taller: decor never paints above or below the header. With decor
- * the header is at least 4.5rem tall, so a title-only header still has room
- * for the art, and the title column stops short of it (17rem from the right
- * edge, 22rem from xl), so decor never sits under text. Pages are clipped
- * sideways by <main>, so a blob can bleed off the edge.
+ * the header is at least 5.5rem tall (Bold only), so a title-only header
+ * still has room for the art, and the title column stops short of it (11rem
+ * from the header's right edge, 16rem from xl; HeaderDecor reaches 9rem and
+ * 14rem in), so decor never sits under text. Pages are clipped sideways by
+ * <main>, so a blob can bleed off the edge.
  */
 export function PageHeader({
   title,
@@ -76,7 +78,8 @@ export function PageHeader({
     <div
       className={cn(
         "relative isolate mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between",
-        decor && "md:min-h-[5.5rem]",
+        // Room for the art, Bold look only (Calm drops the decor, so the header keeps its own height).
+        decor && "md:min-h-[5.5rem] [[data-look=calm]_&]:min-h-0",
         className
       )}
     >
@@ -84,12 +87,12 @@ export function PageHeader({
         <div
           aria-hidden
           data-decor=""
-          className="pointer-events-none absolute -z-10 hidden overflow-y-clip md:-top-6 md:-right-6 md:bottom-0 md:block md:w-[17.5rem] lg:-right-8 lg:w-[18rem] xl:w-[23rem]"
+          className="pointer-events-none absolute -z-10 hidden overflow-y-clip md:-top-6 md:-right-6 md:bottom-0 md:block md:w-48 lg:-right-8 xl:w-[17rem]"
         >
           {decor}
         </div>
       ) : null}
-      <div className={cn("min-w-0 space-y-2", decor && "md:max-w-[calc(100%-17rem)] xl:max-w-[calc(100%-22rem)]")}>
+      <div className={cn("min-w-0 space-y-2", decor && "md:max-w-[calc(100%-11rem)] xl:max-w-[calc(100%-16rem)] [[data-look=calm]_&]:max-w-none")}>
         {eyebrow ? (
           <div className="text-[0.8125rem] font-semibold text-muted-foreground">{eyebrow}</div>
         ) : null}

@@ -60,7 +60,7 @@ export function GreetingBandFrame({
   return (
     <Tag
       className={cn(
-        "@container/greet relative isolate grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 overflow-hidden rounded-[2rem] bg-band-yellow px-5 pt-5 pb-24 text-band-foreground",
+        "@container/greet relative isolate grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 overflow-hidden rounded-[2rem] bg-band-yellow px-5 pt-5 pb-24 text-band-foreground [--background:var(--band-yellow)] [--ring:var(--band-foreground)]",
         // The bottom strip is for phones' decor: gone once the band is 36rem wide (main 39rem less
         // the page padding; the band can't query its own width), and in Calm.
         "sm:px-8 sm:pt-8 @min-[39rem]:pb-10 lg:px-12 lg:pt-11",

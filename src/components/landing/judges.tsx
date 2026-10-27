@@ -195,7 +195,7 @@ export function Judges({ demoLogin }: { demoLogin: boolean }) {
           <div className="relative isolate mt-16 sm:mt-20">
             {/* Paint behind the box's corners, so it frames the walkthrough without touching its text. */}
             <Blob shape={6} tone="pink" className="-top-10 -right-6 w-36 sm:-top-14 sm:-right-12 sm:w-56" />
-            <DotGrid cols={8} rows={3} className="-bottom-7 -left-5 hidden w-36 sm:block" />
+            <DotGrid cols={8} rows={3} className="-bottom-8 -left-5 hidden w-36 sm:block" />
             <div className="rounded-[2rem] border border-border bg-background p-6 sm:rounded-[2.5rem] sm:p-10">
               <h3 className={H3}>Judge it in 3 minutes</h3>
               {demoLogin ? (

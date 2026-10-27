@@ -28,7 +28,8 @@ export function FinalCta({ demoLogin }: { demoLogin: boolean }) {
       <Ring tone="pink" className="hidden xl:block xl:right-[24rem] xl:bottom-24 xl:w-16" />
 
       <LandingContainer className="py-20 sm:py-28 lg:py-32">
-        <div className="max-w-3xl">
+        {/* At lg the decor's rem sizes meet the heading's vw size: keep the copy left of the paint. */}
+        <div className="max-w-3xl lg:max-w-[calc(100%-24rem)] xl:max-w-3xl">
           <h2 id="final-cta-heading" className="display-hero">
             Try it on a sample class
             <Period onBand />

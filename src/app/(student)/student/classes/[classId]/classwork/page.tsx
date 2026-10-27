@@ -28,8 +28,7 @@ export default async function StudentClassworkPage({ params }: { params: Params 
   const { rows } = await loadStudentWork(student.id, now, { classId: klass.id, timeZone });
 
   return (
-    // overflow-y-clip: the title's paint tucks under the class tab bar instead of showing through it.
-    <PageContainer className="max-w-5xl overflow-y-clip">
+    <PageContainer className="max-w-5xl">
       <StudentClasswork classId={klass.id} classColor={classTheme(klass).color} rows={rows} now={now} timeZone={timeZone} />
     </PageContainer>
   );

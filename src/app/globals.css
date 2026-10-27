@@ -97,6 +97,9 @@
 
 @custom-variant compact (&:where([data-density="compact"], [data-density="compact"] *));
 
+/* calm: the Calm look (data-look="calm"), for layouts that need the space decor would have taken. */
+@custom-variant calm (&:where([data-look="calm"], [data-look="calm"] *));
+
 /*
  * Accent palettes: tones 10-90 of one hue (Material tonal palettes; HCT tone
  * equals L*, so the same tone pairs give the same contrast for every hue).

@@ -24,8 +24,7 @@ export default async function StudentPeoplePage({ params }: { params: Params }) 
   const classmates = await loadClassmates(student.id, klass.id);
 
   return (
-    // overflow-y-clip: the title's paint tucks under the class tab bar instead of showing through it.
-    <div className="mx-auto w-full max-w-3xl overflow-y-clip px-4 py-6 sm:px-6 sm:py-10">
+    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
       <PageHeader title={`People in ${klass.name}`} decor={<HeaderDecor tones={["coral", "sky"]} />} />
       <StudentPeople teacherName={klass.teacherName} classmates={classmates} />
     </div>

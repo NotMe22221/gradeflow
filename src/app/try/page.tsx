@@ -3,6 +3,7 @@ import Link from "next/link";
 import { unstable_rethrow } from "next/navigation";
 
 import { Blob, DotGrid, Squiggle, XGrid } from "@/components/decor/decor";
+import { Period } from "@/components/decor/period";
 import { ArrowDown } from "@/components/icons";
 import { LandingContainer } from "@/components/landing/section-intro";
 import { SiteFooter } from "@/components/landing/site-footer";
@@ -73,7 +74,9 @@ export default async function TryPage() {
       <SiteHeader appHref={appHref} demoLogin={demoLoginEnabled()} sectionBase="/" />
       <main id="main" className="flex-1">
         {/* The Bold look frames the hero like a poster: paint bleeds off the top right, marks and a second
-            blob sit beside the text, never under it. On phones only the yellow corner shows. */}
+            blob sit beside the text, never under it. On phones only the yellow corner shows. The lower blob is
+            lilac and bleeds off the right edge, lifted clear of the mint sandbox band below, so it never reads
+            as part of the band. */}
         <div className="relative isolate overflow-hidden pt-12 pb-14 sm:pt-20 sm:pb-20">
           <Blob
             shape={4}
@@ -83,7 +86,7 @@ export default async function TryPage() {
           />
           <Blob shape={1} tone="coral" className="hidden lg:block lg:top-[15vw] lg:right-[20vw] lg:w-[12vw]" />
           <XGrid cols={6} rows={4} className="hidden md:block md:top-[3vw] md:right-[4vw] md:w-[11vw]" />
-          <Blob shape={6} tone="mint" className="hidden lg:block lg:right-[5vw] lg:-bottom-[11vw] lg:w-[21vw]" />
+          <Blob shape={6} tone="lilac" className="hidden lg:block lg:-right-[8vw] lg:bottom-[3vw] lg:w-[19vw]" />
           <DotGrid cols={8} rows={5} className="hidden lg:block lg:right-[29vw] lg:bottom-[3.5vw] lg:w-[10vw]" />
 
           <LandingContainer>
@@ -92,7 +95,8 @@ export default async function TryPage() {
               Try it
             </p>
             <h1 className="display-hero relative mt-6 max-w-[9em] text-foreground">
-              Grade a paper of your own<span aria-hidden className="text-primary">.</span>
+              Grade a paper of your own
+              <Period />
               {/* Trails the headline's last line, placed in em so it follows the headline's size. */}
               <Squiggle tone="pink" waves={2} className="top-[1.3em] left-[6.6em] hidden w-[1.1em] xl:block" />
             </h1>

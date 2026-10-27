@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/page-header";
+import { HeaderDecor, PageHeader } from "@/components/page-header";
 import { ScanEngineBadge } from "@/components/scan/engine-badge";
 import { GRADER_LABELS } from "@/lib/constants";
 import type { ScanEngineInfo } from "@/lib/scan/types";
@@ -14,6 +14,7 @@ export function ScanPageHeader({ engine }: { engine: ScanEngineInfo }) {
           : "Photograph a handwritten test. The demo scanner uses the sample photos' stored transcriptions, or answers you type, and drafts scores against your answer key. Nothing publishes until you approve it."
       }
       actions={<ScanEngineBadge engine={engine} />}
+      decor={<HeaderDecor tones={["coral", "sky"]} />}
     />
   );
 }
