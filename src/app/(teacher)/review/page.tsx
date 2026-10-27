@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 
-import { parseQueueSort } from "@/components/review/queue-sort";
 import { ReviewWorkspace } from "@/components/review/review-workspace";
 import { requireTeacherPage } from "@/lib/auth/session";
 import { getOwnedAssignmentTitle, getReviewQueue } from "@/lib/grades/review";
 import { getPreferences } from "@/lib/preferences/server";
+import { parseQueueSort } from "@/lib/review/model";
 
 export const metadata: Metadata = { title: "To review" };
 

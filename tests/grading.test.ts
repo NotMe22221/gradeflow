@@ -311,6 +311,7 @@ describe("validateGrading", () => {
     assert.equal(result.criteria[1].aiScore, 9);
     const flag = result.flags.find((f) => f.code === "EVIDENCE_NOT_FOUND");
     assert.ok(flag);
+    assert.equal(flag.evidence, "not_in_paper");
     assert.equal(
       flag.message,
       'No supporting quote found for "Evidence": the AI\'s quote ("Studies prove that every student sleeps better with a later…") is not in the paper word for word, so it was dropped.'
@@ -346,7 +347,11 @@ describe("validateGrading", () => {
     assert.ok(result.flags.some((f) => f.code === "POSSIBLE_PROMPT_INJECTION"));
     assert.ok(
       result.flags.some(
-        (f) => f.code === "EVIDENCE_NOT_FOUND" && f.criterionId === "crit_thesis" && /addressed to the grader/.test(f.message)
+        (f) =>
+          f.code === "EVIDENCE_NOT_FOUND" &&
+          f.criterionId === "crit_thesis" &&
+          f.evidence === "grader_directed" &&
+          /addressed to the grader/.test(f.message)
       )
     );
   });
@@ -365,7 +370,10 @@ describe("validateGrading", () => {
     assert.equal(result.criteria[0].evidence, null);
     assert.equal(result.criteria[0].evidenceFound, false);
     assert.equal(result.criteria[0].justification, "");
-    assert.ok(result.flags.some((f) => f.code === "EVIDENCE_NOT_FOUND" && f.criterionId === "crit_thesis"));
+    assert.ok(
+      result.flags.some((f) => f.code === "EVIDENCE_NOT_FOUND" && f.criterionId === "crit_thesis" && f.evidence === "none"),
+      "says the grader quoted nothing, which To review reads as a blank answer on a test"
+    );
   });
 
   it("caps very long justifications", () => {
@@ -784,6 +792,9 @@ describe("DemoGrader", () => {
       nadiaWillowCreek: "willowCreek",
       juniperLanternKeeper: "lanternKeeper",
       sashaLanternKeeper: "lanternKeeper",
+      priyaLanternKeeper: "lanternKeeper",
+      theoLanternKeeper: "lanternKeeper",
+      miloLanternKeeper: "lanternKeeper",
     };
     for (const [key, paper] of Object.entries(SEED_PAPERS)) {
       const assignmentKey = seedAssignment[key];

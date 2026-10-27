@@ -131,8 +131,8 @@ Submission ──AI first pass──▶ AiGrade + CriterionScore (suggestion, dr
 | `/classes/[classId]/grades` | teacher | Grades: class gradebook of approved grades, CSV export |
 | `/classes/[classId]/students/[studentId]` | teacher | Student profile + conference brief |
 | `/classes/[classId]/assignments/new` | teacher | Assignment + rubric builder (`?kind=TEST` for a handwritten test) |
-| `/assignments/[assignmentId]` | teacher | Student work (counts, student list, add submission, batch AI pass with progress) and Instructions (`?tab=instructions`) |
-| `/review` | teacher | To review: the grading tool. Query: `?assignment=<id>` filter, `?s=<submissionId>` selection |
+| `/assignments/[assignmentId]` | teacher | Student work (counts, student list, add submission, batch AI pass with progress, "AI vs your grades") and Instructions (`?tab=instructions`) |
+| `/review` | teacher | To review: the grading tool. Query: `?assignment=<id>` filter, `?s=<submissionId>` selection, `?sort=confidence\|oldest` order (absent: worth rechecking first) |
 | `/scan` | teacher | Paper Scanner (`?assignment=<id>`) |
 | `/gradebook` | teacher | Cross-class gradebook (`?class=<id>`), CSV export |
 | `/insights` | teacher | Class heatmap and most-missed questions (`?class=<id>`) |
@@ -207,7 +207,10 @@ src/lib/
     review.ts         draft save, approve + publish, send back (logic)
     publish.ts        publishApprovedGrade(): the only PublishedGrade writer
     breakdown.ts      PublishedGrade.breakdown codec (pure)
-  review/             pure review-queue model + types (shared by page, actions, workspace)
+    approved-scores.ts  read-only views of approved scores: override history (one SQL aggregate),
+                        "AI vs your grades", worth-rechecking counts (server-only)
+  review/             pure review-queue model + types (shared by page, actions, workspace);
+                      recheck.ts (worth rechecking), agreement.ts (AI vs your grades)
   gradebook/          gradebook query
   export/             GradebookExporter interface + CSV implementation
   stats.ts            dashboard stats
@@ -221,6 +224,39 @@ src/components/
   grading/            ConfidenceBadge, GraderBadge, StatusBadge
   review/ assignments/ classes/ classwork/ dashboard/ gradebook/ student/ landing/
 ```
+
+## Worth rechecking (`src/lib/review/recheck.ts`)
+
+To review's default order puts the drafts most worth a careful look first.
+`recheckFor(item, history)` is pure and reads only what is stored: no AI call,
+no paper text beyond the stored flags, and never the student's past grades (a
+draft that differs from a student's record is no reason to doubt it). Each
+reason is one sentence the callout shows as is:
+
+| Code | Weight | When |
+| --- | --- | --- |
+| `INJECTION` | 5 | the validator flagged text addressed to the grader |
+| `NO_AI_DRAFT` | 4 | no draft on file (says nothing else) |
+| `UNSCORED` | 3 | a criterion the grader gave no usable score |
+| `LOW_LEGIBILITY` | 3 | the camera grader couldn't fully read the handwriting (replaces low confidence) |
+| `NO_QUOTE` | 2 | no verified quote; not for a test's blank answer (0 points, an `EVIDENCE_NOT_FOUND` flag with `evidence: "none"`) |
+| `WEAK_QUOTE` | 2 | a found quote the relevance check marked as a weak match |
+| `OFTEN_CHANGED` | 2 | you changed this grader's score on this criterion of this assignment by 1 point or more on at least half of 3 or more approved papers |
+| `LOW_CONFIDENCE` | 1 | the grader's self-reported (uncalibrated) confidence is low |
+
+A draft is worth rechecking when its heaviest reason weighs 2 or more, so low
+confidence alone is only a quiet note. The order is the heaviest reason, then
+the sum of the distinct reasons, then the confidence order, then oldest: no
+pile of routine reasons outranks text addressed to the grader.
+
+The history comes from `loadOverrideHistory()` in
+`src/lib/grades/approved-scores.ts`: one `$queryRaw` aggregate per teacher
+(published papers with an AI draft, both scores finite, only assignments with a
+draft waiting in To review unless ids are given). `tests/recheck.test.ts` runs
+it on an in-memory Postgres (PGlite) and checks it matches the pure
+`summarizeOverrides()`. Home's count and the assignment page's "AI vs your
+grades" card use the same rule. Student pages never import any of it
+(`tests/gate.test.ts`).
 
 ## Safeguards
 

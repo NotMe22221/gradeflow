@@ -10,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApproveDialog } from "@/components/review/approve-dialog";
 import { PaperPane, type PaperView } from "@/components/review/paper-pane";
 import { QueueList } from "@/components/review/queue-list";
-import { DEFAULT_QUEUE_SORT, parseQueueSort, queueSortParam } from "@/components/review/queue-sort";
 import { DesktopActionBar, MobileActionBar } from "@/components/review/review-action-bar";
 import {
   CaughtUpState,
@@ -28,13 +27,17 @@ import { updatePreferences } from "@/lib/preferences/actions";
 import type { PaperSide } from "@/lib/preferences/schema";
 import { firstName, formatPoints, formatScore } from "@/lib/format";
 import { scrollBehavior } from "@/lib/motion";
+import { hasPagePhotos } from "@/lib/review/media";
 import {
+  DEFAULT_QUEUE_SORT,
   assignmentLabels,
   blockingReason,
   flaggedDomId,
   flaggedSnippets,
   layoutEvidence,
   markDomId,
+  parseQueueSort,
+  queueSortParam,
   scoreInputId,
   selectionAfterRemoval,
   sortQueue,
@@ -449,6 +452,20 @@ export function ReviewWorkspace({
     });
   }, [current, layout]);
 
+  // "Worth rechecking" on unreadable handwriting: the photos, with focus on the
+  // "Photo" view tab so the pages follow it in reading order.
+  const showPhotos = useCallback(() => {
+    if (!current || !hasPagePhotos(current)) return;
+    setTab("paper");
+    setPaperView({ id: current.id, view: "photo" });
+    afterLayout(() => {
+      const photoTab = paperPaneRef.current?.querySelector<HTMLElement>(
+        '[aria-label="Paper view"] [role="tab"][data-state="active"]'
+      );
+      if (photoTab) revealElement(photoTab, { flash: false });
+    });
+  }, [current]);
+
   const swapPaperSide = useCallback(() => {
     const next: PaperSide = paperSide === "left" ? "right" : "left";
     startTransition(async () => {
@@ -557,6 +574,7 @@ export function ReviewWorkspace({
           onShowEvidence={showEvidence}
           onShowFlagged={showFlagged}
           onGoToCriterion={(criterionId) => focusCriterion(current.id, criterionId)}
+          onShowPhotos={showPhotos}
           footer={<DesktopActionBar {...actionProps} />}
           className="flex-1"
         />

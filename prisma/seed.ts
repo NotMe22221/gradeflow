@@ -269,23 +269,39 @@ async function seedDraft(tx: Tx, clock: Clock, ids: Ids, record: SeedDraft) {
  * A past teacher approval, recreated: the AI suggestion, the teacher's final
  * values, the approval, and the published snapshot, shaped exactly as
  * approveAndPublish() and publishApprovedGrade() would have left them. For a
- * scanned quiz the content is the transcription; history keeps no photos.
+ * typed essay the AI suggestion is the demo grader's real, validated draft,
+ * built with this database's criterion ids exactly as seedDraft builds one.
+ * For a scanned quiz the content is the transcription; history keeps no photos.
  */
 async function seedPublished(tx: Tx, clock: Clock, ids: Ids, record: SeedPublished) {
   const assignment = lookup(ids.assignments, record.assignmentKey);
   const submittedAt = clock.at(record.submittedAt);
   const aiGradedAt = clock.at(record.aiGradedAt);
   const approvedAt = clock.at(record.approvedAt);
+  const pair = submissionKey(record.assignmentKey, record.studentKey);
+  const criterionIds = new Map(assignment.criteria.map((criterion) => [criterion.key, criterion.id]));
+  const draft = record.demoDrafted ? demoDraft(record, (key) => lookup(criterionIds, key)) : null;
 
   // In rubric order. The approved comment is the teacher's own, or the AI
-  // justification the review screen pre-fills when the teacher keeps it.
+  // justification the review screen pre-fills when the teacher keeps it. The
+  // justification is the dataset's: the demo grader picks its wording by
+  // criterion id, and this database's ids are new on every seed, so the
+  // draft's own would give students different published comments each time.
   const rows = assignment.criteria.map((criterion) => {
     const score = record.scores[criterion.key];
+    const ai = draft?.criteria.find((candidate) => candidate.criterionId === criterion.id);
+    if (draft && (!ai || ai.aiScore !== score.aiScore || (ai.evidence ?? "") !== score.aiEvidence)) {
+      // The ids only pick the justification's wording; anything else differing means the dataset checks missed it.
+      throw new Error(`${pair}/${criterion.key}: the demo grader's draft differs from the one the dataset checked.`);
+    }
+    const aiJustification = score.aiJustification;
     return {
       criterion,
       score,
-      comment: (score.finalComment ?? score.aiJustification).trim(),
-      evidenceFound: findEvidenceSpan(record.content, score.aiEvidence) !== null,
+      aiJustification,
+      aiEvidence: ai ? ai.evidence : score.aiEvidence,
+      comment: (score.finalComment ?? aiJustification).trim(),
+      evidenceFound: ai ? ai.evidenceFound : findEvidenceSpan(record.content, score.aiEvidence) !== null,
     };
   });
 
@@ -312,19 +328,19 @@ async function seedPublished(tx: Tx, clock: Clock, ids: Ids, record: SeedPublish
       grader: "demo",
       model: null,
       confidence: record.confidence,
-      overallComment: record.overallComment,
-      flags: "[]",
+      overallComment: record.overallComment || null,
+      flags: JSON.stringify(draft?.flags ?? []),
       createdAt: aiGradedAt,
     },
   });
 
   await tx.criterionScore.createMany({
-    data: rows.map(({ criterion, score, comment, evidenceFound }) => ({
+    data: rows.map(({ criterion, score, aiJustification, aiEvidence, comment, evidenceFound }) => ({
       submissionId: submission.id,
       criterionId: criterion.id,
       aiScore: score.aiScore,
-      aiJustification: score.aiJustification,
-      aiEvidence: score.aiEvidence,
+      aiJustification,
+      aiEvidence,
       evidenceFound,
       finalScore: score.finalScore,
       finalComment: comment,

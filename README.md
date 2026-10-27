@@ -269,6 +269,17 @@ The click path for judges. Times are a guide.
   pass on 4 papers**. Review them in **To review**. You can also open the seeded
   *Four-Day Week* essay from Classwork (**View assignment**) and grade its four
   papers.
+- **Worth rechecking.** To review puts the drafts most worth a careful look
+  first (**Worth rechecking first**, the default; the sort menu also has
+  **Lowest confidence first** and **Oldest first**). A marker in the list counts
+  each draft's reasons, and a **Worth rechecking** box above the scores names
+  them: text addressed to the grader, no draft on file, a score the grader
+  didn't give, handwriting it couldn't fully read, a missing or weak quote, or
+  a criterion whose score you changed on at least half the papers you already
+  approved. Open Milo's *Lantern Keeper* essay: you changed the demo grader's
+  "Textual evidence" score on 3 of its 4 approved papers. Home says how many
+  drafts are worth rechecking, and the assignment page compares the grader's
+  scores with the ones you approved.
 - **Answer key from a photo.** In Environmental Science, open **Classwork →
   Create → Handwritten test** and click **Use the sample answer key (demo)**, or
   import your own photo. The questions, answers, and points fill the rubric.
@@ -299,6 +310,7 @@ The click path for judges. Times are a guide.
 | Study streaks and XP | **Real.** XP comes from the student's own actions (submitting, revising, logging study sessions, setting goals) plus a score-scaled bonus when the teacher approves and returns a grade. Only the student's own actions count toward a streak. XP is engagement only and never changes a grade. |
 | Output validation and flags | **Real.** Scores outside 0 to max are discarded. A quote must appear in the paper or transcription word for word, or it is dropped and the card says "No supporting quote found". A free local check flags a quote that may not fit its criterion as a "Weak match" (a heuristic, never a score change). Text addressed to the grader is flagged and never kept as evidence. |
 | To review (the review queue), edits, approval, send-back | **Real.** Enforced on the server. |
+| Worth rechecking (To review's default order) | **Real.** Worked out from stored data only, with no AI call: the validator's flags, the quotes it could or couldn't verify, the grader's self-reported confidence (a quiet note, never a reason on its own), and how often you changed the same grader's score on the same criterion in papers you already approved. Never a student's past grades, so a draft is never doubted for differing from a student's record. The weights are a rule of thumb, not a measured accuracy. Teachers only. |
 | Gradebook and CSV export | **Real.** Reads only teacher-approved grades. |
 | LMS integration (Canvas, Google Classroom) | **Not built.** CSV export is the stand-in; see *Extending*. |
 | Authentication | **Demo.** One-click sign-in to seeded accounts (no passwords), plus a teacher-only "view as a student" switcher. Roles and ownership are still checked on the server for every page, action, and API route. |

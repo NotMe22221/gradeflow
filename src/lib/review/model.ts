@@ -39,11 +39,27 @@ export function flaggedSnippets(item: ReviewItem): string[] {
 
 // --- Queue ordering ---------------------------------------------------------
 
+/** Every sort the queue offers, in menu order. */
+export const QUEUE_SORTS = ["recheck", "confidence", "oldest"] as const satisfies readonly QueueSort[];
+
+/** The order To review opens in, and the one a missing or unknown ?sort= means. */
+export const DEFAULT_QUEUE_SORT: QueueSort = "recheck";
+
+/** ?sort= as a sort order: an unknown or missing value means the default. */
+export function parseQueueSort(value: string | null | undefined): QueueSort {
+  return QUEUE_SORTS.find((sort) => sort === value) ?? DEFAULT_QUEUE_SORT;
+}
+
+/** The ?sort= value to write: none for the default, so plain /review links stay plain. */
+export function queueSortParam(sort: QueueSort): string | null {
+  return sort === DEFAULT_QUEUE_SORT ? null : sort;
+}
+
 const CONFIDENCE_RANK: Record<Confidence, number> = { low: 0, medium: 1, high: 2 };
 
 /**
  * "recheck": the drafts most worth a careful look first (recheck.ts: the
- * weight of their reasons), then as "confidence".
+ * heaviest reason, then the sum of the distinct reasons), then as "confidence".
  * "confidence": flagged items first, then low, medium, high, then oldest.
  * "oldest": submission time only. Confidence is a sorting signal, nothing more.
  */
@@ -51,8 +67,10 @@ export function sortQueue(items: ReviewItem[], sort: QueueSort): ReviewItem[] {
   const time = (item: ReviewItem) => new Date(item.submittedAt).getTime();
   return [...items].sort((a, b) => {
     if (sort === "recheck") {
-      const byRecheck = (b.recheck?.score ?? 0) - (a.recheck?.score ?? 0);
-      if (byRecheck !== 0) return byRecheck;
+      const byTop = (b.recheck?.top ?? 0) - (a.recheck?.top ?? 0);
+      if (byTop !== 0) return byTop;
+      const bySum = (b.recheck?.score ?? 0) - (a.recheck?.score ?? 0);
+      if (bySum !== 0) return bySum;
     }
     if (sort === "confidence" || sort === "recheck") {
       const flagged = Number(!hasFlags(a)) - Number(!hasFlags(b));

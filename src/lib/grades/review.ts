@@ -3,14 +3,14 @@ import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
 import { getOwnedAssignment, getOwnedSubmission } from "@/lib/access";
 import { AuthError, requireTeacher } from "@/lib/auth/session";
-import { parseGraderKind } from "@/lib/constants";
 import { db, transaction } from "@/lib/db";
 import { insertAwards } from "@/lib/gamification/award";
 import { xpForPublishedGrade } from "@/lib/gamification/rules";
+import { loadOverrideHistory, reviewQueuePage } from "@/lib/grades/approved-scores";
 import { publishApprovedGrade } from "@/lib/grades/publish";
 import { parsePayload, parseReturnNote, ReviewError } from "@/lib/grades/review-input";
 import { toReviewItem } from "@/lib/review/map";
-import { recheckFor, summarizeOverrides, type ApprovedScoreRow, type OverrideHistory } from "@/lib/review/recheck";
+import { recheckFor, type OverrideHistory } from "@/lib/review/recheck";
 import type { ReviewItem, ReviewPayload } from "@/lib/review/types";
 import { idSchema } from "@/lib/validation/id";
 
@@ -116,15 +116,19 @@ function draftFeedback(feedback: string): string | null {
 // --- Queue ------------------------------------------------------------------
 
 /**
- * Papers waiting in this teacher's review queue, oldest first. Scanned tests
- * carry their page photo ids (never the bytes); the photos are served by
+ * Papers waiting in this teacher's review queue, oldest first, each with why
+ * it is worth rechecking (recheck.ts). Scanned tests carry their page photo
+ * ids (never the bytes); the photos are served by
  * GET /api/submissions/[submissionId]/images/[imageId].
+ *
+ * The override history (how often the teacher changed each grader's score on
+ * each criterion of their approved papers) loads alongside the queue, added
+ * up in the database by the same loader Home and the assignment card use. A
+ * failure there only drops the "often changed" reasons; the queue still loads.
  */
 export async function getReviewQueue(teacherId: string): Promise<ReviewItem[]> {
-  const rows = await db.submission.findMany({
-    where: { status: "NEEDS_REVIEW", assignment: { class: { teacherId } } },
-    orderBy: [{ submittedAt: "asc" }, { id: "asc" }],
-    take: 200,
+  const queue = db.submission.findMany({
+    ...reviewQueuePage(teacherId),
     select: {
       id: true,
       content: true,
@@ -164,61 +168,18 @@ export async function getReviewQueue(teacherId: string): Promise<ReviewItem[]> {
       images: { orderBy: { position: "asc" }, select: { id: true, position: true } },
     },
   });
-
-  const items = rows.map(toReviewItem);
-  const history = await getOverrideHistory(teacherId, [...new Set(items.map((item) => item.assignment.id))]);
-  return items.map((item) => ({ ...item, recheck: recheckFor(item, history) }));
-}
-
-/**
- * How often this teacher changed each grader's score on each criterion, over
- * the papers they already approved in these assignments: the stored AI score
- * against the stored final score. Read-only, and only from approved papers,
- * which are the teacher's own decisions. A failure here only drops the
- * "often changed" reasons; the queue still loads.
- */
-async function getOverrideHistory(teacherId: string, assignmentIds: string[]): Promise<OverrideHistory> {
-  if (assignmentIds.length === 0) return {};
-  try {
-    const scores = await db.criterionScore.findMany({
-      where: {
-        aiScore: { not: null },
-        finalScore: { not: null },
-        submission: {
-          status: "PUBLISHED",
-          assignmentId: { in: assignmentIds },
-          assignment: { class: { teacherId } },
-          aiGrade: { isNot: null },
-        },
-      },
-      select: {
-        criterionId: true,
-        aiScore: true,
-        finalScore: true,
-        submission: { select: { assignmentId: true, aiGrade: { select: { grader: true } } } },
-      },
-      take: 5000,
-    });
-    const rows: ApprovedScoreRow[] = scores.flatMap((score) =>
-      score.aiScore === null || score.finalScore === null || !score.submission.aiGrade
-        ? []
-        : [
-            {
-              assignmentId: score.submission.assignmentId,
-              grader: parseGraderKind(score.submission.aiGrade.grader),
-              criterionId: score.criterionId,
-              aiScore: score.aiScore,
-              finalScore: score.finalScore,
-            },
-          ]
-    );
-    return summarizeOverrides(rows);
-  } catch (error) {
+  const history = loadOverrideHistory(teacherId).catch((error: unknown): OverrideHistory => {
     console.error("[markwise] Could not read approved scores for the recheck reasons", {
       type: error instanceof Error ? error.name : typeof error,
     });
     return {};
-  }
+  });
+
+  const [rows, overrides] = await Promise.all([queue, history]);
+  return rows.map((row) => {
+    const item = toReviewItem(row);
+    return { ...item, recheck: recheckFor(item, overrides) };
+  });
 }
 
 /** Title of an assignment this teacher owns, for the filter's empty state. */

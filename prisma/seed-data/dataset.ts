@@ -7,8 +7,8 @@ import { gradeWithDemoHeuristics } from "../../src/lib/grading/mock";
 import type { ValidatedGrading } from "../../src/lib/grading/types";
 import { validateGrading } from "../../src/lib/grading/validate";
 import { sum, type DaysAgoAt } from "./helpers";
-import { PUBLISHED_HISTORY, type HistoryScore } from "./history";
-import { ALL_PAPERS } from "./papers";
+import { PUBLISHED_HISTORY, type HistoryScore, type PublishedHistoryEntry } from "./history";
+import { PAPERS } from "./papers";
 import type { StudentKey } from "./people";
 import { QUIZ_RESULTS, quizTranscription, type QuizResult } from "./quizzes";
 import { ASSIGNMENTS, type AssignmentKey, type SeedAssignment } from "./rubrics";
@@ -61,12 +61,21 @@ export type SeedPublished = {
   scores: Record<string, HistoryScore>;
   /** Essay history: the teacher's review changed at least one score on every paper. */
   requireAdjustment: boolean;
+  /**
+   * True for typed essays: the AI side is the demo grader's real, validated
+   * draft of the paper (demoDraft). The seed builds that draft again with the
+   * database's criterion ids, which pick the justification's wording and
+   * label the flags; the scores, quotes, confidence, and overall comment do
+   * not depend on them. False for scanned quizzes, whose drafts are written
+   * out in quizzes.ts.
+   */
+  demoDrafted: boolean;
 };
 
 export const PENDING: SeedPending[] = PENDING_SUBMISSIONS.map((submission) => ({
   assignmentKey: submission.assignmentKey,
   studentKey: submission.studentKey,
-  content: ALL_PAPERS[submission.paperKey],
+  content: PAPERS[submission.paperKey],
   fileName: submission.fileName,
   submittedAt: submission.submittedAt,
 }));
@@ -74,21 +83,25 @@ export const PENDING: SeedPending[] = PENDING_SUBMISSIONS.map((submission) => ({
 export const DRAFTS: SeedDraft[] = DRAFTED_SUBMISSIONS.map((submission) => ({
   assignmentKey: submission.assignmentKey,
   studentKey: submission.studentKey,
-  content: ALL_PAPERS[submission.paperKey],
+  content: PAPERS[submission.paperKey],
   fileName: submission.fileName,
   submittedAt: submission.submittedAt,
   aiGradedAt: submission.aiGradedAt,
 }));
 
+/** A typed paper the demo grader drafts: the assignment it answers and its text. */
+export type DemoDraftable = Pick<SeedPending, "assignmentKey" | "content">;
+
 /**
- * A waiting paper's AI draft, computed rather than written by hand: what the
+ * A typed paper's AI draft, computed rather than written by hand: what the
  * demo grader returns for this paper and rubric, validated exactly as
  * runAiFirstPass validates an essay (validateGrading: quotes checked against
- * the paper, relevance and injection flags). Deterministic. `criterionIds`
- * maps each rubric criterion key to the id the draft should use: the database
- * id in the seed, the key itself in the dataset checks.
+ * the paper, relevance and injection flags). Deterministic. Used for the
+ * drafts waiting in To review and for the AI side of the approved essays.
+ * `criterionIds` maps each rubric criterion key to the id the draft should
+ * use: the database id in the seed, the key itself in the dataset checks.
  */
-export function demoDraft(record: SeedDraft, criterionIds: (key: string) => string = (key) => key): ValidatedGrading {
+export function demoDraft(record: DemoDraftable, criterionIds: (key: string) => string = (key) => key): ValidatedGrading {
   const assignment = assignmentByKey(record.assignmentKey);
   const input = {
     assignmentTitle: assignment.title,
@@ -122,24 +135,45 @@ function quizScores(result: QuizResult): Record<string, HistoryScore> {
   return scores;
 }
 
+/**
+ * A past approval of a typed essay: the demo grader's draft of the paper
+ * (demoDraft) next to what the teacher approved (history.ts). A criterion the
+ * draft left unscored, or one the rubric does not have, gets a NaN AI score
+ * and no quote, which the dataset checks report.
+ */
+function publishedEssay(entry: PublishedHistoryEntry): SeedPublished {
+  const content = PAPERS[entry.paperKey];
+  const draft = demoDraft({ assignmentKey: entry.assignmentKey, content });
+  const scores: Record<string, HistoryScore> = {};
+  for (const [key, teacher] of Object.entries(entry.scores)) {
+    const ai = draft.criteria.find((criterion) => criterion.criterionId === key);
+    scores[key] = {
+      aiScore: ai?.aiScore ?? Number.NaN,
+      aiJustification: ai?.justification ?? "",
+      aiEvidence: ai?.evidence ?? "",
+      ...teacher,
+    };
+  }
+  return {
+    assignmentKey: entry.assignmentKey,
+    studentKey: entry.studentKey,
+    source: "TEXT",
+    content,
+    fileName: entry.fileName,
+    submittedAt: entry.submittedAt,
+    aiGradedAt: entry.aiGradedAt,
+    approvedAt: entry.approvedAt,
+    confidence: draft.confidence,
+    overallComment: draft.overallComment,
+    feedback: entry.feedback,
+    scores,
+    requireAdjustment: true,
+    demoDrafted: true,
+  };
+}
+
 export const PUBLISHED: SeedPublished[] = [
-  ...PUBLISHED_HISTORY.map(
-    (entry): SeedPublished => ({
-      assignmentKey: entry.assignmentKey,
-      studentKey: entry.studentKey,
-      source: "TEXT",
-      content: ALL_PAPERS[entry.paperKey],
-      fileName: entry.fileName,
-      submittedAt: entry.submittedAt,
-      aiGradedAt: entry.aiGradedAt,
-      approvedAt: entry.approvedAt,
-      confidence: entry.confidence,
-      overallComment: entry.overallComment,
-      feedback: entry.feedback,
-      scores: entry.scores,
-      requireAdjustment: true,
-    })
-  ),
+  ...PUBLISHED_HISTORY.map(publishedEssay),
   ...QUIZ_RESULTS.map(
     (result): SeedPublished => ({
       assignmentKey: result.assignmentKey,
@@ -157,6 +191,7 @@ export const PUBLISHED: SeedPublished[] = [
       feedback: result.feedback,
       scores: quizScores(result),
       requireAdjustment: false,
+      demoDrafted: false,
     })
   ),
 ];

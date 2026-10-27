@@ -52,10 +52,17 @@ export type ValidationFlagCode =
   | "SHORT_PAPER" // paper is too short to grade meaningfully
   | "LOW_LEGIBILITY"; // camera grader: handwriting partly or wholly unreadable
 
+/** Why EVIDENCE_NOT_FOUND was raised: no quote given, a quote not in the paper, or text addressed to the grader. */
+export type EvidenceMiss = "none" | "not_in_paper" | "grader_directed";
+
 export type ValidationFlag = {
   code: ValidationFlagCode;
   message: string;
   criterionId?: string;
+  /** EVIDENCE_NOT_FOUND only. */
+  evidence?: EvidenceMiss;
+  /** LOW_LEGIBILITY only: how much of the handwriting could be read. */
+  legibility?: "partly_legible" | "illegible";
 };
 
 export type ValidatedCriterion = {

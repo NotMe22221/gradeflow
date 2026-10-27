@@ -120,6 +120,7 @@ function validateEvidence(
       code: "EVIDENCE_NOT_FOUND",
       criterionId: criterion.id,
       message: `No supporting quote found for "${title}": the AI did not quote the paper.`,
+      evidence: "none",
     });
     return NO_QUOTE;
   }
@@ -129,6 +130,7 @@ function validateEvidence(
       code: "EVIDENCE_NOT_FOUND",
       criterionId: criterion.id,
       message: `No supporting quote found for "${title}": the AI's quote ("${shortQuote(claimed, 60)}") is not in the paper word for word, so it was dropped.`,
+      evidence: "not_in_paper",
     });
     return NO_QUOTE;
   }
@@ -139,6 +141,7 @@ function validateEvidence(
       code: "EVIDENCE_NOT_FOUND",
       criterionId: criterion.id,
       message: `No supporting quote found for "${title}": the AI quoted text addressed to the grader, so it was dropped.`,
+      evidence: "grader_directed",
     });
     return NO_QUOTE;
   }

@@ -39,7 +39,7 @@ export function validateScanGrading(
   const validated = validateGrading(raw, input, findTestEvidenceSpan, { checkRelevance: false });
   const flags: ValidationFlag[] = validated.flags.filter((flag) => flag.code !== "SHORT_PAPER");
   if (legibility !== "clear") {
-    flags.unshift({ code: "LOW_LEGIBILITY", message: LOW_LEGIBILITY_MESSAGES[legibility] });
+    flags.unshift({ code: "LOW_LEGIBILITY", message: LOW_LEGIBILITY_MESSAGES[legibility], legibility });
   }
   return { ...validated, confidence: capConfidence(validated.confidence, legibility), flags };
 }

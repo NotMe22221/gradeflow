@@ -13,8 +13,10 @@
 
 import { GRADERS, type GraderKind } from "@/lib/constants";
 import { summarize, type ScorePair } from "@/lib/eval/metrics";
-import { formatPoints } from "@/lib/format";
 import { isOftenChanged, summarizeOverrides, type CriterionOverride } from "@/lib/review/recheck";
+
+/** The card's "Average change" wording: the same function To review's reasons use (recheck.ts). */
+export { changeLabel } from "@/lib/review/recheck";
 
 /** One approved paper's stored scores on one criterion. */
 export type AgreementScoreRow = {
@@ -169,10 +171,4 @@ export function summarizeAgreement(
     }),
     leftOut: others,
   };
-}
-
-/** "1 point", "1.5 points": rounded to the half point, as To review's reasons word it. */
-export function changeLabel(points: number): string {
-  const rounded = Math.round(points * 2) / 2;
-  return `${formatPoints(rounded)} ${rounded === 1 ? "point" : "points"}`;
 }

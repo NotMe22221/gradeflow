@@ -139,20 +139,12 @@ export const PAPERS = {
   nadiaWillowCreek,
   juniperLanternKeeper,
   sashaLanternKeeper,
-} as const;
-
-/**
- * The "Worth rechecking" story on the literary analysis: Priya's and Theo's
- * approved papers (where the teacher lowered the AI's "Textual evidence"
- * score) and Milo's draft waiting in To review.
- */
-export const RECHECK_PAPERS = {
+  // The "Worth rechecking" story on the literary analysis: Priya's and Theo's
+  // approved papers (where the teacher lowered the demo grader's "Textual
+  // evidence" score) and Milo's draft waiting in To review.
   priyaLanternKeeper,
   theoLanternKeeper,
   miloLanternKeeper,
 } as const;
 
-/** Every seeded paper, by key. */
-export const ALL_PAPERS = { ...PAPERS, ...RECHECK_PAPERS } as const;
-
-export type PaperKey = keyof typeof ALL_PAPERS;
+export type PaperKey = keyof typeof PAPERS;

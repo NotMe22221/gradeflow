@@ -44,11 +44,21 @@ export function ConfidenceMeter({ confidence, className }: { confidence: Confide
   );
 }
 
+/** "Worth rechecking: 2 reasons, 1 flag to check": the marker's accessible name and tooltip. */
+export function recheckMarkerLabel(reasons: number, flags = 0): string {
+  return `Worth rechecking: ${pluralize(reasons, "reason")}${flags > 0 ? `, ${pluralize(flags, "flag")} to check` : ""}`;
+}
+
 /**
- * A quiet "worth rechecking" marker: a document-search icon and the number of
+ * The "worth rechecking" marker: a document-search icon and the number of
  * reasons, so it reads without color. The name says what it is (and how many
- * flags, when it stands in for the flag icon); the reasons themselves are in
+ * flags, since it stands in for the flag icon); the reasons themselves are in
  * the grade panel (lib/review/recheck.ts, stored data only).
+ *
+ * A paper that also has flags keeps the flag signal: the marker turns into a
+ * warning chip with a flag in front of the count, so a prompt-injection paper
+ * never looks like one whose score you often change. The chip's padding hangs
+ * into the gap on its left, so it is no wider in the row than the plain marker.
  */
 export function RecheckMarker({
   reasons,
@@ -56,21 +66,27 @@ export function RecheckMarker({
   className,
 }: {
   reasons: number;
-  /** Validation flags on the draft, named too because the marker replaces the flag icon. */
+  /** Validation flags on the draft, shown and named because the marker replaces the flag icon. */
   flags?: number;
+  /** Text color for the plain marker; a flagged marker keeps the warning colors. */
   className?: string;
 }) {
-  const label = `Worth rechecking: ${pluralize(reasons, "reason")}${
-    flags > 0 ? `, ${pluralize(flags, "flag")} to check` : ""
-  }`;
+  const label = recheckMarkerLabel(reasons, flags);
+  const flagged = flags > 0;
   return (
     <span
       role="img"
       aria-label={label}
       title={label}
-      className={cn("tabular inline-flex items-center gap-0.5 text-[0.75rem] leading-none font-medium", className)}
+      data-flagged={flagged ? "" : undefined}
+      className={cn(
+        "tabular inline-flex items-center gap-0.5 text-[0.75rem] leading-none font-medium",
+        flagged
+          ? "-my-0.5 -ml-1.5 rounded-full bg-warning-soft py-0.5 pr-1 pl-1 text-warning-soft-foreground"
+          : className
+      )}
     >
-      <ScanSearch className="size-4" aria-hidden />
+      {flagged ? <Flag className="size-3.5" filled aria-hidden /> : <ScanSearch className="size-4" aria-hidden />}
       <span aria-hidden>{reasons}</span>
     </span>
   );
@@ -79,7 +95,8 @@ export function RecheckMarker({
 /**
  * The grading list, as in Classroom's grading tool: one row per paper with
  * the student's avatar, name, assignment, the working draft grade, the
- * "worth rechecking" marker, and the confidence meter and flag icon. Used in
+ * "worth rechecking" marker (a warning chip with a flag when the paper is
+ * also flagged) or else the flag icon, and the confidence meter. Used in
  * the wide-screen rail and in the student switcher's popover. Rows tighten
  * with the compact density.
  */
@@ -169,7 +186,7 @@ export function QueueList({
                   </span>
                 ) : null}
                 <span className="flex items-center gap-1.5">
-                  {/* The marker stands in for the flag icon: most reasons are flags, and the rail is narrow. */}
+                  {/* The marker stands in for the flag icon (the rail is narrow) and carries the flag itself. */}
                   {recheck > 0 ? (
                     <RecheckMarker
                       reasons={recheck}

@@ -163,15 +163,15 @@ so there is no flash on load.
 
 | Route | Classroom equivalent | Content |
 | --- | --- | --- |
-| `/dashboard` (Home) | Home | Greeting and a "what needs you" notice (fixed), then arrangeable sections: This week, Teaching tools, Your classes (essential), Recently returned, Most missed |
+| `/dashboard` (Home) | Home | Greeting and a "what needs you" notice (fixed; it says how many drafts are worth rechecking), then arrangeable sections: This week, Teaching tools, Your classes (essential), Recently returned, Most missed |
 | `/classes` | Home class grid | Class cards (arrangeable order) + "Create class" |
 | `/classes/[id]` | Stream | `ClassBanner`; left column "Upcoming" card; activity stream (assignments posted, grades returned, scans, AI drafts) |
 | `/classes/[id]/classwork` | Classwork | "+ Create" menu (Assignment / Handwritten test); assignment rows with icon circle, title, due date; expandable details with Turned in / Assigned / Graded counts |
 | `/classes/[id]/people` | People | Teachers and Students sections with primary-colored headings and underline; add student; rows link to student profiles |
 | `/classes/[id]/grades` | Grades | Spreadsheet gradebook of approved grades only (an AI draft never shows a score: the cell reads "Needs review" and links to To review); Missing in red; CSV export |
 | `/classes/[id]/students/[sid]` | (student profile) | Stats, strengths, conference brief |
-| `/assignments/[id]` | Assignment → Student work / Instructions | Big Turned in / Assigned / Graded counts, student list with statuses and grades, AI first pass, review links |
-| `/review` (To review) | Grading tool | Student list rail, paper (left or right, saved), grade panel with "Suggested score" and "Draft feedback"; "Approve & return" publishes after confirmation; in dark mode the paper stays white with "Dim page" |
+| `/assignments/[id]` | Assignment → Student work / Instructions | Big Turned in / Assigned / Graded counts, student list with statuses and grades, AI first pass, review links, "AI vs your grades" ("Demo grader vs your grades" for the demo grader) |
+| `/review` (To review) | Grading tool | Student list rail (worth rechecking first by default, with a marker counting each draft's reasons), paper (left or right, saved), grade panel with a "Worth rechecking" box, "Suggested score" and "Draft feedback"; "Approve & return" publishes after confirmation; in dark mode the paper stays white with "Dim page" |
 | `/scan`, `/insights`, `/gradebook` | — | Same visual language |
 
 **Student**

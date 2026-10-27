@@ -3,11 +3,18 @@ import Link from "next/link";
 import { Cloud, FlaskConical, History, Info, ListChecks } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { engineFor } from "@/lib/ai/engines";
 import { GRADER_LABELS, type GraderKind } from "@/lib/constants";
 import { formatPointsDiff, formatRate } from "@/lib/eval/metrics";
 import { pluralize } from "@/lib/format";
+import { activeGraderKind } from "@/lib/grading/config";
 import { changeLabel, type AiAgreement, type CriterionAgreement } from "@/lib/review/agreement";
-import { OVERRIDE_MIN_CHANGE, OVERRIDE_MIN_PAPERS, OVERRIDE_MIN_SHARE } from "@/lib/review/recheck";
+import {
+  graderName,
+  OVERRIDE_MIN_CHANGE,
+  OVERRIDE_MIN_PAPERS,
+  OVERRIDE_MIN_SHARE,
+} from "@/lib/review/recheck";
 import { cn } from "@/lib/utils";
 
 const PAD = "px-4 md:px-6";
@@ -15,8 +22,20 @@ const PAD = "px-4 md:px-6";
 /** "half", or a percentage if the rule ever changes. */
 const OFTEN_SHARE = OVERRIDE_MIN_SHARE === 0.5 ? "half" : `${Math.round(OVERRIDE_MIN_SHARE * 100)}%`;
 
-function graderName(grader: GraderKind): string {
-  return grader === "demo" ? "the demo grader" : GRADER_LABELS[grader];
+/** The card's title: the demo grader is never called AI. */
+export function agreementTitle(grader: GraderKind): string {
+  return grader === "demo" ? "Demo grader vs your grades" : "AI vs your grades";
+}
+
+/** The hint before any paper drafted by `grader` (the one configured now) has been approved. */
+export function agreementEmptyText(grader: GraderKind, isTest: boolean): string {
+  const by = grader === "demo" ? "a demo grader draft" : `a draft from ${GRADER_LABELS[grader]}`;
+  return `No approved papers with ${by} yet. Once you approve some, this compares ${graderName(grader)}'s draft scores with yours, ${isTest ? "question by question" : "criterion by criterion"}.`;
+}
+
+/** The grader that drafts this assignment's papers now: the camera grader on a test, else the essay grader. */
+function configuredGraderFor(isTest: boolean): GraderKind {
+  return isTest ? engineFor("vision").kind : activeGraderKind();
 }
 
 /** Which engine drafted the compared papers. The demo grader is never presented as AI. */
@@ -68,7 +87,7 @@ function RecheckFooter({ count, assignmentId }: { count: number; assignmentId: s
   );
 }
 
-function CriterionRow({ criterion }: { criterion: CriterionAgreement }) {
+function CriterionRow({ criterion, grader }: { criterion: CriterionAgreement; grader: GraderKind }) {
   const override = criterion.override;
   return (
     <tr>
@@ -85,7 +104,13 @@ function CriterionRow({ criterion }: { criterion: CriterionAgreement }) {
         {override ? (
           `${override.changed} of ${override.papers}`
         ) : (
-          <Dash label={criterion.pairs > 0 ? "The AI gave no usable score" : "No approved scores yet"} />
+          <Dash
+            label={
+              criterion.pairs > 0
+                ? `The ${grader === "demo" ? "demo grader" : "AI"} gave no usable score`
+                : "No approved scores yet"
+            }
+          />
         )}
       </td>
       <td className="tabular py-cell pr-4 text-right align-top whitespace-nowrap text-muted-foreground md:pr-6">
@@ -106,11 +131,13 @@ function Dash({ label }: { label: string }) {
 }
 
 /**
- * "AI vs your grades": the AI's stored draft scores next to the scores the
- * teacher approved on this assignment (lib/review/agreement.ts). Teacher only.
- * Shows the sample size every time, calls a sample under 30 papers small, and
- * labels the demo grader as the heuristic it is. With no approved AI drafts
- * yet it shows a short hint while drafts wait in To review, else nothing.
+ * "AI vs your grades" ("Demo grader vs your grades" when the demo grader
+ * drafted the papers): the stored draft scores next to the scores the teacher
+ * approved on this assignment (lib/review/agreement.ts). Teacher only. Shows
+ * the sample size every time, calls a sample under 30 papers small, and
+ * labels the demo grader as the heuristic it is. With no approved drafts yet
+ * it shows a short hint, worded by the grader configured now, while drafts
+ * wait in To review, else nothing.
  */
 export function AiAgreementCard({
   assignmentId,
@@ -118,6 +145,7 @@ export function AiAgreementCard({
   queued,
   worthRechecking,
   isTest = false,
+  configuredGrader,
 }: {
   assignmentId: string;
   agreement: AiAgreement | null;
@@ -126,24 +154,24 @@ export function AiAgreementCard({
   /** Of those, the ones worth rechecking. */
   worthRechecking: number;
   isTest?: boolean;
+  /** The grader that drafts this assignment's papers now, for the empty state. Read from the config when left out. */
+  configuredGrader?: GraderKind;
 }) {
   if (!agreement && queued <= 0) return null;
 
-  const heading = (
+  const heading = (grader: GraderKind) => (
     <h2 id="ai-agreement-heading" className="text-base font-semibold text-foreground">
-      AI vs your grades
+      {agreementTitle(grader)}
     </h2>
   );
 
   if (!agreement) {
+    const upcoming = configuredGrader ?? configuredGraderFor(isTest);
     return (
       <Card role="region" aria-labelledby="ai-agreement-heading" className="min-w-0 overflow-hidden">
         <div className={cn("space-y-1 py-4", PAD)}>
-          {heading}
-          <p className="max-w-[70ch] text-sm text-pretty text-muted-foreground">
-            No approved papers with an AI draft yet. Once you approve some, this compares the AI&apos;s draft scores
-            with yours, {isTest ? "question by question" : "criterion by criterion"}.
-          </p>
+          {heading(upcoming)}
+          <p className="max-w-[70ch] text-sm text-pretty text-muted-foreground">{agreementEmptyText(upcoming, isTest)}</p>
         </div>
         <RecheckFooter count={worthRechecking} assignmentId={assignmentId} />
       </Card>
@@ -161,7 +189,7 @@ export function AiAgreementCard({
     <Card role="region" aria-labelledby="ai-agreement-heading" className="min-w-0 overflow-hidden">
       <div className={cn("flex flex-col gap-3 pt-4 sm:flex-row sm:items-start sm:justify-between", PAD)}>
         <div className="min-w-0 space-y-1">
-          {heading}
+          {heading(grader)}
           <p className="max-w-[70ch] text-sm text-pretty text-muted-foreground">
             The {demo ? "demo grader's" : "AI's"} draft scores next to the scores you approved on this{" "}
             {isTest ? "test" : "assignment"}.
@@ -236,7 +264,7 @@ export function AiAgreementCard({
           </thead>
           <tbody className="divide-y divide-border">
             {agreement.criteria.map((criterion) => (
-              <CriterionRow key={criterion.id} criterion={criterion} />
+              <CriterionRow key={criterion.id} criterion={criterion} grader={grader} />
             ))}
           </tbody>
         </table>

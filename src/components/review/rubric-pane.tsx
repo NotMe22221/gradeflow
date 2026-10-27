@@ -41,6 +41,7 @@ export function RubricPane({
   onShowEvidence,
   onShowFlagged,
   onGoToCriterion,
+  onShowPhotos,
   footer,
   className,
 }: {
@@ -54,6 +55,8 @@ export function RubricPane({
   onShowFlagged: () => void;
   /** Scroll to a criterion's card and focus its score field (the "Worth rechecking" links). */
   onGoToCriterion: (criterionId: string) => void;
+  /** Switch the paper to its photos (a scanned test's "Worth rechecking" handwriting line). */
+  onShowPhotos?: () => void;
   /** Desktop action footer, pinned below the scrolling grade panel. */
   footer?: React.ReactNode;
   className?: string;
@@ -151,10 +154,10 @@ export function RubricPane({
           {/* The summary first, then the flags it summarizes (which keep their full wording). */}
           <RecheckCallout
             item={item}
-            demo={demo}
             unit={unit}
             flagsBelow={(ai?.flags.length ?? 0) > 0}
             onGoToCriterion={onGoToCriterion}
+            onShowPhotos={onShowPhotos}
           />
 
           {!ai && !recheckSaysNoDraft ? (

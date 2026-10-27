@@ -776,6 +776,7 @@ describe("vision output mapping", () => {
     assert.equal(byId.get("q5")?.aiScore, null, "a skipped question needs a teacher score");
 
     assert.equal(codes[0], "LOW_LEGIBILITY");
+    assert.equal(validated.flags[0]?.legibility, "partly_legible", "the flag carries the level for To review");
     for (const code of [
       "POSSIBLE_PROMPT_INJECTION",
       "SCORE_OUT_OF_RANGE",

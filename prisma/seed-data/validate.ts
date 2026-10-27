@@ -119,6 +119,8 @@ function checkPublished(problems: string[], clock: Clock, record: SeedPublished)
   if ((record.source === "SCAN") !== (assignment.kind === "TEST")) {
     problems.push(`${pair}: ${record.source} submissions belong to ${record.source === "SCAN" ? "TEST" : "ESSAY"} assignments.`);
   }
+  // Stored as graded by the demo grader, so the AI side must be its real output, not hand-written.
+  if (record.source === "TEXT" && !record.demoDrafted) problems.push(`${pair}: an approved essay's AI draft must come from demoDraft.`);
 
   const submittedAt = clock.at(record.submittedAt).getTime();
   const aiGradedAt = clock.at(record.aiGradedAt).getTime();
@@ -247,14 +249,16 @@ function checkStory(problems: string[]) {
   if (submissionsFor("finalPortfolio").length > 0) problems.push("finalPortfolio: should have no submissions.");
 
   // English 10: "Worth rechecking". The teacher changed the demo grader's
-  // "Textual evidence" score on most approved literary analyses, and Milo's
-  // draft has a score for it, so To review says it is worth rechecking
-  // (recheckFor's OFTEN_CHANGED rule) and the assignment's "AI vs your
-  // grades" card marks the criterion "Often changed".
+  // "Textual evidence" score by a point or more on most approved literary
+  // analyses (its real output: see history.ts) and mostly agreed with its
+  // other scores, and Milo's draft has an evidence score, so To review says
+  // it is worth rechecking for that criterion alone (recheckFor's
+  // OFTEN_CHANGED rule) and the assignment's "AI vs your grades" card marks
+  // only that criterion "Often changed".
   expectShape("lanternKeeper", "ESSAY", [6, 5, 4], -6);
   const overrides = approvedOverrides("lanternKeeper");
   const evidence = overrides.evidence;
-  if (!isOftenChanged(evidence) || evidence.papers < 4) {
+  if (!isOftenChanged(evidence) || evidence.papers < 4 || evidence.changed * 2 <= evidence.papers) {
     problems.push(
       `lanternKeeper/evidence: expected the score changed on most of at least 4 approved papers, got ${evidence?.changed ?? 0} of ${evidence?.papers ?? 0}.`
     );

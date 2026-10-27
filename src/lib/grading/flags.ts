@@ -7,7 +7,14 @@ export type StoredFlag = {
   code: string;
   message: string;
   criterionId?: string;
+  /** EVIDENCE_NOT_FOUND only: why there is no quote. Absent on flags stored before it existed. */
+  evidence?: "none" | "not_in_paper" | "grader_directed";
+  /** LOW_LEGIBILITY only: how much of the handwriting could be read. Absent on older flags. */
+  legibility?: "partly_legible" | "illegible";
 };
+
+const EVIDENCE_MISSES = new Set(["none", "not_in_paper", "grader_directed"]);
+const LEGIBILITY_LEVELS = new Set(["partly_legible", "illegible"]);
 
 export type FlagCriterion = { id: string; title: string; maxPoints: number };
 
@@ -21,13 +28,19 @@ export function parseFlags(json: string | null | undefined): StoredFlag[] {
     if (!Array.isArray(value)) return [];
     return value.flatMap((entry): StoredFlag[] => {
       if (!entry || typeof entry !== "object") return [];
-      const { code, message, criterionId } = entry as Record<string, unknown>;
+      const { code, message, criterionId, evidence, legibility } = entry as Record<string, unknown>;
       if (typeof code !== "string") return [];
       return [
         {
           code,
           message: typeof message === "string" ? message : "",
           ...(typeof criterionId === "string" ? { criterionId } : {}),
+          ...(typeof evidence === "string" && EVIDENCE_MISSES.has(evidence)
+            ? { evidence: evidence as NonNullable<StoredFlag["evidence"]> }
+            : {}),
+          ...(typeof legibility === "string" && LEGIBILITY_LEVELS.has(legibility)
+            ? { legibility: legibility as NonNullable<StoredFlag["legibility"]> }
+            : {}),
         },
       ];
     });
