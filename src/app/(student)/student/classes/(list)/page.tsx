@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { BookOpen } from "@/components/icons";
+import { PageCornerDecor } from "@/components/decor/student";
 import { EmptyState } from "@/components/empty-state";
 import { ArrangeableClassGrid } from "@/components/layout-editor/arrangeable-class-grid";
 import { ArrangeButton, FixedRegion, LayoutEditorProvider } from "@/components/layout-editor/editor-context";
@@ -46,7 +47,8 @@ export default async function StudentClassesPage({
         : `You're in ${pluralize(cards.length, "class", "classes")}. Nothing is missing.`;
 
   return (
-    <PageContainer>
+    // overflow-y-clip: the title's paint tucks under the app bar instead of showing through it.
+    <PageContainer className="overflow-y-clip">
       <LayoutEditorProvider
         classOrder={preferences.layout.classOrder}
         label="your classes"
@@ -57,6 +59,7 @@ export default async function StudentClassesPage({
             title="Classes"
             description={description}
             actions={cards.length > 1 ? <ArrangeButton /> : null}
+            decor={<PageCornerDecor tones={["mint", "coral"]} />}
           />
         </FixedRegion>
         <ArrangeableClassGrid
@@ -67,7 +70,7 @@ export default async function StudentClassesPage({
               icon={BookOpen}
               title="You're not enrolled in any classes yet."
               description="When your teacher adds you to a class, it shows up here with its assignments."
-              className="py-16"
+              className="rounded-3xl py-16"
             />
           }
         />

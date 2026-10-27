@@ -1,4 +1,7 @@
+import { Blob, Ring, XGrid } from "@/components/decor/decor";
+import { BOLD_SECTION_Y, Period } from "@/components/landing/bold-section";
 import { LandingContainer } from "@/components/landing/section-intro";
+import { cn } from "@/lib/utils";
 
 const FACTS: { title: string; body: string }[] = [
   {
@@ -33,46 +36,53 @@ const GATE = [
   { label: "Returned", detail: "Only when you approve" },
 ];
 
-/** Trust: the approval gate first, then the plain facts behind it. */
+/** Trust: the approval gate first, then the plain facts behind it, on the lilac band. */
 export function ApprovalGate() {
   return (
-    <section id="trust" aria-labelledby="trust-heading" className="border-y border-border bg-card py-16 sm:py-24">
+    <section
+      id="trust"
+      aria-labelledby="trust-heading"
+      className={cn("relative isolate overflow-hidden bg-band-lilac text-band-foreground", BOLD_SECTION_Y)}
+    >
+      <XGrid cols={5} rows={2} className="top-7 right-5 w-28 stroke-pop-ink-on sm:top-10 sm:right-[6%] sm:w-36" />
+      <Blob shape={3} tone="yellow" className="-bottom-28 -left-24 hidden w-80 lg:block" />
+      <Ring tone="mint" className="bottom-10 left-[30%] hidden w-16 lg:block" />
       <LandingContainer className="grid gap-12 lg:grid-cols-12">
         <div className="lg:col-span-5">
-          <h2
-            id="trust-heading"
-            className="text-[1.75rem] leading-[1.2] font-medium tracking-[-0.015em] text-balance text-foreground sm:text-[2.25rem] sm:leading-[1.15]"
-          >
+          <h2 id="trust-heading" className="display-section text-band-foreground">
             Nothing reaches a student until you approve it
+            <Period onBand />
           </h2>
-          <p className="mt-4 max-w-[60ch] text-base leading-7 text-pretty text-muted-foreground sm:text-[1.0625rem] sm:leading-8">
+          <p className="mt-5 max-w-[65ch] text-base leading-7 text-pretty sm:text-[1.125rem] sm:leading-8">
             The AI can only suggest. Every grade passes through one gate, and you hold it.
           </p>
           <ol aria-label="How a grade reaches a student" className="mt-8 space-y-3">
             {GATE.map((stage, index) => (
-              <li key={stage.label} className="flex items-center gap-4">
+              <li key={stage.label} className="flex items-center gap-4 rounded-full bg-card py-2.5 pr-5 pl-2.5">
                 <span
                   aria-hidden
                   className={
                     index === GATE.length - 1
-                      ? "tabular flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-[0.9375rem] font-semibold text-primary-foreground"
-                      : "tabular flex size-9 shrink-0 items-center justify-center rounded-full border border-input text-[0.9375rem] font-semibold text-foreground"
+                      ? "tabular flex size-11 shrink-0 items-center justify-center rounded-full bg-primary font-display text-[1.25rem] font-extrabold text-primary-foreground"
+                      : "tabular flex size-11 shrink-0 items-center justify-center rounded-full border-2 border-foreground font-display text-[1.25rem] font-extrabold text-foreground"
                   }
                 >
                   {index + 1}
                 </span>
                 <span className="text-base text-foreground">
-                  <span className="font-medium">{stage.label}</span>
+                  <span className="font-semibold">{stage.label}</span>
                   <span className="text-muted-foreground"> · {stage.detail}</span>
                 </span>
               </li>
             ))}
           </ol>
         </div>
-        <dl className="grid gap-x-10 sm:grid-cols-2 lg:col-span-7">
+        <dl className="grid gap-4 sm:grid-cols-2 sm:gap-5 lg:col-span-7">
           {FACTS.map((fact) => (
-            <div key={fact.title} className="border-t border-border py-6">
-              <dt className="text-base font-medium text-foreground">{fact.title}</dt>
+            <div key={fact.title} className="rounded-3xl bg-card p-6">
+              <dt className="font-display text-[1.125rem] leading-snug font-extrabold tracking-[-0.015em] text-foreground">
+                {fact.title}
+              </dt>
               <dd className="mt-2 max-w-[60ch] text-[0.9375rem] leading-6 text-pretty text-muted-foreground">
                 {fact.body}
               </dd>

@@ -4,6 +4,7 @@ import { BookOpen } from "@/components/icons";
 import { ClassCard } from "@/components/classes/class-card";
 import { NewClassDialog } from "@/components/classes/new-class-dialog";
 import { AttentionNotice } from "@/components/dashboard/attention-notice";
+import { GreetingBand } from "@/components/dashboard/greeting-band";
 import { MostMissedCard } from "@/components/dashboard/most-missed-card";
 import { RecentlyPublished } from "@/components/dashboard/recently-published";
 import { StatRow } from "@/components/dashboard/stat-row";
@@ -130,14 +131,8 @@ export default async function DashboardPage({
         startEditing={params.customize === "1"}
       >
         <FixedRegion>
-          {/* Phones: Arrange sits beside the date, so the greeting keeps the full width. */}
-          <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1">
-            <p className="text-[0.8125rem] font-medium text-muted-foreground">{todayLabel(now, timeZone)}</p>
-            <ArrangeButton className="col-start-2 row-start-1 sm:row-span-2 sm:self-end" />
-            <h1 className="col-span-2 text-[1.625rem] leading-tight font-medium text-balance text-foreground sm:col-span-1 sm:text-[1.75rem]">
-              Welcome back, {firstName(teacher.name)}
-            </h1>
-          </header>
+          {/* Arrange sits beside the date, so the greeting keeps the full width. */}
+          <GreetingBand date={todayLabel(now, timeZone)} name={firstName(teacher.name)} action={<ArrangeButton />} />
 
           <AttentionNotice
             className="mt-6"

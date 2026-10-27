@@ -89,7 +89,7 @@ export function InboxPanel({
             <h3
               ref={headingRef}
               tabIndex={-1}
-              className="rounded-sm text-[1.125rem] leading-snug font-medium text-balance break-words text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:outline-hidden"
+              className="rounded-sm font-display text-[1.25rem] leading-snug font-bold tracking-[-0.01em] text-balance break-words text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card focus-visible:outline-hidden"
             >
               {row.title}
             </h3>
@@ -129,7 +129,7 @@ export function InboxPanel({
           : "A study session earns 15 XP once a day and keeps your streak going."}
       </p>
 
-      <section aria-label={isTest ? "Test questions" : "Rubric preview"} className="rounded-lg bg-secondary/60">
+      <section aria-label={isTest ? "Test questions" : "Rubric preview"} className="rounded-2xl bg-secondary/60">
         <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-1">
           <h4 className="flex items-center gap-2 text-[0.875rem] font-medium text-foreground">
             <ListChecks className="size-4 text-muted-foreground" aria-hidden />

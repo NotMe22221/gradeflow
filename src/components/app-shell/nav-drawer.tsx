@@ -29,6 +29,30 @@ function RailTip({ label, show, children }: { label: string; show: boolean; chil
 }
 
 /**
+ * The current item's Liquid Glass pill in the accent color, behind the link's
+ * content. `drawer` fills the whole link (the drawer and the phone sheet; gone
+ * in the rail); `rail` fills the icon's pill (rail only). A separate layer, so
+ * the rail can drop the drawer's pill with a plain `hidden`. The drawer pill
+ * would cover the link's inset focus ring, so it draws the ring itself, just
+ * outside its edge.
+ */
+function ActivePill({ mode }: { mode: "drawer" | "rail" }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "pointer-events-none absolute inset-0 -z-10 rounded-[inherit]",
+        mode === "drawer"
+          ? "group-focus-visible/navitem:ring-2 group-focus-visible/navitem:ring-ring group-focus-visible/navitem:ring-offset-2 group-focus-visible/navitem:ring-offset-sidebar @max-[11rem]/nav:hidden"
+          : "hidden @max-[11rem]/nav:block"
+      )}
+    >
+      <span className="liquid block size-full rounded-[inherit]" />
+    </span>
+  );
+}
+
+/**
  * The navigation drawer, in Google Classroom's shape: destinations as pill
  * items, then the class list ("Teaching" / "Enrolled") with colored class
  * avatars, and for teachers a reminder of the approval gate.
@@ -41,10 +65,10 @@ function RailTip({ label, show, children }: { label: string; show: boolean; chil
  * Server-rendered either way, so there is no shift on load. In the phone
  * sheet there is no "nav" container, so it is always the full drawer.
  *
- * The current destination has a filled icon, the secondary-container pill,
- * a semibold label and aria-current="page". Choosing the page that is open
- * scrolls it to its top (or to its #section, for Goals) instead of doing
- * nothing. On a short window (a phone turned sideways) the whole column
+ * The current destination has a filled icon, a Liquid Glass pill in the
+ * accent color, a semibold label and aria-current="page". Choosing the page
+ * that is open scrolls it to its top (or to its #section, for Goals) instead
+ * of doing nothing. On a short window (a phone turned sideways) the whole column
  * scrolls, so every destination and class stays reachable.
  */
 export function NavDrawer({
@@ -99,27 +123,29 @@ export function NavDrawer({
                 onClick={(event) => navigate(event, item.href)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "group/navitem relative flex h-12 shrink-0 items-center gap-3 rounded-full px-4 text-[0.875rem] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset focus-visible:outline-hidden forced-colors:focus-visible:-outline-offset-2",
+                  "group/navitem relative isolate flex h-12 shrink-0 items-center gap-3 rounded-full px-4 text-[0.875rem] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset focus-visible:outline-hidden forced-colors:focus-visible:-outline-offset-2",
                   "@max-[11rem]/nav:h-auto @max-[11rem]/nav:min-h-14 @max-[11rem]/nav:flex-col @max-[11rem]/nav:justify-center @max-[11rem]/nav:gap-1 @max-[11rem]/nav:rounded-2xl @max-[11rem]/nav:px-0 @max-[11rem]/nav:py-1",
                   active
-                    ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground forced-colors:outline @max-[11rem]/nav:bg-transparent @max-[11rem]/nav:text-foreground"
+                    ? "font-semibold text-primary-foreground forced-colors:outline @max-[11rem]/nav:text-foreground"
                     : "font-medium text-sidebar-foreground hover:bg-foreground/[0.06] @max-[11rem]/nav:hover:bg-transparent"
                 )}
               >
+                {active ? <ActivePill mode="drawer" /> : null}
                 <span
                   className={cn(
-                    "relative flex shrink-0 items-center justify-center rounded-full transition-colors",
+                    "relative isolate flex shrink-0 items-center justify-center rounded-full transition-colors",
                     "@max-[11rem]/nav:h-8 @max-[11rem]/nav:w-14",
                     active
-                      ? "@max-[11rem]/nav:bg-sidebar-accent @max-[11rem]/nav:text-sidebar-accent-foreground"
+                      ? "@max-[11rem]/nav:text-primary-foreground"
                       : "@max-[11rem]/nav:group-hover/navitem:bg-foreground/[0.06]"
                   )}
                 >
+                  {active ? <ActivePill mode="rail" /> : null}
                   <Icon filled={active} className="size-5 @max-[11rem]/nav:size-6" aria-hidden />
                   {count > 0 ? (
                     <span
                       aria-hidden
-                      className="tabular absolute -top-1 right-1 hidden h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[0.625rem] leading-none font-semibold text-primary-foreground @max-[11rem]/nav:flex"
+                      className="tabular absolute -top-1 right-1 hidden h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[0.625rem] leading-none font-semibold text-primary-foreground ring-2 ring-sidebar @max-[11rem]/nav:flex"
                     >
                       {badgeText(count)}
                     </span>
@@ -143,7 +169,7 @@ export function NavDrawer({
 
       {classes.length > 0 ? (
         <>
-          <div className="mx-4 my-3 h-px shrink-0 bg-sidebar-border @max-[11rem]/nav:mx-3" />
+          <div className="mx-4 my-4 h-px shrink-0 bg-sidebar-border @max-[11rem]/nav:mx-3 @max-[11rem]/nav:my-3" />
           {/* Grows to push the gate note down on tall windows, never shrinks: on short ones the
               whole column scrolls (a list squeezed to nothing can't be reached). -m-1 p-1: room
               for the items' focus rings. */}
@@ -153,8 +179,9 @@ export function NavDrawer({
           >
             <p
               id={classesHeadingId}
-              className="shrink-0 px-4 pt-0.5 pb-1.5 text-[0.8125rem] font-medium text-muted-foreground @max-[11rem]/nav:sr-only"
+              className="flex shrink-0 items-center gap-2 px-4 pt-0.5 pb-2 font-display text-[0.875rem] leading-5 font-extrabold tracking-[-0.01em] text-foreground @max-[11rem]/nav:sr-only"
             >
+              <span aria-hidden data-decor="" className="size-2 shrink-0 rounded-full bg-pop-yellow ring-2 ring-pop-coral" />
               {classesLabel}
             </p>
             {classes.map((klass) => {
@@ -166,21 +193,23 @@ export function NavDrawer({
                     onClick={(event) => navigate(event, `${classHrefBase}${klass.id}`)}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "group/navitem flex h-14 shrink-0 items-center gap-3 rounded-full pr-4 pl-3 text-[0.875rem] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset focus-visible:outline-hidden forced-colors:focus-visible:-outline-offset-2",
+                      "group/navitem relative isolate flex h-14 shrink-0 items-center gap-3 rounded-full pr-4 pl-3 text-[0.875rem] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset focus-visible:outline-hidden forced-colors:focus-visible:-outline-offset-2",
                       "@max-[11rem]/nav:h-12 @max-[11rem]/nav:justify-center @max-[11rem]/nav:rounded-2xl @max-[11rem]/nav:px-0",
                       active
-                        ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground forced-colors:outline @max-[11rem]/nav:bg-transparent"
+                        ? "font-semibold text-primary-foreground forced-colors:outline"
                         : "font-medium text-sidebar-foreground hover:bg-foreground/[0.06] @max-[11rem]/nav:hover:bg-transparent"
                     )}
                   >
+                    {active ? <ActivePill mode="drawer" /> : null}
                     <span
                       className={cn(
-                        "flex shrink-0 items-center justify-center rounded-full transition-colors",
+                        "relative isolate flex shrink-0 items-center justify-center rounded-full transition-colors",
                         "@max-[11rem]/nav:h-10 @max-[11rem]/nav:w-14",
-                        active ? "@max-[11rem]/nav:bg-sidebar-accent" : "@max-[11rem]/nav:group-hover/navitem:bg-foreground/[0.06]"
+                        !active && "@max-[11rem]/nav:group-hover/navitem:bg-foreground/[0.06]"
                       )}
                     >
-                      <ClassAvatar name={klass.name} />
+                      {active ? <ActivePill mode="rail" /> : null}
+                      <ClassAvatar name={klass.name} className={cn(active && "ring-2 ring-primary-foreground/90")} />
                     </span>
                     <span className="min-w-0 flex-1 leading-tight @max-[11rem]/nav:sr-only">
                       <span className="block truncate">{klass.name}</span>
@@ -188,7 +217,7 @@ export function NavDrawer({
                         <span
                           className={cn(
                             "block truncate text-[0.75rem] font-normal",
-                            active ? "text-sidebar-accent-foreground/80" : "text-muted-foreground"
+                            active ? "text-primary-foreground" : "text-muted-foreground"
                           )}
                         >
                           {klass.section}
@@ -206,9 +235,9 @@ export function NavDrawer({
       )}
 
       {showGateNote ? (
-        <div className="mt-3 shrink-0 rounded-2xl bg-secondary px-4 py-3 text-[0.75rem] leading-relaxed text-muted-foreground @max-[11rem]/nav:hidden">
-          <p className="mb-0.5 flex items-center gap-1.5 font-medium text-foreground">
-            <ShieldCheck className="size-4 text-success" aria-hidden />
+        <div className="mt-3 shrink-0 rounded-3xl bg-band-mint px-4 py-3.5 text-[0.75rem] leading-relaxed text-band-foreground @max-[11rem]/nav:hidden">
+          <p className="mb-0.5 flex items-center gap-1.5 font-display text-[0.8125rem] font-extrabold">
+            <ShieldCheck className="size-4" aria-hidden />
             Teacher approval gate
           </p>
           <p>Suggested scores stay drafts. Nothing reaches students until you approve it.</p>

@@ -25,7 +25,7 @@ export function SubmissionText({
   return (
     <details
       id={PAPER_ANCHOR}
-      className={cn("group scroll-mt-24 overflow-hidden rounded-xl border border-border bg-card", className)}
+      className={cn("group scroll-mt-24 overflow-hidden rounded-3xl border border-border bg-card", className)}
     >
       <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-base font-semibold text-foreground transition-colors outline-none select-none hover:bg-foreground/[0.04] focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset sm:px-5 [&::-webkit-details-marker]:hidden">
         <span className="flex items-center gap-2">
@@ -33,7 +33,7 @@ export function SubmissionText({
             className="size-5 text-muted-foreground transition-transform group-open:rotate-90"
             aria-hidden
           />
-          <span className="font-display">{label}</span>
+          <span className="font-display font-extrabold tracking-[-0.01em]">{label}</span>
         </span>
         <span className="flex min-w-0 items-center gap-1.5 text-xs font-normal text-muted-foreground">
           {fileName ? (

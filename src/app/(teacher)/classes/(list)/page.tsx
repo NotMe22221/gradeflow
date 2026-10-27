@@ -6,7 +6,7 @@ import { NewClassDialog } from "@/components/classes/new-class-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { ArrangeableClassGrid } from "@/components/layout-editor/arrangeable-class-grid";
 import { ArrangeButton, FixedRegion, LayoutEditorProvider } from "@/components/layout-editor/editor-context";
-import { PageContainer, PageHeader } from "@/components/page-header";
+import { HeaderDecor, PageContainer, PageHeader } from "@/components/page-header";
 import { requireTeacherPage } from "@/lib/auth/session";
 import { getUpcomingByClass } from "@/lib/classroom/stream";
 import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
@@ -55,6 +55,7 @@ export default async function ClassesPage({
           <PageHeader
             title="Classes"
             description={description}
+            decor={<HeaderDecor tones={["sky", "yellow"]} />}
             actions={
               summaries.length > 0 ? (
                 <>

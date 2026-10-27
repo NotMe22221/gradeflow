@@ -15,8 +15,9 @@ export const SECTION_LINKS = [
 
 /**
  * The 64px bar, like the product's: wordmark, section links, and the two ways
- * in. "View the demo" is the one filled button; signed-in visitors get
- * "Open app" instead.
+ * in, on frosted glass so the page's color shows through as it scrolls under.
+ * "View the demo" is the one filled button; signed-in visitors get "Open app"
+ * instead.
  */
 export function SiteHeader({
   appHref,
@@ -29,7 +30,7 @@ export function SiteHeader({
   sectionBase?: string;
 }) {
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-card">
+    <header className="glass-bar sticky top-0 z-40">
       <div className="@container mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-4 sm:px-6 lg:gap-6 lg:px-8">
         <Logo />
         {/* Shown once the whole row fits on one line (about 58rem of links, wordmark and buttons). A
@@ -40,7 +41,7 @@ export function SiteHeader({
             <a
               key={link.href}
               href={`${sectionBase}${link.href}`}
-              className="inline-flex h-10 items-center rounded-full px-3.5 text-[0.875rem] font-medium text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex h-10 items-center rounded-full px-3.5 text-[0.9375rem] font-medium text-foreground transition-colors outline-none hover:bg-foreground/[0.07] focus-visible:ring-2 focus-visible:ring-ring"
             >
               {link.label}
             </a>

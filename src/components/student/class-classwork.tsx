@@ -2,7 +2,9 @@ import Link from "next/link";
 import { ClipboardList, SquareUserRound } from "@/components/icons";
 
 import { AssignmentIcon } from "@/components/classwork/assignment-icon";
+import { PageCornerDecor } from "@/components/decor/student";
 import { EmptyState } from "@/components/empty-state";
+import { PageHeader } from "@/components/page-header";
 import {
   dueWhen,
   dueWhenText,
@@ -21,7 +23,8 @@ const TOPICS: { key: "assignments" | "tests"; title: string; isTest: boolean; no
 ];
 
 /**
- * A class's Classwork as the student sees it, in Classroom's topics
+ * A class's Classwork as the student sees it: a display title (with "View
+ * your work" beside it and paint in the corner), then Classroom's topics
  * (Assignments, Paper tests), newest first, each with this student's own
  * status as an icon and a word (Assigned, Missing, Turned in, Returned with
  * the grade). Open work shows its due date two ways ("Due in 9 days · Mon,
@@ -45,22 +48,25 @@ export function StudentClasswork({
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="sr-only">Classwork</h1>
-        <Button asChild variant="tonal">
-          <Link href={`/student/todo?class=${encodeURIComponent(classId)}`}>
-            <SquareUserRound aria-hidden />
-            View your work
-          </Link>
-        </Button>
-      </div>
+      <PageHeader
+        title="Classwork"
+        actions={
+          <Button asChild variant="tonal">
+            <Link href={`/student/todo?class=${encodeURIComponent(classId)}`}>
+              <SquareUserRound aria-hidden />
+              View your work
+            </Link>
+          </Button>
+        }
+        decor={<PageCornerDecor tones={["lilac", "yellow"]} />}
+      />
 
       {sorted.length === 0 ? (
         <EmptyState
           icon={ClipboardList}
           title="Your teacher hasn't posted any classwork yet."
           description="Assignments and paper tests for this class show up here."
-          className="rounded-xl py-14"
+          className="rounded-3xl py-14"
         />
       ) : (
         <div className="space-y-10 compact:space-y-8">
@@ -69,14 +75,14 @@ export function StudentClasswork({
             if (topicRows.length === 0) return null;
             return (
               <section key={topic.key} aria-labelledby={`classwork-${topic.key}`}>
-                <div className="mb-2 flex items-end justify-between gap-4 border-b border-primary pb-2">
+                <div className="mb-2 flex items-end justify-between gap-4 border-b-[3px] border-primary pb-2">
                   <h2
                     id={`classwork-${topic.key}`}
-                    className="text-[1.375rem] leading-tight font-normal text-primary sm:text-2xl"
+                    className="font-display text-[1.5rem] leading-tight font-extrabold tracking-[-0.02em] text-foreground sm:text-[1.75rem]"
                   >
                     {topic.title}
                   </h2>
-                  <span className="tabular shrink-0 pb-0.5 text-[0.8125rem] text-muted-foreground">
+                  <span className="tabular shrink-0 pb-1 text-[0.8125rem] font-medium text-muted-foreground">
                     {pluralize(topicRows.length, topic.noun)}
                   </span>
                 </div>
@@ -124,7 +130,7 @@ function ClassworkRow({
   return (
     <Link
       href={`/student/assignments/${encodeURIComponent(row.id)}`}
-      className="group flex min-h-row-min items-center gap-4 rounded-xl px-3 py-row transition-colors outline-none hover:bg-foreground/[0.04] focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset sm:px-4 motion-reduce:transition-none"
+      className="group flex min-h-row-min items-center gap-4 rounded-2xl px-3 py-row transition-colors outline-none hover:bg-foreground/[0.04] focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset sm:px-4 motion-reduce:transition-none"
     >
       <AssignmentIcon isTest={isTest} color={classColor} className="compact:size-9" />
       <span className="min-w-0 flex-1">

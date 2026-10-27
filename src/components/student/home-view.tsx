@@ -1,10 +1,11 @@
 import { BookOpen } from "@/components/icons";
+import { GreetingDecor } from "@/components/decor/student";
 import { EmptyState } from "@/components/empty-state";
 import { ArrangeableClassGrid } from "@/components/layout-editor/arrangeable-class-grid";
 import { CustomizableSections, type SectionSpec } from "@/components/layout-editor/customizable-sections";
 import { ArrangeButton, FixedRegion, LayoutEditorProvider } from "@/components/layout-editor/editor-context";
 import { MAIN_ONLY_SECTIONS } from "@/components/layout-editor/model";
-import { PageContainer } from "@/components/page-header";
+import { PageContainer, TitlePeriod } from "@/components/page-header";
 import { AssignmentInbox } from "@/components/student/assignment-inbox";
 import { StudentClassCard, type StudentClassCardData } from "@/components/student/class-card";
 import { GoalPlanner } from "@/components/student/goal-planner";
@@ -19,7 +20,7 @@ const SECTIONS = SURFACE_SECTIONS.studentHome;
 const MAIN_ONLY = new Set(MAIN_ONLY_SECTIONS.studentHome);
 
 /**
- * The student Home: a greeting on top, then the sections in the student's
+ * The student Home: a greeting band on top, then the sections in the student's
  * saved arrangement (streak and XP, class cards, the assignment inbox, the
  * goal planner). Arrange, or ?customize=1, rearranges them. Data is loaded
  * by the page, for the signed-in student only.
@@ -73,7 +74,7 @@ export function StudentHomeView({
               icon={BookOpen}
               title="You're not enrolled in any classes yet."
               description="When your teacher adds you to a class, it shows up here with its assignments."
-              className="rounded-xl"
+              className="rounded-3xl"
             />
           }
         />
@@ -114,14 +115,20 @@ export function StudentHomeView({
         startEditing={startEditing && hasClasses}
       >
         <FixedRegion>
-          {/* Phones: Arrange sits beside the date, so the greeting keeps the full width. */}
-          <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1">
-            <p className="min-h-5 text-[0.8125rem] font-medium text-muted-foreground">{today}</p>
-            {hasClasses ? <ArrangeButton className="col-start-2 row-start-1 sm:row-span-2 sm:self-end" /> : null}
-            <h1 className="col-span-2 text-[1.625rem] leading-tight font-medium text-balance text-foreground sm:col-span-1 sm:text-[1.75rem]">
+          {/* The greeting band: big type on yellow, paint at the right edge (GreetingDecor). Arrange sits
+              beside the date, so the greeting keeps the full width; from 34rem the text stops at 55% of
+              the band, clear of the art. In the Calm look the band turns plain and the art goes. */}
+          <header className="@container relative isolate grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 overflow-hidden rounded-[2rem] bg-band-yellow px-5 pt-5 pb-7 text-band-foreground sm:px-8 sm:pt-7 sm:pb-9 lg:px-10 lg:pb-11">
+            <GreetingDecor />
+            <p className="min-h-5 text-[0.875rem] font-semibold">{today}</p>
+            {hasClasses ? <ArrangeButton className="col-start-2 row-start-1" /> : null}
+            <h1 className="display-section col-span-2 mt-4 max-w-[12em] @min-[34rem]:max-w-[55%]">
               Welcome back, {firstName}
+              <TitlePeriod onBand />
             </h1>
-            <p className="col-span-2 max-w-[65ch] text-[0.9375rem] text-pretty text-muted-foreground">{summary}</p>
+            <p className="col-span-2 mt-3 max-w-[48ch] text-[1rem] leading-7 font-medium text-pretty @min-[34rem]:max-w-[55%] sm:text-[1.0625rem]">
+              {summary}
+            </p>
           </header>
         </FixedRegion>
 

@@ -13,7 +13,7 @@ export default function StudentClassesLoading() {
     <PageContainer aria-busy="true" aria-label="Loading classes">
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="space-y-2">
-          <Skeleton className="h-8 w-36" />
+          <Skeleton className="h-10 w-40" />
           <Skeleton className="h-4 w-72 max-w-full" />
         </div>
         <Skeleton className="h-8 w-28 rounded-full" />

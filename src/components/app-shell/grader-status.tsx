@@ -55,10 +55,11 @@ export function GraderStatus({ status, className }: { status: EngineStatus; clas
           type="button"
           aria-label={`AI engines: ${label}`}
           className={cn(
-            "inline-flex h-8 min-w-8 cursor-pointer items-center justify-center gap-1.5 rounded-full border px-2 text-[0.75rem] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden min-[52.5rem]:px-3",
+            "inline-flex h-8 min-w-8 cursor-pointer items-center justify-center gap-1.5 rounded-full px-2 text-[0.75rem] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-hidden min-[52.5rem]:px-3",
+            // Live: soft accent glass. Demo: frosted glass with a dashed edge (a labelled stand-in).
             liveCount === rows.length
-              ? "border-transparent bg-primary-soft text-primary-soft-foreground"
-              : "border-dashed border-border bg-card text-muted-foreground",
+              ? "liquid text-primary-soft-foreground [--liquid:var(--primary-soft)] hover:brightness-[0.97] dark:hover:brightness-[1.12]"
+              : "glass border border-dashed border-input text-foreground hover:[--glass-frost:94%]",
             className
           )}
         >

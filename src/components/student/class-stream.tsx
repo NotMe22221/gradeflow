@@ -59,8 +59,8 @@ export function StudentUpcomingCard({
   missing?: number;
 }) {
   return (
-    <section aria-labelledby="upcoming-heading" className="min-w-0 rounded-xl border border-border bg-card p-4">
-      <h2 id="upcoming-heading" className="font-sans text-[0.9375rem] font-medium text-foreground">
+    <section aria-labelledby="upcoming-heading" className="min-w-0 rounded-3xl border border-border bg-card p-5">
+      <h2 id="upcoming-heading" className="font-display text-[1.125rem] font-extrabold tracking-[-0.01em] text-foreground">
         Upcoming
       </h2>
       {items.length === 0 ? (
@@ -182,7 +182,7 @@ export function StudentStreamFeed({
         icon={ClipboardList}
         title="This is where you'll see what's happening in your class."
         description="When your teacher posts work, it shows up here, along with your returned grades."
-        className="rounded-xl py-14"
+        className="rounded-3xl py-14"
       />
     );
   }
@@ -197,7 +197,7 @@ export function StudentStreamFeed({
           const { icon: Icon, text, meta } = describe(item, teacherName);
           return (
             <li key={item.key}>
-              <article className="relative flex items-start gap-4 rounded-xl border border-border bg-card px-4 py-row transition-shadow hover:shadow-hover sm:px-5 motion-reduce:transition-none">
+              <article className="relative flex items-start gap-4 rounded-3xl border border-border bg-card px-4 py-row transition-[box-shadow,translate] duration-200 hover:-translate-y-0.5 hover:shadow-raised sm:px-5 motion-reduce:transition-none motion-reduce:hover:translate-y-0">
                 <span
                   aria-hidden
                   className="flex size-10 shrink-0 items-center justify-center rounded-full text-white compact:size-9"
@@ -209,7 +209,7 @@ export function StudentStreamFeed({
                   <p className="text-[0.9375rem] leading-6 text-pretty break-words text-foreground">
                     <Link
                       href={`/student/assignments/${encodeURIComponent(item.assignmentId)}`}
-                      className="rounded-sm outline-none after:absolute after:inset-0 after:rounded-xl after:content-[''] focus-visible:after:ring-[3px] focus-visible:after:ring-ring"
+                      className="rounded-sm outline-none after:absolute after:inset-0 after:rounded-3xl after:content-[''] focus-visible:after:ring-[3px] focus-visible:after:ring-ring"
                     >
                       {text}
                     </Link>

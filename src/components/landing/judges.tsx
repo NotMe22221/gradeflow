@@ -1,7 +1,9 @@
 import Link from "next/link";
 
-import { ChevronDown } from "@/components/icons";
+import { ChevronDown, CircleCheck } from "@/components/icons";
 
+import { Blob, DotGrid, XGrid } from "@/components/decor/decor";
+import { NumberSticker, Period, type BandTone } from "@/components/landing/bold-section";
 import {
   CHECKED_ON,
   COMPETITORS,
@@ -102,7 +104,10 @@ const BEHIND: { title: string; body: string }[] = [
   },
 ];
 
-const H3 = "text-[1.375rem] leading-snug font-medium text-balance text-foreground sm:text-[1.5rem]";
+/** The walkthrough's number colors, one per step. */
+const STEP_TONES: BandTone[] = ["yellow", "coral", "mint", "sky"];
+
+const H3 = "display-title text-foreground";
 
 /**
  * For hackathon judges: what is new here, Markwise next to six existing
@@ -111,122 +116,144 @@ const H3 = "text-[1.375rem] leading-snug font-medium text-balance text-foregroun
  */
 export function Judges({ demoLogin }: { demoLogin: boolean }) {
   return (
-    <section id="judges" aria-labelledby="judges-heading" className="border-y border-border bg-card py-16 sm:py-24">
-      <LandingContainer>
-        <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
-          <div className="lg:col-span-6">
-            <h2
-              id="judges-heading"
-              className="text-[1.75rem] leading-[1.2] font-medium tracking-[-0.015em] text-balance text-foreground sm:text-[2.25rem] sm:leading-[1.15]"
-            >
-              For judges: how Markwise is different
-            </h2>
-            <p className="mt-4 max-w-[65ch] text-base leading-7 text-pretty text-muted-foreground sm:text-[1.0625rem] sm:leading-8">
-              Plenty of tools draft feedback on student writing, and a few read handwriting. Markwise combines five
-              things we didn&apos;t find documented together in any of the six tools we compared.
-            </p>
-            <p className="mt-4 max-w-[65ch] text-base leading-7 text-pretty text-muted-foreground sm:text-[1.0625rem] sm:leading-8">
-              It is a hackathon project, not a production LMS. The table below shows where it is behind as plainly as
-              where it leads.
-            </p>
-          </div>
-          <div className="lg:col-span-6 lg:pt-2">
-            <p id="differences-heading" className="text-[0.875rem] font-medium text-muted-foreground">
-              What Markwise puts together
-            </p>
-            <ul aria-labelledby="differences-heading" className="mt-3">
-              {DIFFERENCES.map((difference) => (
-                <li
-                  key={difference}
-                  className="flex gap-3 border-t border-border py-3 text-base leading-7 text-pretty text-foreground"
-                >
-                  <span aria-hidden className="mt-3 size-1.5 shrink-0 rounded-full bg-primary" />
-                  {difference}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        <ComparisonTable className="mt-16 sm:mt-20" />
-
-        <div className="mt-16 grid gap-8 sm:mt-20 lg:grid-cols-12 lg:gap-16">
-          <div className="lg:col-span-4">
-            <h3 id="behind-heading" className={H3}>
-              Where Markwise is behind
-            </h3>
-            <p className="mt-3 max-w-[60ch] text-base leading-7 text-pretty text-muted-foreground">
-              What a school would need before using it for real, and what isn&apos;t built yet.
-            </p>
-          </div>
-          <dl className="grid gap-x-10 sm:grid-cols-2 lg:col-span-8">
-            {BEHIND.map((item) => (
-              <div key={item.title} className="border-t border-border py-5">
-                <dt className="text-base font-medium text-foreground">{item.title}</dt>
-                <dd className="mt-1.5 max-w-[60ch] text-[0.9375rem] leading-6 text-pretty text-muted-foreground">
-                  {item.body}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-
-        <div className="mt-16 rounded-2xl bg-secondary p-6 sm:mt-20 sm:p-8">
-          <h3 className={H3}>Judge it in 3 minutes</h3>
-          {demoLogin ? (
-            <>
-              <ol className="mt-6 grid gap-6 sm:grid-cols-2 sm:gap-x-8 xl:grid-cols-4">
-                {STEPS.map((step, index) => (
-                  <li key={step.title} className="flex gap-4 xl:flex-col xl:gap-3">
-                    <span
-                      aria-hidden
-                      className="tabular flex size-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[0.9375rem] font-semibold text-primary-soft-foreground"
-                    >
-                      {index + 1}
-                    </span>
-                    <div className="min-w-0 pt-1 xl:pt-0">
-                      <p className="text-base leading-6 font-medium text-foreground">{step.title}</p>
-                      <p className="mt-1 max-w-[60ch] text-[0.9375rem] leading-6 text-pretty text-muted-foreground">
-                        {step.body}
-                      </p>
-                    </div>
+    <section id="judges" aria-labelledby="judges-heading" className="relative isolate overflow-x-clip">
+      {/* The section's header on the mint band; the comparison and everything after it stay on a plain surface. */}
+      <div className="relative isolate overflow-hidden bg-band-mint py-20 text-band-foreground sm:py-28">
+        <Blob
+          shape={1}
+          tone="yellow"
+          className="-top-14 -right-14 w-32 sm:-top-20 sm:-right-20 sm:w-52 lg:-top-28 lg:-right-24 lg:w-80"
+        />
+        <XGrid cols={6} rows={2} className="top-9 left-[46%] hidden w-36 stroke-pop-ink-on lg:block" />
+        <Blob shape={5} tone="sky" className="-bottom-32 -left-28 hidden w-80 xl:block" />
+        <LandingContainer>
+          <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
+            <div className="lg:col-span-6">
+              <h2 id="judges-heading" className="display-section text-band-foreground">
+                For judges: how Markwise is different
+                <Period onBand />
+              </h2>
+              <p className="mt-5 max-w-[65ch] text-base leading-7 text-pretty sm:text-[1.125rem] sm:leading-8">
+                Plenty of tools draft feedback on student writing, and a few read handwriting. Markwise combines five
+                things we didn&apos;t find documented together in any of the six tools we compared.
+              </p>
+              <p className="mt-4 max-w-[65ch] text-base leading-7 text-pretty sm:text-[1.125rem] sm:leading-8">
+                It is a hackathon project, not a production LMS. The table below shows where it is behind as plainly as
+                where it leads.
+              </p>
+            </div>
+            <div className="lg:col-span-6 lg:pt-2">
+              <p id="differences-heading" className="text-[0.9375rem] font-semibold">
+                What Markwise puts together
+              </p>
+              <ul aria-labelledby="differences-heading" className="mt-4 space-y-2.5">
+                {DIFFERENCES.map((difference) => (
+                  <li
+                    key={difference}
+                    className="flex gap-3 rounded-2xl bg-card px-4 py-3 text-base leading-7 text-pretty text-foreground"
+                  >
+                    <CircleCheck filled aria-hidden className="mt-1 size-5 shrink-0 text-primary" />
+                    {difference}
                   </li>
                 ))}
-              </ol>
-              <div className="mt-8 flex flex-col gap-x-8 gap-y-5 border-t border-border pt-6 lg:flex-row lg:items-center">
-                <DemoCtas demoLogin={demoLogin} note={null} />
-                <p className="max-w-[48ch] text-[0.9375rem] leading-6 text-pretty text-muted-foreground">
-                  To grade a paper of your own, use the{" "}
-                  <Link
-                    href="/try"
-                    className="rounded-sm text-primary underline underline-offset-4 outline-none hover:decoration-2 focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    try-it sandbox
-                  </Link>
-                  . More to try, like Insights and conference briefs, is in the{" "}
-                  <ExternalAnchor href={DEMO_SCRIPT_URL}>demo script on GitHub</ExternalAnchor>. How close the scores
-                  are to a human&apos;s, on a small public set:{" "}
-                  <Link
-                    href="/evidence"
-                    className="rounded-sm text-primary underline underline-offset-4 outline-none hover:decoration-2 focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    the evidence
-                  </Link>
-                  .
-                </p>
-              </div>
-            </>
-          ) : (
-            // No demo buttons on this deployment, so no steps that point at them.
-            <p className="mt-3 max-w-[65ch] text-base leading-7 text-pretty text-muted-foreground">
-              One-click demo sign-in is turned off for this deployment. To try Markwise, run it on your own computer
-              (no API keys needed) and follow the <ExternalAnchor href={DEMO_SCRIPT_URL}>demo script on GitHub</ExternalAnchor>.
-            </p>
-          )}
-        </div>
+              </ul>
+            </div>
+          </div>
+        </LandingContainer>
+      </div>
 
-        <Sources />
-      </LandingContainer>
+      <div className="border-b border-border bg-card py-16 sm:py-24">
+        <LandingContainer>
+          <ComparisonTable />
+
+          <div className="mt-16 grid gap-8 sm:mt-20 lg:grid-cols-12 lg:gap-16">
+            <div className="lg:col-span-4">
+              <h3 id="behind-heading" className={H3}>
+                Where Markwise is behind
+              </h3>
+              <p className="mt-3 max-w-[60ch] text-base leading-7 text-pretty text-muted-foreground">
+                What a school would need before using it for real, and what isn&apos;t built yet.
+              </p>
+            </div>
+            <dl className="grid gap-x-10 sm:grid-cols-2 lg:col-span-8">
+              {BEHIND.map((item) => (
+                <div key={item.title} className="border-t-2 border-foreground py-5">
+                  <dt className="font-display text-[1.0625rem] leading-snug font-extrabold tracking-[-0.01em] text-foreground">
+                    {item.title}
+                  </dt>
+                  <dd className="mt-1.5 max-w-[60ch] text-[0.9375rem] leading-6 text-pretty text-muted-foreground">
+                    {item.body}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          <div className="relative isolate mt-16 sm:mt-20">
+            {/* Paint behind the box's corners, so it frames the walkthrough without touching its text. */}
+            <Blob shape={6} tone="pink" className="-top-10 -right-6 w-36 sm:-top-14 sm:-right-12 sm:w-56" />
+            <DotGrid cols={8} rows={3} className="-bottom-7 -left-5 hidden w-36 sm:block" />
+            <div className="rounded-[2rem] border border-border bg-background p-6 sm:rounded-[2.5rem] sm:p-10">
+              <h3 className={H3}>Judge it in 3 minutes</h3>
+              {demoLogin ? (
+                <>
+                  <ol className="mt-8 grid gap-7 sm:grid-cols-2 sm:gap-x-8 xl:grid-cols-4">
+                    {STEPS.map((step, index) => (
+                      <li key={step.title} className="flex gap-4 xl:flex-col xl:gap-4">
+                        <NumberSticker
+                          value={index + 1}
+                          tone={STEP_TONES[index % STEP_TONES.length]}
+                          shape={index}
+                          className="size-12 text-[1.625rem]"
+                        />
+                        <div className="min-w-0 pt-1 xl:pt-0">
+                          <p className="font-display text-[1.125rem] leading-6 font-extrabold tracking-[-0.015em] text-foreground">
+                            {step.title}
+                          </p>
+                          <p className="mt-1.5 max-w-[60ch] text-[0.9375rem] leading-6 text-pretty text-muted-foreground">
+                            {step.body}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                  <div className="mt-8 flex flex-col gap-x-8 gap-y-5 border-t border-border pt-6 lg:flex-row lg:items-center">
+                    <DemoCtas demoLogin={demoLogin} note={null} />
+                    <p className="max-w-[48ch] text-[0.9375rem] leading-6 text-pretty text-muted-foreground">
+                      To grade a paper of your own, use the{" "}
+                      <Link
+                        href="/try"
+                        className="rounded-sm text-primary underline underline-offset-4 outline-none hover:decoration-2 focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        try-it sandbox
+                      </Link>
+                      . More to try, like Insights and conference briefs, is in the{" "}
+                      <ExternalAnchor href={DEMO_SCRIPT_URL}>demo script on GitHub</ExternalAnchor>. How close the
+                      scores are to a human&apos;s, on a small public set:{" "}
+                      <Link
+                        href="/evidence"
+                        className="rounded-sm text-primary underline underline-offset-4 outline-none hover:decoration-2 focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        the evidence
+                      </Link>
+                      .
+                    </p>
+                  </div>
+                </>
+              ) : (
+                // No demo buttons on this deployment, so no steps that point at them.
+                <p className="mt-3 max-w-[65ch] text-base leading-7 text-pretty text-muted-foreground">
+                  One-click demo sign-in is turned off for this deployment. To try Markwise, run it on your own
+                  computer (no API keys needed) and follow the{" "}
+                  <ExternalAnchor href={DEMO_SCRIPT_URL}>demo script on GitHub</ExternalAnchor>.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <Sources />
+        </LandingContainer>
+      </div>
     </section>
   );
 }
@@ -234,8 +261,8 @@ export function Judges({ demoLogin }: { demoLogin: boolean }) {
 /** The competitors' sources, grouped by page, with the trademark note. */
 function Sources() {
   return (
-    <div className="mt-16 border-t border-border pt-8 sm:mt-20">
-      <h3 className="text-base font-medium text-foreground">Sources</h3>
+    <div className="mt-16 border-t-2 border-foreground pt-8 sm:mt-20">
+      <h3 className="font-display text-[1.25rem] font-extrabold tracking-[-0.015em] text-foreground">Sources</h3>
       <p className="mt-2 max-w-[75ch] text-[0.875rem] leading-6 text-pretty text-muted-foreground">
         Compiled from public pages and web search results as of {CHECKED_ON}. Products change quickly; follow the links
         to confirm.

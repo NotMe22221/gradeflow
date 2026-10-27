@@ -221,9 +221,9 @@ export function AssignmentInbox({
         action={{ href: "/student/todo", label: "Open To-do" }}
       />
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="overflow-hidden rounded-3xl border border-border bg-card">
         <Tabs value={tab} onValueChange={(value) => setTab(value as TodoTab)} className="gap-0">
-          <div className="border-b border-border px-2 sm:px-3">
+          <div className="border-b border-border px-3 sm:px-4">
             <UnderlineTabsList aria-label="Filter your work">
               {TODO_TABS.map((item) => (
                 <UnderlineTabsTrigger

@@ -2,7 +2,10 @@ import Link from "next/link";
 
 import { ChevronDown } from "@/components/icons";
 
-import { LandingContainer, SECTION_SPACING } from "@/components/landing/section-intro";
+import { Blob, XGrid } from "@/components/decor/decor";
+import { BOLD_SECTION_Y } from "@/components/landing/bold-section";
+import { LandingContainer, SectionIntro } from "@/components/landing/section-intro";
+import { cn } from "@/lib/utils";
 
 const QUESTIONS: { question: string; answer: React.ReactNode }[] = [
   {
@@ -80,37 +83,46 @@ const QUESTIONS: { question: string; answer: React.ReactNode }[] = [
   },
 ];
 
-/** Plain answers to the questions teachers ask first. Native details/summary: works without JavaScript. */
+/**
+ * Plain answers to the questions teachers ask first. Native details/summary:
+ * works without JavaScript. The answers sit on a plain card; the paint stays
+ * under the heading and behind the card's edge.
+ */
 export function Faq() {
   return (
-    <section id="faq" aria-labelledby="faq-heading" className={SECTION_SPACING}>
+    <section id="faq" aria-labelledby="faq-heading" className={cn("relative isolate overflow-hidden", BOLD_SECTION_Y)}>
+      <XGrid cols={3} rows={2} className="top-4 right-4 w-16 sm:top-8 sm:right-[6%] sm:w-24 lg:hidden" />
       <LandingContainer className="grid gap-10 lg:grid-cols-12 lg:gap-16">
         <div className="lg:col-span-4">
-          <h2
+          <SectionIntro
             id="faq-heading"
-            className="text-[1.75rem] leading-[1.2] font-medium tracking-[-0.015em] text-balance text-foreground sm:text-[2.25rem] sm:leading-[1.15]"
-          >
-            Questions teachers ask
-          </h2>
-          <p className="mt-4 max-w-[60ch] text-base leading-7 text-pretty text-muted-foreground">
-            Straight answers, including the limits.
-          </p>
+            title="Questions teachers ask"
+            description="Straight answers, including the limits."
+          />
+          {/* In the flow under the lede, so it can never land on the text. */}
+          <XGrid cols={4} rows={3} className="relative mt-10 hidden w-28 lg:block" />
         </div>
-        <div className="border-b border-border lg:col-span-8">
-          {QUESTIONS.map((item) => (
-            <details key={item.question} className="group border-t border-border">
-              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 rounded-lg py-4 text-left text-[1.0625rem] font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset [&::-webkit-details-marker]:hidden">
-                {item.question}
-                <ChevronDown
-                  className="size-6 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none"
-                  aria-hidden
-                />
-              </summary>
-              <div className="max-w-[65ch] space-y-3 pb-6 text-base leading-7 text-pretty text-muted-foreground">
-                {item.answer}
-              </div>
-            </details>
-          ))}
+        <div className="relative isolate lg:col-span-8">
+          {/* Peeks out from behind the card's right edge, into the page margin. */}
+          <Blob shape={3} tone="coral" className="top-12 -right-28 hidden w-64 xl:block" />
+          <div className="rounded-[2rem] border border-border bg-card px-5 sm:rounded-[2.5rem] sm:px-8">
+            {QUESTIONS.map((item) => (
+              <details key={item.question} className="group border-t border-border first:border-t-0">
+                <summary className="-mx-3 flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 rounded-2xl px-3 py-5 text-left font-display text-[1.125rem] leading-snug font-bold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:text-[1.1875rem] [&::-webkit-details-marker]:hidden">
+                  {item.question}
+                  <span
+                    aria-hidden
+                    className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none"
+                  >
+                    <ChevronDown className="size-6" aria-hidden />
+                  </span>
+                </summary>
+                <div className="max-w-[65ch] space-y-3 pb-6 text-base leading-7 text-pretty text-muted-foreground">
+                  {item.answer}
+                </div>
+              </details>
+            ))}
+          </div>
         </div>
       </LandingContainer>
     </section>

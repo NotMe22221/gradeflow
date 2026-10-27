@@ -31,9 +31,10 @@ function switchAccount(action: () => Promise<unknown>) {
 }
 
 /**
- * The account menu (avatar button, top right): who is signed in, Customize,
- * a quick theme switch (System / Light / Dark, applied at once and kept open
- * so the change shows behind it), the demo account switcher, and Sign out.
+ * The account menu (avatar button, top right; a frosted glass pill with the
+ * name from 1200px): who is signed in, Customize, a quick theme switch
+ * (System / Light / Dark, applied at once and kept open so the change shows
+ * behind it), the demo account switcher, and Sign out.
  */
 export function UserMenu({
   user,
@@ -60,13 +61,13 @@ export function UserMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         ref={triggerRef}
-        className="flex h-10 items-center gap-2 rounded-full p-1 text-left transition-colors outline-none hover:bg-foreground/[0.06] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden min-[75rem]:pr-2"
+        className="flex h-10 items-center gap-2 rounded-full p-1 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-hidden max-[75rem]:hover:bg-foreground/[0.06] min-[75rem]:glass min-[75rem]:pr-3 min-[75rem]:hover:[--glass-frost:94%]"
         // Starts with the visible name (WCAG 2.5.3), so "click Morgan Hale" works.
         aria-label={`${user.name}, account menu`}
       >
-        <Avatar name={user.name} className="size-8" />
+        <Avatar name={user.name} className="size-8 bg-band-yellow text-band-foreground ring-2 ring-card" />
         <span className="hidden min-w-0 flex-col leading-tight min-[75rem]:flex">
-          <span className="truncate text-[0.875rem] font-medium text-foreground">{user.name}</span>
+          <span className="truncate text-[0.875rem] font-semibold text-foreground">{user.name}</span>
           <span className="text-[0.6875rem] text-muted-foreground">{roleLabel} · Demo account</span>
         </span>
         <ChevronDown className="hidden size-4 text-muted-foreground min-[75rem]:block" aria-hidden />

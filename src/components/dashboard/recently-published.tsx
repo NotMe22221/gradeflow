@@ -17,7 +17,7 @@ export function ListCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn("flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card", className)}>
+    <div className={cn("flex min-w-0 flex-col overflow-hidden rounded-3xl border border-border bg-card", className)}>
       <div className="flex-1">{children}</div>
       {footnote ? (
         <p className="border-t border-border px-5 py-3 text-[0.75rem] leading-5 text-muted-foreground">{footnote}</p>

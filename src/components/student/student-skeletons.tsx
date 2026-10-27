@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
  */
 
 function Box({ className, children }: { className?: string; children: React.ReactNode }) {
-  return <div className={cn("rounded-xl border border-border bg-card", className)}>{children}</div>;
+  return <div className={cn("rounded-3xl border border-border bg-card", className)}>{children}</div>;
 }
 
 function RowSkeleton({ wide = false, due = true }: { wide?: boolean; due?: boolean }) {
@@ -44,26 +44,42 @@ function SectionHeadingSkeleton({ action = true }: { action?: boolean }) {
   );
 }
 
-/** The Home "progress" section (StudyProgress): streak and level side by side, then one line. */
+/** On a muted block (a band or tile while loading), a skeleton needs its own tint to show. */
+const ON_MUTED = "bg-foreground/[0.07]";
+
+/** The Home greeting band: date and Arrange, the big greeting, the summary line. */
+export function GreetingSkeleton() {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 rounded-[2rem] bg-muted px-5 pt-5 pb-7 sm:px-8 sm:pt-7 sm:pb-9 lg:px-10 lg:pb-11">
+      <Skeleton className={cn("h-4 w-36", ON_MUTED)} />
+      <Skeleton className={cn("col-start-2 row-start-1 h-8 w-28 rounded-full", ON_MUTED)} />
+      <Skeleton className={cn("col-span-2 mt-4 h-10 w-80 max-w-full sm:h-14 sm:w-[28rem]", ON_MUTED)} />
+      <Skeleton className={cn("col-span-2 mt-3 h-4 w-60 max-w-full", ON_MUTED)} />
+    </div>
+  );
+}
+
+/** The Home "progress" section (StudyProgress): the streak and level tiles, then one line. */
 export function ProgressSkeleton() {
   return (
     <div className="@container/progress">
-      <Box>
-        <div className="grid grid-cols-1 divide-y divide-border @min-[34rem]/progress:grid-cols-2 @min-[34rem]/progress:divide-x @min-[34rem]/progress:divide-y-0">
-          {[0, 1].map((cell) => (
-            <div key={cell} className="flex items-center gap-3 px-4 py-4 @min-[34rem]/progress:px-5">
-              <Skeleton className="size-10 shrink-0 rounded-full" />
-              <div className="min-w-0 flex-1 space-y-2">
-                <Skeleton className="h-4 w-28" />
-                <Skeleton className="h-3 w-40 max-w-full" />
-              </div>
+      <div className="grid grid-cols-1 gap-3 @min-[34rem]/progress:grid-cols-2">
+        {[0, 1].map((cell) => (
+          <div
+            key={cell}
+            className="flex items-center gap-4 rounded-3xl bg-muted px-5 py-5 @min-[34rem]/progress:px-6 @min-[34rem]/progress:py-6"
+          >
+            <Skeleton className={cn("size-14 shrink-0 rounded-full", ON_MUTED)} />
+            <div className="min-w-0 flex-1 space-y-2.5">
+              <Skeleton className={cn("h-6 w-36 max-w-full", ON_MUTED)} />
+              <Skeleton className={cn("h-3.5 w-28 max-w-full", ON_MUTED)} />
             </div>
-          ))}
-        </div>
-        <div className="border-t border-border px-4 py-3 @min-[34rem]/progress:px-5">
-          <Skeleton className="h-3.5 w-72 max-w-full" />
-        </div>
-      </Box>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 px-1">
+        <Skeleton className="h-3.5 w-72 max-w-full" />
+      </div>
     </div>
   );
 }
@@ -106,12 +122,15 @@ export function InboxSkeleton() {
   );
 }
 
-/** The Home "planner" section (GoalPlanner): heading, the form, and the result area. */
+/** The Home "planner" section (GoalPlanner): its band with the heading, then the form and the result area. */
 export function PlannerSkeleton() {
   return (
-    <div>
-      <SectionHeadingSkeleton action={false} />
-      <Box className="overflow-hidden">
+    <div className="rounded-[2rem] bg-muted p-2 sm:p-3">
+      <div className="space-y-2.5 px-3 pt-4 pb-5 sm:px-5 sm:pt-6 sm:pb-6">
+        <Skeleton className={cn("h-8 w-48", ON_MUTED)} />
+        <Skeleton className={cn("h-4 w-80 max-w-full", ON_MUTED)} />
+      </div>
+      <Box className="overflow-hidden rounded-[1.5rem] border-0">
         <div className="space-y-3 p-4 sm:p-5">
           <div className="grid gap-3 sm:grid-cols-[15rem_minmax(0,1fr)_auto] sm:items-end">
             <Skeleton className="h-10 w-full rounded-lg" />
@@ -119,9 +138,9 @@ export function PlannerSkeleton() {
             <Skeleton className="h-10 w-full rounded-full sm:w-28" />
           </div>
           <div className="flex gap-2">
-            <Skeleton className="h-8 w-24 rounded-lg" />
-            <Skeleton className="h-8 w-24 rounded-lg" />
-            <Skeleton className="h-8 w-20 rounded-lg" />
+            <Skeleton className="h-8 w-24 rounded-full" />
+            <Skeleton className="h-8 w-24 rounded-full" />
+            <Skeleton className="h-8 w-20 rounded-full" />
           </div>
         </div>
         <div className="border-t border-border px-4 py-6 sm:px-5">
@@ -136,15 +155,13 @@ export function PlannerSkeleton() {
 export function StudentTodoSkeleton() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pt-6 pb-10 sm:px-6 sm:pt-8" aria-busy aria-label="Loading your to-do list">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-28" />
-          <Skeleton className="h-4 w-72 max-w-full" />
-        </div>
-        <div className="w-full space-y-1.5 sm:w-60">
-          <Skeleton className="h-3.5 w-12" />
-          <Skeleton className="h-10 w-full rounded-lg" />
-        </div>
+      <div className="mb-5 space-y-2">
+        <Skeleton className="h-10 w-36" />
+        <Skeleton className="h-4 w-72 max-w-full" />
+      </div>
+      <div className="w-full space-y-1.5 sm:w-60">
+        <Skeleton className="h-3.5 w-12" />
+        <Skeleton className="h-10 w-full rounded-lg" />
       </div>
       <div className="mt-6 flex h-12 items-center gap-8 border-b border-border px-4">
         <Skeleton className="h-4 w-20" />
@@ -178,13 +195,13 @@ export function StudentStreamSkeleton() {
       aria-busy
       aria-label="Loading the class stream"
     >
-      <div className="flex min-h-40 flex-col justify-end gap-2 rounded-2xl bg-muted px-6 py-6 sm:min-h-52 sm:px-8 sm:py-8">
+      <div className="flex min-h-40 flex-col justify-end gap-2 rounded-[2rem] bg-muted px-6 py-6 sm:min-h-52 sm:px-8 sm:py-8">
         <Skeleton className="h-9 w-56 max-w-full bg-foreground/[0.07]" />
         <Skeleton className="h-5 w-48 max-w-full bg-foreground/[0.07]" />
       </div>
       <div className="mt-6 grid grid-cols-1 gap-6 @min-[44rem]:grid-cols-[15rem_minmax(0,1fr)]">
-        <Box className="space-y-3 p-4">
-          <Skeleton className="h-4 w-20" />
+        <Box className="space-y-3 p-5">
+          <Skeleton className="h-5 w-24" />
           <Skeleton className="h-3 w-32" />
           <Skeleton className="h-4 w-full" />
           <div className="flex justify-end">
@@ -211,10 +228,13 @@ export function StudentStreamSkeleton() {
 export function StudentClassworkSkeleton() {
   return (
     <PageContainer className="max-w-5xl space-y-8" aria-busy aria-label="Loading classwork">
-      <Skeleton className="h-10 w-40 rounded-full" />
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-10 w-40 rounded-full" />
+      </div>
       <div>
-        <div className="mb-2 flex items-end justify-between border-b border-border pb-2">
-          <Skeleton className="h-7 w-40" />
+        <div className="mb-2 flex items-end justify-between border-b-[3px] border-border pb-2">
+          <Skeleton className="h-8 w-44" />
           <Skeleton className="h-3.5 w-24" />
         </div>
         <div className="space-y-0.5">
@@ -235,9 +255,10 @@ export function StudentPeopleSkeleton() {
       aria-busy
       aria-label="Loading people"
     >
+      <Skeleton className="h-10 w-72 max-w-full" />
       {[1, 4].map((count, section) => (
         <div key={section}>
-          <div className="flex min-h-16 items-end border-b border-border pb-3">
+          <div className="flex min-h-14 items-end border-b-[3px] border-border pb-2">
             <Skeleton className="h-8 w-40" />
           </div>
           <div className="mt-2 divide-y divide-border">
@@ -267,7 +288,7 @@ export function StudentAssignmentSkeleton() {
             <div className="flex gap-4">
               <Skeleton className="mt-1 size-10 shrink-0 rounded-full max-sm:hidden" />
               <div className="min-w-0 flex-1 space-y-2">
-                <Skeleton className="h-8 w-96 max-w-full" />
+                <Skeleton className="h-10 w-96 max-w-full" />
                 <Skeleton className="h-4 w-44" />
                 <div className="flex justify-between pt-2">
                   <Skeleton className="h-4 w-20" />
@@ -275,9 +296,9 @@ export function StudentAssignmentSkeleton() {
                 </div>
               </div>
             </div>
-            <Skeleton className="mt-4 h-px w-full" />
+            <Skeleton className="mt-4 h-1 w-full rounded-full" />
           </div>
-          <Box className="space-y-4 p-5 @min-[52rem]:col-start-2 @min-[52rem]:row-span-2 @min-[52rem]:row-start-1">
+          <Box className="space-y-4 p-5 sm:p-6 @min-[52rem]:col-start-2 @min-[52rem]:row-span-2 @min-[52rem]:row-start-1">
             <div className="flex items-center justify-between">
               <Skeleton className="h-6 w-28" />
               <Skeleton className="h-5 w-20 rounded-md" />

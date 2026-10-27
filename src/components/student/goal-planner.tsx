@@ -6,8 +6,9 @@ import { CircleAlert, Flag, LoaderCircle, Target } from "@/components/icons";
 import { toast } from "sonner";
 
 import { useDestinationTarget } from "@/components/app-shell/destination";
+import { PlannerDecor } from "@/components/decor/student";
 import { EmptyState } from "@/components/empty-state";
-import { SectionHeading } from "@/components/layout-editor/section-heading";
+import { TitlePeriod } from "@/components/page-header";
 import { GoalEngineBadge } from "@/components/student/goal-engine-badge";
 import { GoalPlanResult } from "@/components/student/goal-plan-result";
 import { usePlannerBridge } from "@/components/student/planner-bridge";
@@ -173,19 +174,27 @@ export function GoalPlanner({
   }
 
   return (
+    // A lilac band with the heading on it and the planner's card inset: the Home's standout
+    // section. The art (PlannerDecor) stays in the heading strip, right of the heading; the card
+    // covers the rest of the band, so the form and the plan sit on a plain surface.
     <section
       ref={sectionRef}
       id={GOAL_PLANNER_ID}
       aria-labelledby={headingId}
-      className="min-w-0 scroll-mt-24"
+      className="@container relative isolate min-w-0 scroll-mt-24 overflow-hidden rounded-[2rem] bg-band-lilac p-2 text-band-foreground sm:p-3"
     >
-      <SectionHeading
-        id={headingId}
-        title="Goal planner"
-        description="Type the grade you want. Markwise works out the exact score you need on everything left."
-      />
+      <PlannerDecor />
+      <div className="px-3 pt-4 pb-5 sm:px-5 sm:pt-6 sm:pb-6 @min-[34rem]:max-w-[55%]">
+        <h2 id={headingId} className="display-title max-w-[calc(100%-5rem)] @min-[34rem]:max-w-none">
+          Goal planner
+          <TitlePeriod onBand />
+        </h2>
+        <p className="mt-2 max-w-[52ch] text-[0.9375rem] leading-6 font-medium text-pretty">
+          Type the grade you want. Markwise works out the exact score you need on everything left.
+        </p>
+      </div>
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="overflow-hidden rounded-[1.5rem] bg-card text-card-foreground">
         <form onSubmit={plan} noValidate className="space-y-3 p-4 sm:p-5">
           <div className="grid gap-3 sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)_auto] sm:items-end">
             {/* flex + gap, not space-y: Radix adds a hidden native <select> last, which space-y would count. */}
@@ -253,7 +262,7 @@ export function GoalPlanner({
                 type="button"
                 onClick={() => applyExample(example)}
                 disabled={pending}
-                className="inline-flex h-8 items-center rounded-lg border border-input bg-card px-3 text-[0.8125rem] font-medium text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:outline-hidden disabled:opacity-50"
+                className="inline-flex h-8 items-center rounded-full border border-input bg-card px-3.5 text-[0.8125rem] font-medium text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.04] hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:outline-hidden disabled:opacity-50"
               >
                 {example}
               </button>

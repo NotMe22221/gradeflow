@@ -37,8 +37,8 @@ function FooterAction({ href, label, icon: Icon }: { href: string; label: string
 }
 
 /**
- * A class on the student Home, like a Google Classroom class card: the class
- * banner (name opens the Stream, teacher on the third line), the teacher's
+ * A class on the student Home, like a Google Classroom class card with chunky
+ * corners: the class banner (name opens the Stream, teacher on the third line), the teacher's
  * avatar over its bottom edge, this student's work due soon, and footer
  * shortcuts to their work and the class's Classwork.
  */
@@ -50,7 +50,7 @@ export function StudentClassCard({ data, className }: { data: StudentClassCardDa
     <article
       aria-label={data.name}
       className={cn(
-        "relative flex h-full min-h-60 min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-card transition-shadow hover:shadow-hover min-[600px]:min-h-[18.5rem]",
+        "relative flex h-full min-h-60 min-w-0 flex-col overflow-hidden rounded-3xl border border-border bg-card transition-[box-shadow,translate] duration-200 hover:-translate-y-0.5 hover:shadow-raised motion-reduce:transition-none motion-reduce:hover:translate-y-0 min-[600px]:min-h-[18.5rem]",
         className
       )}
     >
@@ -65,10 +65,10 @@ export function StudentClassCard({ data, className }: { data: StudentClassCardDa
       <Avatar
         name={data.teacherName}
         title={data.teacherName}
-        className="absolute top-[4.5rem] right-4 size-16 bg-primary-soft text-xl font-medium text-primary-soft-foreground ring-4 ring-card"
+        className="absolute top-[4.5rem] right-5 size-16 bg-primary-soft text-xl font-medium text-primary-soft-foreground ring-4 ring-card"
       />
 
-      <div className="flex flex-1 flex-col gap-3 px-4 pt-3 pb-4">
+      <div className="flex flex-1 flex-col gap-3 px-5 pt-3.5 pb-4">
         {data.dueSoon.length > 0 ? (
           <ul className="space-y-1.5" aria-label="Due soon">
             {data.dueSoon.map((item, index) => (
@@ -78,13 +78,13 @@ export function StudentClassCard({ data, className }: { data: StudentClassCardDa
                   className="group/due -mx-1 block rounded-md px-1 py-0.5 text-[0.8125rem] leading-5 outline-none focus-visible:ring-[3px] focus-visible:ring-ring"
                 >
                   {item.dueDate ? (
-                    <time dateTime={item.dueDate} className="block text-xs text-muted-foreground">
+                    <time dateTime={item.dueDate} className="block text-xs font-medium text-muted-foreground">
                       {item.dueText}
                     </time>
                   ) : (
-                    <span className="block text-xs text-muted-foreground">{item.dueText}</span>
+                    <span className="block text-xs font-medium text-muted-foreground">{item.dueText}</span>
                   )}
-                  <span className="block truncate font-medium text-foreground group-hover/due:underline">
+                  <span className="block truncate text-[0.875rem] font-semibold text-foreground group-hover/due:underline">
                     {item.title}
                   </span>
                 </Link>
@@ -99,7 +99,7 @@ export function StudentClassCard({ data, className }: { data: StudentClassCardDa
           <div className="mt-auto">
             <Link
               href={`/student/todo?tab=missing&class=${encodeURIComponent(data.id)}`}
-              className="tabular inline-flex h-8 items-center rounded-full bg-danger-soft px-3 text-[0.8125rem] font-medium text-danger-soft-foreground transition-shadow outline-none hover:shadow-hover focus-visible:ring-[3px] focus-visible:ring-ring"
+              className="tabular inline-flex h-8 items-center rounded-full bg-danger-soft px-3.5 text-[0.8125rem] font-semibold text-danger-soft-foreground transition-shadow outline-none hover:shadow-hover focus-visible:ring-[3px] focus-visible:ring-ring"
             >
               {data.missing} missing
             </Link>
@@ -107,7 +107,7 @@ export function StudentClassCard({ data, className }: { data: StudentClassCardDa
         ) : null}
       </div>
 
-      <div className="flex items-center justify-end gap-1 border-t border-border px-2 py-1.5">
+      <div className="flex items-center justify-end gap-1 border-t border-border px-3 py-1.5">
         <FooterAction href={todoHref} label={`Your work in ${data.name}`} icon={SquareUserRound} />
         <FooterAction href={`${base}/classwork`} label={`Classwork for ${data.name}`} icon={FolderOpen} />
       </div>

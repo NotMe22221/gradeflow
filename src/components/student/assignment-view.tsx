@@ -193,14 +193,10 @@ export function StudentAssignmentView({ assignment, teacherName, submission, now
             <div className="flex gap-4">
               <AssignmentIcon isTest={isTest} color={theme.color} className="mt-1 max-sm:hidden" />
               <div className="min-w-0 flex-1">
-                {/* The class accent (not the banner fill), so the title keeps its contrast in dark mode too. */}
-                <h1
-                  className="text-[1.625rem] leading-tight font-normal text-balance break-words sm:text-[2rem] sm:leading-10"
-                  style={{ color: theme.accent }}
-                >
-                  {assignment.title}
-                </h1>
-                <p className="tabular mt-1 text-[0.875rem] text-muted-foreground">
+                {/* Big, heavy ink: the class color stays in the icon, the rule under the header and the
+                    accent bar under the app bar. */}
+                <h1 className="display-title break-words text-foreground">{assignment.title}</h1>
+                <p className="tabular mt-2 text-[0.875rem] text-muted-foreground">
                   {teacher} · Posted {formatDate(assignment.createdAt, timeZone)}
                 </p>
                 <div className="tabular mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[0.875rem]">
@@ -238,7 +234,7 @@ export function StudentAssignmentView({ assignment, teacherName, submission, now
                 </div>
               </div>
             </div>
-            <div aria-hidden className="mt-4 h-px" style={{ backgroundColor: theme.accent }} />
+            <div aria-hidden className="mt-4 h-1 rounded-full" style={{ backgroundColor: theme.accent }} />
           </header>
 
           <aside

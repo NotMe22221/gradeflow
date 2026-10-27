@@ -68,10 +68,10 @@ export function AssignmentRubric({
   return (
     <section
       aria-labelledby="rubric-heading"
-      className={cn("overflow-hidden rounded-xl border border-border bg-card", className)}
+      className={cn("overflow-hidden rounded-3xl border border-border bg-card", className)}
     >
       <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-3.5 sm:px-5">
-        <h2 id="rubric-heading" className="flex items-center gap-2 text-base font-semibold text-foreground">
+        <h2 id="rubric-heading" className="flex items-center gap-2 text-[1.0625rem] font-extrabold tracking-[-0.01em] text-foreground">
           <ListChecks className="size-5 text-muted-foreground" aria-hidden />
           {title}
         </h2>

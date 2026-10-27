@@ -1,4 +1,5 @@
 import { ClassCardGridSkeleton } from "@/components/classes/class-card-skeleton";
+import { GREETING_HEADING, GreetingBandFrame } from "@/components/dashboard/greeting-band";
 import { SectionsSkeleton } from "@/components/layout-editor/sections-skeleton";
 import { PageContainer } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -6,7 +7,7 @@ import { defaultSectionLayout, type SectionLayout } from "@/lib/preferences/sche
 
 function ListCardSkeleton({ rows }: { rows: number }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="overflow-hidden rounded-3xl border border-border bg-card">
       <div className="divide-y divide-border">
         {Array.from({ length: rows }, (_, row) => (
           <div
@@ -29,20 +30,23 @@ function ListCardSkeleton({ rows }: { rows: number }) {
   );
 }
 
+/** Stand-in bars on a band: a shade of the band's own text color, so they read on any band (and in Calm). */
+const ON_BAND = "bg-band-foreground/10";
+
 function StatsSkeleton() {
   return (
-    <div className="grid grid-cols-1 divide-y divide-border rounded-xl border border-border bg-card @min-[36rem]:grid-cols-3 @min-[36rem]:divide-x @min-[36rem]:divide-y-0">
-      {[0, 1, 2].map((index) => (
+    <div className="grid grid-cols-1 gap-3 @min-[36rem]:grid-cols-3">
+      {["bg-band-mint", "bg-band-sky", "bg-band-lilac"].map((band) => (
         <div
-          key={index}
-          className="flex items-center justify-between gap-4 px-4 py-3 @min-[36rem]:block @min-[36rem]:space-y-2 @min-[36rem]:px-5 @min-[36rem]:py-4"
+          key={band}
+          className={`flex items-center justify-between gap-4 rounded-3xl px-5 py-4 @min-[36rem]:block @min-[36rem]:space-y-3 @min-[36rem]:px-6 @min-[36rem]:pt-5 @min-[36rem]:pb-6 ${band}`}
         >
           <div className="space-y-2">
-            <Skeleton className="h-3.5 w-28" />
-            <Skeleton className="h-3 w-40 max-w-full @min-[36rem]:hidden" />
+            <Skeleton className={`h-4 w-28 ${ON_BAND}`} />
+            <Skeleton className={`h-3.5 w-40 max-w-full @min-[36rem]:hidden ${ON_BAND}`} />
           </div>
-          <Skeleton className="h-7 w-14" />
-          <Skeleton className="hidden h-3 w-40 max-w-full @min-[36rem]:block" />
+          <Skeleton className={`h-9 w-14 @min-[36rem]:h-12 @min-[36rem]:w-20 ${ON_BAND}`} />
+          <Skeleton className={`hidden h-3.5 w-40 max-w-full @min-[36rem]:block ${ON_BAND}`} />
         </div>
       ))}
     </div>
@@ -51,25 +55,25 @@ function StatsSkeleton() {
 
 function ToolsSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border bg-border @min-[36rem]:grid-cols-2 @min-[58rem]:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 @min-[36rem]:grid-cols-2 @min-[58rem]:grid-cols-3">
       {[0, 1, 2].map((index) => (
         <div
           key={index}
           className={
             index === 2
-              ? "bg-card p-4 @min-[36rem]:col-span-2 @min-[36rem]:p-5 @min-[58rem]:col-span-1"
-              : "bg-card p-4 @min-[36rem]:p-5"
+              ? "rounded-3xl border border-border bg-card p-5 @min-[36rem]:col-span-2 @min-[58rem]:col-span-1"
+              : "rounded-3xl border border-border bg-card p-5"
           }
         >
           <div className="flex items-start gap-4">
-            <Skeleton className="size-10 shrink-0 rounded-full" />
+            <Skeleton className="size-12 shrink-0 rounded-full" />
             <div className="min-w-0 flex-1 space-y-2 pt-1">
               <Skeleton className="h-4 w-32" />
               <Skeleton className="h-3.5 w-full" />
               <Skeleton className="h-3.5 w-2/3" />
             </div>
           </div>
-          {index === 2 ? <Skeleton className="mt-3 h-10 w-full rounded-lg @min-[36rem]:ml-14 @min-[36rem]:w-auto" /> : null}
+          {index === 2 ? <Skeleton className="mt-4 h-10 w-full rounded-lg @min-[36rem]:ml-16 @min-[36rem]:w-auto" /> : null}
         </div>
       ))}
     </div>
@@ -80,15 +84,21 @@ function ToolsSkeleton() {
 export function DashboardSkeleton({ layout = defaultSectionLayout("teacherHome") }: { layout?: SectionLayout }) {
   return (
     <PageContainer aria-busy aria-label="Loading Home">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2">
-        <Skeleton className="h-4 w-36" />
-        <Skeleton className="col-start-2 row-start-1 h-8 w-32 rounded-full sm:row-span-2 sm:self-end" />
-        <Skeleton className="col-span-2 h-8 w-64 max-w-full sm:col-span-1" />
-      </div>
+      <GreetingBandFrame as="div">
+        <div className="col-start-1 row-start-1 flex h-8 items-center">
+          <Skeleton className={`h-4 w-36 ${ON_BAND}`} />
+        </div>
+        <Skeleton className={`col-start-2 row-start-1 h-8 w-28 rounded-full ${ON_BAND}`} />
+        {/* Two lines of the heading, sized in em so they follow the display type. */}
+        <div className={GREETING_HEADING}>
+          <Skeleton className={`h-[0.86em] w-[5.5em] max-w-full ${ON_BAND}`} />
+          <Skeleton className={`mt-[0.18em] h-[0.86em] w-[7em] max-w-full ${ON_BAND}`} />
+        </div>
+      </GreetingBandFrame>
 
       {/* The notice */}
-      <div className="mt-6 flex items-center gap-4 rounded-2xl border border-border bg-card p-4 sm:px-5">
-        <Skeleton className="size-10 shrink-0 rounded-full" />
+      <div className="mt-6 flex items-center gap-4 rounded-3xl border border-border bg-card p-4 sm:p-5 sm:pr-6">
+        <Skeleton className="size-12 shrink-0 rounded-2xl" />
         <div className="min-w-0 flex-1 space-y-2">
           <Skeleton className="h-4 w-64 max-w-full" />
           <Skeleton className="h-3.5 w-96 max-w-full" />

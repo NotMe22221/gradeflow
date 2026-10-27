@@ -135,22 +135,25 @@ export function AttentionNotice({
     <section
       aria-labelledby="attention-heading"
       className={cn(
-        "flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:gap-5 sm:px-5",
+        "flex flex-col gap-3 rounded-3xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:gap-5 sm:p-5 sm:pr-6",
         className
       )}
     >
       <div className="flex min-w-0 flex-1 items-start gap-4">
-        <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", tone)}>
-          <Icon className="size-5" filled aria-hidden />
+        <span className={cn("flex size-12 shrink-0 items-center justify-center rounded-2xl", tone)}>
+          <Icon className="size-6" filled aria-hidden />
         </span>
         <div className="min-w-0 flex-1 pt-0.5">
-          <h2 id="attention-heading" className="font-sans text-[1rem] leading-6 font-medium text-balance text-foreground">
+          <h2
+            id="attention-heading"
+            className="font-display text-[1.125rem] leading-6 font-extrabold tracking-[-0.01em] text-balance text-foreground"
+          >
             {headline}
           </h2>
           <p className="mt-0.5 max-w-[75ch] text-[0.875rem] leading-5 text-pretty text-muted-foreground">{detail}</p>
         </div>
       </div>
-      {action ? <div className="flex shrink-0 max-sm:pl-14">{action}</div> : null}
+      {action ? <div className="flex shrink-0 max-sm:pl-16">{action}</div> : null}
     </section>
   );
 }

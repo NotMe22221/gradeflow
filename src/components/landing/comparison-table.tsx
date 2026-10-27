@@ -71,7 +71,7 @@ const pinnedMarkwise =
 /** The Markwise column's tint, opaque so cells scrolling under the pinned column don't show through. */
 const markwiseTint = "bg-[color-mix(in_oklab,var(--color-primary-soft)_30%,var(--color-card))]";
 
-const H3 = "text-[1.375rem] leading-snug font-medium text-balance text-foreground sm:text-[1.5rem]";
+const H3 = "display-title text-foreground";
 
 /**
  * Markwise next to the six tools: heading, the notes switch, the legend, and
@@ -86,7 +86,7 @@ export function ComparisonTable({ className }: { className?: string }) {
           <h3 id="compare-heading" className={H3}>
             Markwise next to six grading tools
           </h3>
-          <p className="mt-3 max-w-[65ch] text-base leading-7 text-pretty text-muted-foreground">
+          <p className="mt-4 max-w-[65ch] text-base leading-7 text-pretty text-muted-foreground">
             Answers come from public pages, mostly the companies&apos; own, and web search results as of {CHECKED_ON}.
             We didn&apos;t test these products. Not stated means we found nothing either way, which is not the same as
             No.
@@ -109,7 +109,7 @@ export function ComparisonTable({ className }: { className?: string }) {
         ))}
       </dl>
 
-      <div className="mt-5 overflow-hidden rounded-xl border border-border bg-card">
+      <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-border bg-card">
         <ComparisonScroll label="Markwise compared with six grading tools">
           <table className="w-full min-w-[55.5rem] table-fixed border-separate border-spacing-0 text-left sm:min-w-[59.5rem] group-has-[#judges-notes:checked]/judges:min-w-[92.25rem] sm:group-has-[#judges-notes:checked]/judges:min-w-[105rem] [&>tbody:last-of-type>tr:last-child>*]:border-b-0">
             <caption className="sr-only">

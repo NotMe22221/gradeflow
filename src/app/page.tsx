@@ -41,8 +41,9 @@ export default async function LandingPage({ searchParams }: { searchParams: Land
   const appHref = user ? (user.role === "TEACHER" ? "/dashboard" : "/student") : null;
   const demoLogin = demoLoginEnabled();
 
+  // overflow-x-clip: a last guard against sideways scrolling from decor; unlike hidden, it keeps the header sticky.
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
+    <div className="flex min-h-dvh flex-col overflow-x-clip bg-background">
       <SiteHeader appHref={appHref} demoLogin={demoLogin} />
       <main id="main" className="flex-1">
         {setupIssue ? (

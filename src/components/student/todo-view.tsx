@@ -6,7 +6,9 @@ import { useSearchParams } from "next/navigation";
 import { ChevronDown, CircleAlert, CircleCheck, ClipboardList, Inbox } from "@/components/icons";
 
 import { AssignmentIcon } from "@/components/classwork/assignment-icon";
+import { PageCornerDecor } from "@/components/decor/student";
 import { EmptyState } from "@/components/empty-state";
+import { PageHeader } from "@/components/page-header";
 import {
   groupTodoItems,
   isTodoTab,
@@ -85,15 +87,18 @@ export function TodoView({ items, classes }: { items: TodoItem[]; classes: { id:
   const selectedClass = classes.find((klass) => klass.id === classId);
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pt-6 pb-10 sm:px-6 sm:pt-8">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
-        <div className="min-w-0">
-          <h1 className="text-[1.625rem] leading-tight font-medium text-foreground sm:text-[1.75rem]">To-do</h1>
-          <p className="mt-1 text-[0.9375rem] text-pretty text-muted-foreground">
-            {selectedClass ? `Your work in ${selectedClass.name}.` : "Your work from every class, soonest due first."}
-          </p>
-        </div>
-        <div className="flex w-full flex-col gap-1.5 sm:w-60 sm:shrink-0">
+    // overflow-y-clip: the title's paint tucks under the app bar instead of showing through it.
+    <div className="mx-auto w-full max-w-3xl overflow-y-clip px-4 pt-6 pb-10 sm:px-6 sm:pt-8">
+      {/* The display title with paint in the page's top right corner; the class filter sits under
+          it, so no field ever sits on the decor. */}
+      <header>
+        <PageHeader
+          title="To-do"
+          description={selectedClass ? `Your work in ${selectedClass.name}.` : "Your work from every class, soonest due first."}
+          decor={<PageCornerDecor tones={["sky", "yellow"]} />}
+          className="mb-5"
+        />
+        <div className="flex w-full flex-col gap-1.5 sm:w-60">
           <label htmlFor={selectId} className="text-[0.8125rem] font-medium text-muted-foreground">
             Class
           </label>
@@ -161,7 +166,7 @@ export function TodoView({ items, classes }: { items: TodoItem[]; classes: { id:
 /** A calm pointer to missing work from the other tabs: a word, an icon, and one way to get there. */
 function MissingNotice({ count, onShow }: { count: number; onShow: () => void }) {
   return (
-    <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-secondary py-2 pr-2 pl-4">
+    <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-secondary py-2 pr-2 pl-4">
       <CircleAlert className="size-5 shrink-0 text-danger-soft-foreground" aria-hidden />
       <p className="min-w-0 flex-1 basis-48 text-[0.875rem] text-pretty text-foreground">
         {count === 1 ? "1 assignment is missing." : `${count} assignments are missing.`}{" "}
@@ -183,7 +188,7 @@ function TabBody({ tab, items, filtered }: { tab: TodoTab; items: TodoItem[]; fi
         icon={copy.icon}
         title={copy.title}
         description={filtered ? `Showing ${filtered} only. ${copy.description}` : copy.description}
-        className="rounded-xl py-14"
+        className="rounded-3xl py-14"
       />
     );
   }
@@ -209,8 +214,8 @@ function TodoGroupSection({ group, tab }: { group: TodoGroup; tab: TodoTab }) {
           onClick={() => setOpen((value) => !value)}
           className="-mx-2 flex min-h-10 w-[calc(100%+1rem)] items-center gap-2 rounded-lg px-2 text-left transition-colors outline-none hover:bg-foreground/[0.04] focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
         >
-          <span className="font-display text-[1rem] font-medium text-foreground">{group.label}</span>
-          <span className="tabular text-[0.8125rem] text-muted-foreground">
+          <span className="font-display text-[1.1875rem] font-extrabold tracking-[-0.015em] text-foreground">{group.label}</span>
+          <span className="tabular text-[0.8125rem] font-medium text-muted-foreground">
             {group.items.length}
             <span className="sr-only"> {group.items.length === 1 ? "assignment" : "assignments"}</span>
           </span>
@@ -226,7 +231,7 @@ function TodoGroupSection({ group, tab }: { group: TodoGroup; tab: TodoTab }) {
       <ul
         id={listId}
         hidden={!open}
-        className="mt-2 divide-y divide-border overflow-hidden rounded-xl border border-border bg-card"
+        className="mt-2 divide-y divide-border overflow-hidden rounded-3xl border border-border bg-card"
       >
         {group.items.map((item) => (
           <li key={item.id}>

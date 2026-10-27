@@ -14,16 +14,16 @@ export function SetupCallout({ issue, place }: { issue: SetupIssue; place: Setup
     <LandingContainer className="pt-6">
       <div
         role="status"
-        className="mx-auto flex max-w-3xl items-start gap-3 rounded-2xl bg-warning-soft px-4 py-3.5 text-sm text-warning-soft-foreground"
+        className="mx-auto flex max-w-3xl items-start gap-3 rounded-3xl bg-warning-soft px-5 py-4 text-sm leading-6 text-warning-soft-foreground"
       >
-        <Database className="mt-0.5 size-4 shrink-0" aria-hidden />
+        <Database className="mt-1 size-4 shrink-0" aria-hidden />
         <div className="min-w-0 space-y-1.5 text-pretty">
           <p>
-            <span className="font-medium text-foreground">{message.title}</span> {message.body}
+            <span className="font-semibold text-foreground">{message.title}</span> {message.body}
           </p>
           {message.command ? (
             <p>
-              <code className="rounded-md bg-card px-1.5 py-0.5 font-mono text-[0.8125rem] text-foreground">
+              <code className="rounded-lg bg-card px-2 py-0.5 font-mono text-[0.8125rem] text-foreground">
                 {message.command}
               </code>
             </p>

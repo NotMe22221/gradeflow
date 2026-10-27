@@ -23,6 +23,8 @@ export function ClassTabBar({
 }) {
   const theme = classTheme({ name });
   return (
+    // Solid, not glass: its tab labels are muted and accent text right on the bar, and a class
+    // banner (a saturated class color) scrolls under it, which would tint glass below 4.5:1.
     <div data-class-tab-bar className="sticky top-16 z-30 border-b border-border bg-card">
       <div aria-hidden className="h-1" style={{ backgroundColor: theme.accent }} />
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-0 px-2 sm:px-4 md:flex-row md:items-center md:gap-4 lg:px-6">
@@ -32,7 +34,7 @@ export function ClassTabBar({
         >
           <ClassAvatar name={name} className="size-7 text-xs" />
           <span className="min-w-0 leading-tight">
-            <span className="block truncate font-display text-[0.9375rem] font-medium text-foreground">{name}</span>
+            <span className="block truncate font-display text-[0.9375rem] font-bold text-foreground">{name}</span>
             {section ? <span className="block truncate text-xs text-muted-foreground">{section}</span> : null}
           </span>
         </Link>

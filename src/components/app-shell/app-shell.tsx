@@ -232,7 +232,7 @@ export function AppShell({
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-1 border-b border-border bg-card px-2 min-[37.5rem]:gap-2 min-[37.5rem]:px-3">
+      <header className="glass-bar sticky top-0 z-40 flex h-16 shrink-0 items-center gap-1 px-2 min-[37.5rem]:gap-2 min-[37.5rem]:px-3">
         <Tooltip
           open={menuTip}
           onOpenChange={(next) => {
@@ -321,7 +321,9 @@ export function AppShell({
         <main
           id="main"
           className={cn(
-            "@container min-w-0 flex-1 scroll-mt-16 outline-none",
+            // Clipped sideways (clip, not hidden: no scroll container, so sticky bars inside still
+            // work), so a page's paint blobs can bleed off its edge without a sideways scroll.
+            "@container min-w-0 flex-1 scroll-mt-16 overflow-x-clip outline-none",
             showBottomNav && "max-[37.5rem]:pb-[calc(5rem+env(safe-area-inset-bottom))]"
           )}
         >

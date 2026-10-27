@@ -18,8 +18,8 @@ export type PrivateComment = {
 export function PrivateComments({ comments, timeZone }: { comments: PrivateComment[]; timeZone?: string }) {
   if (comments.length === 0) return null;
   return (
-    <section aria-labelledby="private-comments-heading" className="rounded-xl border border-border bg-card p-5">
-      <h2 id="private-comments-heading" className="text-[0.9375rem] font-medium text-foreground">
+    <section aria-labelledby="private-comments-heading" className="rounded-3xl border border-border bg-card p-5 sm:p-6">
+      <h2 id="private-comments-heading" className="font-display text-[1.0625rem] font-extrabold tracking-[-0.01em] text-foreground">
         Private comments
       </h2>
       <ul className="mt-4 space-y-5">

@@ -5,16 +5,19 @@ import { cn } from "@/lib/utils";
 
 /**
  * The two ways into the demo: the seeded teacher account (the one filled
- * button) or a seeded student's view (outlined). Each is a form that signs in
- * and redirects, so it works before hydration.
+ * button) or a seeded student's view (frosted glass). Each is a form that signs
+ * in and redirects, so it works before hydration. On a section band, pass
+ * `band`: the glass frosts more, so a dark theme's band can't muddy it.
  */
 export function DemoCtas({
   demoLogin,
   note = "Opens a sample class with made-up students. No sign-up, and no API key needed.",
+  band = false,
   className,
 }: {
   demoLogin: boolean;
   note?: React.ReactNode;
+  band?: boolean;
   className?: string;
 }) {
   if (!demoLogin) {
@@ -32,7 +35,12 @@ export function DemoCtas({
           View the demo
           <ArrowRight aria-hidden />
         </DemoSignInForm>
-        <DemoSignInForm role="student" size="lg" variant="outline" buttonClassName="w-full min-[30rem]:w-auto">
+        <DemoSignInForm
+          role="student"
+          size="lg"
+          variant="outline"
+          buttonClassName={cn("w-full min-[30rem]:w-auto", band && "[--glass-frost:90%]")}
+        >
           See the student view
         </DemoSignInForm>
       </div>

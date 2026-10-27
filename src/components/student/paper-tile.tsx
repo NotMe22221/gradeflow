@@ -25,7 +25,7 @@ export function PaperTile({
         const details = document.getElementById(PAPER_ANCHOR);
         if (details instanceof HTMLDetailsElement) details.open = true;
       }}
-      className="group flex items-stretch overflow-hidden rounded-lg border border-border bg-card transition-shadow outline-none hover:shadow-hover focus-visible:ring-[3px] focus-visible:ring-ring"
+      className="group flex items-stretch overflow-hidden rounded-2xl border border-border bg-card transition-shadow outline-none hover:shadow-hover focus-visible:ring-[3px] focus-visible:ring-ring"
     >
       <span className="flex w-12 shrink-0 items-center justify-center border-r border-border bg-secondary text-primary">
         <FileText className="size-5" aria-hidden />

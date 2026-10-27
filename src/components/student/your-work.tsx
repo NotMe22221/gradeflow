@@ -24,10 +24,10 @@ export function YourWorkCard({
   return (
     <section
       aria-labelledby="your-work-heading"
-      className={cn("rounded-xl border border-border bg-card p-5", className)}
+      className={cn("rounded-3xl border border-border bg-card p-5 sm:p-6", className)}
     >
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 id="your-work-heading" className="text-[1.375rem] leading-7 font-normal text-foreground">
+        <h2 id="your-work-heading" className="font-display text-[1.5rem] leading-7 font-extrabold tracking-[-0.02em] text-foreground">
           Your work
         </h2>
         <p className="shrink-0">
@@ -55,18 +55,18 @@ export function ReturnedGrade({
   timeZone?: string;
 }) {
   return (
-    <div className="rounded-lg bg-secondary px-4 py-3.5">
+    <div className="rounded-2xl bg-secondary px-4 py-4">
       <p className="flex items-center gap-1.5 text-[0.8125rem] font-medium text-muted-foreground">
         <BadgeCheck className="size-4 text-success" aria-hidden />
         Your grade
       </p>
       <div className="mt-1 flex items-baseline gap-2">
         <p className="tabular font-display text-foreground">
-          <span className="text-[2.5rem] leading-none font-medium">{formatPoints(totalScore)}</span>
+          <span className="text-[2.75rem] leading-none font-extrabold tracking-[-0.03em]">{formatPoints(totalScore)}</span>
           <span className="text-xl text-muted-foreground"> / {formatPoints(maxScore)}</span>
           <span className="sr-only"> points</span>
         </p>
-        <span className="tabular ml-auto rounded-full bg-card px-2.5 py-0.5 text-sm font-medium text-foreground">
+        <span className="tabular ml-auto rounded-full bg-card px-3 py-1 text-sm font-semibold text-foreground">
           {formatPercent(totalScore, maxScore)}
         </span>
       </div>
@@ -150,7 +150,7 @@ export function PaperTestNotice({
 }) {
   const teacher = teacherName ?? "Your teacher";
   return (
-    <div className="flex gap-3 rounded-lg bg-secondary px-4 py-3.5">
+    <div className="flex gap-3 rounded-2xl bg-secondary px-4 py-3.5">
       <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-card text-primary">
         <ClipboardList className="size-[18px]" aria-hidden />
       </span>

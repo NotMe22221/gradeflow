@@ -40,7 +40,7 @@ export function PageTabs({ tabs, className, label }: { tabs: PageTab[]; classNam
                 {tab.count}
               </span>
             ) : null}
-            {active ? <span className="absolute inset-x-2 bottom-0 h-[3px] rounded-t-full bg-primary" aria-hidden /> : null}
+            {active ? <span className="absolute inset-x-2 bottom-0 h-1 rounded-t-full bg-primary" aria-hidden /> : null}
           </Link>
         );
       })}

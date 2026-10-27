@@ -1,4 +1,41 @@
-import type { BannerMotif } from "@/lib/ui/class-theme";
+import { Blob, DotGrid, type PopTone } from "@/components/decor/decor";
+import type { BannerMotif, ClassTheme } from "@/lib/ui/class-theme";
+
+/** Two paint colors per class color, picked to pop against it (never the same hue). */
+const BLOB_TONES: Record<ClassTheme["key"], [PopTone, PopTone]> = {
+  blue: ["yellow", "coral"],
+  green: ["yellow", "sky"],
+  purple: ["yellow", "mint"],
+  teal: ["coral", "yellow"],
+  orange: ["sky", "yellow"],
+  pink: ["yellow", "sky"],
+};
+
+/**
+ * The Bold look's paint for a class banner: a big blob bleeding off the top
+ * right corner, a smaller one rising from the bottom edge, and (on the page
+ * banner) a white dot grid. Behind the line art and behind the banner text's
+ * scrim, so the white text always sits on the class color. Decor: hidden in
+ * the Calm look, where the line art carries the banner alone.
+ */
+export function BannerBlobs({ theme, size }: { theme: ClassTheme["key"]; size: "page" | "card" }) {
+  const [main, second] = BLOB_TONES[theme];
+  if (size === "card") {
+    return (
+      <>
+        <Blob shape={4} tone={main} className="-top-14 -right-12 w-36" />
+        <Blob shape={6} tone={second} className="right-28 -bottom-12 w-20" />
+      </>
+    );
+  }
+  return (
+    <>
+      <Blob shape={4} tone={main} className="-top-16 -right-14 w-36 sm:-top-36 sm:-right-24 sm:w-80" />
+      <Blob shape={6} tone={second} className="right-[40%] -bottom-24 hidden w-40 sm:block lg:w-48" />
+      <DotGrid cols={6} rows={3} className="top-6 right-[28%] hidden w-28 fill-white opacity-70 sm:block" />
+    </>
+  );
+}
 
 /**
  * Line-art illustrations for class banners (white on the class color), in the

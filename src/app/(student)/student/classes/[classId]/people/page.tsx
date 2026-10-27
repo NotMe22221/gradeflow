@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { PageCornerDecor } from "@/components/decor/student";
+import { PageHeader } from "@/components/page-header";
 import { StudentPeople } from "@/components/student/class-people";
 import { requireStudentPage } from "@/lib/auth/session";
 
@@ -23,8 +25,9 @@ export default async function StudentPeoplePage({ params }: { params: Params }) 
   const classmates = await loadClassmates(student.id, klass.id);
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
-      <h1 className="sr-only">People in {klass.name}</h1>
+    // overflow-y-clip: the title's paint tucks under the class tab bar instead of showing through it.
+    <div className="mx-auto w-full max-w-3xl overflow-y-clip px-4 py-6 sm:px-6 sm:py-10">
+      <PageHeader title={`People in ${klass.name}`} decor={<PageCornerDecor tones={["coral", "sky"]} />} />
       <StudentPeople teacherName={klass.teacherName} classmates={classmates} />
     </div>
   );
