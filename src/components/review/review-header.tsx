@@ -29,12 +29,14 @@ const ALL = "all";
 
 /** Short labels for the sort trigger, so they fit without clipping. */
 export const SORT_LABELS: Record<QueueSort, string> = {
+  recheck: "Worth rechecking",
   confidence: "Lowest confidence",
   oldest: "Oldest first",
 };
 
 /** Full wording for the sort menu and the grading list headings. */
 export const SORT_DESCRIPTIONS: Record<QueueSort, string> = {
+  recheck: "Worth rechecking first",
   confidence: "Lowest confidence first",
   oldest: "Oldest first",
 };
@@ -190,6 +192,7 @@ export function ReviewHeader({
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent align="end">
+                  <SelectItem value="recheck">{SORT_DESCRIPTIONS.recheck}</SelectItem>
                   <SelectItem value="confidence">{SORT_DESCRIPTIONS.confidence}</SelectItem>
                   <SelectItem value="oldest">{SORT_DESCRIPTIONS.oldest}</SelectItem>
                 </SelectContent>

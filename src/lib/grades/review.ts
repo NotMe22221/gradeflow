@@ -3,12 +3,14 @@ import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
 import { getOwnedAssignment, getOwnedSubmission } from "@/lib/access";
 import { AuthError, requireTeacher } from "@/lib/auth/session";
+import { parseGraderKind } from "@/lib/constants";
 import { db, transaction } from "@/lib/db";
 import { insertAwards } from "@/lib/gamification/award";
 import { xpForPublishedGrade } from "@/lib/gamification/rules";
 import { publishApprovedGrade } from "@/lib/grades/publish";
 import { parsePayload, parseReturnNote, ReviewError } from "@/lib/grades/review-input";
 import { toReviewItem } from "@/lib/review/map";
+import { recheckFor, summarizeOverrides, type ApprovedScoreRow, type OverrideHistory } from "@/lib/review/recheck";
 import type { ReviewItem, ReviewPayload } from "@/lib/review/types";
 import { idSchema } from "@/lib/validation/id";
 
@@ -163,7 +165,60 @@ export async function getReviewQueue(teacherId: string): Promise<ReviewItem[]> {
     },
   });
 
-  return rows.map(toReviewItem);
+  const items = rows.map(toReviewItem);
+  const history = await getOverrideHistory(teacherId, [...new Set(items.map((item) => item.assignment.id))]);
+  return items.map((item) => ({ ...item, recheck: recheckFor(item, history) }));
+}
+
+/**
+ * How often this teacher changed each grader's score on each criterion, over
+ * the papers they already approved in these assignments: the stored AI score
+ * against the stored final score. Read-only, and only from approved papers,
+ * which are the teacher's own decisions. A failure here only drops the
+ * "often changed" reasons; the queue still loads.
+ */
+async function getOverrideHistory(teacherId: string, assignmentIds: string[]): Promise<OverrideHistory> {
+  if (assignmentIds.length === 0) return {};
+  try {
+    const scores = await db.criterionScore.findMany({
+      where: {
+        aiScore: { not: null },
+        finalScore: { not: null },
+        submission: {
+          status: "PUBLISHED",
+          assignmentId: { in: assignmentIds },
+          assignment: { class: { teacherId } },
+          aiGrade: { isNot: null },
+        },
+      },
+      select: {
+        criterionId: true,
+        aiScore: true,
+        finalScore: true,
+        submission: { select: { assignmentId: true, aiGrade: { select: { grader: true } } } },
+      },
+      take: 5000,
+    });
+    const rows: ApprovedScoreRow[] = scores.flatMap((score) =>
+      score.aiScore === null || score.finalScore === null || !score.submission.aiGrade
+        ? []
+        : [
+            {
+              assignmentId: score.submission.assignmentId,
+              grader: parseGraderKind(score.submission.aiGrade.grader),
+              criterionId: score.criterionId,
+              aiScore: score.aiScore,
+              finalScore: score.finalScore,
+            },
+          ]
+    );
+    return summarizeOverrides(rows);
+  } catch (error) {
+    console.error("[markwise] Could not read approved scores for the recheck reasons", {
+      type: error instanceof Error ? error.name : typeof error,
+    });
+    return {};
+  }
 }
 
 /** Title of an assignment this teacher owns, for the filter's empty state. */

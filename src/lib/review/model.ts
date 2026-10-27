@@ -42,13 +42,19 @@ export function flaggedSnippets(item: ReviewItem): string[] {
 const CONFIDENCE_RANK: Record<Confidence, number> = { low: 0, medium: 1, high: 2 };
 
 /**
+ * "recheck": the drafts most worth a careful look first (recheck.ts: the
+ * weight of their reasons), then as "confidence".
  * "confidence": flagged items first, then low, medium, high, then oldest.
  * "oldest": submission time only. Confidence is a sorting signal, nothing more.
  */
 export function sortQueue(items: ReviewItem[], sort: QueueSort): ReviewItem[] {
   const time = (item: ReviewItem) => new Date(item.submittedAt).getTime();
   return [...items].sort((a, b) => {
-    if (sort === "confidence") {
+    if (sort === "recheck") {
+      const byRecheck = (b.recheck?.score ?? 0) - (a.recheck?.score ?? 0);
+      if (byRecheck !== 0) return byRecheck;
+    }
+    if (sort === "confidence" || sort === "recheck") {
       const flagged = Number(!hasFlags(a)) - Number(!hasFlags(b));
       if (flagged !== 0) return flagged;
       // A paper with no AI record at all needs the most attention.

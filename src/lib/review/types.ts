@@ -3,6 +3,7 @@
 
 import type { AssignmentKind, Confidence, GraderKind, SubmissionSource } from "@/lib/constants";
 import type { StoredFlag } from "@/lib/grading/flags";
+import type { Recheck } from "@/lib/review/recheck";
 
 /** A validation flag on the AI suggestion, as stored in AiGrade.flags. */
 export type ReviewFlag = StoredFlag;
@@ -65,6 +66,8 @@ export type ReviewItem = {
   teacherFeedback: string | null;
   /** Set when the student resubmitted after the teacher sent the paper back. */
   previousReturn: PreviousReturn | null;
+  /** Why this draft is worth a careful look (lib/review/recheck.ts), from stored data only. */
+  recheck?: Recheck;
 };
 
 /** The teacher's earlier send-back of a resubmitted paper. */
@@ -105,4 +108,4 @@ export type ApproveResult =
 
 export type SendBackResult = { ok: true } | ActionFailure;
 
-export type QueueSort = "confidence" | "oldest";
+export type QueueSort = "recheck" | "confidence" | "oldest";
