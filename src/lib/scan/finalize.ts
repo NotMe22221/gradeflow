@@ -36,7 +36,7 @@ export function validateScanGrading(
   input: GradingInput,
   legibility: Legibility
 ): ValidatedGrading {
-  const validated = validateGrading(raw, input, findTestEvidenceSpan);
+  const validated = validateGrading(raw, input, findTestEvidenceSpan, { checkRelevance: false });
   const flags: ValidationFlag[] = validated.flags.filter((flag) => flag.code !== "SHORT_PAPER");
   if (legibility !== "clear") {
     flags.unshift({ code: "LOW_LEGIBILITY", message: LOW_LEGIBILITY_MESSAGES[legibility] });

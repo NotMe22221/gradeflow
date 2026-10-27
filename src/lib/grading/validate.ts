@@ -6,7 +6,8 @@
 import { isConfidence, type Confidence } from "@/lib/constants";
 import { formatPoints, pluralize, wordCount } from "@/lib/format";
 import { cleanEvidence, findEvidenceSpan, type EvidenceLocator } from "@/lib/grading/evidence";
-import { detectPromptInjection } from "@/lib/grading/injection";
+import { detectPromptInjection, isGraderDirected } from "@/lib/grading/injection";
+import { quoteRelevance } from "@/lib/grading/relevance";
 import type {
   GradingInput,
   RawGradingResult,
@@ -91,33 +92,73 @@ function validateScore(
   return Math.min(criterion.maxPoints, Math.max(0, rounded)) + 0;
 }
 
+const NO_QUOTE = { evidence: null, evidenceFound: false } as const;
+
+/**
+ * Keep a quote only if it appears in the paper word for word, and store it as
+ * the paper's own text. Anything else is dropped (the teacher sees "No
+ * supporting quote found") and flagged. Ignored when matching:
+ * - whitespace and letter case;
+ * - curly vs straight quote marks and dash style;
+ * - quote marks or an ellipsis around the quote;
+ * - a final period.
+ * A kept quote that may not fit its criterion is flagged as a weak match
+ * (relevance.ts) when `topic` is given.
+ */
 function validateEvidence(
   value: unknown,
   criterion: RubricCriterionInput,
   paper: string,
   flags: ValidationFlag[],
-  locate: EvidenceLocator
+  locate: EvidenceLocator,
+  topic: string | null
 ): { evidence: string | null; evidenceFound: boolean } {
-  const cleaned = capQuote(cleanEvidence(asString(value)), MAX_EVIDENCE_CHARS);
-  if (!cleaned) {
+  const title = quotedTitle(criterion.title);
+  const claimed = capQuote(cleanEvidence(asString(value)), MAX_EVIDENCE_CHARS);
+  if (!claimed) {
     flags.push({
       code: "EVIDENCE_NOT_FOUND",
       criterionId: criterion.id,
-      message: `The AI did not quote any evidence for "${quotedTitle(criterion.title)}".`,
+      message: `No supporting quote found for "${title}": the AI did not quote the paper.`,
     });
-    return { evidence: null, evidenceFound: false };
+    return NO_QUOTE;
   }
-  const evidenceFound = locate(paper, cleaned) !== null;
-  if (!evidenceFound) {
-    // Keep the text so the teacher can see what was claimed.
+  const span = locate(paper, claimed);
+  if (!span) {
     flags.push({
       code: "EVIDENCE_NOT_FOUND",
       criterionId: criterion.id,
-      message: `The quoted evidence for "${quotedTitle(criterion.title)}" does not appear in the paper.`,
+      message: `No supporting quote found for "${title}": the AI's quote ("${shortQuote(claimed, 60)}") is not in the paper word for word, so it was dropped.`,
+    });
+    return NO_QUOTE;
+  }
+  const evidence = paper.slice(span.start, span.end);
+  if (isGraderDirected(evidence)) {
+    // Text addressed to the grader is never evidence for anything.
+    flags.push({
+      code: "EVIDENCE_NOT_FOUND",
+      criterionId: criterion.id,
+      message: `No supporting quote found for "${title}": the AI quoted text addressed to the grader, so it was dropped.`,
+    });
+    return NO_QUOTE;
+  }
+  if (topic !== null && !quoteRelevance(evidence, criterion, topic).relevant) {
+    flags.push({
+      code: "WEAK_EVIDENCE",
+      criterionId: criterion.id,
+      message: `The quote for "${title}" may not support this criterion: it shares no key words or cues with it. Check it against the paper.`,
     });
   }
-  return { evidence: cleaned, evidenceFound };
+  return { evidence, evidenceFound: true };
 }
+
+export type ValidateOptions = {
+  /**
+   * Flag quotes that may not fit their criterion (relevance.ts). On by
+   * default; off for a test, whose quotes are short answers.
+   */
+  checkRelevance?: boolean;
+};
 
 /**
  * Validate raw grader output against the rubric and the paper. `locate`
@@ -127,8 +168,10 @@ function validateEvidence(
 export function validateGrading(
   raw: RawGradingResult,
   input: GradingInput,
-  locate: EvidenceLocator = findEvidenceSpan
+  locate: EvidenceLocator = findEvidenceSpan,
+  { checkRelevance = true }: ValidateOptions = {}
 ): ValidatedGrading {
+  const topic = checkRelevance ? `${input.assignmentTitle} ${input.instructions}` : null;
   const paperFlags: ValidationFlag[] = [];
   const criterionFlags: ValidationFlag[] = [];
   const trailingFlags: ValidationFlag[] = [];
@@ -192,7 +235,14 @@ export function validateGrading(
     }
     const aiScore = validateScore(result.score, criterion, criterionFlags);
     const justification = capText(asString(result.justification), MAX_JUSTIFICATION_CHARS);
-    const { evidence, evidenceFound } = validateEvidence(result.evidence, criterion, input.paper, criterionFlags, locate);
+    const { evidence, evidenceFound } = validateEvidence(
+      result.evidence,
+      criterion,
+      input.paper,
+      criterionFlags,
+      locate,
+      topic
+    );
     return { criterionId: criterion.id, aiScore, justification, evidence, evidenceFound };
   });
 

@@ -171,10 +171,15 @@ src/lib/
     prompt.ts         system prompt + paper wrapping (pure)
     injection.ts      prompt-injection heuristics for flagging (pure)
     evidence.ts       locate a quote in the paper (pure)
+    relevance.ts      does a quote fit its criterion? cheap local check (pure)
+    dimensions.ts     which kind of quality a criterion measures (pure)
+    words.ts          stopwords and stemming shared by the checks (pure)
     flags.ts          AiGrade.flags codec + teacher-facing wording (pure)
     validate.ts       validateGrading(raw, input) (pure)
     mock.ts           deterministic demo grader (pure)
-    claude.ts         Claude API grader (server-only)
+    claude-grader.ts  Claude API grader, client/guard/cache injected (pure)
+    claude.ts         createClaudeGrader(): the real client, caps, cache (server-only)
+    cache.ts          first-pass cache key (paper, rubric, model, prompt) (pure)
     index.ts          getGrader()
     run.ts            runAiFirstPass(teacherId, submissionId)
   grades/
@@ -208,9 +213,23 @@ src/components/
   highlighted in the paper. Detection is a heuristic; the teacher approval
   gate is the security boundary.
 - **Output validation** (`validate.ts`): every score must be a finite number in
-  `[0, maxPoints]`, every rubric criterion must be present, and quoted evidence
-  must appear in the paper (whitespace/quote-normalized match). Failures become
+  `[0, maxPoints]`, and every rubric criterion must be present. Failures become
   flags; an invalid score is stored as `null` so the teacher must enter it.
+- **Quotes** (`validate.ts`, `relevance.ts`). A quote must appear in the paper
+  word for word. Only whitespace, case, quote-mark and dash style, and a final
+  period are ignored. A quote that passes is stored as the paper's own text.
+  A quote is dropped and flagged when it is:
+  - missing or paraphrased;
+  - text addressed to the grader.
+
+  The review card then says "No supporting quote found". A kept quote that
+  shares no key word with its criterion and carries none of its cues (a
+  transition for organization, a figure, source or quotation for evidence,
+  "although" for a counterargument...) is flagged `WEAK_EVIDENCE`. The card
+  marks it as a weak match. Criteria about grammar, style or conventions
+  accept any sentence. A holistic criterion isn't judged. The check makes no
+  AI call, and it never changes a score. The demo grader cites only quotes
+  that pass it, or none.
 - **Roles**: enforced server-side in every page, action, and route. Only a
   teacher who owns the class can grade, approve, publish, send back, or export.
 - **Sessions**: HMAC-signed cookie (httpOnly, sameSite=lax; Secure except plain

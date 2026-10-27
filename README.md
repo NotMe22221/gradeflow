@@ -285,7 +285,7 @@ The click path for judges. Times are a guide.
 | Goal planner | gpt-4o-mini only interprets the goal text (which class, what grade). **The scores needed are always calculated in code** from approved grades. Without a key, a regex parser reads the goal and the planner is labelled "Demo planner". |
 | Class heatmap, student profiles | **Real.** Computed from approved grades. No AI. |
 | Study streaks and XP | **Real.** XP comes from the student's own actions (submitting, revising, logging study sessions, setting goals) plus a score-scaled bonus when the teacher approves and returns a grade. Only the student's own actions count toward a streak. XP is engagement only and never changes a grade. |
-| Output validation and flags | **Real.** Scores outside 0 to max are discarded. Quotes must appear in the paper or transcription. Text addressed to the grader is flagged. |
+| Output validation and flags | **Real.** Scores outside 0 to max are discarded. A quote must appear in the paper or transcription word for word, or it is dropped and the card says "No supporting quote found". A free local check flags a quote that may not fit its criterion as a "Weak match" (a heuristic, never a score change). Text addressed to the grader is flagged and never kept as evidence. |
 | To review (the review queue), edits, approval, send-back | **Real.** Enforced on the server. |
 | Gradebook and CSV export | **Real.** Reads only teacher-approved grades. |
 | LMS integration (Canvas, Google Classroom) | **Not built.** CSV export is the stand-in; see *Extending*. |

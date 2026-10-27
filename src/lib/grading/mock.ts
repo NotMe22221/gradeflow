@@ -29,6 +29,7 @@ import type {
   RubricCriterionInput,
 } from "@/lib/grading/types";
 import { classifyCriterion, type Dimension } from "@/lib/grading/dimensions";
+import { hasSourceQuotation, quoteRelevance } from "@/lib/grading/relevance";
 import { contentStems, RUBRIC_FILLER, tokenize } from "@/lib/grading/words";
 
 export { classifyCriterion } from "@/lib/grading/dimensions";
@@ -1249,7 +1250,10 @@ type Candidate = {
 
 const CLAUSE_BREAK = /[,;:](?=\s)|\s[—–-]\s/g;
 
-/** Clause windows of a long sentence that fit the 8-30 word quote limit. */
+/**
+ * Clause windows of a long sentence that fit the 8-30 word quote limit. A
+ * sentence with no such clause gives none: a quote never stops mid-clause.
+ */
 function clauseWindows(sentence: Sentence): string[] {
   const text = sentence.text;
   const cuts = [0];
@@ -1263,11 +1267,6 @@ function clauseWindows(sentence: Sentence): string[] {
       if (words > MAX_EVIDENCE_WORDS) break;
       if (words >= MIN_EVIDENCE_WORDS) windows.push(piece);
     }
-  }
-  if (windows.length === 0) {
-    // No clause fits: take the first 30 words, exactly as written.
-    const match = text.match(new RegExp(`^(?:\\S+\\s+){${MAX_EVIDENCE_WORDS - 1}}\\S+`));
-    if (match) windows.push(match[0].replace(/[,;:—–-]+$/, ""));
   }
   return windows;
 }
@@ -1283,7 +1282,7 @@ function describeCandidate(text: string, sentence: Sentence, partial: boolean, s
     claims: countPhrases(lower, CLAIM_MARKERS, 1).total,
     evidenceMarkers: countPhrases(lower, EVIDENCE_MARKERS, 2).total,
     numbers: text.match(/\b\d+(?:[.,]\d+)*%?/g)?.length ?? 0,
-    hasQuotation: /["“][^"“”]{3,}["”]/.test(text),
+    hasQuotation: hasSourceQuotation(text),
     hasConclusionMarker: CONCLUSION_MARKERS.some((marker) => countPhrase(lower, marker) > 0),
     reasoning: countPhrases(lower, REASONING_MARKERS, 2).total,
     counter: countPhrases(lower, COUNTER_MARKERS, 2).total,
@@ -1396,9 +1395,14 @@ function candidateScore(
   return score;
 }
 
-/** The best-matching verifiable quote for a criterion, or "" if the paper has none. */
+/**
+ * The best-matching verifiable quote for a criterion, or "" when no sentence
+ * passes the relevance check (relevance.ts): the review then says "No
+ * supporting quote found" rather than citing something unrelated.
+ */
 function pickEvidence(
-  paper: string,
+  input: GradingInput,
+  criterion: RubricCriterionInput,
   dimension: Dimension,
   candidates: Candidate[],
   band: Band,
@@ -1406,6 +1410,7 @@ function pickEvidence(
   topicStems: Set<string>,
   used: Set<string>
 ): string {
+  const topic = `${input.assignmentTitle} ${input.instructions}`;
   const ranked = candidates
     .map((candidate, position) => {
       let score = candidateScore(dimension, candidate, band, criterionStems, topicStems);
@@ -1415,7 +1420,8 @@ function pickEvidence(
     })
     .sort((a, b) => b.score - a.score || a.position - b.position);
   for (const { candidate } of ranked) {
-    if (findEvidenceSpan(paper, candidate.text) === null) continue;
+    if (findEvidenceSpan(input.paper, candidate.text) === null) continue;
+    if (!quoteRelevance(candidate.text, criterion, topic).relevant) continue;
     used.add(candidate.text);
     return candidate.text;
   }
@@ -1505,7 +1511,7 @@ export function gradeWithDemoHeuristics(input: GradingInput): RawGradingResult {
       criterionId: criterion.id,
       score,
       justification,
-      evidence: pickEvidence(input.paper, dimension, candidates, band, criterionStems, f.topicStems, usedEvidence),
+      evidence: pickEvidence(input, criterion, dimension, candidates, band, criterionStems, f.topicStems, usedEvidence),
     };
   });
 

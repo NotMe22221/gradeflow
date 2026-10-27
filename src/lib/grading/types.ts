@@ -43,7 +43,8 @@ export interface Grader {
 
 export type ValidationFlagCode =
   | "SCORE_OUT_OF_RANGE" // score < 0, > maxPoints, or not a finite number
-  | "EVIDENCE_NOT_FOUND" // quoted evidence does not appear in the paper
+  | "EVIDENCE_NOT_FOUND" // no usable quote: none given, not in the paper word for word, or grader-directed text
+  | "WEAK_EVIDENCE" // the quote is in the paper but may not support its criterion (relevance.ts)
   | "MISSING_CRITERION" // grader skipped a rubric criterion
   | "UNKNOWN_CRITERION" // grader returned a criterion id not in the rubric
   | "POSSIBLE_PROMPT_INJECTION" // paper contains text addressed to the grader
@@ -62,9 +63,12 @@ export type ValidatedCriterion = {
   /** null when the AI score failed validation: the teacher must score it. */
   aiScore: number | null;
   justification: string;
-  /** null when no usable evidence was returned. */
+  /**
+   * The quote exactly as it appears in the paper, or null when there is no
+   * supporting quote (none given, not found word for word, or grader-directed).
+   */
   evidence: string | null;
-  /** true only if `evidence` was verified to appear in the paper. */
+  /** true exactly when `evidence` is a verified quote from the paper. */
   evidenceFound: boolean;
 };
 

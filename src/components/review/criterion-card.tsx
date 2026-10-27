@@ -9,6 +9,7 @@ import {
   FlaskConical,
   RotateCcw,
   PenLine,
+  TriangleAlert,
 } from "@/components/icons";
 
 import { MARK_CHIP } from "@/components/review/paper-sheet";
@@ -48,6 +49,7 @@ export function CriterionCard({
   kind = "ESSAY",
   scanned = false,
   evidenceVerified,
+  weakEvidence = false,
   onScoreChange,
   onCommentChange,
   onResetScore,
@@ -64,6 +66,8 @@ export function CriterionCard({
   scanned?: boolean;
   /** The quote was verified and located in the paper. */
   evidenceVerified: boolean;
+  /** The quote is in the paper but may not support this criterion (a WEAK_EVIDENCE flag). */
+  weakEvidence?: boolean;
   onScoreChange: (raw: string) => void;
   onCommentChange: (comment: string) => void;
   onResetScore: () => void;
@@ -208,6 +212,7 @@ export function CriterionCard({
           number={number}
           evidence={criterion.aiEvidence}
           verified={evidenceVerified}
+          weak={weakEvidence}
           paperNoun={scanned ? "transcription" : "paper"}
           unit={test ? "question" : "criterion"}
           onShow={onShowEvidence}
@@ -261,13 +266,15 @@ export function CriterionCard({
 
 /**
  * The quote the grader cited. A verified quote links to its highlight in the
- * paper (the number chip matches the paper's marks); one that was not found
- * in the paper says so in words and is not clickable.
+ * paper (the number chip matches the paper's marks), and says so when it may
+ * not fit the criterion. A quote that isn't in the paper word for word is
+ * never shown: the card says no supporting quote was found.
  */
 function EvidenceQuote({
   number,
   evidence,
   verified,
+  weak,
   paperNoun,
   unit,
   onShow,
@@ -275,66 +282,68 @@ function EvidenceQuote({
   number: number;
   evidence: string | null;
   verified: boolean;
+  weak: boolean;
   paperNoun: "paper" | "transcription";
   unit: "question" | "criterion";
   onShow: () => void;
 }) {
-  if (!evidence) {
-    return <p className="text-[0.8125rem] text-muted-foreground">No quoted evidence for this {unit}.</p>;
+  if (!evidence || !verified) {
+    return (
+      <div className="rounded-xl border border-dashed border-border px-4 py-3">
+        <p className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+          <CircleAlert className="size-4 text-muted-foreground" aria-hidden />
+          No supporting quote found
+        </p>
+        <p className="mt-1 text-[0.8125rem] leading-relaxed text-muted-foreground">
+          Check this {unit} against the {paperNoun} yourself.
+        </p>
+      </div>
+    );
   }
 
   // A quote cut off mid-sentence gets a visual ellipsis. The stored quote is unchanged.
   const ellipsis = quoteIsClipped(evidence) ? "…" : "";
 
-  if (verified) {
-    return (
-      <button
-        type="button"
-        onClick={onShow}
-        className="group block w-full rounded-xl bg-secondary px-4 py-3 text-left transition-colors outline-none hover:bg-primary-soft/50 focus-visible:ring-[3px] focus-visible:ring-ring"
-      >
-        <span className="mb-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-secondary-foreground">
-            <span
-              aria-hidden
-              className={cn(
-                "tabular inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[0.625rem] leading-none font-semibold",
-                MARK_CHIP,
-                // The chip matches the light highlight on the paper sheet in both themes.
-                "dark:bg-[color-mix(in_oklab,var(--warning)_78%,var(--paper))]"
-              )}
-            >
-              {number}
-            </span>
-            <CircleCheck className="size-4 text-success" aria-hidden />
-            Found in {paperNoun}
-          </span>
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
-            Show in {paperNoun}
-            <ArrowRight
-              className="size-4 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
-              aria-hidden
-            />
-          </span>
-        </span>
-        <q className="block text-[0.875rem] leading-relaxed break-words text-foreground italic">
-          {evidence}
-          {ellipsis}
-        </q>
-      </button>
-    );
-  }
-
   return (
-    <div className="rounded-xl border border-dashed border-danger/50 px-4 py-3">
-      <span className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-medium text-danger-soft-foreground">
-        <CircleAlert className="size-4" aria-hidden />
-        Not found in {paperNoun}
+    <button
+      type="button"
+      onClick={onShow}
+      className="group block w-full rounded-xl bg-secondary px-4 py-3 text-left transition-colors outline-none hover:bg-primary-soft/50 focus-visible:ring-[3px] focus-visible:ring-ring"
+    >
+      <span className="mb-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-secondary-foreground">
+          <span
+            aria-hidden
+            className={cn(
+              "tabular inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[0.625rem] leading-none font-semibold",
+              MARK_CHIP,
+              // The chip matches the light highlight on the paper sheet in both themes.
+              "dark:bg-[color-mix(in_oklab,var(--warning)_78%,var(--paper))]"
+            )}
+          >
+            {number}
+          </span>
+          <CircleCheck className="size-4 text-success" aria-hidden />
+          Found in {paperNoun}
+          {weak ? (
+            <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 text-warning-soft-foreground">
+              <TriangleAlert className="size-3.5" aria-hidden />
+              Weak match<span className="sr-only">: this quote may not support the {unit}</span>
+            </span>
+          ) : null}
+        </span>
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+          Show in {paperNoun}
+          <ArrowRight
+            className="size-4 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
+            aria-hidden
+          />
+        </span>
       </span>
-      <q className="block text-[0.875rem] leading-relaxed break-words text-muted-foreground italic">
+      <q className="block text-[0.875rem] leading-relaxed break-words text-foreground italic">
         {evidence}
         {ellipsis}
       </q>
-    </div>
+    </button>
   );
 }

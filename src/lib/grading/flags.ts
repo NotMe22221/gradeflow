@@ -70,7 +70,12 @@ export function describeFlag(flag: StoredFlag, criteria: FlagCriterion[]): FlagD
     case "EVIDENCE_NOT_FOUND":
       return {
         criterionLabel,
-        message: "The quoted evidence does not appear in the paper. Check the score against the text.",
+        message: "No supporting quote found in the paper. Check the score against the text.",
+      };
+    case "WEAK_EVIDENCE":
+      return {
+        criterionLabel,
+        message: "The quote may not support this criterion. Check it against the paper.",
       };
     case "MISSING_CRITERION":
       return { criterionLabel, message: "The AI skipped this criterion. Enter a score." };

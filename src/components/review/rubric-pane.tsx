@@ -58,6 +58,10 @@ export function RubricPane({
   const noteHeadingId = useId();
   const fallback = createDraft(item);
   const ai = item.ai;
+  // Quotes found in the paper that may not support their criterion (lib/grading/relevance.ts).
+  const weakEvidence = new Set(
+    (ai?.flags ?? []).flatMap((flag) => (flag.code === "WEAK_EVIDENCE" && flag.criterionId ? [flag.criterionId] : []))
+  );
   const summaryInNote = Boolean(ai?.overallComment && draft.feedback.includes(ai.overallComment));
   // Demo output is never called "AI" so nobody mistakes it for a real model.
   const demo = ai?.grader === "demo";
@@ -167,6 +171,7 @@ export function RubricPane({
                     kind={kind}
                     scanned={scanned}
                     evidenceVerified={layout.markForCriterion[criterion.id] !== undefined}
+                    weakEvidence={weakEvidence.has(criterion.id)}
                     onScoreChange={(raw) => updateCriterion(criterion.id, { raw })}
                     onCommentChange={(comment) => updateCriterion(criterion.id, { comment })}
                     onResetScore={() => updateCriterion(criterion.id, { raw: scoreToInput(criterion.aiScore) })}
