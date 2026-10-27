@@ -1,7 +1,45 @@
 import "server-only";
 
+import type { Prisma } from "@/generated/prisma/client";
 import { transaction, db } from "@/lib/db";
-import { HOUR_MS, startOfUtcDay, type UsageStore } from "@/lib/ai/usage";
+import { HOUR_MS, startOfUtcDay, type UsageSnapshot, type UsageStore, type UsageSubject } from "@/lib/ai/usage";
+
+/** The subject's live calls in the last hour and the site's today, from the AiCall ledger. */
+async function readSnapshot(
+  client: Prisma.TransactionClient,
+  subject: UsageSubject,
+  now: Date
+): Promise<UsageSnapshot> {
+  const hourAgo = new Date(now.getTime() - HOUR_MS);
+  const session = await client.aiCall.aggregate({
+    where: { sessionKey: subject.sessionKey, createdAt: { gt: hourAgo } },
+    _count: { _all: true },
+    _min: { createdAt: true },
+  });
+  const ip = await client.aiCall.aggregate({
+    where: { ipKey: subject.ipKey, createdAt: { gt: hourAgo } },
+    _count: { _all: true },
+    _min: { createdAt: true },
+  });
+  const day = await client.aiCall.aggregate({
+    where: { createdAt: { gte: startOfUtcDay(now) } },
+    _count: { _all: true },
+    _sum: { costMicroUsd: true },
+  });
+  return {
+    sessionCalls: session._count._all,
+    sessionOldest: session._min.createdAt,
+    ipCalls: ip._count._all,
+    ipOldest: ip._min.createdAt,
+    dayCalls: day._count._all,
+    daySpendMicroUsd: day._sum.costMicroUsd ?? 0,
+  };
+}
+
+/** The subject's usage right now, for showing how many calls are left (a plain read, no reservation). */
+export function readUsageSnapshot(subject: UsageSubject, now = new Date()): Promise<UsageSnapshot> {
+  return readSnapshot(db, subject, now);
+}
 
 /**
  * The usage ledger in Postgres (the AiCall table). Shared by every server
@@ -13,33 +51,8 @@ import { HOUR_MS, startOfUtcDay, type UsageStore } from "@/lib/ai/usage";
  */
 export const databaseUsageStore: UsageStore = {
   async reserve(subject, call, now, decide) {
-    const hourAgo = new Date(now.getTime() - HOUR_MS);
-    const dayStart = startOfUtcDay(now);
     return transaction(async (tx) => {
-      const session = await tx.aiCall.aggregate({
-        where: { sessionKey: subject.sessionKey, createdAt: { gt: hourAgo } },
-        _count: { _all: true },
-        _min: { createdAt: true },
-      });
-      const ip = await tx.aiCall.aggregate({
-        where: { ipKey: subject.ipKey, createdAt: { gt: hourAgo } },
-        _count: { _all: true },
-        _min: { createdAt: true },
-      });
-      const day = await tx.aiCall.aggregate({
-        where: { createdAt: { gte: dayStart } },
-        _count: { _all: true },
-        _sum: { costMicroUsd: true },
-      });
-
-      const decision = decide({
-        sessionCalls: session._count._all,
-        sessionOldest: session._min.createdAt,
-        ipCalls: ip._count._all,
-        ipOldest: ip._min.createdAt,
-        dayCalls: day._count._all,
-        daySpendMicroUsd: day._sum.costMicroUsd ?? 0,
-      });
+      const decision = decide(await readSnapshot(tx, subject, now));
       if (!decision.ok) return decision;
 
       const row = await tx.aiCall.create({

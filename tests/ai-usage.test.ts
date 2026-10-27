@@ -602,6 +602,7 @@ describe("live AI call sites", () => {
       ["answer-key"],
       ["conference-brief"],
       ["goal-planner"],
+      ["try"],
     ];
     for (const route of routes) {
       const source = readFileSync(join(ROOT, "src", "app", "api", ...route, "route.ts"), "utf8");

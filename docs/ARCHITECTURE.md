@@ -45,6 +45,21 @@ grades. AI drafts the first pass, and a teacher always makes the final call.
 - `@anthropic-ai/sdk` for the optional Claude grader (default model
   `claude-haiku-5-5`). A local deterministic "demo grader" runs when
   `ANTHROPIC_API_KEY` is not set or `AI_KILL_SWITCH` is on.
+- Try-it sandbox (`/try`, `POST /api/try`, `src/lib/try/`). A public page
+  where a visitor grades a pasted paper (at most 8,000 characters) against a
+  built-in rubric template.
+  - Each browser gets a random `mw_try` cookie: httpOnly, 24 hours.
+  - Its runs live only in `TryItRun`, keyed by an HMAC of that cookie and
+    linked to nothing.
+  - Rows past `expiresAt` are never shown, and they are deleted on the next
+    save.
+  - A live call goes through the usage guard under the sandbox's own session
+    key, with feature `try_it` and no shared cache. The same paper and rubric
+    again in the same sandbox shows the saved run.
+  - Each sandbox can save 30 new runs an hour, and each network 120, in demo
+    mode too. Both caps are checked before grading.
+  - The route takes JSON only.
+  - The sandbox never reads or writes classes, submissions or grades.
 - Evaluation (`eval/`, `scripts/eval/run-eval.ts`, `src/lib/eval/`). The
   harness grades a fixed 30-essay ELLIPSE sample with the app's grader and
   validation, scores agreement with the human raters (pure `metrics.ts`), and

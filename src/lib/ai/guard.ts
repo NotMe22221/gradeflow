@@ -20,10 +20,10 @@ import { usageSubject } from "@/lib/auth/session";
  * ledger, and the caller from the session cookie and client IP. Every paid
  * provider call in the app goes through it.
  */
-export function requestUsageGuard(): UsageGuard {
+export function requestUsageGuard(options: { sessionToken?: string } = {}): UsageGuard {
   return createUsageGuard({
     store: databaseUsageStore,
-    subject: usageSubject,
+    subject: () => usageSubject(options),
     limits: readUsageLimits(),
     killSwitch: aiKillSwitchOn(),
   });

@@ -196,7 +196,14 @@ export function Judges({ demoLogin }: { demoLogin: boolean }) {
               <div className="mt-8 flex flex-col gap-x-8 gap-y-5 border-t border-border pt-6 lg:flex-row lg:items-center">
                 <DemoCtas demoLogin={demoLogin} note={null} />
                 <p className="max-w-[48ch] text-[0.9375rem] leading-6 text-pretty text-muted-foreground">
-                  More to try, like Insights and conference briefs, is in the{" "}
+                  To grade a paper of your own, use the{" "}
+                  <Link
+                    href="/try"
+                    className="rounded-sm text-primary underline underline-offset-4 outline-none hover:decoration-2 focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    try-it sandbox
+                  </Link>
+                  . More to try, like Insights and conference briefs, is in the{" "}
                   <ExternalAnchor href={DEMO_SCRIPT_URL}>demo script on GitHub</ExternalAnchor>. How close the scores
                   are to a human&apos;s, on a small public set:{" "}
                   <Link

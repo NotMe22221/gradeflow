@@ -297,3 +297,31 @@ model AiGradeCache {
   result     String
   createdAt  DateTime @default(now())
 }
+
+// The judges' try-it sandbox (/try). One graded paper per row, visible only
+// to the browser that made it: sessionKey is an HMAC of that browser's
+// sandbox cookie. Rows are deleted after expiresAt. A sandbox row is never
+// linked to a class, student, submission or grade, so nothing here can reach
+// the demo data or a student.
+model TryItRun {
+  id         String   @id @default(cuid())
+  sessionKey String
+  // HMAC of the client IP, for the per-network cap on sandbox runs.
+  ipKey      String   @default("")
+  // A rubric template id (src/lib/demo/templates.ts).
+  templateId String
+  paperHash  String
+  // What the visitor pasted. Untrusted text, kept only until expiresAt.
+  paper      String
+  // "claude" | "demo"
+  grader     String
+  model      String?
+  // JSON of the validated first pass (ValidatedGrading).
+  result     String
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+
+  @@index([sessionKey, createdAt])
+  @@index([ipKey, createdAt])
+  @@index([expiresAt])
+}

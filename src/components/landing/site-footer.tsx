@@ -24,6 +24,7 @@ export function SiteFooter({ sectionBase = "" }: { sectionBase?: string }) {
             {[
               ...SECTION_LINKS.map((link) => ({ ...link, href: `${sectionBase}${link.href}` })),
               { href: `${sectionBase}#accessibility`, label: "Accessibility" },
+              { href: "/try", label: "Try it on a paper" },
               { href: "/evidence", label: "Evidence" },
             ].map((link) => (
               <li key={link.href}>

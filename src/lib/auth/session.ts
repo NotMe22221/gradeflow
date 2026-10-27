@@ -144,16 +144,32 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
  * Who is making a live AI call, for the usage caps (lib/ai/guard.ts): keyed
  * hashes of this browser's session cookie and of the client IP, plus the
  * signed-in user id. Every sign-in gets its own cookie, so this tells apart
- * visitors who share the demo account. Raw values never leave this module.
+ * visitors who share the demo account. `sessionToken` stands in for the
+ * sign-in cookie where there is none (the try-it sandbox's own cookie). Raw
+ * values never leave this module.
  */
-export async function usageSubject(): Promise<{ sessionKey: string; ipKey: string; userId: string | null }> {
-  const token = (await cookies()).get(COOKIE_NAME)?.value;
+export async function usageSubject({ sessionToken }: { sessionToken?: string } = {}): Promise<{
+  sessionKey: string;
+  ipKey: string;
+  userId: string | null;
+}> {
+  const signIn = (await cookies()).get(COOKIE_NAME)?.value;
   const key = secret();
   return {
-    sessionKey: usageKey(key, "session", token ?? "no-session"),
+    sessionKey: usageKey(key, "session", sessionToken ?? signIn ?? "no-session"),
     ipKey: usageKey(key, "ip", clientIpFrom(await headers())),
-    userId: decode(token),
+    userId: decode(signIn),
   };
+}
+
+/** A keyed hash of a cookie value, for a table that must not store the cookie itself. */
+export function cookieKey(value: string): string {
+  return usageKey(secret(), "session", value);
+}
+
+/** Whether a cookie set now should be Secure (same rules as the session cookie). */
+export function secureCookie(): Promise<boolean> {
+  return shouldUseSecureCookie();
 }
 
 export class AuthError extends Error {

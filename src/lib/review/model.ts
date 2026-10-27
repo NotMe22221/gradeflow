@@ -364,7 +364,7 @@ function findSnippetRanges(content: string, snippet: string): Range[] {
  */
 export function layoutEvidence(
   content: string,
-  criteria: ReviewCriterion[],
+  criteria: Pick<ReviewCriterion, "id" | "title" | "aiEvidence" | "evidenceFound">[],
   flagged: string[] = []
 ): EvidenceLayout {
   const spans: { start: number; end: number; ref: EvidenceRef }[] = [];

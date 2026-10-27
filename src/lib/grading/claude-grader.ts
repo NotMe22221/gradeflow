@@ -11,7 +11,7 @@ import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 
 import { worstCaseCostMicroUsd } from "@/lib/ai/pricing";
-import { AiLimitError, type UsageGuard } from "@/lib/ai/usage";
+import { AiLimitError, type AiFeature, type UsageGuard } from "@/lib/ai/usage";
 import {
   gradeCacheKey,
   paperHash,
@@ -159,6 +159,8 @@ export type ClaudeGraderDeps = {
   guard: UsageGuard;
   /** Saved first passes; null to always call the API. */
   cache: GradeCacheStore | null;
+  /** What the call is for, in the usage ledger (default "essay"). */
+  feature?: AiFeature;
 };
 
 export class ClaudeGrader implements Grader {
@@ -208,7 +210,7 @@ export class ClaudeGrader implements Grader {
       const response = await this.deps.guard.run(
         {
           provider: "anthropic",
-          feature: "essay",
+          feature: this.deps.feature ?? "essay",
           model: this.deps.model,
           reserveMicroUsd: worstCaseCostMicroUsd(this.deps.model, {
             textChars: request.system.length + request.messages[0].content.length,

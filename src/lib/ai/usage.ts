@@ -13,7 +13,7 @@ import { costMicroUsd, formatUsd, type TokenUsage } from "@/lib/ai/pricing";
 
 export type AiProvider = "anthropic" | "openai";
 /** Which product feature made the call, for the ledger. */
-export type AiFeature = "essay" | "scan" | "answer_key" | "brief" | "goal";
+export type AiFeature = "essay" | "scan" | "answer_key" | "brief" | "goal" | "try_it";
 
 export type UsageLimits = {
   /** Live calls one browser session may make in any rolling hour. */
@@ -128,6 +128,22 @@ export function decideReservation(
     return { ok: false, reason: "session", retryAfterSeconds: secondsUntilWindowFrees(snapshot.sessionOldest, now) };
   }
   return { ok: true };
+}
+
+/**
+ * How many more live calls this subject can make right now: the tightest of
+ * its session, IP and site-wide daily caps. (The spend cap depends on each
+ * call's size, so it isn't counted here.)
+ */
+export function remainingCalls(snapshot: UsageSnapshot, limits: UsageLimits): number {
+  return Math.max(
+    0,
+    Math.min(
+      limits.perSessionPerHour - snapshot.sessionCalls,
+      limits.perIpPerHour - snapshot.ipCalls,
+      limits.perDay - snapshot.dayCalls
+    )
+  );
 }
 
 export function formatWait(seconds: number): string {
