@@ -14,6 +14,8 @@ const BAR_HEIGHTS = ["h-[0.4375em]", "h-[0.6875em]", "h-[0.9375em]"] as const;
 
 const CONFIDENCE_EXPLAINER =
   "The model's own, uncalibrated self-report. Use it to sort the queue, not as the probability that a grade is correct.";
+const DEMO_CONFIDENCE_EXPLAINER =
+  "A rule of thumb from the demo grader, not a model's estimate. Use it to sort the queue, not as the probability that a grade is correct.";
 
 /** A three-step signal meter: how many bars are filled says the level, the word says it again. */
 function Meter({ level }: { level: Confidence }) {
@@ -44,13 +46,17 @@ export function ConfidenceBadge({
   className,
   showLabel = true,
   interactive = true,
+  demo = false,
 }: {
   confidence: Confidence;
   className?: string;
   showLabel?: boolean;
   interactive?: boolean;
+  /** The demo grader set it: a heuristic, so the explainer says so. */
+  demo?: boolean;
 }) {
   const level = LEVELS[confidence];
+  const explainer = demo ? DEMO_CONFIDENCE_EXPLAINER : CONFIDENCE_EXPLAINER;
   const badge = (
     <Badge
       variant="secondary"
@@ -66,7 +72,7 @@ export function ConfidenceBadge({
       {showLabel ? `${level.label} confidence` : level.label}
       <span className="sr-only">
         {showLabel ? ". " : " self-reported confidence. "}
-        {CONFIDENCE_EXPLAINER}
+        {explainer}
       </span>
     </Badge>
   );
@@ -74,7 +80,7 @@ export function ConfidenceBadge({
   return (
     <Tooltip>
       <TooltipTrigger asChild>{badge}</TooltipTrigger>
-      <TooltipContent className="max-w-xs">{CONFIDENCE_EXPLAINER}</TooltipContent>
+      <TooltipContent className="max-w-xs">{explainer}</TooltipContent>
     </Tooltip>
   );
 }

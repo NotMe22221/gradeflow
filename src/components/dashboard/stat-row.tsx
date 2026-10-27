@@ -58,6 +58,9 @@ function Stat({
  */
 export function StatRow({ stats, className }: { stats: DashboardStats; className?: string }) {
   const diff = stats.avgAiFinalDiff;
+  // Demo grader drafts are not AI output, so the stat says when they are in it.
+  const allDemo = stats.avgAiFinalDiffDemo > 0 && stats.avgAiFinalDiffDemo === stats.avgAiFinalDiffSample;
+  const draftLabel = allDemo ? "Demo draft vs. your grade" : "AI draft vs. your grade";
   const timeSaved = formatTimeSaved(stats.timeSavedMinutes);
 
   return (
@@ -77,12 +80,17 @@ export function StatRow({ stats, className }: { stats: DashboardStats; className
         </Stat>
       ) : (
         <Stat
-          label="AI draft vs. your grade"
+          label={draftLabel}
           value={`±${formatPoints(diff)}`}
           unit={diff === 1 ? "pt" : "pts"}
           srValue={`Plus or minus ${formatPoints(diff)} ${diff === 1 ? "point" : "points"} on average`}
         >
           Average change, across all {pluralize(stats.avgAiFinalDiffSample, "approved grade")} so far
+          {allDemo
+            ? ", all drafted by the demo grader (not AI)"
+            : stats.avgAiFinalDiffDemo > 0
+              ? ` (${stats.avgAiFinalDiffDemo} by the demo grader, not AI)`
+              : ""}
         </Stat>
       )}
 

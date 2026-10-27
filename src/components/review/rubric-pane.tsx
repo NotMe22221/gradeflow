@@ -91,7 +91,7 @@ export function RubricPane({
             <p className="text-[0.8125rem] font-medium text-muted-foreground">Grade</p>
             {ai ? (
               <div className="flex flex-wrap items-center gap-1.5">
-                <ConfidenceBadge confidence={ai.confidence} />
+                <ConfidenceBadge confidence={ai.confidence} demo={demo} />
                 <GraderBadge grader={ai.grader} model={ai.model} />
               </div>
             ) : null}
@@ -119,7 +119,13 @@ export function RubricPane({
                 {pluralize(unscored, unit.one, unit.many)} still {unscored === 1 ? "needs" : "need"} a valid score
               </span>
             ) : null}
-            {ai ? <span>Confidence is the model&apos;s self-report, uncalibrated.</span> : null}
+            {ai ? (
+              <span>
+                {demo
+                  ? "Demo confidence comes from a rule of thumb, not a model."
+                  : "Confidence is the model's self-report, uncalibrated."}
+              </span>
+            ) : null}
           </p>
         </div>
 

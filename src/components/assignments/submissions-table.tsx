@@ -173,7 +173,7 @@ function RowStatus({
           <PenLine aria-hidden />
           Needs review
         </Badge>
-        {view.confidence ? <ConfidenceBadge confidence={view.confidence} /> : null}
+        {view.confidence ? <ConfidenceBadge confidence={view.confidence} demo={view.grader === "demo"} /> : null}
         <FlagsIndicator flags={view.flags} />
         {showGrader && grader ? <span className="text-xs text-muted-foreground">{GRADER_LABELS[grader]}</span> : null}
       </span>

@@ -51,7 +51,7 @@ export function ScanResult({ result, onScanAnother }: { result: ScanGradeSuccess
       <div className="space-y-5 px-4 py-5 sm:px-6">
         <div className="flex flex-wrap items-center gap-2">
           <GraderBadge grader={result.grader} model={result.model} />
-          <ConfidenceBadge confidence={result.confidence} />
+          <ConfidenceBadge confidence={result.confidence} demo={result.grader === "demo"} />
           {result.flagCount > 0 ? (
             <Badge variant="warning">
               <TriangleAlert aria-hidden />

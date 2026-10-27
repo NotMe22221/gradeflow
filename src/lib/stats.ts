@@ -27,6 +27,8 @@ export type DashboardStats = {
   avgAiFinalDiff: number | null;
   /** How many approved grades the difference is averaged over. */
   avgAiFinalDiffSample: number;
+  /** How many of those drafts came from the demo grader, which is not AI. */
+  avgAiFinalDiffDemo: number;
   /** Illustrative only: gradedThisWeek x ILLUSTRATIVE_MINUTES_SAVED_PER_PAPER. */
   timeSavedMinutes: number;
   pendingReview: number;
@@ -95,15 +97,19 @@ export async function getDashboardStats(teacherId: string, now: Date = new Date(
     }),
     db.publishedGrade.findMany({
       where: { aiTotalScore: { not: null }, submission: ownedBy(teacherId) },
-      select: { aiTotalScore: true, totalScore: true },
+      select: { aiTotalScore: true, totalScore: true, submission: { select: { aiGrade: { select: { grader: true } } } } },
     }),
     db.submission.count({ where: { status: "NEEDS_REVIEW", ...ownedBy(teacherId) } }),
     db.submission.count({ where: { OR: readyForAiConditions(now), ...ownedBy(teacherId) } }),
   ]);
 
-  const diffs = comparisons
-    .map((grade) => (grade.aiTotalScore === null ? null : Math.abs(grade.aiTotalScore - grade.totalScore)))
-    .filter((diff): diff is number => diff !== null && Number.isFinite(diff));
+  const compared = comparisons
+    .map((grade) => ({
+      diff: grade.aiTotalScore === null ? null : Math.abs(grade.aiTotalScore - grade.totalScore),
+      demo: grade.submission.aiGrade?.grader === "demo",
+    }))
+    .filter((entry): entry is { diff: number; demo: boolean } => entry.diff !== null && Number.isFinite(entry.diff));
+  const diffs = compared.map((entry) => entry.diff);
 
   const avgAiFinalDiff =
     diffs.length > 0
@@ -114,6 +120,7 @@ export async function getDashboardStats(teacherId: string, now: Date = new Date(
     gradedThisWeek,
     avgAiFinalDiff,
     avgAiFinalDiffSample: diffs.length,
+    avgAiFinalDiffDemo: compared.filter((entry) => entry.demo).length,
     timeSavedMinutes: gradedThisWeek * ILLUSTRATIVE_MINUTES_SAVED_PER_PAPER,
     pendingReview,
     readyForAi,
