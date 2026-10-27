@@ -1,5 +1,5 @@
 // The Bold look's decoration: paint blobs, X grids, dot grids, squiggles and
-// sparkles, after flat "paint and pattern" poster art. Server components, no
+// rings, after flat "paint and pattern" poster art. Server components, no
 // state. Every piece is aria-hidden, ignores the pointer, never prints, and
 // disappears in the Calm look (globals.css, [data-decor]).
 //
@@ -118,11 +118,11 @@ export function Squiggle({ tone = "pink", waves = 3, className }: DecorProps & {
   );
 }
 
-/** A four-point sparkle. */
-export function Sparkle({ tone = "yellow", className }: DecorProps & { tone?: PopTone }) {
+/** A thick ring outline. */
+export function Ring({ tone = "sky", className }: DecorProps & { tone?: PopTone }) {
   return (
-    <svg {...decorProps} viewBox="0 0 40 40" className={cn("pointer-events-none absolute -z-10", FILL[tone], className)}>
-      <path d="M20 0c1.6 11.2 8.8 18.4 20 20-11.2 1.6-18.4 8.8-20 20-1.6-11.2-8.8-18.4-20-20C11.2 18.4 18.4 11.2 20 0z" />
+    <svg {...decorProps} viewBox="0 0 40 40" className={cn("pointer-events-none absolute -z-10", STROKE[tone], className)}>
+      <circle cx={20} cy={20} r={15} fill="none" strokeWidth={6} />
     </svg>
   );
 }
