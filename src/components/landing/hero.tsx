@@ -1,3 +1,5 @@
+import { ArrowDown } from "@/components/icons";
+
 import { DemoCtas } from "@/components/landing/demo-ctas";
 import { ScreenshotFrame } from "@/components/landing/screenshot";
 import type { Theme } from "@/lib/preferences/schema";
@@ -24,6 +26,16 @@ export function Hero({ demoLogin, theme }: { demoLogin: boolean; theme: Theme })
           suggests a score and quotes the line from the paper behind it. Nothing reaches a student until you approve it.
         </p>
         <DemoCtas demoLogin={demoLogin} className="mt-8" />
+        {/* The header's section links fold away on phones and tablets, so judges get a way in here too. */}
+        <p className="mt-3 text-[0.9375rem] leading-7 text-pretty">
+          <a
+            href="#judges"
+            className="rounded-sm py-1 font-medium text-primary underline underline-offset-4 outline-none hover:decoration-2 focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Judging this project? See how Markwise compares
+            <ArrowDown aria-hidden className="ml-1 inline size-[1.05em] align-[-0.175em]" />
+          </a>
+        </p>
       </div>
 
       <figure className="mx-auto mt-12 w-full max-w-7xl px-4 sm:mt-16 sm:px-6 lg:px-8">

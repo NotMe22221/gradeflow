@@ -45,6 +45,8 @@ export const ICONS = {
   CircleAlert: "error",
   CircleCheck: "check_circle",
   CircleCheckBig: "check_circle",
+  CircleHalf: "contrast",
+  CircleMinus: "do_not_disturb_on",
   CircleSlash: "block",
   ClipboardCheck: "assignment_turned_in",
   ClipboardList: "assignment",

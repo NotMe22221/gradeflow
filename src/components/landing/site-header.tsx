@@ -9,6 +9,7 @@ export const SECTION_LINKS = [
   { href: "#how-it-works", label: "How it works" },
   { href: "#students", label: "For students" },
   { href: "#trust", label: "Trust" },
+  { href: "#judges", label: "For judges" },
   { href: "#faq", label: "FAQ" },
 ];
 
@@ -20,9 +21,12 @@ export const SECTION_LINKS = [
 export function SiteHeader({ appHref, demoLogin }: { appHref: string | null; demoLogin: boolean }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card">
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-4 sm:px-6 lg:gap-6 lg:px-8">
+      <div className="@container mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-4 sm:px-6 lg:gap-6 lg:px-8">
         <Logo />
-        <nav aria-label="Page sections" className="hidden items-center lg:flex">
+        {/* Shown once the whole row fits on one line (about 58rem of links, wordmark and buttons). A
+            container query in rem follows the text-size setting, so larger text hides the links sooner
+            instead of wrapping them or squeezing the wordmark. */}
+        <nav aria-label="Page sections" className="hidden items-center @min-[58.5rem]:flex">
           {SECTION_LINKS.map((link) => (
             <a
               key={link.href}
