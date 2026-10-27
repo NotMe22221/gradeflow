@@ -28,10 +28,11 @@ import type {
   RawGradingResult,
   RubricCriterionInput,
 } from "@/lib/grading/types";
+import { classifyCriterion, type Dimension } from "@/lib/grading/dimensions";
+import { contentStems, RUBRIC_FILLER, tokenize } from "@/lib/grading/words";
 
-type EssayDimension = "thesis" | "evidence" | "organization" | "mechanics" | "analysis" | "counterargument";
-type LabDimension = "hypothesis" | "method" | "results" | "limitations";
-type Dimension = EssayDimension | LabDimension | "general";
+export { classifyCriterion } from "@/lib/grading/dimensions";
+
 type Band = "strong" | "mid" | "weak";
 
 const DEFAULT_TARGET_WORDS = 350;
@@ -39,28 +40,6 @@ const MIN_EVIDENCE_WORDS = 8;
 const MAX_EVIDENCE_WORDS = 30;
 
 // --- Vocabulary --------------------------------------------------------------
-
-const STOPWORDS = new Set(
-  (
-    "a about above after again against all also am an and any are as at be because been before being below " +
-    "between both but by can could did do does doing down during each few for from further had has have having " +
-    "he her here hers herself him himself his how i if in into is it its itself just me more most my myself no " +
-    "nor not now of off on once only or other our ours ourselves out over own same she should so some such than " +
-    "that the their theirs them themselves then there these they this those through to too under until up very " +
-    "was we were what when where which while who whom why will with would you your yours yourself yourselves " +
-    "one two three also may might must shall upon within without whether"
-  ).split(" ")
-);
-
-// Rubric boilerplate that says nothing about the topic of a criterion.
-const RUBRIC_FILLER = new Set(
-  (
-    "paper essay student writer writing response full credit point points clear clearly well strong strongly " +
-    "effective effectively use uses using used demonstrate demonstrates show shows throughout each every " +
-    "appropriate relevant good excellent includes include including provides provide make makes level score " +
-    "meets meet fully complete completely consistent consistently thorough thoroughly skill skilled"
-  ).split(" ")
-);
 
 // Assignment boilerplate ("Write a 400-600 word essay...") that says nothing about the topic.
 const INSTRUCTION_FILLER = new Set(
@@ -370,31 +349,6 @@ function hash(text: string): number {
     h = Math.imul(h, 0x01000193);
   }
   return h >>> 0;
-}
-
-function tokenize(lower: string): string[] {
-  return lower.match(/[a-z0-9]+(?:['’][a-z]+)*/g) ?? [];
-}
-
-function stem(word: string): string {
-  let w = word.replace(/['’]s$/, "");
-  for (const suffix of ["ingly", "edly", "ing", "ies", "ed", "es", "ly", "s"]) {
-    if (w.endsWith(suffix) && w.length - suffix.length >= 3) {
-      w = w.slice(0, -suffix.length) + (suffix === "ies" ? "y" : "");
-      break;
-    }
-  }
-  return w;
-}
-
-function contentStems(text: string, exclude?: Set<string>): Set<string> {
-  const stems = new Set<string>();
-  for (const token of tokenize(text.toLowerCase())) {
-    if (token.length < 3 || STOPWORDS.has(token) || /^\d/.test(token)) continue;
-    if (exclude?.has(token)) continue;
-    stems.add(stem(token));
-  }
-  return stems;
 }
 
 function overlapRatio(terms: Set<string>, pool: Set<string>): number {
@@ -728,59 +682,6 @@ function analyze(input: GradingInput): Features {
 }
 
 // --- Scoring -----------------------------------------------------------------
-
-const DIMENSION_PATTERNS: Array<[Exclude<Dimension, "general">, RegExp]> = [
-  ["counterargument", /counter|opposing|rebut|objection|other side|alternative (?:view|perspective)/],
-  ["hypothesis", /hypothes|predict|testable|research question/],
-  ["method", /method|procedure|materials|experimental design|sampling/],
-  ["results", /\bresults?\b|measurements?|observations|findings/],
-  ["limitations", /sources? of error|error analysis|experimental error|limitations?|uncertaint/],
-  ["evidence", /evidence|support|example|source|citation|cite|data|research|quot|detail|textual/],
-  ["thesis", /thesis|claim|argument|position|main idea|focus|purpose|central idea|controlling idea|stance/],
-  ["organization", /organi[sz]|structure|flow|transition|paragraph|coheren|order|sequence|introduction|conclusion/],
-  ["analysis", /analy|reasoning|explain|explanation|insight|interpret|critical|depth|connect|reflect|understanding|significance/],
-  ["mechanics", /grammar|mechanic|spelling|punctuation|convention|style|clarity|language|word choice|voice|tone|sentence|fluency|proofread|usage/],
-];
-
-const LAB_DIMENSIONS: ReadonlySet<Dimension> = new Set<LabDimension>(["hypothesis", "method", "results", "limitations"]);
-// Essay dimensions whose words also turn up in lab-report titles ("Data and
-// results", "Conclusion and sources of error", "Clarity of procedure"). A lab
-// dimension named in the same title takes precedence over these.
-const YIELDS_TO_LAB: ReadonlySet<Dimension> = new Set<EssayDimension>(["evidence", "thesis", "organization", "mechanics"]);
-
-/** Which kind of quality a criterion measures, judged from its title first. */
-export function classifyCriterion(criterion: Pick<RubricCriterionInput, "title" | "description">): Dimension {
-  const title = criterion.title.toLowerCase();
-  let best: Dimension = "general";
-  let bestIndex = Number.POSITIVE_INFINITY;
-  let bestLab: Dimension | null = null;
-  let bestLabIndex = Number.POSITIVE_INFINITY;
-  for (const [dimension, pattern] of DIMENSION_PATTERNS) {
-    const index = title.search(pattern);
-    if (index === -1) continue;
-    if (index < bestIndex) {
-      best = dimension;
-      bestIndex = index;
-    }
-    if (LAB_DIMENSIONS.has(dimension) && index < bestLabIndex) {
-      bestLab = dimension;
-      bestLabIndex = index;
-    }
-  }
-  if (bestLab && YIELDS_TO_LAB.has(best)) return bestLab;
-  if (best !== "general") return best;
-
-  const description = criterion.description.toLowerCase();
-  let bestCount = 0;
-  for (const [dimension, pattern] of DIMENSION_PATTERNS) {
-    const count = description.match(new RegExp(pattern.source, "g"))?.length ?? 0;
-    if (count > bestCount) {
-      best = dimension;
-      bestCount = count;
-    }
-  }
-  return best;
-}
 
 function dimensionScore(dimension: Dimension, f: Features): number {
   // Floor the denominator so a single figure in a tiny paper is not "dense" evidence.
