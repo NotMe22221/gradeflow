@@ -65,11 +65,12 @@ labelled local demo engine. To use real AI, copy `.env.example` to
 `gpt-4o`, and text and logic tasks always use `gpt-4o-mini`. No other file
 names a model.
 
-`npm run seed` resets the demo data at any time. Re-seeding signs everyone out.
-Seeded dates are relative to the day you seed, so seed on demo day. It erases
-the database it seeds, so when `DATABASE_URL` points anywhere but the local dev
-server (say, a hosted database after `vercel env pull`), it names that
-database and stops. Run `npm run seed -- --yes` if you do mean to reset it.
+`npm run seed` resets the demo data on the local dev server at any time.
+Re-seeding signs everyone out. Seeded dates are relative to the day you seed,
+so seed on demo day. It only ever erases the local dev server. When
+`DATABASE_URL` points anywhere else (say, a hosted database after
+`vercel env pull`), it names that database and stops without changing
+anything. There is no override.
 Dates follow the viewer's time zone ("Due today", Missing, Stream times), and a
 due date is the same calendar day for everyone.
 
@@ -152,12 +153,14 @@ it into additive steps, or apply it to the database yourself after checking
 what it deletes. The schema changes before `next build`, and Instant Rollback
 doesn't undo it, so keep each change compatible with the version before it.
 
-**Resetting the hosted demo.** The demo dates are relative to the day the data
-was seeded. To reset them, run `npm run seed -- --yes` on your computer with
-`DATABASE_URL` and `DATABASE_URL_UNPOOLED` set to the Neon connection strings
-(Neon → Connection details, or `vercel env pull .env.local`). It names the
-database host and erases everything in it; without `--yes` it stops before
-changing anything. Or delete and recreate the database and redeploy.
+**Fresh demo data on the hosted site.** The demo dates are relative to the day
+the data was seeded. Nothing in this repo erases a hosted or shared database.
+To start over:
+1. Create a new, empty database. In Neon, that is a new database or project.
+2. Point the Vercel project's `DATABASE_URL` and `DATABASE_URL_UNPOOLED` at it.
+3. Redeploy. The Production build seeds an empty database once.
+
+The old database stays as it was until you remove it yourself.
 
 Notes:
 - The build tells Production from Preview by Vercel's system variables

@@ -28,10 +28,10 @@ grades. AI drafts the first pass, and a teacher always makes the final call.
   start lock (concurrent `npm run dev` / `npm run seed` wait and reuse it) and
   retries the passing failures (a crashed server's leftover lock). `stop`,
   `status`, and `delete` back `npm run db:stop|db:status|db:delete`.
-- Seed (`prisma/seed.ts`): `npm run seed` resets the demo in one transaction.
-  For any database but the local dev server it needs `--yes` and names the
-  host first (the check runs before the schema push, which the seed runs
-  itself with `--push-schema`). `--if-empty` never erases: it takes a
+- Seed (`prisma/seed.ts`): `npm run seed` resets the demo in one transaction,
+  and only ever on the local dev server. For any other database it names the
+  host and stops, with no override (the check runs before the schema push,
+  which the seed runs itself with `--push-schema`). `--if-empty` never erases: it takes a
   transaction-scoped advisory lock and re-checks for users under it, so
   concurrent builds seed once.
 - Deploys: `npm run vercel-build` (`scripts/vercel-build.mjs`, rules in

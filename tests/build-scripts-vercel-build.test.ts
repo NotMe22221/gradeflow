@@ -99,23 +99,27 @@ describe("package.json scripts", () => {
 });
 
 describe("seed guard", () => {
-  it("refuses to erase a database other than the local dev server without --yes, naming its host only", () => {
+  it("never erases a database other than the local dev server, with no override, naming its host only", () => {
     // The guard runs before any connection or schema push, so this host is never contacted.
     const env: NodeJS.ProcessEnv = { ...process.env, DATABASE_URL: "postgres://owner:hunter2@db.example.invalid:5432/neondb?sslmode=require" };
     for (const name of ["POSTGRES_URL", "POSTGRES_PRISMA_URL", "DATABASE_URL_UNPOOLED", "DIRECT_URL", "POSTGRES_URL_NON_POOLING"]) {
       delete env[name];
     }
-    const result = spawnSync(process.execPath, ["--import", "tsx", path.join("prisma", "seed.ts"), "--push-schema"], {
-      cwd: process.cwd(),
-      env,
-      encoding: "utf8",
-      timeout: 60_000,
-    });
-    const output = `${result.stdout}${result.stderr}`;
-    assert.equal(result.status, 1, output);
-    assert.match(output, /db\.example\.invalid:5432\/neondb/);
-    assert.match(output, /npm run seed -- --yes/);
-    assert.doesNotMatch(output, /hunter2/);
-    assert.doesNotMatch(output, /in sync|Loaded Prisma config/);
+    // --yes was the old override; it must not erase anything any more.
+    for (const extra of [[], ["--yes"]]) {
+      const result = spawnSync(process.execPath, ["--import", "tsx", path.join("prisma", "seed.ts"), "--push-schema", ...extra], {
+        cwd: process.cwd(),
+        env,
+        encoding: "utf8",
+        timeout: 60_000,
+      });
+      const output = `${result.stdout}${result.stderr}`;
+      assert.equal(result.status, 1, output);
+      assert.match(output, /db\.example\.invalid:5432\/neondb/);
+      assert.match(output, /only\s+ever erases the local dev server\. Nothing was changed\./);
+      assert.doesNotMatch(output, /--yes/);
+      assert.doesNotMatch(output, /hunter2/);
+      assert.doesNotMatch(output, /in sync|Loaded Prisma config/);
+    }
   });
 });

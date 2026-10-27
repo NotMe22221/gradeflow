@@ -1,8 +1,7 @@
 // Markwise demo seed.
 //
-//   npm run seed            (= tsx prisma/seed.ts --push-schema) resets the demo:
-//                           `prisma db push`, then this script.
-//   npm run seed -- --yes   the same for a database that isn't the local dev server.
+//   npm run seed            (= tsx prisma/seed.ts --push-schema) resets the demo on
+//                           Prisma's local dev server: `prisma db push`, then this script.
 //   --if-empty              (the Vercel build) seeds only a database with no users
 //                           yet and never erases anything, so redeploys keep data.
 //
@@ -12,8 +11,10 @@
 // Every person, school, place, survey, quiz answer, and story in the dataset
 // is fictional.
 //
-// Erasing a database other than Prisma's local dev server (a hosted one, say,
-// after `vercel env pull`) needs --yes, and the script names the host first.
+// It never erases a database other than Prisma's local dev server: a hosted or
+// shared one (say, after `vercel env pull`) can only be seeded while empty
+// (--if-empty). There is deliberately no override. To start a hosted demo
+// over, point the app at a new, empty database instead (see the README).
 
 import "./load-env";
 
@@ -52,8 +53,6 @@ const prisma = new PrismaClient({
 const ARGS = process.argv.slice(2);
 /** Seed only a database with no users yet; never erase anything. */
 const IF_EMPTY = ARGS.includes("--if-empty");
-/** The go-ahead to erase a database that isn't the local dev server. */
-const CONFIRMED = ARGS.includes("--yes");
 /** Run `prisma db push` first (npm run seed), once the target is confirmed. */
 const PUSH_SCHEMA = ARGS.includes("--push-schema");
 
@@ -481,19 +480,17 @@ const SKIPPED = USES_LOCAL_DATABASE
   ? "The database already has data, so the demo seed was skipped. Run `npm run seed` to reset it."
   : `The database at ${target} already has data, so the demo seed was skipped (--if-empty never erases anything).`;
 
-if (!IF_EMPTY && !USES_LOCAL_DATABASE && !CONFIRMED) {
+if (!IF_EMPTY && !USES_LOCAL_DATABASE) {
   // Before the schema push and before any connection: nothing has changed yet.
   console.error(
     [
       "",
-      `This would erase everything in the database at ${target} (classes, papers, grades,`,
-      "accounts) and replace it with the demo data. That isn't the local dev server, so",
-      "the seed needs an explicit go-ahead. If that is the database you mean to reset, run:",
+      `Stopped: the database at ${target} isn't the local dev server, and the seed only`,
+      "ever erases the local dev server. Nothing was changed. A hosted or shared database is",
+      "seeded once, while it is empty, by the Production build (--if-empty).",
       "",
-      "  npm run seed -- --yes",
-      "",
-      "To seed the local dev server instead, unset DATABASE_URL (in .env.local, .env, or",
-      "your shell).",
+      "To seed the local dev server, unset DATABASE_URL (in .env.local, .env, or your shell).",
+      "To start a hosted demo over, point the app at a new, empty database and redeploy.",
       "",
     ].join("\n")
   );
@@ -501,7 +498,6 @@ if (!IF_EMPTY && !USES_LOCAL_DATABASE && !CONFIRMED) {
 }
 
 try {
-  if (!IF_EMPTY && !USES_LOCAL_DATABASE) console.log(`Resetting the demo data in ${target} (--yes).`);
   if (PUSH_SCHEMA && !pushSchema()) {
     console.error("\nThe schema couldn't be updated (see above), so the demo data wasn't loaded.\n");
     process.exitCode = 1;
