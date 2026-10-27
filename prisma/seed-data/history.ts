@@ -12,6 +12,14 @@
 //
 // Every aiEvidence quote must appear verbatim in the paper. The seed verifies
 // each one with findEvidenceSpan before inserting anything.
+//
+// The pattern across the four papers feeds "Worth rechecking" and the "AI vs
+// your grades" card: the demo grader counts quotations but cannot check them
+// against the story or tell whether they are explained, so the teacher
+// changed its "Textual evidence" score on three of the four papers (by 1.5
+// points on average, mostly down). Milo's draft of the same essay waits in To
+// review (submissions.ts), where that history is the reason it is worth
+// rechecking. The seed checks this pattern.
 
 import type { Confidence } from "../../src/lib/constants";
 import type { DaysAgoAt } from "./helpers";
@@ -124,6 +132,87 @@ export const PUBLISHED_HISTORY: PublishedHistoryEntry[] = [
         aiJustification:
           "Organized from introduction to conclusion and easy to follow, but the thesis is general and a few long sentences need commas. The tone is mostly formal.",
         aiEvidence: "In conclusion the lantern is a symbol of hope in The Lantern Keeper.",
+        finalScore: 3,
+      },
+    },
+  },
+  {
+    assignmentKey: "lanternKeeper",
+    studentKey: "priya",
+    paperKey: "priyaLanternKeeper",
+    submittedAt: { daysAgo: 7, hour: 22, minute: 48 },
+    fileName: null,
+    aiGradedAt: { daysAgo: 5, hour: 7, minute: 12 },
+    approvedAt: { daysAgo: 4, hour: 16, minute: 20 },
+    confidence: "medium",
+    overallComment:
+      "A short response that reads the lantern as a symbol of love and memory and quotes a line for each of the three symbols. The quotations are accurate, but the paper explains them only briefly.",
+    feedback:
+      "Priya, you found good lines: all three quotations are accurate and well chosen. The next step is explaining them. After each quotation, write two or three sentences about what it shows about Wren and the lantern, and leave words like \"basically\" out of formal writing.",
+    scores: {
+      interpretation: {
+        aiScore: 3,
+        aiJustification:
+          "Reads the lantern as a symbol of love and memory and states a theme about carrying on after a loss. The reading is asserted more than developed, and the storm and the logbook are named without being interpreted.",
+        aiEvidence:
+          "I think the lantern means love because her dad took care of it for so long and then Wren takes care of it after he dies.",
+        finalScore: 3,
+      },
+      evidence: {
+        aiScore: 3.5,
+        aiJustification:
+          "Includes three accurate quotations, one for each symbol, which ties the interpretation to the text. Each quotation is introduced, though the explanations that follow are short.",
+        aiEvidence: 'Her father "had kept the light for thirty-one years, and it had never once gone dark."',
+        finalScore: 2,
+        finalComment:
+          "All three quotations are accurate, but they come one after another, and the only explanation is that they are \"really important.\" The rubric asks you to explain how each one supports your reading, so this is a 2 for now.",
+      },
+      writing: {
+        aiScore: 2.5,
+        aiJustification:
+          "Has an introduction, body, and conclusion, but the thesis is general, some sentences run on, and the tone is informal in places (\"Basically\", \"a lot of quotes\").",
+        aiEvidence:
+          "In conclusion the lantern is a symbol of love and remembering people, and that is what the story is about.",
+        finalScore: 2.5,
+      },
+    },
+  },
+  {
+    assignmentKey: "lanternKeeper",
+    studentKey: "theo",
+    paperKey: "theoLanternKeeper",
+    submittedAt: { daysAgo: 7, hour: 21, minute: 5 },
+    fileName: null,
+    aiGradedAt: { daysAgo: 5, hour: 7, minute: 13 },
+    approvedAt: { daysAgo: 3, hour: 15, minute: 55 },
+    confidence: "high",
+    overallComment:
+      "A clear reading of the storm as the challenges Wren faces, supported by two direct quotations and examples from the plot. The conclusion restates the thesis without extending it.",
+    feedback:
+      "Theo, reading the storm as the problems Wren has to face is a fair interpretation, and your essay stays focused on it. Check every quotation against the story before you hand it in: your first one doesn't match the text. Then push your analysis further: what does Marrow's comparison of the storm to grief tell us?",
+    scores: {
+      interpretation: {
+        aiScore: 3.5,
+        aiJustification:
+          "Makes a clear claim that the storm stands for the problems Wren faces after her father dies and follows it through the story. The link to grief that the story itself makes is quoted but not developed.",
+        aiEvidence:
+          "The storm stands for all the problems Wren has to face after her father dies, and the story shows that you have to face your problems instead of hiding from them.",
+        finalScore: 3.5,
+      },
+      evidence: {
+        aiScore: 4.5,
+        aiJustification:
+          "Supports the reading with two direct quotations, one for the calm before the storm and one for the storm itself, and adds specific examples from the plot.",
+        aiEvidence: 'Marrow writes that the storm "arrived the way grief had, a little at a time, until it was everywhere."',
+        finalScore: 2.5,
+        finalComment:
+          "Your first quotation doesn't match the story: Marrow writes that he \"had kept the light for thirty-one years, and it had never once gone dark.\" The storm quotation is accurate, but \"This shows the storm is really bad\" doesn't explain it. Quote exactly, and explain each line.",
+      },
+      writing: {
+        aiScore: 3,
+        aiJustification:
+          "Organized around one symbol with a clear introduction and conclusion, and each paragraph stays on topic. Some phrasing is informal (\"really bad\"), and the conclusion mostly repeats the thesis.",
+        aiEvidence: "The storm is a symbol of problems, and Wren beats it by being brave.",
         finalScore: 3,
       },
     },

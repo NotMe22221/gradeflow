@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApproveDialog } from "@/components/review/approve-dialog";
 import { PaperPane, type PaperView } from "@/components/review/paper-pane";
 import { QueueList } from "@/components/review/queue-list";
+import { DEFAULT_QUEUE_SORT, parseQueueSort, queueSortParam } from "@/components/review/queue-sort";
 import { DesktopActionBar, MobileActionBar } from "@/components/review/review-action-bar";
 import {
   CaughtUpState,
@@ -45,8 +46,8 @@ import { cn } from "@/lib/utils";
 
 type PaneTab = "paper" | "rubric";
 type AssignmentFilter = { id: string; title: string | null } | null;
-/** The review query parameters: ?assignment and ?s. */
-type UrlSelection = { assignment: string | null; s: string | null };
+/** The review query parameters: ?assignment, ?s and ?sort (absent for the default order). */
+type UrlSelection = { assignment: string | null; s: string | null; sort: string | null };
 /** Where focus goes when the approve, send-back, or shortcuts dialog closes. */
 type ReturnFocus = { element: HTMLElement | null; openedWith: "button" | "shortcut" };
 
@@ -115,6 +116,7 @@ export function ReviewWorkspace({
   items,
   initialAssignmentId,
   initialSelectedId,
+  initialSort = DEFAULT_QUEUE_SORT,
   filterTitle,
   paperSide: savedPaperSide = "left",
   singleKeyShortcuts: savedSingleKeys = true,
@@ -122,6 +124,8 @@ export function ReviewWorkspace({
   items: ReviewItem[];
   initialAssignmentId: string | null;
   initialSelectedId: string | null;
+  /** The order from ?sort=, already checked by the page. */
+  initialSort?: QueueSort;
   /** Title for the ?assignment filter, when the teacher owns that assignment. */
   filterTitle: string | null;
   /** The teacher's saved layout: which side the paper sits on when paper and grade are side by side. */
@@ -140,7 +144,7 @@ export function ReviewWorkspace({
   const [filter, setFilter] = useState<AssignmentFilter>(
     initialAssignmentId ? { id: initialAssignmentId, title: filterTitle } : null
   );
-  const [sort, setSort] = useState<QueueSort>("confidence");
+  const [sort, setSort] = useState<QueueSort>(initialSort);
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
   const [removedIds, setRemovedIds] = useState<ReadonlySet<string>>(() => new Set());
   const [handledCount, setHandledCount] = useState(0);
@@ -199,20 +203,24 @@ export function ReviewWorkspace({
   const approveSummary = approveItem ? summarizeDraft(approveItem, drafts.getDraft(approveItem)) : null;
   const busy = publishing || sendingBack;
 
-  // Keep ?assignment and ?s in the URL so a reload or shared link lands on
-  // the same paper. replaceState avoids a server round trip.
+  // Keep ?assignment, ?s and ?sort in the URL so a reload or shared link
+  // lands on the same paper in the same order. replaceState avoids a server
+  // round trip. The default order writes no ?sort.
   const currentId = current?.id ?? null;
   const filterId = filter?.id ?? null;
+  const sortParam = queueSortParam(sort);
   const writtenUrlRef = useRef<UrlSelection | null>(null);
   useEffect(() => {
-    writtenUrlRef.current = { assignment: filterId, s: currentId };
+    writtenUrlRef.current = { assignment: filterId, s: currentId, sort: sortParam };
     const url = new URL(window.location.href);
     if (filterId) url.searchParams.set("assignment", filterId);
     else url.searchParams.delete("assignment");
     if (currentId) url.searchParams.set("s", currentId);
     else url.searchParams.delete("s");
+    if (sortParam) url.searchParams.set("sort", sortParam);
+    else url.searchParams.delete("sort");
     if (url.href !== window.location.href) window.history.replaceState(null, "", url);
-  }, [filterId, currentId]);
+  }, [filterId, currentId, sortParam]);
 
   // A navigation this component did not make (the sidebar's "Review Queue"
   // link while a filter is on, for example) changes the query without
@@ -220,13 +228,21 @@ export function ReviewWorkspace({
   // are recognised and ignored, and so are refreshes, which keep the URL.
   const urlAssignment = searchParams.get("assignment");
   const urlSubmission = searchParams.get("s");
-  const seenUrlRef = useRef<UrlSelection>({ assignment: urlAssignment, s: urlSubmission });
+  const urlSort = searchParams.get("sort");
+  const seenUrlRef = useRef<UrlSelection>({ assignment: urlAssignment, s: urlSubmission, sort: urlSort });
   useEffect(() => {
     const seen = seenUrlRef.current;
-    if (seen.assignment === urlAssignment && seen.s === urlSubmission) return;
-    seenUrlRef.current = { assignment: urlAssignment, s: urlSubmission };
+    if (seen.assignment === urlAssignment && seen.s === urlSubmission && seen.sort === urlSort) return;
+    seenUrlRef.current = { assignment: urlAssignment, s: urlSubmission, sort: urlSort };
     const written = writtenUrlRef.current;
-    if (written && written.assignment === urlAssignment && written.s === urlSubmission) return;
+    if (
+      written &&
+      written.assignment === urlAssignment &&
+      written.s === urlSubmission &&
+      written.sort === urlSort
+    ) {
+      return;
+    }
     setFilter(
       urlAssignment
         ? {
@@ -237,8 +253,9 @@ export function ReviewWorkspace({
           }
         : null
     );
+    setSort(parseQueueSort(urlSort));
     setSelectedId(urlSubmission);
-  }, [urlAssignment, urlSubmission, filterOptions, initialAssignmentId, filterTitle]);
+  }, [urlAssignment, urlSubmission, urlSort, filterOptions, initialAssignmentId, filterTitle]);
 
   // On phones the whole page scrolls: start each paper at the top.
   const previousIdRef = useRef(currentId);
@@ -539,6 +556,7 @@ export function ReviewWorkspace({
           onDraftChange={(update) => drafts.updateDraft(current, update)}
           onShowEvidence={showEvidence}
           onShowFlagged={showFlagged}
+          onGoToCriterion={(criterionId) => focusCriterion(current.id, criterionId)}
           footer={<DesktopActionBar {...actionProps} />}
           className="flex-1"
         />

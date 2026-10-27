@@ -3,13 +3,16 @@
 // database access.
 
 import type { Confidence, SubmissionSource } from "../../src/lib/constants";
+import { gradeWithDemoHeuristics } from "../../src/lib/grading/mock";
+import type { ValidatedGrading } from "../../src/lib/grading/types";
+import { validateGrading } from "../../src/lib/grading/validate";
 import { sum, type DaysAgoAt } from "./helpers";
 import { PUBLISHED_HISTORY, type HistoryScore } from "./history";
-import { PAPERS } from "./papers";
+import { ALL_PAPERS } from "./papers";
 import type { StudentKey } from "./people";
 import { QUIZ_RESULTS, quizTranscription, type QuizResult } from "./quizzes";
 import { ASSIGNMENTS, type AssignmentKey, type SeedAssignment } from "./rubrics";
-import { PENDING_SUBMISSIONS } from "./submissions";
+import { DRAFTED_SUBMISSIONS, PENDING_SUBMISSIONS } from "./submissions";
 
 /** Accounts, classes, and enrollments date from the start of the term. */
 export const TERM_START: DaysAgoAt = { daysAgo: 40, hour: 8, minute: 0 };
@@ -32,6 +35,12 @@ export type SeedPending = {
   content: string;
   fileName: string | null;
   submittedAt: DaysAgoAt;
+};
+
+/** A typed paper the AI first pass drafted, waiting in To review (status NEEDS_REVIEW). */
+export type SeedDraft = SeedPending & {
+  /** When the teacher ran the AI first pass. */
+  aiGradedAt: DaysAgoAt;
 };
 
 /** A past teacher approval: AI draft, teacher's final values, published snapshot. */
@@ -57,10 +66,43 @@ export type SeedPublished = {
 export const PENDING: SeedPending[] = PENDING_SUBMISSIONS.map((submission) => ({
   assignmentKey: submission.assignmentKey,
   studentKey: submission.studentKey,
-  content: PAPERS[submission.paperKey],
+  content: ALL_PAPERS[submission.paperKey],
   fileName: submission.fileName,
   submittedAt: submission.submittedAt,
 }));
+
+export const DRAFTS: SeedDraft[] = DRAFTED_SUBMISSIONS.map((submission) => ({
+  assignmentKey: submission.assignmentKey,
+  studentKey: submission.studentKey,
+  content: ALL_PAPERS[submission.paperKey],
+  fileName: submission.fileName,
+  submittedAt: submission.submittedAt,
+  aiGradedAt: submission.aiGradedAt,
+}));
+
+/**
+ * A waiting paper's AI draft, computed rather than written by hand: what the
+ * demo grader returns for this paper and rubric, validated exactly as
+ * runAiFirstPass validates an essay (validateGrading: quotes checked against
+ * the paper, relevance and injection flags). Deterministic. `criterionIds`
+ * maps each rubric criterion key to the id the draft should use: the database
+ * id in the seed, the key itself in the dataset checks.
+ */
+export function demoDraft(record: SeedDraft, criterionIds: (key: string) => string = (key) => key): ValidatedGrading {
+  const assignment = assignmentByKey(record.assignmentKey);
+  const input = {
+    assignmentTitle: assignment.title,
+    instructions: assignment.instructions,
+    criteria: assignment.criteria.map((criterion) => ({
+      id: criterionIds(criterion.key),
+      title: criterion.title,
+      description: criterion.description,
+      maxPoints: criterion.maxPoints,
+    })),
+    paper: record.content,
+  };
+  return validateGrading(gradeWithDemoHeuristics(input), input);
+}
 
 /** Quiz answers keyed by question (criterion) key, in question order. */
 function quizScores(result: QuizResult): Record<string, HistoryScore> {
@@ -86,7 +128,7 @@ export const PUBLISHED: SeedPublished[] = [
       assignmentKey: entry.assignmentKey,
       studentKey: entry.studentKey,
       source: "TEXT",
-      content: PAPERS[entry.paperKey],
+      content: ALL_PAPERS[entry.paperKey],
       fileName: entry.fileName,
       submittedAt: entry.submittedAt,
       aiGradedAt: entry.aiGradedAt,

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { parseQueueSort } from "@/components/review/queue-sort";
 import { ReviewWorkspace } from "@/components/review/review-workspace";
 import { requireTeacherPage } from "@/lib/auth/session";
 import { getOwnedAssignmentTitle, getReviewQueue } from "@/lib/grades/review";
@@ -21,6 +22,8 @@ export default async function ReviewPage({
   const params = await searchParams;
   const requestedAssignment = single(params.assignment);
   const requestedSubmission = single(params.s);
+  // ?sort=recheck|confidence|oldest, so other pages can link to an order. Anything else: recheck.
+  const sort = parseQueueSort(single(params.sort));
 
   const [items, preferences] = await Promise.all([getReviewQueue(teacher.id), getPreferences(teacher.id)]);
 
@@ -44,6 +47,7 @@ export default async function ReviewPage({
       items={items}
       initialAssignmentId={assignmentId}
       initialSelectedId={selectedId}
+      initialSort={sort}
       filterTitle={assignmentTitle}
       paperSide={preferences.layout.reviewPaperSide}
       singleKeyShortcuts={preferences.singleKeyShortcuts}

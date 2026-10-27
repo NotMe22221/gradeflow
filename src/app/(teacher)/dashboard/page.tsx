@@ -18,6 +18,7 @@ import { requireTeacherPage } from "@/lib/auth/session";
 import { getUpcomingByClass } from "@/lib/classroom/stream";
 import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import { firstName } from "@/lib/format";
+import { getWorthRecheckingCount } from "@/lib/grades/approved-scores";
 import { getMostMissedForTeacher, listBriefStudents } from "@/lib/insights/query";
 import { defaultSectionLayout, SURFACE_SECTIONS } from "@/lib/preferences/schema";
 import { getPreferences } from "@/lib/preferences/server";
@@ -57,13 +58,14 @@ export default async function DashboardPage({
     searchParams,
   ]);
 
-  const [stats, classes, upcoming, recent, ready, review, mostMissed, briefClasses] = await Promise.all([
+  const [stats, classes, upcoming, recent, ready, review, worthRechecking, mostMissed, briefClasses] = await Promise.all([
     getDashboardStats(teacher.id, now),
     getClassSummaries(teacher.id, now),
     getUpcomingByClass(teacher.id, now, 2, timeZone),
     getRecentlyPublished(teacher.id, 5),
     getReadyForAiAssignments(teacher.id, now),
     getReviewQueueAssignments(teacher.id),
+    getWorthRecheckingCount(teacher.id),
     getMostMissedForTeacher(teacher.id, 3),
     listBriefStudents(teacher.id),
   ]);
@@ -139,6 +141,7 @@ export default async function DashboardPage({
             pendingReview={stats.pendingReview}
             readyForAi={stats.readyForAi}
             review={review}
+            worthRechecking={worthRechecking ?? 0}
             ready={ready}
             hasClasses={classes.length > 0}
           />

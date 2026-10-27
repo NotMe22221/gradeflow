@@ -29,14 +29,18 @@ import { DEMO_STUDENT_EMAIL, DEMO_TEACHER_EMAIL } from "../src/lib/constants";
 import { DATABASE_URL, poolSettings, USES_LOCAL_DATABASE } from "../src/lib/db-url";
 import { serializeBreakdown, type BreakdownItem } from "../src/lib/grades/breakdown";
 import { findEvidenceSpan } from "../src/lib/grading/evidence";
+import { isOftenChanged } from "../src/lib/review/recheck";
 import { SAMPLE_TEST_PHOTOS } from "../src/lib/scan/samples";
 import {
   assignmentByKey,
+  demoDraft,
+  DRAFTS,
   PENDING,
   PUBLISHED,
   publishedTotals,
   submissionKey,
   TERM_START,
+  type SeedDraft,
   type SeedPending,
   type SeedPublished,
 } from "./seed-data/dataset";
@@ -44,7 +48,7 @@ import { STUDENT_GOALS, type ActivityRef, type SeedActivity } from "./seed-data/
 import { createClock, type Clock } from "./seed-data/helpers";
 import { CLASSES, DEMO_TEACHER, STUDENTS, type ClassKey, type StudentKey } from "./seed-data/people";
 import { ASSIGNMENTS, type AssignmentKey } from "./seed-data/rubrics";
-import { engagementFor, questionAverage, validateDataset } from "./seed-data/validate";
+import { approvedOverrides, engagementFor, questionAverage, validateDataset } from "./seed-data/validate";
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: DATABASE_URL, ...poolSettings(DATABASE_URL, USES_LOCAL_DATABASE) }),
@@ -206,6 +210,62 @@ async function seedPendingSubmission(tx: Tx, clock: Clock, ids: Ids, submission:
 }
 
 /**
+ * A paper the AI first pass already drafted, waiting in To review: the
+ * submission, AiGrade, and CriterionScore rows shaped exactly as
+ * runAiFirstPass() leaves them for the demo grader (no final scores, no
+ * teacher note). The draft is the demo grader's real, validated output for
+ * this paper (demoDraft), so running the first pass again gives the same one.
+ */
+async function seedDraft(tx: Tx, clock: Clock, ids: Ids, record: SeedDraft) {
+  const assignment = lookup(ids.assignments, record.assignmentKey);
+  const submittedAt = clock.at(record.submittedAt);
+  const aiGradedAt = clock.at(record.aiGradedAt);
+  const criterionIds = new Map(assignment.criteria.map((criterion) => [criterion.key, criterion.id]));
+  const draft = demoDraft(record, (key) => lookup(criterionIds, key));
+
+  const submission = await tx.submission.create({
+    data: {
+      assignmentId: assignment.id,
+      studentId: lookup(ids.students, record.studentKey),
+      content: record.content,
+      fileName: record.fileName,
+      source: "TEXT",
+      submittedAt,
+      status: "NEEDS_REVIEW",
+      teacherFeedback: null,
+      // Finishing the first pass is the submission's last change.
+      updatedAt: aiGradedAt,
+    },
+  });
+  ids.submissions.set(submissionKey(record.assignmentKey, record.studentKey), submission.id);
+
+  await tx.aiGrade.create({
+    data: {
+      submissionId: submission.id,
+      grader: "demo",
+      model: null,
+      confidence: draft.confidence,
+      overallComment: draft.overallComment || null,
+      flags: JSON.stringify(draft.flags),
+      createdAt: aiGradedAt,
+    },
+  });
+
+  await tx.criterionScore.createMany({
+    data: draft.criteria.map((criterion) => ({
+      submissionId: submission.id,
+      criterionId: criterion.criterionId,
+      aiScore: criterion.aiScore,
+      aiJustification: criterion.justification,
+      aiEvidence: criterion.evidence,
+      evidenceFound: criterion.evidenceFound,
+      finalScore: null,
+      finalComment: null,
+    })),
+  });
+}
+
+/**
  * A past teacher approval, recreated: the AI suggestion, the teacher's final
  * values, the approval, and the published snapshot, shaped exactly as
  * approveAndPublish() and publishApprovedGrade() would have left them. For a
@@ -353,6 +413,19 @@ function mostMissed(key: AssignmentKey, limit: number): string {
     .join(", ");
 }
 
+/** Which draft waits in To review and why it is worth rechecking, e.g. the "Textual evidence" score changed on 3 of 4 papers. */
+function recheckStory(draft: SeedDraft): string {
+  const assignment = assignmentByKey(draft.assignmentKey);
+  const student = STUDENTS.find((candidate) => candidate.key === draft.studentKey);
+  const overrides = approvedOverrides(draft.assignmentKey);
+  const changed = assignment.criteria.flatMap((criterion) => {
+    const override = overrides[criterion.key];
+    return isOftenChanged(override) ? [`"${criterion.title}" score on ${override.changed} of ${override.papers} approved papers`] : [];
+  });
+  const why = changed.length > 0 ? `you changed the demo grader's ${changed.join(" and ")}` : "no score of it is often changed yet";
+  return `${student?.name ?? draft.studentKey}'s "${assignment.title}" waits in To review; ${why}.`;
+}
+
 async function printSummary(clock: Clock, activities: SeedActivity[]) {
   const [
     teachers,
@@ -362,6 +435,7 @@ async function printSummary(clock: Clock, activities: SeedActivity[]) {
     tests,
     criteria,
     waiting,
+    inReview,
     published,
     scanned,
     publishedGrades,
@@ -376,6 +450,7 @@ async function printSummary(clock: Clock, activities: SeedActivity[]) {
     prisma.assignment.count({ where: { kind: "TEST" } }),
     prisma.rubricCriterion.count(),
     prisma.submission.count({ where: { status: "SUBMITTED" } }),
+    prisma.submission.count({ where: { status: "NEEDS_REVIEW" } }),
     prisma.submission.count({ where: { status: "PUBLISHED" } }),
     prisma.submission.count({ where: { source: "SCAN" } }),
     prisma.publishedGrade.count(),
@@ -402,12 +477,13 @@ async function printSummary(clock: Clock, activities: SeedActivity[]) {
       `  ${teachers} teacher: ${DEMO_TEACHER.name} <${DEMO_TEACHER_EMAIL}>`,
       `  ${students} students in ${classCount} classes (demo student: ${DEMO_STUDENT_EMAIL})`,
       `  ${essays + tests} assignments (${essays} essays, ${tests} paper quizzes) with ${criteria} rubric criteria`,
-      `  ${waiting + published} submissions: ${waiting} waiting for the AI first pass, ${published} published (${scanned} scanned quizzes; ${publishedGrades} grades in the gradebook)`,
+      `  ${waiting + inReview + published} submissions: ${waiting} waiting for the AI first pass, ${inReview} drafted and waiting in To review, ${published} published (${scanned} scanned quizzes; ${publishedGrades} grades in the gradebook)`,
       `  ${images} stored photos, ${activityCount} XP events, ${goals} saved goal${goals === 1 ? "" : "s"}`,
       "",
       "Demo flows:",
       `  Paper Scanner: "${unit3.title}" (Environmental Science) has no submissions.`,
       ...samples.map((sample) => `    Scan ${sample.src.replace(/^\//, "public/")} for ${sample.studentName}.`),
+      ...DRAFTS.map((draft) => `  Worth rechecking: ${recheckStory(draft)}`),
       `  Class heatmap: Grammar and Vocabulary Quiz 1 most missed ${mostMissed("grammarQuiz1", 2)}; Water Cycle quiz ${mostMissed("waterCycleQuiz", 1)}.`,
       `  Student view: ${ava.name}: ${describe(ava.key)}.`,
       `  Goal planner: ${goalStudent?.name ?? goal.studentKey} has a saved goal ("${goal.rawText}", ${goal.targetLabel} = ${goal.targetPercent}%): ${describe(goal.studentKey)}.`,
@@ -441,6 +517,7 @@ async function seed(): Promise<boolean> {
         submissions: new Map(),
       };
       for (const submission of PENDING) await seedPendingSubmission(tx, clock, ids, submission);
+      for (const record of DRAFTS) await seedDraft(tx, clock, ids, record);
       for (const record of PUBLISHED) await seedPublished(tx, clock, ids, record);
       await seedActivities(tx, ids, activities);
       await seedGoals(tx, clock, ids);

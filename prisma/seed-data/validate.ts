@@ -14,14 +14,18 @@ import {
   type StreakInfo,
 } from "../../src/lib/gamification/rules";
 import { letterToPercent } from "../../src/lib/goals/plan";
+import { isOftenChanged, summarizeOverrides, type CriterionOverride } from "../../src/lib/review/recheck";
 import { SAMPLE_TEST_PHOTOS } from "../../src/lib/scan/samples";
 import {
   assignmentByKey,
+  demoDraft,
+  DRAFTS,
   PENDING,
   PUBLISHED,
   publishedTotals,
   submissionKey,
   TERM_START,
+  type SeedDraft,
   type SeedPublished,
 } from "./dataset";
 import { buildActivities, STUDENT_GOALS, type SeedActivity } from "./engagement";
@@ -55,6 +59,24 @@ export function questionAverage(assignmentKey: AssignmentKey, criterionKey: stri
   return (earned / (criterion.maxPoints * records.length)) * 100;
 }
 
+/**
+ * How often the teacher changed the demo grader's score on each criterion of
+ * an assignment's approved papers, keyed by criterion key: what To review's
+ * "you changed ... score" reason and the "AI vs your grades" card read.
+ */
+export function approvedOverrides(assignmentKey: AssignmentKey): Record<string, CriterionOverride> {
+  const rows = PUBLISHED.filter((record) => record.assignmentKey === assignmentKey).flatMap((record) =>
+    Object.entries(record.scores).map(([criterionId, score]) => ({
+      assignmentId: assignmentKey,
+      grader: "demo" as const,
+      criterionId,
+      aiScore: score.aiScore,
+      finalScore: score.finalScore,
+    }))
+  );
+  return summarizeOverrides(rows)[assignmentKey]?.demo ?? {};
+}
+
 export type EngagementSnapshot = { xp: number; level: number; streak: StreakInfo; lastActive: Date | null };
 
 /** What the student dashboard will show for a student, from the planned XP rows. */
@@ -72,7 +94,7 @@ export function engagementFor(activities: SeedActivity[], studentKey: StudentKey
 
 function checkSubmissions(problems: string[]) {
   const seen = new Set<string>();
-  for (const submission of [...PENDING, ...PUBLISHED]) {
+  for (const submission of [...PENDING, ...DRAFTS, ...PUBLISHED]) {
     const assignment = assignmentByKey(submission.assignmentKey);
     const pair = submissionKey(submission.assignmentKey, submission.studentKey);
     if (seen.has(pair)) problems.push(`${pair}: duplicate submission.`);
@@ -147,6 +169,22 @@ function checkPublished(problems: string[], clock: Clock, record: SeedPublished)
   }
 }
 
+/** A waiting draft must be one the demo grader really returns for an essay. */
+function checkDraft(problems: string[], clock: Clock, record: SeedDraft) {
+  const pair = submissionKey(record.assignmentKey, record.studentKey);
+  const assignment = assignmentByKey(record.assignmentKey);
+  if (assignment.kind !== "ESSAY") problems.push(`${pair}: a typed draft belongs to an ESSAY assignment.`);
+  if (clock.at(record.submittedAt).getTime() > clock.at(record.aiGradedAt).getTime()) {
+    problems.push(`${pair}: expected submitted <= AI graded.`);
+  }
+  if (record.aiGradedAt.daysAgo < 1) problems.push(`${pair}: aiGradedAt must be at least a day ago.`);
+  const draft = demoDraft(record);
+  const keys = assignment.criteria.map((criterion) => criterion.key);
+  if (draft.criteria.map((criterion) => criterion.criterionId).join(",") !== keys.join(",")) {
+    problems.push(`${pair}: the draft does not score every rubric criterion in order.`);
+  }
+}
+
 function checkAssignments(problems: string[]) {
   for (const assignment of ASSIGNMENTS) {
     if (!(sum(assignment.criteria.map((criterion) => criterion.maxPoints)) > 0)) {
@@ -183,7 +221,8 @@ function checkStory(problems: string[]) {
     if (actual.join(",") !== points.join(",")) problems.push(`${key}: expected points ${points.join(", ")}, got ${actual.join(", ")}.`);
     if (assignment.dueInDays !== dueInDays) problems.push(`${key}: expected a due date ${dueInDays} days from today.`);
   };
-  const submissionsFor = (key: AssignmentKey) => [...PENDING, ...PUBLISHED].filter((record) => record.assignmentKey === key);
+  const submissionsFor = (key: AssignmentKey) =>
+    [...PENDING, ...DRAFTS, ...PUBLISHED].filter((record) => record.assignmentKey === key);
   const expectPublishedForRoster = (key: AssignmentKey) => {
     const roster = rosterOf(assignmentByKey(key).classKey);
     const graded = PUBLISHED.filter((record) => record.assignmentKey === key).map((record) => record.studentKey);
@@ -206,6 +245,32 @@ function checkStory(problems: string[]) {
   // English 10: an upcoming essay for the goal planner (30 points, no submissions).
   expectShape("finalPortfolio", "ESSAY", [12, 10, 8], 14);
   if (submissionsFor("finalPortfolio").length > 0) problems.push("finalPortfolio: should have no submissions.");
+
+  // English 10: "Worth rechecking". The teacher changed the demo grader's
+  // "Textual evidence" score on most approved literary analyses, and Milo's
+  // draft has a score for it, so To review says it is worth rechecking
+  // (recheckFor's OFTEN_CHANGED rule) and the assignment's "AI vs your
+  // grades" card marks the criterion "Often changed".
+  expectShape("lanternKeeper", "ESSAY", [6, 5, 4], -6);
+  const overrides = approvedOverrides("lanternKeeper");
+  const evidence = overrides.evidence;
+  if (!isOftenChanged(evidence) || evidence.papers < 4) {
+    problems.push(
+      `lanternKeeper/evidence: expected the score changed on most of at least 4 approved papers, got ${evidence?.changed ?? 0} of ${evidence?.papers ?? 0}.`
+    );
+  }
+  const oftenChanged = Object.entries(overrides).filter(([, override]) => isOftenChanged(override));
+  if (oftenChanged.length !== 1) {
+    problems.push(`lanternKeeper: only "evidence" should be often changed, got ${oftenChanged.map(([key]) => key).join(", ") || "none"}.`);
+  }
+  const lanternDrafts = DRAFTS.filter((record) => record.assignmentKey === "lanternKeeper");
+  if (lanternDrafts.length !== 1) problems.push(`lanternKeeper: expected one draft waiting in To review, got ${lanternDrafts.length}.`);
+  for (const record of lanternDrafts) {
+    const draft = demoDraft(record);
+    if (draft.criteria.find((criterion) => criterion.criterionId === "evidence")?.aiScore == null) {
+      problems.push(`${submissionKey(record.assignmentKey, record.studentKey)}: the draft needs an AI "evidence" score.`);
+    }
+  }
 
   // Environmental Science: Q4 is the most missed question (15 points).
   expectShape("waterCycleQuiz", "TEST", [2, 2, 2, 3, 3, 3], -12);
@@ -248,7 +313,9 @@ function checkStory(problems: string[]) {
 function checkEngagement(problems: string[], clock: Clock, activities: SeedActivity[]) {
   const termStart = clock.at(TERM_START).getTime();
   const seenOncePerDay = new Set<string>();
-  const submissions = new Set([...PENDING, ...PUBLISHED].map((record) => submissionKey(record.assignmentKey, record.studentKey)));
+  const submissions = new Set(
+    [...PENDING, ...DRAFTS, ...PUBLISHED].map((record) => submissionKey(record.assignmentKey, record.studentKey))
+  );
 
   for (const activity of activities) {
     const label = `${activity.studentKey}/${activity.kind}@${activity.at.toISOString()}`;
@@ -320,6 +387,7 @@ function checkEngagement(problems: string[], clock: Clock, activities: SeedActiv
 export function validateDataset(clock: Clock): SeedActivity[] {
   const problems: string[] = [];
   checkSubmissions(problems);
+  for (const record of DRAFTS) checkDraft(problems, clock, record);
   for (const record of PUBLISHED) checkPublished(problems, clock, record);
   checkAssignments(problems);
   checkStory(problems);

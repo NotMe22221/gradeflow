@@ -23,7 +23,7 @@ import {
   XP_RULES,
   type ActivityKind,
 } from "../../src/lib/gamification/rules";
-import { assignmentByKey, PENDING, PUBLISHED, publishedTotals } from "./dataset";
+import { assignmentByKey, DRAFTS, PENDING, PUBLISHED, publishedTotals } from "./dataset";
 import type { Clock, DaysAgoAt } from "./helpers";
 import { CLASSES, STUDENTS, type ClassKey, type StudentKey } from "./people";
 import { ASSIGNMENTS, type AssignmentKey, type SeedAssignment } from "./rubrics";
@@ -95,7 +95,7 @@ function classesOf(studentKey: StudentKey): ClassKey[] {
 
 /** Days ago the student turned in a typed paper for this assignment, or null. */
 function typedSubmissionDay(assignmentKey: AssignmentKey, studentKey: StudentKey): number | null {
-  const typed = [...PENDING, ...PUBLISHED.filter((record) => record.source === "TEXT")].find(
+  const typed = [...PENDING, ...DRAFTS, ...PUBLISHED.filter((record) => record.source === "TEXT")].find(
     (record) => record.assignmentKey === assignmentKey && record.studentKey === studentKey
   );
   return typed ? typed.submittedAt.daysAgo : null;
@@ -165,7 +165,7 @@ export function buildActivities(clock: Clock): SeedActivity[] {
   const activities: SeedActivity[] = [];
 
   // Typed submissions earn SUBMIT, plus ON_TIME before the end of the due day.
-  for (const record of [...PENDING, ...PUBLISHED.filter((entry) => entry.source === "TEXT")]) {
+  for (const record of [...PENDING, ...DRAFTS, ...PUBLISHED.filter((entry) => entry.source === "TEXT")]) {
     const assignment = assignmentByKey(record.assignmentKey);
     const at = clock.at(record.submittedAt);
     const onTime = !isPastDue(clock.dueInDays(assignment.dueInDays), at);

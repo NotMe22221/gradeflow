@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CriterionCard } from "@/components/review/criterion-card";
+import { RecheckCallout } from "@/components/review/recheck-callout";
 import { firstName, formatPoints, pluralize } from "@/lib/format";
 import { describeFlag } from "@/lib/grading/flags";
 import { isScanned, paperNounFor } from "@/lib/review/media";
@@ -25,10 +26,11 @@ import { cn } from "@/lib/utils";
 
 /**
  * The grade panel, like the grading side of Classroom's grading tool: the big
- * grade with the suggested score beside it, a one-line demo note and any
- * flags, then one row per rubric criterion (or test question) with its score
- * field, evidence, and feedback, then the overall note with the grader's
- * draft feedback above it. The action footer is pinned below on desktop.
+ * grade with the suggested score beside it, a one-line demo note, the "Worth
+ * rechecking" summary and any flags, then one row per rubric criterion (or
+ * test question) with its score field, evidence, and feedback, then the
+ * overall note with the grader's draft feedback above it. The action footer
+ * is pinned below on desktop.
  */
 export function RubricPane({
   item,
@@ -38,6 +40,7 @@ export function RubricPane({
   onDraftChange,
   onShowEvidence,
   onShowFlagged,
+  onGoToCriterion,
   footer,
   className,
 }: {
@@ -49,6 +52,8 @@ export function RubricPane({
   onShowEvidence: (criterionId: string) => void;
   /** Scroll the paper to the first passage addressed to the grader. */
   onShowFlagged: () => void;
+  /** Scroll to a criterion's card and focus its score field (the "Worth rechecking" links). */
+  onGoToCriterion: (criterionId: string) => void;
   /** Desktop action footer, pinned below the scrolling grade panel. */
   footer?: React.ReactNode;
   className?: string;
@@ -71,6 +76,8 @@ export function RubricPane({
   const paperNoun = paperNounFor(item);
   // A handwritten test is scored by question, an essay by rubric criterion.
   const unit = kind === "TEST" ? { one: "question", many: "questions" } : { one: "criterion", many: "criteria" };
+  // The callout says "no suggested score on file" itself; don't say it twice.
+  const recheckSaysNoDraft = item.recheck?.reasons.some((reason) => reason.code === "NO_AI_DRAFT") ?? false;
 
   const updateCriterion = (criterionId: string, patch: Partial<ItemDraft["scores"][string]>) =>
     onDraftChange((current) => ({
@@ -141,7 +148,16 @@ export function RubricPane({
             </p>
           ) : null}
 
-          {!ai ? (
+          {/* The summary first, then the flags it summarizes (which keep their full wording). */}
+          <RecheckCallout
+            item={item}
+            demo={demo}
+            unit={unit}
+            flagsBelow={(ai?.flags.length ?? 0) > 0}
+            onGoToCriterion={onGoToCriterion}
+          />
+
+          {!ai && !recheckSaysNoDraft ? (
             <div className="flex gap-3 rounded-xl bg-secondary p-4 text-[0.875rem] leading-relaxed text-secondary-foreground">
               <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
               <p>There is no suggested score on file for this paper. Score each {unit.one} yourself.</p>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
+import { AiAgreementCard } from "@/components/assignments/ai-agreement-card";
 import { AssignmentActions } from "@/components/assignments/assignment-actions";
 import { AssignmentBreadcrumbs, ClassAccentBar } from "@/components/assignments/assignment-breadcrumbs";
 import { AssignmentTabs, type AssignmentTab } from "@/components/assignments/assignment-tabs";
@@ -28,6 +29,7 @@ import {
 } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { formatDateTime, formatDueDate, formatRelative, pluralize, wordCount } from "@/lib/format";
+import { getAssignmentAgreement } from "@/lib/grades/approved-scores";
 import { getGraderInfo, type GraderInfo } from "@/lib/grading/config";
 import { describeFlag, parseFlags, type FlagCriterion } from "@/lib/grading/flags";
 import { parseSubmissionSource } from "@/lib/review/media";
@@ -81,7 +83,7 @@ export default async function AssignmentPage({ params, searchParams }: { params:
   const kind = parseAssignmentKind(assignment.kind);
   const test = kind === "TEST";
 
-  const [submissions, enrollments] = await Promise.all([
+  const [submissions, enrollments, agreement] = await Promise.all([
     db.submission.findMany({
       where: { assignmentId: assignment.id },
       select: {
@@ -103,6 +105,8 @@ export default async function AssignmentPage({ params, searchParams }: { params:
       orderBy: { student: { name: "asc" } },
       select: { student: { select: { id: true, name: true } } },
     }),
+    // "AI vs your grades": stored AI scores against approved ones. Null (no card) if it can't load.
+    getAssignmentAgreement(assignment.class.teacherId, assignment),
   ]);
 
   const now = new Date();
@@ -206,6 +210,15 @@ export default async function AssignmentPage({ params, searchParams }: { params:
                 hasRoster={roster.length > 0}
                 pastDue={isPastDueDay(assignment.dueDate, now, timeZone)}
               />
+              {agreement ? (
+                <AiAgreementCard
+                  assignmentId={assignment.id}
+                  agreement={agreement.agreement}
+                  queued={agreement.queued}
+                  worthRechecking={agreement.worthRechecking}
+                  isTest={test}
+                />
+              ) : null}
             </div>
           }
           instructions={

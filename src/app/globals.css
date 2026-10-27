@@ -2,6 +2,20 @@
 @import "tw-animate-css";
 
 /*
+ * Class names come from the app's code only. Tailwind otherwise scans every
+ * file it isn't told to skip, and a wildcard class written in a doc or a test
+ * (an arbitrary property whose value holds "*") becomes invalid CSS that fails
+ * the stylesheet. tests/docs.test.ts keeps this list and checks what is left.
+ */
+@source not "../../docs";
+@source not "../../tests";
+@source not "../../eval";
+@source not "../../scripts";
+@source not "../../prisma";
+@source not "../../public";
+@source not "../../README.md";
+
+/*
  * Markwise design tokens, in the style of Google Classroom (Material 3).
  *
  * HOW THEMING WORKS

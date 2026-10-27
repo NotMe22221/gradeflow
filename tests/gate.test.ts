@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { registerHooks } from "node:module";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 
 // The approval gate: the AI only drafts, a teacher must approve, and students
@@ -176,4 +176,48 @@ describe("the gate's boundaries", () => {
     const rubric = code(join(ROOT, "src", "components", "student", "assignment-rubric.tsx"));
     assert.match(rubric, /\{!questions && item\.description \?/);
   });
+
+  it("keeps the recheck reasons and the AI-vs-your-grades numbers off every student surface", () => {
+    const studentFiles = src.filter((path) => /src\/app\/\(student\)\/|src\/components\/student\//.test(path));
+    assert.ok(studentFiles.length > 10);
+    for (const path of studentFiles) {
+      assert.doesNotMatch(code(path), /review\/(?:recheck|agreement)|approved-scores|ai-agreement|recheck-callout/, relative(path));
+      assert.doesNotMatch(readFileSync(path, "utf8"), /recheck/i, relative(path));
+    }
+    // Nor through anything they import at run time (type-only imports are erased).
+    const reached = runtimeImportClosure(studentFiles);
+    assert.ok(reached.has(join(ROOT, "src", "components", "app-shell", "app-shell.tsx")), "the walker follows imports");
+    const teacherOnly = [...reached].filter((path) =>
+      /src\/lib\/review\/(?:recheck|agreement)\.ts$|src\/lib\/grades\/(?:approved-scores|review)\.ts$|src\/components\/review\/recheck-callout\.tsx$|src\/components\/assignments\/ai-agreement-card\.tsx$/.test(path)
+    );
+    assert.deepEqual(teacherOnly.map(relative), []);
+  });
 });
+
+/** Every project file reachable from `entries` through runtime imports ("@/..." and relative). */
+function runtimeImportClosure(entries: string[]): Set<string> {
+  const seen = new Set<string>();
+  const queue = [...entries];
+  const resolveImport = (from: string, specifier: string): string | null => {
+    const base = specifier.startsWith("@/")
+      ? join(ROOT, "src", specifier.slice(2))
+      : specifier.startsWith(".")
+        ? join(dirname(from), specifier)
+        : null;
+    if (!base) return null;
+    const candidates = [base, `${base}.ts`, `${base}.tsx`, join(base, "index.ts"), join(base, "index.tsx")];
+    return candidates.find((path) => existsSync(path) && statSync(path).isFile()) ?? null;
+  };
+  const importRe = /(?:^|[;\n])\s*(?:import|export)\s+(type\s+)?(?:[^"';]*?\sfrom\s+)?["']([^"']+)["']|import\(\s*["']([^"']+)["']\s*\)/g;
+  while (queue.length > 0) {
+    const path = queue.pop() as string;
+    if (seen.has(path)) continue;
+    seen.add(path);
+    for (const match of code(path).matchAll(importRe)) {
+      if (match[1]) continue;
+      const target = resolveImport(path, match[2] ?? match[3]);
+      if (target && !seen.has(target)) queue.push(target);
+    }
+  }
+  return seen;
+}

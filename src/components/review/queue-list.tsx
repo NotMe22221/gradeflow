@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Flag } from "@/components/icons";
+import { Flag, ScanSearch } from "@/components/icons";
 
 import { Avatar } from "@/components/ui/avatar";
 import type { Confidence } from "@/lib/constants";
+import { pluralize } from "@/lib/format";
 import { hasFlags } from "@/lib/review/model";
 import type { ReviewItem } from "@/lib/review/types";
 import { cn } from "@/lib/utils";
@@ -44,10 +45,43 @@ export function ConfidenceMeter({ confidence, className }: { confidence: Confide
 }
 
 /**
+ * A quiet "worth rechecking" marker: a document-search icon and the number of
+ * reasons, so it reads without color. The name says what it is (and how many
+ * flags, when it stands in for the flag icon); the reasons themselves are in
+ * the grade panel (lib/review/recheck.ts, stored data only).
+ */
+export function RecheckMarker({
+  reasons,
+  flags = 0,
+  className,
+}: {
+  reasons: number;
+  /** Validation flags on the draft, named too because the marker replaces the flag icon. */
+  flags?: number;
+  className?: string;
+}) {
+  const label = `Worth rechecking: ${pluralize(reasons, "reason")}${
+    flags > 0 ? `, ${pluralize(flags, "flag")} to check` : ""
+  }`;
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      title={label}
+      className={cn("tabular inline-flex items-center gap-0.5 text-[0.75rem] leading-none font-medium", className)}
+    >
+      <ScanSearch className="size-4" aria-hidden />
+      <span aria-hidden>{reasons}</span>
+    </span>
+  );
+}
+
+/**
  * The grading list, as in Classroom's grading tool: one row per paper with
- * the student's avatar, name, assignment, the working draft grade, and the
- * confidence meter and flag icon. Used in the wide-screen rail and in the
- * student switcher's popover. Rows tighten with the compact density.
+ * the student's avatar, name, assignment, the working draft grade, the
+ * "worth rechecking" marker, and the confidence meter and flag icon. Used in
+ * the wide-screen rail and in the student switcher's popover. Rows tighten
+ * with the compact density.
  */
 export function QueueList({
   items,
@@ -88,6 +122,7 @@ export function QueueList({
         const active = item.id === currentId;
         const flagged = hasFlags(item);
         const flagCount = item.ai?.flags.length ?? 0;
+        const recheck = item.recheck?.worth ? item.recheck.reasons.length : 0;
         const total = totals?.get(item.id);
         return (
           <li key={item.id}>
@@ -134,7 +169,14 @@ export function QueueList({
                   </span>
                 ) : null}
                 <span className="flex items-center gap-1.5">
-                  {flagged ? (
+                  {/* The marker stands in for the flag icon: most reasons are flags, and the rail is narrow. */}
+                  {recheck > 0 ? (
+                    <RecheckMarker
+                      reasons={recheck}
+                      flags={flagCount}
+                      className={active ? "text-primary-soft-foreground" : "text-foreground"}
+                    />
+                  ) : flagged ? (
                     <Flag
                       role="img"
                       className={cn("size-4", active ? "text-primary-soft-foreground" : "text-warning-soft-foreground")}

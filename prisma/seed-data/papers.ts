@@ -92,6 +92,44 @@ const sashaLanternKeeper = paper(
   `In conclusion the lantern is a symbol of hope in The Lantern Keeper. Wren keeps it lit even when things are hard which shows that you should never give up hope even when bad things happen.`
 );
 
+/**
+ * Literary analysis, weak (~250 words): three accurate quotations strung
+ * together with almost no explanation. Published history.
+ */
+const priyaLanternKeeper = paper(
+  `The Lantern Keeper by Elsa Marrow is about Wren Calloway and the lighthouse on Gull Point, and I think the lantern is the most important symbol because it shows how Wren feels about her dad.`,
+  `There are a lot of quotes that show this. Her father "had kept the light for thirty-one years, and it had never once gone dark." Also the storm "arrived the way grief had, a little at a time, until it was everywhere." And at the end she writes "Keeper on duty: Wren Calloway" in the logbook. These quotes show that the lantern and the storm and the logbook are all really important in the story.`,
+  `I think the lantern means love because her dad took care of it for so long and then Wren takes care of it after he dies. She climbs up every night even when she is tired and the storm is really bad, so she must really love him and the light. Basically the lantern is a way to remember him and keep him close.`,
+  `The theme of the story is that you should keep going even when something sad happens to you. Wren is sad but she still does her job every night and all the boats get home safe. In conclusion the lantern is a symbol of love and remembering people, and that is what the story is about.`
+);
+
+/**
+ * Literary analysis, mediocre (~290 words): a sensible reading of the storm,
+ * but the first quotation is misremembered and the second is barely
+ * explained. Published history.
+ */
+const theoLanternKeeper = paper(
+  `In "The Lantern Keeper" by Elsa Marrow, the storm is the most important symbol. The storm stands for all the problems Wren has to face after her father dies, and the story shows that you have to face your problems instead of hiding from them.`,
+  `At the start, Wren's life at the lighthouse on Gull Point is calm. Her father "kept the light for thirty years and it never went out." This shows that the lighthouse was safe and nothing bad happened while he was in charge. When he dies, everything changes and the storm shows up right after the funeral.`,
+  `The storm lasts for three days and it is very dangerous. The fishing boats are still out at sea and they need the light to find the harbor. Marrow writes that the storm "arrived the way grief had, a little at a time, until it was everywhere." This shows the storm is really bad. Wren has to climb the tower every night even though she is scared, and she has to keep the lantern lit by herself.`,
+  `The storm also shows that Wren is brave. A lot of people would give up if they were alone in a storm like that, but Wren does not give up. She keeps writing in the logbook every night too, so the next keeper will know what happened.`,
+  `In the end the storm stops and all the boats make it back to the harbor. This shows that if you face your problems instead of running away, they will eventually pass. The storm is a symbol of problems, and Wren beats it by being brave.`
+);
+
+/**
+ * Literary analysis, solid but uneven (~330 words): a good reading of the
+ * logbook, one quotation explained well, one dropped in without comment, and
+ * a few slips. Turned in late; the AI draft waits in To review.
+ */
+const miloLanternKeeper = paper(
+  `In The Lantern Keeper by Elsa Marrow, Wren Calloway has to take over the lighthouse on Gull Point after her father dies. I think the logbook is the most important symbol in the story because it shows Wren growing up and becoming the keeper herself instead of just helping her dad.`,
+  `For most of the story Wren writes the entries in the logbook under her fathers name. She is doing all the work during the storm but she still doesnt think of herself as the real keeper. It is like she is only borrowing his job until somebody else comes to take it from her.`,
+  `The storm matters too. Marrow says the storm "arrived the way grief had, a little at a time, until it was everywhere." I think this means the storm is like Wren's sadness, because it doesn't go away and it is all around her. Every night she has to climb the tower in the wind and rain, and that is alot like how she has to keep going with her life even though she is sad.`,
+  `At the end of the story the boats make it home and Wren finally writes "Keeper on duty: Wren Calloway" in the logbook. This is the most important moment in the whole story.`,
+  `The lantern also shows how much Wren loves her dad. He "had kept the light for thirty-one years, and it had never once gone dark," so when she keeps it lit through the storm she is keeping his promise for him.`,
+  `In conclusion, the logbook shows that Wren grows up and becomes her own person. The theme is that when you lose someone, you can carry on what they started and make it your own.`
+);
+
 export const PAPERS = {
   avaFourDayWeek,
   miloFourDayWeek,
@@ -103,4 +141,18 @@ export const PAPERS = {
   sashaLanternKeeper,
 } as const;
 
-export type PaperKey = keyof typeof PAPERS;
+/**
+ * The "Worth rechecking" story on the literary analysis: Priya's and Theo's
+ * approved papers (where the teacher lowered the AI's "Textual evidence"
+ * score) and Milo's draft waiting in To review.
+ */
+export const RECHECK_PAPERS = {
+  priyaLanternKeeper,
+  theoLanternKeeper,
+  miloLanternKeeper,
+} as const;
+
+/** Every seeded paper, by key. */
+export const ALL_PAPERS = { ...PAPERS, ...RECHECK_PAPERS } as const;
+
+export type PaperKey = keyof typeof ALL_PAPERS;

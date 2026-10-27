@@ -65,3 +65,28 @@ export const PENDING_SUBMISSIONS: SeedSubmission[] = [
     fileName: null,
   },
 ];
+
+/** A paper the AI first pass already drafted: it waits in To review (status NEEDS_REVIEW). */
+export type SeedDraftedSubmission = SeedSubmission & {
+  /** When the teacher ran the AI first pass on it. */
+  aiGradedAt: DaysAgoAt;
+};
+
+/**
+ * Drafted by the demo grader and waiting in To review, so "Worth rechecking"
+ * has something to point at on first load. Milo turned the literary analysis
+ * in three days late, after the first pass on the rest of the class. On the
+ * four approved papers of that assignment the teacher changed the AI's
+ * "Textual evidence" score on three (see history.ts), so To review says so
+ * next to his draft.
+ */
+export const DRAFTED_SUBMISSIONS: SeedDraftedSubmission[] = [
+  {
+    assignmentKey: "lanternKeeper",
+    studentKey: "milo",
+    paperKey: "miloLanternKeeper",
+    submittedAt: { daysAgo: 3, hour: 17, minute: 5 },
+    fileName: null,
+    aiGradedAt: { daysAgo: 1, hour: 7, minute: 20 },
+  },
+];

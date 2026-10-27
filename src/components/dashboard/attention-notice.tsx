@@ -8,6 +8,8 @@ import type { WaitingAssignment } from "@/lib/stats";
 import { cn } from "@/lib/utils";
 
 const LISTED = 3;
+const LINK =
+  "rounded-sm text-primary underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring";
 
 function assignmentHref(id: string): string {
   return `/assignments/${encodeURIComponent(id)}`;
@@ -27,10 +29,7 @@ function AssignmentLinks({ items, href }: { items: WaitingAssignment[]; href: (i
       {listed.map((item, index) => (
         <Fragment key={item.id}>
           {index > 0 ? (index === listed.length - 1 && more === 0 ? " and " : ", ") : null}
-          <Link
-            href={href(item)}
-            className="rounded-sm text-primary underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
-          >
+          <Link href={href(item)} className={LINK}>
             {item.title}
           </Link>{" "}
           <span className="tabular">({item.count})</span>
@@ -45,12 +44,14 @@ function AssignmentLinks({ items, href }: { items: WaitingAssignment[]; href: (i
  * "What needs me?" in one line, above Home's sections: drafts waiting in To
  * review (the one filled button on the page opens them), else papers ready
  * for an AI first pass, else a calm all-clear. Counts come from the same
- * queries as the review badge and the class cards.
+ * queries as the review badge and the class cards; the "worth rechecking"
+ * count uses To review's own rule (getWorthRecheckingCount).
  */
 export function AttentionNotice({
   pendingReview,
   readyForAi,
   review,
+  worthRechecking = 0,
   ready,
   hasClasses,
   className,
@@ -59,6 +60,8 @@ export function AttentionNotice({
   readyForAi: number;
   /** Assignments with drafts in To review, most papers first. */
   review: WaitingAssignment[];
+  /** Drafts in To review worth rechecking (lib/review/recheck.ts), as To review counts them. */
+  worthRechecking?: number;
   /** Assignments with papers ready for an AI first pass, most papers first. */
   ready: WaitingAssignment[];
   hasClasses: boolean;
@@ -84,6 +87,14 @@ export function AttentionNotice({
           </>
         ) : null}
         Nothing reaches students until you approve it.
+        {worthRechecking > 0 ? (
+          <span className="mt-1 block">
+            <Link href="/review?sort=recheck" className={LINK}>
+              {pluralize(worthRechecking, "draft")} {worthRechecking === 1 ? "is" : "are"} worth rechecking
+            </Link>{" "}
+            before you approve {worthRechecking === 1 ? "it" : "them"}.
+          </span>
+        ) : null}
         {readyForAi > 0 ? (
           <span className="mt-1 block">
             Also ready for an AI first pass: <AssignmentLinks items={ready} href={(item) => assignmentHref(item.id)} />.
