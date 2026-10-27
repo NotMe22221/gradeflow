@@ -18,9 +18,10 @@ import { SCAN_PHOTOS_TOO_LARGE_MESSAGE } from "@/lib/scan/images";
 import type { ScanErrorCode, ScanGradeFailure, ScanGradeSuccess } from "@/lib/scan/types";
 
 export const dynamic = "force-dynamic";
-// GPT-4o vision usually takes 10-30 seconds per test. The OpenAI call is
-// capped at 110 seconds, retries included (OPENAI_BUDGETS.vision), so the
-// route always answers with JSON before this limit.
+// Reading a test usually takes 10-30 seconds. The vision call (GPT-4o or
+// Claude) is capped at 110 seconds, retries included (OPENAI_BUDGETS.vision,
+// CLAUDE_TASK_BUDGETS.vision), so the route always answers with JSON before
+// this limit.
 export const maxDuration = 120;
 
 function errorResponse(error: string, status: number, code?: ScanErrorCode) {
@@ -35,7 +36,7 @@ function errorResponse(error: string, status: number, code?: ScanErrorCode) {
  *
  * The graded draft lands in the review queue as NEEDS_REVIEW. Nothing is
  * published from here: publishing needs an explicit teacher approval. The
- * live GPT-4o call goes through the usage caps (lib/ai/guard.ts): past one,
+ * live vision call goes through the usage caps (lib/ai/guard.ts): past one,
  * the route answers 429 with the reason and Retry-After.
  */
 export async function POST(request: Request) {

@@ -29,7 +29,7 @@ type PlanResult = { plan: GoalPlanView; engine: GoalEngine | null; model: string
 const EXAMPLES = ["I need an A", "At least a B+", "Just pass"];
 
 /**
- * Goal planner. The student types a goal; the server reads it (gpt-4o-mini,
+ * Goal planner. The student types a goal; the server reads it (gpt-4o-mini or Claude,
  * or the labelled demo parser) and code computes the exact score needed on
  * each remaining assignment from their teacher-approved grades. The badge
  * beside the examples says which engine reads the goal.

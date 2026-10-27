@@ -397,7 +397,7 @@ export function SubmissionsTable({
 }: {
   classId: string;
   kind?: AssignmentKind;
-  /** The camera grader that reads scanned tests (GPT-4o, or the demo scanner). */
+  /** The camera grader that reads scanned tests (GPT-4o or Claude, or the demo scanner). */
   scanGrader?: GraderInfo | null;
   notSubmitted: RosterStudent[];
   eligibleStudents: EligibleStudent[];
@@ -519,8 +519,8 @@ export function SubmissionsTable({
         <div className="flex flex-col gap-4 border-t border-border bg-secondary/60 px-4 py-5 sm:flex-row sm:items-center sm:justify-between md:px-6">
           <p className="max-w-xl text-sm text-pretty text-foreground">
             {test
-              ? firstPass.kind === "openai"
-                ? "No tests scanned yet. Photograph each student's test: GPT-4o reads the handwriting and drafts scores against your answer key for your review."
+              ? firstPass.kind !== "demo"
+                ? `No tests scanned yet. Photograph each student's test: ${GRADER_LABELS[firstPass.kind]} reads the handwriting and drafts scores against your answer key for your review.`
                 : "No tests scanned yet. The demo scanner reads the bundled sample photos and drafts scores for your review."
               : "No papers yet. Students turn in work from their assignment page, or you can add a paper for them."}
           </p>

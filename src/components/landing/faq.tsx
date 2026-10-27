@@ -33,8 +33,8 @@ const QUESTIONS: { question: string; answer: React.ReactNode }[] = [
     answer: (
       <>
         <p>
-          With an OpenAI API key set, the Paper Scanner sends a photo of each page to GPT-4o, which writes out the
-          answers and drafts a score for each question. In To review you can switch between the photo and the
+          With an Anthropic API key set, the Paper Scanner sends a photo of each page to Claude (or to GPT-4o, if an
+          OpenAI key is set), which writes out the answers and drafts a score for each question. In To review you can switch between the photo and the
           transcription to check one against the other.
         </p>
         <p>
@@ -74,7 +74,7 @@ const QUESTIONS: { question: string; answer: React.ReactNode }[] = [
     answer: (
       <p>
         Nothing to try: the demo runs without any API keys. Running it with real AI means paying for your own Anthropic
-        and OpenAI API use. There is no paid plan.
+        API use (and OpenAI, if you add that key). There is no paid plan.
       </p>
     ),
   },

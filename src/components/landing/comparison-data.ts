@@ -214,12 +214,12 @@ export const MARKWISE: Product = {
     },
     handwritten: {
       status: "yes",
-      note: "With a key, GPT-4o transcribes phone photos and scores each answer against the key; the keyless demo scanner reads only the sample photos.",
+      note: "With an API key, Claude (or GPT-4o) transcribes phone photos and scores each answer against the key; the keyless demo scanner reads only the sample photos.",
       sourceUrl: REAL_AND_MOCKED_URL,
     },
     answerKeyPhoto: {
       status: "yes",
-      note: "With a key, GPT-4o turns a photographed key into rubric lines with points; without one, only the sample key loads.",
+      note: "With an API key, Claude (or GPT-4o) turns a photographed key into rubric lines with points; without one, only the sample key loads.",
       sourceUrl: REAL_AND_MOCKED_URL,
     },
     approvalGate: {
@@ -269,7 +269,7 @@ export const MARKWISE: Product = {
     },
     freePlan: {
       status: "partial",
-      note: "Free to run, but real AI grading uses your own Anthropic and OpenAI keys, billed by them. Without keys, labelled demo engines run.",
+      note: "Free to run, but real AI grading uses your own Anthropic API key (OpenAI optional), billed by them. Without keys, labelled demo engines run.",
       sourceUrl: `${REPO_URL}#quick-start`,
     },
     openLocal: {

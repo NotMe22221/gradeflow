@@ -1,4 +1,4 @@
-// The demo scanner's grader, used when no OPENAI_API_KEY is set. Pure: no
+// The demo scanner's grader, used when no API key is set. Pure: no
 // randomness, no clock, no I/O, so the same transcription and answer key
 // always get the same draft. It is labelled "Demo grader" in the UI.
 //

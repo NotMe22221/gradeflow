@@ -3,8 +3,11 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { zodResponseFormat } from "openai/helpers/zod";
 
+import { claudeEffort, runClaudeJson } from "@/lib/ai/anthropic";
+import { ClaudeCallError } from "@/lib/ai/claude-call";
 import { guardedOpenAiCall } from "@/lib/ai/guard";
 import { getOpenAI, modelFor, openAiErrorKind, openAiRequestOptions } from "@/lib/ai/openai";
+import { AiLimitError } from "@/lib/ai/usage";
 import {
   ANSWER_KEY_SYSTEM_PROMPT,
   ANSWER_KEY_USER_PROMPT,
@@ -86,10 +89,60 @@ export async function readAnswerKeyWithOpenAI(bytes: Uint8Array, mimeType: ScanI
   return { ok: true, engine: "openai", model, ...result };
 }
 
+/** Room for adaptive thinking plus a full answer key, and a bound on what one read can cost. */
+const CLAUDE_ANSWER_KEY_MAX_TOKENS = 8_000;
+
 /**
- * Demo reader (no OPENAI_API_KEY): recognizes the bundled sample answer key
- * by the SHA-256 of its exact bytes. Any other photo is refused with a
- * message that says how to enable real reading.
+ * Read an answer-key photo with Claude (no OPENAI_API_KEY, ANTHROPIC_API_KEY
+ * set): the same prompts and schema as GPT-4o, the same checks after. A cap
+ * that stops the call propagates as AiLimitError; any other failure becomes
+ * an AnswerKeyError with a safe message.
+ */
+export async function readAnswerKeyWithClaude(
+  bytes: Uint8Array,
+  mimeType: ScanImageType,
+  model: string
+): Promise<AnswerKeySuccess> {
+  let read;
+  try {
+    read = await runClaudeJson({
+      feature: "answer_key",
+      task: "vision",
+      model,
+      effort: claudeEffort("vision"),
+      system: ANSWER_KEY_SYSTEM_PROMPT,
+      parts: [
+        { type: "image", image: { bytes, mimeType } },
+        { type: "text", text: ANSWER_KEY_USER_PROMPT },
+      ],
+      schema: AnswerKeyOutputSchema,
+      maxTokens: CLAUDE_ANSWER_KEY_MAX_TOKENS,
+    });
+  } catch (error) {
+    if (error instanceof AiLimitError) throw error;
+    if (error instanceof ClaudeCallError) {
+      if (error.kind === "refusal") {
+        throw new AnswerKeyError("Claude declined to read that photo. Try a photo of just the answer key.", 502);
+      }
+      if (error.kind === "max_tokens") {
+        throw new AnswerKeyError("Claude's answer was cut off before it finished. Try a photo with fewer questions.", 502);
+      }
+      if (error.kind === "unreadable") throw new AnswerKeyError("The answer key could not be read. Try a clearer photo.", 502);
+      throw new AnswerKeyError(error.message, 502);
+    }
+    throw error;
+  }
+
+  const normalized = normalizeAnswerKey(read.parsed);
+  if (!normalized.ok) throw new AnswerKeyError(normalized.error, 422);
+  const { ok: _ok, ...result } = normalized;
+  return { ok: true, engine: "claude", model: read.model, ...result };
+}
+
+/**
+ * Demo reader (no API key): recognizes the bundled sample answer key by the
+ * SHA-256 of its exact bytes. Any other photo is refused with a message that
+ * says how to enable real reading.
  */
 export function readAnswerKeyDemo(bytes: Uint8Array): AnswerKeySuccess {
   const sha256 = createHash("sha256").update(bytes).digest("hex");

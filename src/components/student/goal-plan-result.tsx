@@ -211,7 +211,7 @@ export function GoalPlanResult({
         <div className="min-w-0 space-y-1">
           <p className="text-[0.875rem] font-medium text-foreground">
             Study tip
-            {engine === "openai" && plan.tipSource === "template" ? (
+            {(engine === "openai" || engine === "claude") && plan.tipSource === "template" ? (
               <span className="font-normal text-muted-foreground"> · built-in</span>
             ) : null}
           </p>

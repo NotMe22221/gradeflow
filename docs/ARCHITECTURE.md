@@ -282,24 +282,39 @@ src/components/
   from `getGrader()` (`src/lib/grading/index.ts`). Validation and the approval
   gate apply automatically.
 
-## Markwise features (OpenAI)
+## Markwise features (photos, briefs, goals)
 
 Six features extend the grading workflow. Every one of them works without an
 API key through a labelled local demo implementation.
 
 | Feature | Who | Engine | Route / page |
 | --- | --- | --- | --- |
-| AI Paper-Grading Camera | teacher | `gpt-4o` (vision) | `POST /api/grade`, page `/scan` |
-| Answer-key import from a photo | teacher | `gpt-4o` (vision) | `POST /api/answer-key`, rubric builder |
-| Conference Brief Generator | teacher | `gpt-4o-mini` | `POST /api/conference-brief`, `/classes/[classId]/students/[studentId]` |
+| AI Paper-Grading Camera | teacher | vision: Claude or `gpt-4o` | `POST /api/grade`, page `/scan` |
+| Answer-key import from a photo | teacher | vision: Claude or `gpt-4o` | `POST /api/answer-key`, rubric builder |
+| Conference Brief Generator | teacher | text: Claude or `gpt-4o-mini` | `POST /api/conference-brief`, `/classes/[classId]/students/[studentId]` |
 | Class Heatmap | teacher | none (aggregation) | `/insights?class=<id>`, dashboard "Teaching tools" and "Most missed" cards |
-| AI Goal-Seeking Planner | student | `gpt-4o-mini` parses the goal; the math is code | `POST /api/goal-planner`, `/student` |
+| AI Goal-Seeking Planner | student | text: Claude or `gpt-4o-mini` parses the goal; the math is code | `POST /api/goal-planner`, `/student` |
 | Gamified UI + Assignment Inbox | student | none | `/student` |
 
-**Model routing is fixed** in `src/lib/ai/openai.ts` (`OPENAI_MODELS`,
-`modelFor("vision" | "text")`): vision → `gpt-4o`, text and logic →
-`gpt-4o-mini`. No other file names a model. `OPENAI_API_KEY` is read on the
-server only (`.env.local`), never logged, never sent to the client.
+**Engine routing** is `engineFor("vision" | "text")` in
+`src/lib/ai/engines.ts`, the only place the choice is made (the engines pill,
+the badges and the routes all read it):
+1. OpenAI when `OPENAI_API_KEY` is set: vision → `gpt-4o`, text → `gpt-4o-mini`
+   (`OPENAI_MODELS` in `src/lib/ai/openai.ts`);
+2. otherwise Claude when `ANTHROPIC_API_KEY` is set: `ANTHROPIC_MODEL`
+   (default `claude-haiku-5-5`), through `callClaudeJson()` in
+   `src/lib/ai/claude-call.ts`;
+3. otherwise the labelled demo engine.
+
+`AI_KILL_SWITCH` turns both providers off. Both providers get the same system
+prompt, the same parts (photos labelled as student work or as the teacher's
+reference) and the same output schema, and both outputs go through the same
+checks. The Claude call checks the stop reason before parsing, so a refusal
+or a cut-off answer gets its own message. Photos and the essay grader run at
+`ANTHROPIC_EFFORT` (default `medium`); briefs and goals run at `low`. Output
+limits (thinking included): 16,000 tokens to read a test, 8,000 for an answer
+key, 4,000 for a brief, 2,000 for a goal. Keys are read on the server only
+(`.env.local`), never logged, never sent to the client.
 
 **Safeguards carried over:**
 - Camera-graded tests land in To review as `NEEDS_REVIEW`. They publish
@@ -347,7 +362,7 @@ Errors `{ ok: false, error, code? }`: `400` invalid input (`code:
 graded, `413` request too large, `422` when the assignment is not a
 handwritten test or has no questions (or no handwriting was found), `429` when
 the per-user AI budget is used up (live mode only, with `Retry-After`), `502`
-when OpenAI fails (nothing is stored).
+when the AI provider fails (nothing is stored).
 
 The scanner only accepts `TEST` assignments. Typed answers added to a `TEST`
 assignment are graded on the same test path (answer-key matching), not as an
@@ -357,8 +372,11 @@ review queue can say where the transcription came from; the API reports
 
 Pipeline: auth + ownership → image checks → vision (or demo) → validation →
 one transaction that upserts the submission (`source: "SCAN"`, `content` = the
-transcription), replaces its images, `AiGrade` (`grader: "openai"`, `model:
-"gpt-4o"`) and `CriterionScore` rows, and sets `NEEDS_REVIEW`.
+transcription), replaces its images, `AiGrade` (`grader: "claude"` or
+`"openai"`, with the model that answered) and `CriterionScore` rows, and sets
+`NEEDS_REVIEW`. The review queue says "Transcribed by GPT-4o" for an OpenAI
+read; for `"claude"` it stays neutral, because a re-run of the AI pass on the
+stored text also saves `"claude"`.
 
 ### `POST /api/answer-key` (teacher, multipart/form-data)
 
@@ -385,7 +403,7 @@ who owns the submission once its grade is published. Before publish, students
 see neither the photo nor the AI transcription. `Cache-Control: private`,
 `nosniff`.
 
-### Demo implementations (no `OPENAI_API_KEY`)
+### Demo implementations (no API key)
 
 - **Demo scanner:** recognizes the bundled sample photos (`public/samples/`,
   `src/lib/scan/samples.ts`) by SHA-256 and uses their stored transcriptions.

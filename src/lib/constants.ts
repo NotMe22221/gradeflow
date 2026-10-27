@@ -42,9 +42,11 @@ export type Confidence = (typeof CONFIDENCE_LEVELS)[number];
 
 /**
  * Engines that can produce an AI suggestion:
- * - "claude": essay first pass via the Claude API (ANTHROPIC_API_KEY)
- * - "openai": camera grader for handwritten tests via GPT-4o vision (OPENAI_API_KEY)
- * - "demo":   local deterministic stand-in when the relevant key is not set
+ * - "claude": the Claude API (ANTHROPIC_API_KEY): the essay first pass, and the
+ *   camera grader, answer keys, briefs and goals when no OpenAI key is set
+ * - "openai": the OpenAI API (OPENAI_API_KEY): gpt-4o reads photos, gpt-4o-mini
+ *   drafts briefs and reads goals (see engineFor in lib/ai/engines.ts)
+ * - "demo":   local deterministic stand-in when no key is set
  */
 export const GRADERS = ["claude", "openai", "demo"] as const;
 export type GraderKind = (typeof GRADERS)[number];

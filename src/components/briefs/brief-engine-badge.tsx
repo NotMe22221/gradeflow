@@ -20,9 +20,10 @@ export function BriefEngineBadge({
   className?: string;
 }) {
   const demo = engine === "demo";
+  const provider = engine === "claude" ? "the Claude API" : "the OpenAI API";
   const explanation = demo
-    ? "No OPENAI_API_KEY is set, so a local template builds this brief from the same approved grades. It is not AI output."
-    : `Drafted on the server by the OpenAI API${model ? ` (${model})` : ""} from teacher-approved grades only. Check every line before sharing it.`;
+    ? "No AI API key is set, so a local template builds this brief from the same approved grades. It is not AI output."
+    : `Drafted on the server by ${provider}${model ? ` (${model})` : ""} from teacher-approved grades only. Check every line before sharing it.`;
 
   return (
     <EngineInfoBadge

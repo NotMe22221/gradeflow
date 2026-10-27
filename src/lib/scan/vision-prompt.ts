@@ -1,4 +1,5 @@
-// Prompt, output schema, and output mapping for the GPT-4o camera grader.
+// Prompt, output schema, and output mapping for the camera grader (GPT-4o or
+// Claude: both get the same prompt and schema).
 // Pure: no network, no secrets, safe for unit tests. The API call itself
 // lives in vision.ts (server-only).
 //
@@ -9,6 +10,7 @@
 
 import { z } from "zod";
 
+import type { ClaudeImage, ClaudePart } from "@/lib/ai/claude-call";
 import { CONFIDENCE_LEVELS } from "@/lib/constants";
 import { neutralizePaperDelimiters } from "@/lib/grading/prompt";
 import type { GradingInput, RawGradingResult } from "@/lib/grading/types";
@@ -130,6 +132,32 @@ export function buildVisionClosingText(questionCount: number, hasAnswerKeyPhoto:
   ]
     .filter(Boolean)
     .join(" ");
+}
+
+/**
+ * The user turn, in order: the teacher's rubric, each page labelled as
+ * student work, the answer key photo labelled as the teacher's reference, and
+ * the closing note. GPT-4o and Claude get the same parts.
+ */
+export function visionParts(
+  input: Pick<GradingInput, "assignmentTitle" | "instructions" | "criteria">,
+  pages: readonly ClaudeImage[],
+  answerKey: ClaudeImage | null
+): ClaudePart[] {
+  const parts: ClaudePart[] = [{ type: "text", text: buildVisionRubricText(input) }];
+  pages.forEach((page, index) => {
+    parts.push({ type: "text", text: `Student test photo, page ${index + 1} of ${pages.length} (student work to grade):` });
+    parts.push({ type: "image", image: page });
+  });
+  if (answerKey) {
+    parts.push({
+      type: "text",
+      text: "Teacher's answer key photo (the teacher's reference for the expected answers, not student work):",
+    });
+    parts.push({ type: "image", image: answerKey });
+  }
+  parts.push({ type: "text", text: buildVisionClosingText(input.criteria.length, answerKey !== null) });
+  return parts;
 }
 
 export type MappedVisionOutput = {

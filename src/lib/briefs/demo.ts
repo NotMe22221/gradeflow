@@ -1,4 +1,4 @@
-// Demo conference brief (no OPENAI_API_KEY): a deterministic template over
+// Demo conference brief (no API key): a deterministic template over
 // the same approved-grade data the AI brief uses. It is labelled "Demo brief"
 // in the UI so it is never mistaken for AI output.
 // Pure: safe for unit tests. Same input, same brief.

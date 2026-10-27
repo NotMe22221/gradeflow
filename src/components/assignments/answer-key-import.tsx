@@ -41,8 +41,12 @@ type Phase =
 
 const ENGINE_LABEL: Record<AnswerKeyEngine, string> = {
   openai: "Read by GPT-4o",
+  claude: "Read by Claude",
   demo: "Demo: sample answer key",
 };
+
+/** The live reader's name in the copy. */
+const READER_NAME: Record<Exclude<AnswerKeyEngine, "demo">, string> = { openai: "GPT-4o", claude: "Claude" };
 
 const NETWORK_ERROR = "Network error. Check your connection, then try again.";
 
@@ -117,7 +121,7 @@ function postAnswerKey(
 
 /**
  * "Import the answer key from a photo" for a handwritten test. The photo is
- * read on the server (GPT-4o, or the demo reader without a key); the
+ * read on the server (GPT-4o or Claude, or the demo reader without a key); the
  * questions it returns replace the builder's questions, after a confirmation
  * when the teacher has already written some. Nothing is saved until the
  * teacher creates the assignment.
@@ -243,7 +247,9 @@ export function AnswerKeyImport({
   }
 
   const readingLabel =
-    engine === "openai" ? "Reading questions, answers, and points with GPT-4o…" : "Checking the photo against the sample answer key…";
+    engine === "demo"
+      ? "Checking the photo against the sample answer key…"
+      : `Reading questions, answers, and points with ${READER_NAME[engine]}…`;
 
   return (
     <section
@@ -259,9 +265,9 @@ export function AnswerKeyImport({
             Import the answer key from a photo
           </h3>
           <p className="text-[0.8125rem] text-pretty text-muted-foreground">
-            {engine === "openai"
-              ? "GPT-4o reads each question, its answer, and its points from any photo, including the sample. Check every question before you save."
-              : "Demo mode reads the sample answer key only. Set OPENAI_API_KEY to read your own photos with GPT-4o."}
+            {engine === "demo"
+              ? "Demo mode reads the sample answer key only. Set ANTHROPIC_API_KEY to read your own photos with Claude."
+              : `${READER_NAME[engine]} reads each question, its answer, and its points from any photo, including the sample. Check every question before you save.`}
           </p>
         </div>
       </div>
@@ -334,10 +340,10 @@ export function AnswerKeyImport({
           <Camera aria-hidden />
           Take photo
         </Button>
-        {/* With a key, the sample is a real GPT-4o read like any photo, so it is not labelled demo. */}
+        {/* With a key, the sample is a real AI read like any photo, so it is not labelled demo. */}
         <Button type="button" variant="text" onClick={() => void readSample()} disabled={disabled || busy}>
-          {engine === "openai" ? <ImageIcon aria-hidden /> : <FlaskConical aria-hidden />}
-          {engine === "openai" ? "Try the sample answer key" : "Use the sample answer key (demo)"}
+          {engine === "demo" ? <FlaskConical aria-hidden /> : <ImageIcon aria-hidden />}
+          {engine === "demo" ? "Use the sample answer key (demo)" : "Try the sample answer key"}
         </Button>
         <input
           ref={uploadRef}
@@ -400,10 +406,10 @@ export function AnswerKeyImport({
 
 /** Says which engine read the answer key, so demo output is never mistaken for AI. */
 function EngineBadge({ engine }: { engine: AnswerKeyEngine }) {
-  return engine === "openai" ? (
+  return engine !== "demo" ? (
     <Badge variant="default">
       <ScanSearch aria-hidden />
-      {ENGINE_LABEL.openai}
+      {ENGINE_LABEL[engine]}
     </Badge>
   ) : (
     <Badge variant="outline" className="border-dashed">

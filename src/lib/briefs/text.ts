@@ -10,7 +10,7 @@ export function formatBriefBasis(basis: BriefBasis): string {
   return basis.averagePercent === null ? count : `${count} · average ${Math.round(basis.averagePercent)}%`;
 }
 
-/** "AI draft · gpt-4o-mini" or "Demo brief". The model name comes from the server response. */
+/** "AI draft · claude-haiku-5-5" or "Demo brief". The model name comes from the server response. */
 export function briefEngineLabel(engine: BriefEngine, model: string | null): string {
   if (engine === "demo") return "Demo brief";
   return model ? `AI draft · ${model}` : "AI draft";

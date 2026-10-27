@@ -5,7 +5,9 @@ import { Circle, CircleCheck, FlaskConical, LoaderCircle } from "@/components/ic
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { GRADER_LABELS } from "@/lib/constants";
 import { pluralize } from "@/lib/format";
+import type { ScanEngineInfo } from "@/lib/scan/types";
 import { cn } from "@/lib/utils";
 
 type Step = { label: string; /** ms after start when the step becomes current */ at: number };
@@ -32,13 +34,13 @@ function demoSteps(typed: boolean): Step[] {
  * the draft arrives.
  */
 export function ScanProgress({
-  visionEnabled,
+  engine,
   studentName,
   assignmentTitle,
   pageCount,
   typedTranscription,
 }: {
-  visionEnabled: boolean;
+  engine: ScanEngineInfo;
   studentName: string;
   assignmentTitle: string;
   pageCount: number;
@@ -52,6 +54,7 @@ export function ScanProgress({
     return () => window.clearInterval(timer);
   }, []);
 
+  const visionEnabled = engine.kind !== "demo";
   const steps = visionEnabled ? VISION_STEPS : demoSteps(typedTranscription);
   let current = 0;
   steps.forEach((step, index) => {
@@ -121,7 +124,7 @@ export function ScanProgress({
 
         {visionEnabled ? (
           <p className="text-[0.8125rem] text-pretty text-muted-foreground">
-            GPT-4o usually takes 10 to 30 seconds per test. Keep this tab open.
+            {GRADER_LABELS[engine.kind]} usually takes 10 to 30 seconds per test. Keep this tab open.
           </p>
         ) : (
           <p className="flex items-start gap-2 text-[0.8125rem] text-pretty text-muted-foreground">

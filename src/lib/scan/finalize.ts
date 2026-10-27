@@ -1,7 +1,7 @@
 // Grading and validation for handwritten tests (TEST assignments), whether
 // the answers came from photos or were typed in. Pure: safe for unit tests.
 //
-// Every engine (GPT-4o vision, the demo scanner, Claude on typed answers)
+// Every engine (GPT-4o or Claude vision, the demo scanner, Claude on typed answers)
 // goes through the same validateGrading() as typed essays: every score is
 // range checked against the rubric, every quote must appear in the paper, and
 // text addressed to the grader is flagged. On top of that:

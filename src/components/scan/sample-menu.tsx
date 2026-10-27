@@ -11,19 +11,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { GRADER_LABELS } from "@/lib/constants";
 import { SAMPLE_TEST_PHOTOS, type SampleTestPhoto } from "@/lib/scan/samples";
+import type { ScanEngineInfo } from "@/lib/scan/types";
 import { cn } from "@/lib/utils";
 
 /** Bundled synthetic test photos, for trying the scanner without a real test. */
 export function SampleMenu({
   onPick,
   disabled = false,
-  visionEnabled,
+  engine,
   className,
 }: {
   onPick: (sample: SampleTestPhoto) => void;
   disabled?: boolean;
-  visionEnabled: boolean;
+  engine: ScanEngineInfo;
   className?: string;
 }) {
   return (
@@ -58,8 +60,8 @@ export function SampleMenu({
         ))}
         <DropdownMenuSeparator />
         <p className="px-2 py-1.5 text-xs text-pretty text-muted-foreground">
-          {visionEnabled
-            ? "GPT-4o reads these like any other photo."
+          {engine.kind !== "demo"
+            ? `${GRADER_LABELS[engine.kind]} reads these like any other photo.`
             : "The demo scanner recognizes these photos and uses their stored transcriptions."}
         </p>
       </DropdownMenuContent>

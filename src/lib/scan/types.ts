@@ -3,8 +3,11 @@
 
 import type { Confidence, GraderKind } from "@/lib/constants";
 
-/** Engines that grade scanned tests. */
-export type ScanGrader = Extract<GraderKind, "openai" | "demo">;
+/** Engines that grade scanned tests: GPT-4o, Claude, or the demo scanner. */
+export type ScanGrader = GraderKind;
+
+/** Which engine reads scanned photos right now (engineFor("vision")), for the scanner's copy. */
+export type ScanEngineInfo = { kind: ScanGrader; model: string | null };
 
 /** Where the stored transcription came from. */
 export type TranscriptionSource = "vision" | "sample" | "typed";
@@ -12,7 +15,7 @@ export type TranscriptionSource = "vision" | "sample" | "typed";
 export type ScanErrorCode = "NEEDS_TRANSCRIPTION";
 
 export const NEEDS_TRANSCRIPTION_MESSAGE =
-  "Demo mode can't read handwriting. Type what's on the page, or set OPENAI_API_KEY to read photos with GPT-4o.";
+  "Demo mode can't read handwriting. Type what's on the page, or set ANTHROPIC_API_KEY to read photos with Claude.";
 
 /** POST /api/grade answers 422 with this for an essay: the scanner grades against an answer key. */
 export const NOT_A_TEST_MESSAGE =

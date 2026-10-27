@@ -53,6 +53,14 @@ export function costMicroUsd(model: string, usage: TokenUsage): number {
 export const MAX_TOKENS_PER_IMAGE = 1_500;
 
 /**
+ * Tokens a photo can cost on Claude: about width x height / 750, and the
+ * scanner sends at most 2048 px on the long edge (lib/scan/images.ts), which
+ * is 5,593 for a square photo. An answer-key photo can be larger, but Claude
+ * shrinks any image past its own limit first. Rounded up for margin.
+ */
+export const CLAUDE_TOKENS_PER_IMAGE = 7_000;
+
+/**
  * The most a call can cost before it is sent, for the reservation. Text is
  * counted at one token per two characters, about twice the usual English
  * rate, so the estimate stays above the real input; the output is the
@@ -60,9 +68,14 @@ export const MAX_TOKENS_PER_IMAGE = 1_500;
  */
 export function worstCaseCostMicroUsd(
   model: string,
-  { textChars, images = 0, maxOutputTokens }: { textChars: number; images?: number; maxOutputTokens: number }
+  {
+    textChars,
+    images = 0,
+    tokensPerImage = MAX_TOKENS_PER_IMAGE,
+    maxOutputTokens,
+  }: { textChars: number; images?: number; tokensPerImage?: number; maxOutputTokens: number }
 ): number {
-  const inputTokens = Math.ceil(Math.max(0, textChars) / 2) + images * MAX_TOKENS_PER_IMAGE;
+  const inputTokens = Math.ceil(Math.max(0, textChars) / 2) + images * tokensPerImage;
   return costMicroUsd(model, { inputTokens, outputTokens: maxOutputTokens });
 }
 

@@ -16,7 +16,7 @@ import { isPastDueDay } from "@/components/classwork/due";
 import { WorkCounts } from "@/components/classwork/work-counts";
 import { PageContainer } from "@/components/page-header";
 import { getOwnedAssignment } from "@/lib/access";
-import { modelFor, openAiConfigured } from "@/lib/ai/openai";
+import { engineFor } from "@/lib/ai/engines";
 import { AuthError, requireTeacherPage } from "@/lib/auth/session";
 import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
 import {
@@ -69,9 +69,8 @@ const LOCKED_STATUSES = new Set(["PUBLISHED", "APPROVED", "GRADING"]);
 
 /** The camera grader that reads scanned tests. Names the engine only, never the key. */
 function scanGraderInfo(): GraderInfo {
-  return openAiConfigured()
-    ? { kind: "openai", label: GRADER_LABELS.openai, model: modelFor("vision") }
-    : { kind: "demo", label: GRADER_LABELS.demo, model: null };
+  const engine = engineFor("vision");
+  return { kind: engine.kind, label: GRADER_LABELS[engine.kind], model: engine.model };
 }
 
 export default async function AssignmentPage({ params, searchParams }: { params: Params; searchParams: SearchParams }) {

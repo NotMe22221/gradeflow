@@ -65,6 +65,9 @@ function photoCheck(photoCount: number): string {
 export function transcriptionCaption(item: Pick<ReviewItem, "ai" | "images">): TranscriptionCaption {
   const check = photoCheck(item.images.length);
   const grader = item.ai?.grader;
+  // Only GPT-4o is certain: "claude" is stored both by Claude's camera grader
+  // and by a re-run of the AI pass on text already transcribed, so it gets
+  // the neutral caption below.
   if (grader === "openai") {
     return { tone: "ai", text: `Transcribed by ${GRADER_LABELS.openai}. ${check}` };
   }

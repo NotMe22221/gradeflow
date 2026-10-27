@@ -8,13 +8,14 @@ import { GraderBadge } from "@/components/grading/grader-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { GRADER_LABELS } from "@/lib/constants";
 import { formatPoints, pluralize } from "@/lib/format";
 import type { ScanGradeSuccess, TranscriptionSource } from "@/lib/scan/types";
 
-const SOURCE_NOTE: Record<TranscriptionSource, string> = {
-  vision: "Transcribed by GPT-4o. Check it against the photo in To review.",
-  sample: "Stored transcription of the sample photo (demo scanner).",
-  typed: "Your typed transcription (demo scanner).",
+const SOURCE_NOTE: Record<TranscriptionSource, (result: Pick<ScanGradeSuccess, "grader">) => string> = {
+  vision: (result) => `Transcribed by ${GRADER_LABELS[result.grader]}. Check it against the photo in To review.`,
+  sample: () => "Stored transcription of the sample photo (demo scanner).",
+  typed: () => "Your typed transcription (demo scanner).",
 };
 
 const MAX_FLAGS_SHOWN = 3;
@@ -104,7 +105,7 @@ export function ScanResult({ result, onScanAnother }: { result: ScanGradeSuccess
               <p className="tabular mt-2 text-xs text-muted-foreground">+ {pluralize(moreLines, "more line")}</p>
             ) : null}
           </div>
-          <p className="text-xs text-pretty text-muted-foreground">{SOURCE_NOTE[result.transcriptionSource]}</p>
+          <p className="text-xs text-pretty text-muted-foreground">{SOURCE_NOTE[result.transcriptionSource](result)}</p>
         </figure>
 
         {result.flags.length > 0 ? (

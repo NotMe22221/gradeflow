@@ -14,7 +14,8 @@ import { readJsonWithLimit } from "@/lib/http/body";
 import { idSchema } from "@/lib/validation/id";
 
 export const dynamic = "force-dynamic";
-// One gpt-4o-mini call within the text budget (src/lib/ai/openai.ts), plus the database work.
+// One text-model call within the text budget (OPENAI_BUDGETS.text or
+// CLAUDE_TASK_BUDGETS.text, 65 s), plus the database work.
 export const maxDuration = 90;
 
 /** The goal is at most 300 characters; 4 KB leaves room for JSON escaping. */
@@ -46,8 +47,9 @@ function errorResponse(error: string, status: number, code?: GoalPlannerFailure[
 /**
  * Plan a grade goal for the signed-in student.
  *
- * The goal text is untrusted. With OPENAI_API_KEY, gpt-4o-mini only reads
- * which class and target it names; without a key, the demo parser does. The
+ * The goal text is untrusted. With an API key, the text model (gpt-4o-mini
+ * or Claude, see engineFor) only reads which class and target it names;
+ * without a key, the demo parser does. The
  * required scores are always computed in code (src/lib/goals/plan.ts) from
  * this student's own teacher-approved grades. Saves the goal (one per class)
  * and awards GOAL_SET XP once per day.
@@ -83,7 +85,7 @@ export async function POST(request: Request) {
         timeZone: await viewerTimeZone(),
       });
     } catch (error) {
-      // Expected failures (unclear goal, no class, OpenAI errors) carry a safe message.
+      // Expected failures (unclear goal, no class, provider errors) carry a safe message.
       if (error instanceof GoalPlannerError) return errorResponse(error.message, error.status, error.code);
       throw error;
     }

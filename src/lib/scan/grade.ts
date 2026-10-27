@@ -4,9 +4,9 @@ import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
 import { getOwnedAssignment } from "@/lib/access";
-import { modelFor, openAiConfigured } from "@/lib/ai/openai";
+import { engineFor } from "@/lib/ai/engines";
 import { AuthError } from "@/lib/auth/session";
-import { parseAssignmentKind, type SubmissionStatus } from "@/lib/constants";
+import { GRADER_LABELS, parseAssignmentKind, type SubmissionStatus } from "@/lib/constants";
 import { db, transaction } from "@/lib/db";
 import { describeFlag, serializeFlags, type FlagCriterion } from "@/lib/grading/flags";
 import type { GradingInput, RawGradingResult, ValidatedGrading } from "@/lib/grading/types";
@@ -24,7 +24,7 @@ import {
   type ScanGradeSuccess,
   type TranscriptionSource,
 } from "@/lib/scan/types";
-import { gradeWithVision, VisionGradingError } from "@/lib/scan/vision";
+import { gradeWithVision, VisionGradingError, type VisionEngine } from "@/lib/scan/vision";
 import { AiLimitError } from "@/lib/ai/usage";
 import type { Legibility, MappedVisionOutput } from "@/lib/scan/vision-prompt";
 import { TEACHER_REPLACEABLE_STATUSES } from "@/lib/submissions";
@@ -34,9 +34,10 @@ import { demoScanModel } from "@/lib/review/media";
 /**
  * The camera grader pipeline behind POST /api/grade:
  *
- *   ownership + enrollment -> replaceable check -> GPT-4o vision (or the demo
- *   scanner) -> validation -> one transaction that stores the submission,
- *   its photos, the AI suggestion, and the per-question scores.
+ *   ownership + enrollment -> replaceable check -> vision (GPT-4o or Claude,
+ *   whichever engineFor("vision") picks) or the demo scanner -> validation ->
+ *   one transaction that stores the submission, its photos, the AI
+ *   suggestion, and the per-question scores.
  *
  * Like lib/grading, this writes only Submission (as NEEDS_REVIEW),
  * SubmissionImage, AiGrade, and CriterionScore. It never writes
@@ -117,10 +118,14 @@ type ReadResult = {
   source: TranscriptionSource;
 };
 
-async function readWithVision(input: Omit<GradingInput, "paper">, request: ScanRequest): Promise<ReadResult> {
-  let output: MappedVisionOutput;
+async function readWithVision(
+  engine: VisionEngine,
+  input: Omit<GradingInput, "paper">,
+  request: ScanRequest
+): Promise<ReadResult> {
+  let output: MappedVisionOutput & { model: string };
   try {
-    output = await gradeWithVision(input, request.pages, request.answerKey);
+    output = await gradeWithVision(engine, input, request.pages, request.answerKey);
   } catch (error) {
     if (error instanceof VisionGradingError) throw new ScanError(error.message, 502);
     // A usage cap stopped the call before it was sent: the route answers 429 with the reason.
@@ -130,11 +135,11 @@ async function readWithVision(input: Omit<GradingInput, "paper">, request: ScanR
   }
   if (!output.transcription) {
     throw new ScanError(
-      "GPT-4o found no handwriting on these photos. Retake them closer, in good light, and try again.",
+      `${GRADER_LABELS[engine.kind]} found no handwriting on these photos. Retake them closer, in good light, and try again.`,
       422
     );
   }
-  return { ...output, grader: "openai", model: modelFor("vision"), source: "vision" };
+  return { ...output, grader: engine.kind, source: "vision" };
 }
 
 async function readWithDemo(input: Omit<GradingInput, "paper">, request: ScanRequest): Promise<ReadResult> {
@@ -280,7 +285,11 @@ export async function gradeScannedTest(teacherId: string, request: ScanRequest):
     })),
   };
 
-  const read = openAiConfigured() ? await readWithVision(input, request) : await readWithDemo(input, request);
+  const engine = engineFor("vision");
+  const read =
+    engine.kind !== "demo" && engine.model
+      ? await readWithVision({ kind: engine.kind, model: engine.model }, input, request)
+      : await readWithDemo(input, request);
   const result = validateScanGrading(read.raw, { ...input, paper: read.transcription }, read.legibility);
 
   let submissionId: string;

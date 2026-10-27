@@ -13,7 +13,7 @@ import {
   type ScanPaperState,
 } from "@/components/scan/types";
 import { Button } from "@/components/ui/button";
-import { openAiConfigured } from "@/lib/ai/openai";
+import { engineFor } from "@/lib/ai/engines";
 import { requireTeacherPage } from "@/lib/auth/session";
 import { parseAssignmentKind, type SubmissionStatus } from "@/lib/constants";
 import { db } from "@/lib/db";
@@ -110,11 +110,11 @@ export default async function ScanPage({
         ?.students.find((student) => student.id === single(params.student))
     : undefined;
 
-  const visionEnabled = openAiConfigured();
+  const engine = engineFor("vision");
 
   return (
     <PageContainer>
-      <ScanPageHeader visionEnabled={visionEnabled} />
+      <ScanPageHeader engine={engine} />
       {assignments.length === 0 ? (
         <EmptyState
           icon={Camera}
@@ -131,7 +131,7 @@ export default async function ScanPage({
           classes={classes}
           assignments={assignments}
           papers={papers}
-          visionEnabled={visionEnabled}
+          engine={engine}
           initialAssignmentId={requestedAssignment?.id ?? ""}
           initialStudentId={requestedStudent?.id ?? ""}
         />

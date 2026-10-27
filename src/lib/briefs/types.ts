@@ -3,8 +3,11 @@
 
 import type { SkillInsight } from "@/lib/insights/profile";
 
-/** "openai": drafted by the OpenAI API (text model). "demo": local template, no API key. */
-export type BriefEngine = "openai" | "demo";
+/**
+ * "openai": drafted by the OpenAI API (text model). "claude": drafted by the
+ * Claude API. "demo": local template, no API key.
+ */
+export type BriefEngine = "openai" | "claude" | "demo";
 
 /** The one-page brief, as the route returns it and the UI renders it. */
 export type ConferenceBrief = {

@@ -584,14 +584,17 @@ describe("live AI call sites", () => {
   it("sends every Claude request through the usage guard", () => {
     const sites = files.filter(({ source }) => /\.messages\.(create|parse|stream)\(/.test(source));
     assert.deepEqual(
-      sites.map(({ path }) => path.slice(ROOT.length + 1)),
-      ["src/lib/grading/claude-grader.ts"]
+      sites.map(({ path }) => path.slice(ROOT.length + 1)).sort(),
+      ["src/lib/ai/claude-call.ts", "src/lib/grading/claude-grader.ts"]
     );
-    assert.match(sites[0].source, /this\.deps\.guard\.run\([\s\S]*this\.deps\.client\.beta\.messages\.parse\(request,/);
+    const [call, grader] = [...sites].sort((a, b) => a.path.localeCompare(b.path));
+    assert.match(grader.source, /this\.deps\.guard\.run\([\s\S]*this\.deps\.client\.beta\.messages\.parse\(request,/);
+    assert.match(call.source, /deps\.guard\.run\([\s\S]*deps\.client\.beta\.messages\.create\(request,/);
+    assert.equal(call.source.match(/\.messages\.create\(/g)?.length, 1);
     const clients = files.filter(({ source }) => source.includes("new Anthropic("));
     assert.deepEqual(
       clients.map(({ path }) => path.slice(ROOT.length + 1)),
-      ["src/lib/grading/claude.ts"]
+      ["src/lib/ai/anthropic.ts"]
     );
   });
 

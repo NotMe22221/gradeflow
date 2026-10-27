@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 
-import { AnswerKeyError, readAnswerKeyDemo, readAnswerKeyWithOpenAI } from "@/app/api/answer-key/read";
+import {
+  AnswerKeyError,
+  readAnswerKeyDemo,
+  readAnswerKeyWithClaude,
+  readAnswerKeyWithOpenAI,
+} from "@/app/api/answer-key/read";
+import { engineFor } from "@/lib/ai/engines";
 import { aiLimitResponse } from "@/lib/ai/guard";
-import { describeOpenAiError, openAiConfigured } from "@/lib/ai/openai";
+import { describeOpenAiError } from "@/lib/ai/openai";
 import { AiLimitError } from "@/lib/ai/usage";
 import { AuthError, requireTeacher } from "@/lib/auth/session";
 import { readFormDataWithLimit } from "@/lib/http/body";
@@ -16,7 +22,8 @@ import {
 } from "@/lib/scan/images";
 
 export const dynamic = "force-dynamic";
-// The GPT-4o call is capped at 110 seconds, retries included (OPENAI_BUDGETS.vision).
+// The vision call is capped at 110 seconds, retries included
+// (OPENAI_BUDGETS.vision and CLAUDE_TASK_BUDGETS.vision).
 export const maxDuration = 120;
 
 /**
@@ -37,8 +44,9 @@ function errorResponse(error: string, status: number) {
  * rubric builder (teacher only). Nothing is saved here: the teacher reviews
  * and edits the questions, then creates the assignment.
  *
- * With OPENAI_API_KEY: GPT-4o vision with structured output. Without it: the
- * demo reader, which only recognizes the bundled sample answer key.
+ * Live: GPT-4o (OPENAI_API_KEY) or Claude (ANTHROPIC_API_KEY), whichever
+ * engineFor("vision") picks, with structured output. Without a key: the demo
+ * reader, which only recognizes the bundled sample answer key.
  */
 export async function POST(request: Request) {
   try {
@@ -65,9 +73,13 @@ export async function POST(request: Request) {
     if (problem || !mimeType) return errorResponse(problem ?? "Upload a JPEG, PNG, or WebP photo.", 400);
 
     let result: AnswerKeySuccess;
-    if (openAiConfigured()) {
+    const engine = engineFor("vision");
+    if (engine.kind !== "demo" && engine.model) {
       try {
-        result = await readAnswerKeyWithOpenAI(bytes, mimeType);
+        result =
+          engine.kind === "claude"
+            ? await readAnswerKeyWithClaude(bytes, mimeType, engine.model)
+            : await readAnswerKeyWithOpenAI(bytes, mimeType);
       } catch (error) {
         if (error instanceof AnswerKeyError) return errorResponse(error.message, error.status);
         // The usage caps (lib/ai/guard.ts) stopped the call before it was sent.

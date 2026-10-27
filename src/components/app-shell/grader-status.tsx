@@ -4,8 +4,15 @@ import { useId, useRef } from "react";
 import { FlaskConical, CloudCheck } from "@/components/icons";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import type { EngineStatus } from "@/lib/ai/engines";
+import type { EngineStatus, TaskEngine } from "@/lib/ai/engines";
 import { cn } from "@/lib/utils";
+
+/** "gpt-4o", "Claude (claude-haiku-5-5)", or the demo engine's name. */
+function engineName(engine: TaskEngine, demoName: string): string {
+  if (engine.kind === "demo") return demoName;
+  if (engine.kind === "openai") return engine.model ?? "OpenAI";
+  return `Claude${engine.model ? ` (${engine.model})` : ""}`;
+}
 
 /**
  * Top-bar pill that always says which AI engines are live and which features
@@ -22,13 +29,13 @@ export function GraderStatus({ status, className }: { status: EngineStatus; clas
     },
     {
       feature: "Handwritten tests",
-      engine: status.vision.live ? status.vision.model ?? "OpenAI" : "Demo scanner",
-      live: status.vision.live,
+      engine: engineName(status.vision, "Demo scanner"),
+      live: status.vision.kind !== "demo",
     },
     {
       feature: "Briefs and goal planner",
-      engine: status.text.live ? status.text.model ?? "OpenAI" : "Demo templates",
-      live: status.text.live,
+      engine: engineName(status.text, "Demo templates"),
+      live: status.text.kind !== "demo",
     },
   ];
   const liveCount = rows.filter((row) => row.live).length;

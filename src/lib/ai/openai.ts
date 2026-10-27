@@ -7,7 +7,9 @@ import { liveAiAllowed } from "@/lib/ai/usage";
 
 /**
  * OpenAI access for the camera grader, the answer-key scanner, the
- * conference brief, and the goal planner.
+ * conference brief, and the goal planner, used when OPENAI_API_KEY is set.
+ * Without it, those features run on Claude when ANTHROPIC_API_KEY is set
+ * (engineFor in lib/ai/engines.ts, calls in lib/ai/claude-call.ts).
  *
  * MODEL ROUTING (fixed by the product spec, not configurable):
  * - Vision tasks (reading handwriting from photos) use gpt-4o, for the best
@@ -17,7 +19,7 @@ import { liveAiAllowed } from "@/lib/ai/usage";
  *
  * The key is read from OPENAI_API_KEY on the server only (put it in
  * .env.local). It is never sent to the browser, never logged, and never
- * committed. When it is not set, or the kill switch (AI_KILL_SWITCH) is on,
+ * committed. When no key is set, or the kill switch (AI_KILL_SWITCH) is on,
  * every feature falls back to a labelled local demo implementation. Every
  * live call goes through the usage guard (guardedOpenAiCall in guard.ts).
  */

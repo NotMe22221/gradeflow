@@ -811,14 +811,14 @@ describe("vision output mapping", () => {
   it("keeps model names out of the scanner code", () => {
     for (const file of ["vision.ts", "grade.ts", "vision-prompt.ts", "demo-grader.ts"]) {
       const source = readFileSync(join(ROOT, "src", "lib", "scan", file), "utf8");
-      assert.ok(!/["'`]gpt-4o/.test(source), `${file} must use modelFor() instead of a model name`);
+      assert.ok(!/["'`](gpt-4o|claude-)/.test(source), `${file} must take the model from engineFor() instead of naming one`);
     }
-    assert.match(readFileSync(join(ROOT, "src", "lib", "scan", "vision.ts"), "utf8"), /modelFor\("vision"\)/);
+    assert.match(readFileSync(join(ROOT, "src", "lib", "scan", "grade.ts"), "utf8"), /engineFor\("vision"\)/);
   });
 
   it("explains demo mode's limits in one plain sentence", () => {
     assert.match(NEEDS_TRANSCRIPTION_MESSAGE, /^Demo mode can't read handwriting\./);
-    assert.match(NEEDS_TRANSCRIPTION_MESSAGE, /OPENAI_API_KEY/);
+    assert.match(NEEDS_TRANSCRIPTION_MESSAGE, /ANTHROPIC_API_KEY/);
   });
 
   it("tells the teacher plainly that the scanner is for tests", () => {

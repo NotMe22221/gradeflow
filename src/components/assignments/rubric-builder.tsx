@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { AssignmentKind } from "@/lib/constants";
+import { GRADER_LABELS, type AssignmentKind } from "@/lib/constants";
 import { pluralize } from "@/lib/format";
 import { answerKeyToCriteria, type AnswerKeyEngine, type AnswerKeySuccess } from "@/lib/scan/answer-key";
 import { parseAssignmentInput, rubricLimitsFor } from "@/lib/validation/assignment";
@@ -239,8 +239,8 @@ export function RubricBuilder({
     setFormError(null);
     toast.success(`Imported ${pluralize(result.questions.length, "question")}`, {
       description:
-        result.engine === "openai"
-          ? "Read by GPT-4o. Check each answer and point value before you save."
+        result.engine !== "demo"
+          ? `Read by ${GRADER_LABELS[result.engine]}. Check each answer and point value before you save.`
           : "Demo: the sample answer key. Edit anything before you save.",
       action: hadWork ? { label: "Undo", onClick: () => restore(before) } : undefined,
     });

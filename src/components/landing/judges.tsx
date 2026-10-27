@@ -89,8 +89,8 @@ const BEHIND: { title: string; body: string }[] = [
     body: "It catches common phrasings aimed at the grader. A rewording it misses is graded as ordinary text, one more reason every grade needs approval.",
   },
   {
-    title: "Handwriting needs an OpenAI key",
-    body: "Without one, the demo scanner reads only the sample photos that come with the demo. For any other photo, you type the answers in.",
+    title: "Handwriting needs an API key",
+    body: "Without an Anthropic or OpenAI key, the demo scanner reads only the sample photos that come with the demo. For any other photo, you type the answers in.",
   },
   {
     title: "Scale is untested",

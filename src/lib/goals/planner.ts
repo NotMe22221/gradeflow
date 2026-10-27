@@ -2,8 +2,11 @@ import "server-only";
 
 import { zodResponseFormat } from "openai/helpers/zod";
 
+import { claudeEffort, runClaudeJson } from "@/lib/ai/anthropic";
+import { ClaudeCallError } from "@/lib/ai/claude-call";
+import { engineFor } from "@/lib/ai/engines";
 import { guardedOpenAiCall } from "@/lib/ai/guard";
-import { describeOpenAiError, getOpenAI, modelFor, openAiConfigured, openAiRequestOptions } from "@/lib/ai/openai";
+import { describeOpenAiError, getOpenAI, openAiRequestOptions } from "@/lib/ai/openai";
 import { AiLimitError } from "@/lib/ai/usage";
 import { transaction } from "@/lib/db";
 import { insertAwards, unearnedAwards, type AwardInput } from "@/lib/gamification/award";
@@ -17,7 +20,7 @@ import {
 } from "@/lib/goals/coaching";
 import { GPA_GOAL_MESSAGE, mentionsGpa, parseGoal, type ParsedTarget } from "@/lib/goals/parse";
 import { isLetterTarget, PASS_LABEL, planGoal } from "@/lib/goals/plan";
-import { buildGoalUserPrompt, GOAL_SYSTEM_PROMPT, GoalExtractionSchema } from "@/lib/goals/prompt";
+import { buildGoalUserPrompt, GOAL_SYSTEM_PROMPT, GoalExtractionSchema, type GoalExtraction } from "@/lib/goals/prompt";
 import { loadGoalClasses } from "@/lib/goals/query";
 import type { GoalClass, GoalEngine, GoalPlannerErrorCode, GoalPlannerSuccess } from "@/lib/goals/types";
 import { buildPlanView } from "@/lib/goals/view";
@@ -39,9 +42,10 @@ export const UNCLEAR_GOAL_MESSAGE =
   "Tell me the grade you're aiming for, like \"I need a B+\", \"at least 85%\", or \"just pass\".";
 export const NEEDS_CLASS_MESSAGE = "Which class is this goal for? Pick a class and plan it again.";
 
-/** Which engine reads goals right now, for the UI label (no secrets). */
+/** Which engine reads goals right now (engineFor("text")), for the UI label (no secrets). */
 export function goalEngineInfo(): { engine: GoalEngine; model: string | null } {
-  return openAiConfigured() ? { engine: "openai", model: modelFor("text") } : { engine: "demo", model: null };
+  const engine = engineFor("text");
+  return { engine: engine.kind, model: engine.model };
 }
 
 type Extraction = {
@@ -52,17 +56,28 @@ type Extraction = {
   clarifyingQuestion: string | null;
 };
 
+/** A model's extraction, checked: the tip passes the coaching checks, the question is trimmed. */
+function toExtraction(parsed: GoalExtraction): Extraction {
+  const question = cleanModelText(parsed.clarifying_question, MAX_QUESTION_CHARS);
+  return {
+    classId: parsed.class_id,
+    target: resolveModelTarget(parsed),
+    tip: acceptCoachingTip(parsed.coaching_tip),
+    clarifyingQuestion: question || null,
+  };
+}
+
 /**
- * gpt-4o-mini (modelFor("text")) reads the goal against the student's class
- * list. Its output is only an extraction: the class id is checked against the
- * student's own classes and the target is re-derived with the planner's scale
- * by the caller. OpenAI failures become a safe 502 GoalPlannerError.
+ * gpt-4o-mini reads the goal against the student's class list. Its output is
+ * only an extraction: the class id is checked against the student's own
+ * classes and the target is re-derived with the planner's scale by the
+ * caller. OpenAI failures become a safe 502 GoalPlannerError.
  */
-async function extractWithOpenAI(goal: string, classes: GoalClass[]): Promise<Extraction> {
+async function extractWithOpenAI(goal: string, classes: GoalClass[], model: string): Promise<Extraction> {
   let completion;
   try {
     const request = {
-      model: modelFor("text"),
+      model,
       temperature: 0.2,
       max_completion_tokens: 400,
       messages: [
@@ -85,14 +100,42 @@ async function extractWithOpenAI(goal: string, classes: GoalClass[]): Promise<Ex
   if (message?.refusal) throw new GoalPlannerError(UNCLEAR_GOAL_MESSAGE, 400, "UNCLEAR_GOAL");
   const parsed = message?.parsed;
   if (!parsed) throw new GoalPlannerError("The planner couldn't read that goal. Try again.", 502);
+  return toExtraction(parsed);
+}
 
-  const question = cleanModelText(parsed.clarifying_question, MAX_QUESTION_CHARS);
-  return {
-    classId: parsed.class_id,
-    target: resolveModelTarget(parsed),
-    tip: acceptCoachingTip(parsed.coaching_tip),
-    clarifyingQuestion: question || null,
-  };
+/** Room for a short adaptive think plus the extraction, and a bound on what one read can cost. */
+const CLAUDE_GOAL_MAX_TOKENS = 2_000;
+
+/**
+ * Claude reads the goal (no OPENAI_API_KEY, ANTHROPIC_API_KEY set), with the
+ * same prompt, schema and checks as gpt-4o-mini. A refusal reads as an
+ * unclear goal; other failures become a safe 502 GoalPlannerError.
+ */
+async function extractWithClaude(goal: string, classes: GoalClass[], model: string): Promise<Extraction> {
+  try {
+    const { parsed } = await runClaudeJson({
+      feature: "goal",
+      task: "text",
+      model,
+      effort: claudeEffort("text"),
+      system: GOAL_SYSTEM_PROMPT,
+      parts: [{ type: "text", text: buildGoalUserPrompt(goal, classes) }],
+      schema: GoalExtractionSchema,
+      maxTokens: CLAUDE_GOAL_MAX_TOKENS,
+    });
+    return toExtraction(parsed);
+  } catch (error) {
+    // A usage cap stopped the call before it was sent: the route answers 429 with the reason.
+    if (error instanceof AiLimitError) throw error;
+    if (error instanceof ClaudeCallError) {
+      if (error.kind === "refusal") throw new GoalPlannerError(UNCLEAR_GOAL_MESSAGE, 400, "UNCLEAR_GOAL");
+      if (error.kind === "max_tokens" || error.kind === "unreadable") {
+        throw new GoalPlannerError("The planner couldn't read that goal. Try again.", 502);
+      }
+      throw new GoalPlannerError(error.message, 502);
+    }
+    throw error;
+  }
 }
 
 function extractWithDemo(goal: string, classes: GoalClass[]): Extraction {
@@ -118,7 +161,7 @@ function isGpaMisread(target: ParsedTarget, goal: string): boolean {
  * Plan a grade goal for the signed-in student.
  *
  * 1. Load ONLY this student's classes and their teacher-approved grades.
- * 2. Read the goal (gpt-4o-mini, or the demo parser without a key).
+ * 2. Read the goal (gpt-4o-mini or Claude, or the demo parser without a key).
  * 3. In code: keep the class only if it is one of the student's classes
  *    (else the class picked in the form, else ask), convert the target with
  *    the planner's scale, and compute the plan.
@@ -147,7 +190,11 @@ export async function planStudentGoal(input: {
 
   const engine = goalEngineInfo();
   const extraction =
-    engine.engine === "openai" ? await extractWithOpenAI(goal, classes) : extractWithDemo(goal, classes);
+    engine.engine === "openai" && engine.model
+      ? await extractWithOpenAI(goal, classes, engine.model)
+      : engine.engine === "claude" && engine.model
+        ? await extractWithClaude(goal, classes, engine.model)
+        : extractWithDemo(goal, classes);
 
   if (!extraction.target || isGpaMisread(extraction.target, goal)) {
     const message = mentionsGpa(goal) ? GPA_GOAL_MESSAGE : (extraction.clarifyingQuestion ?? UNCLEAR_GOAL_MESSAGE);

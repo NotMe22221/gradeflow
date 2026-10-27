@@ -69,8 +69,9 @@ export function Features() {
           ))}
         </ul>
         <p className="mt-6 max-w-[75ch] rounded-xl bg-secondary px-5 py-4 text-[0.9375rem] leading-6 text-pretty text-secondary-foreground">
-          <span className="font-medium">Which AI does the reading?</span> Uses Claude for essays and OpenAI GPT-4o for
-          handwriting when API keys are set; without keys, labelled demo engines run locally.
+          <span className="font-medium">Which AI does the reading?</span> Uses Claude for essays, handwriting, briefs and
+          goals when an Anthropic API key is set (GPT-4o reads photos instead if an OpenAI key is set); without keys,
+          labelled demo engines run locally.
         </p>
       </LandingContainer>
     </section>

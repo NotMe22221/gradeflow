@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { RubricBuilder } from "@/components/assignments/rubric-builder";
 import { PageContainer } from "@/components/page-header";
 import { getOwnedClass } from "@/lib/access";
-import { openAiConfigured } from "@/lib/ai/openai";
+import { engineFor } from "@/lib/ai/engines";
 import { AuthError, requireTeacherPage } from "@/lib/auth/session";
 import { parseAssignmentKind } from "@/lib/constants";
 import { classTheme } from "@/lib/ui/class-theme";
@@ -42,7 +42,7 @@ export default async function NewAssignmentPage({
         classId={klass.id}
         classColor={classTheme(klass).color}
         initialKind={initialKind}
-        answerKeyEngine={openAiConfigured() ? "openai" : "demo"}
+        answerKeyEngine={engineFor("vision").kind}
       />
     </PageContainer>
   );

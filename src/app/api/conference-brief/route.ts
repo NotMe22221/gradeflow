@@ -14,7 +14,7 @@ import { buildStudentProfile } from "@/lib/insights/profile";
 import { getStudentRecord } from "@/lib/insights/student";
 import { idSchema } from "@/lib/validation/id";
 
-// Longer than the text task's hard deadline in src/lib/ai/openai.ts.
+// Longer than the text task's hard deadline (OPENAI_BUDGETS.text, CLAUDE_TASK_BUDGETS.text).
 export const maxDuration = 90;
 
 export const dynamic = "force-dynamic";
@@ -36,8 +36,8 @@ function errorResponse(error: string, status: number) {
  * upcoming assignments, and engagement. The brief is a draft for the teacher
  * to review; it is not stored.
  *
- * With OPENAI_API_KEY: the text model (modelFor("text")). Without it: the
- * deterministic demo brief, labelled as such.
+ * With an API key: the text model engineFor("text") picks (gpt-4o-mini or
+ * Claude). Without one: the deterministic demo brief, labelled as such.
  *
  * The body is read with a hard byte cap, so a chunked request can't stream an
  * unbounded body into memory. A live draft goes through the usage caps

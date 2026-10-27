@@ -1,7 +1,7 @@
 // Answer-key import: turn a photo of a teacher's answer key into the
 // questions of a handwritten-test rubric.
 // Pure: safe for client components, server code, and unit tests. The GPT-4o
-// call lives in src/app/api/answer-key/read.ts (server only).
+// and Claude calls live in src/app/api/answer-key/read.ts (server only).
 //
 // Everything the model returns is untrusted: it is re-validated here (counts,
 // lengths, integer points) before it reaches the rubric builder, and the
@@ -25,7 +25,8 @@ export const ANSWER_KEY_LIMITS = {
   documentTitleMax: 120,
 } as const;
 
-export type AnswerKeyEngine = "openai" | "demo";
+/** GPT-4o, Claude, or the demo reader (the sample answer key only). */
+export type AnswerKeyEngine = "openai" | "claude" | "demo";
 
 export type AnswerKeyQuestion = { title: string; expectedAnswer: string; maxPoints: number };
 
@@ -51,15 +52,15 @@ export type AnswerKeyFailure = { ok: false; error: string };
 export type AnswerKeyResponse = AnswerKeySuccess | AnswerKeyFailure;
 
 export const DEMO_UNKNOWN_ANSWER_KEY_ERROR =
-  "Demo mode can only read the sample answer key. Set OPENAI_API_KEY to read your own photos.";
+  "Demo mode can only read the sample answer key. Set ANTHROPIC_API_KEY to read your own photos with Claude.";
 
 export const NO_QUESTIONS_ERROR =
   "No questions with answers were found in that photo. Try a closer, well-lit photo of the answer key.";
 
-// --- Structured output (GPT-4o) ------------------------------------------------
+// --- Structured output (GPT-4o or Claude) ---------------------------------------
 
 /**
- * The structured-output schema sent to GPT-4o. Every field is required
+ * The structured-output schema sent to the model. Every field is required
  * (nullable instead of optional) and has no defaults or range checks, as
  * structured outputs require; ranges are enforced by normalizeAnswerKey().
  */
@@ -178,7 +179,7 @@ export type NormalizedAnswerKey =
   | ({ ok: true; title: string | null } & NormalizedQuestions)
   | { ok: false; error: string };
 
-/** Validate GPT-4o's structured output. Never trusts its shape, counts, or numbers. */
+/** Validate the model's structured output. Never trusts its shape, counts, or numbers. */
 export function normalizeAnswerKey(raw: unknown): NormalizedAnswerKey {
   const parsed = AnswerKeyOutputSchema.safeParse(raw);
   if (!parsed.success) {
@@ -204,7 +205,7 @@ export function sampleAnswerKeyResult(sample: SampleAnswerKeyPhoto): AnswerKeySu
 }
 
 /**
- * Without an OpenAI key, only the bundled sample answer key is recognized,
+ * Without an API key, only the bundled sample answer key is recognized,
  * by the SHA-256 of its exact bytes. Returns null for any other photo.
  */
 export function demoAnswerKey(sha256: string): AnswerKeySuccess | null {
@@ -233,7 +234,7 @@ const questionResponseSchema = z.object({
 
 const successResponseSchema = z.object({
   ok: z.literal(true),
-  engine: z.enum(["openai", "demo"]),
+  engine: z.enum(["openai", "claude", "demo"]),
   model: z.string().nullable().catch(null),
   title: z.string().max(ANSWER_KEY_LIMITS.documentTitleMax).nullable().catch(null),
   questions: z.array(questionResponseSchema).min(ANSWER_KEY_LIMITS.minQuestions).max(ANSWER_KEY_LIMITS.maxQuestions),

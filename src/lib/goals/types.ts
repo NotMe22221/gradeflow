@@ -4,8 +4,11 @@
 import type { WeakCriterion } from "@/lib/goals/coaching";
 import type { CompletedTask, GoalStatus, RemainingTask, StatusTone } from "@/lib/goals/plan";
 
-/** "openai": the goal was read by the text model (gpt-4o-mini). "demo": the local regex parser. */
-export type GoalEngine = "openai" | "demo";
+/**
+ * "openai": the goal was read by OpenAI's text model (gpt-4o-mini). "claude":
+ * read by Claude. "demo": the local regex parser.
+ */
+export type GoalEngine = "openai" | "claude" | "demo";
 
 /** One class as the planner sees it: only this student's teacher-approved grades. */
 export type GoalClass = {

@@ -1,7 +1,7 @@
 // Synthetic handwritten sample photos for the demo (public/samples/*.jpg).
 // Pure: safe for client components, server code, and unit tests.
 //
-// With OPENAI_API_KEY set, these photos are read by GPT-4o like any upload.
+// With an API key set, these photos are read by GPT-4o or Claude like any upload.
 // Without a key, the demo scanner recognizes them by SHA-256 and uses the
 // transcription stored here, labelled as demo output. tests/scan.test.ts
 // keeps the hashes in sync with the files.

@@ -6,13 +6,14 @@ import type { GoalEngine } from "@/lib/goals/types";
 import { cn } from "@/lib/utils";
 
 const DEMO_EXPLANATION =
-  "No OPENAI_API_KEY is set, so a local demo planner reads your goal with simple patterns and the study tip is a template. The scores are calculated the same way either way.";
+  "No AI API key is set, so a local demo planner reads your goal with simple patterns and the study tip is a template. The scores are calculated the same way either way.";
 
 const SAVED_EXPLANATION =
   "Your saved goal, re-planned against your latest teacher-approved grades. The study tip is a built-in template, not AI output.";
 
-function openAiExplanation(model: string | null): string {
-  return `OpenAI's ${model ?? "text model"} read your goal and wrote the study tip. It never does the math: every score is calculated by Markwise from your teacher-approved grades.`;
+function liveExplanation(engine: "openai" | "claude", model: string | null): string {
+  const reader = engine === "claude" ? `Claude${model ? ` (${model})` : ""}` : `OpenAI's ${model ?? "text model"}`;
+  return `${reader} read your goal and wrote the study tip. It never does the math: every score is calculated by Markwise from your teacher-approved grades.`;
 }
 
 /**
@@ -76,16 +77,13 @@ export function GoalEngineBadge({
   model: string | null;
   className?: string;
 }) {
-  if (engine === "openai") {
+  if (engine === "openai" || engine === "claude") {
+    // gpt-4o-mini is short enough to name; a Claude model id is not, so its chip says Claude.
+    const label = engine === "claude" ? "Claude" : (model ?? "OpenAI");
     return (
-      <ExplainedBadge
-        variant="default"
-        label={model ?? "OpenAI"}
-        explanation={openAiExplanation(model)}
-        className={className}
-      >
+      <ExplainedBadge variant="default" label={label} explanation={liveExplanation(engine, model)} className={className}>
         <Cloud aria-hidden />
-        {model ?? "OpenAI"}
+        {label}
       </ExplainedBadge>
     );
   }

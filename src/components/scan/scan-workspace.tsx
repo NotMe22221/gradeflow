@@ -42,6 +42,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { GRADER_LABELS } from "@/lib/constants";
 import { firstName, pluralize } from "@/lib/format";
 import { scrollBehavior } from "@/lib/motion";
 import { MAX_PAPER_CHARS } from "@/lib/paper";
@@ -52,7 +53,7 @@ import {
   scanPhotosProblem,
 } from "@/lib/scan/images";
 import type { SampleTestPhoto } from "@/lib/scan/samples";
-import type { ScanErrorCode, ScanGradeResponse, ScanGradeSuccess } from "@/lib/scan/types";
+import type { ScanEngineInfo, ScanErrorCode, ScanGradeResponse, ScanGradeSuccess } from "@/lib/scan/types";
 import { cn } from "@/lib/utils";
 
 type Field = "pages" | "answerKey" | "assignment" | "student" | "transcription";
@@ -75,18 +76,21 @@ export function ScanWorkspace({
   classes,
   assignments,
   papers,
-  visionEnabled,
+  engine,
   initialAssignmentId,
   initialStudentId,
 }: {
   classes: ScanClassOption[];
   assignments: ScanAssignmentOption[];
   papers: Record<string, ScanPaperState>;
-  visionEnabled: boolean;
+  /** Which engine reads the photos (engineFor("vision")). */
+  engine: ScanEngineInfo;
   initialAssignmentId: string;
   initialStudentId: string;
 }) {
   const router = useRouter();
+  const visionEnabled = engine.kind !== "demo";
+  const visionName = GRADER_LABELS[engine.kind];
   const [pages, setPages] = useState<ScanPage[]>([]);
   const [answerKey, setAnswerKey] = useState<ScanPage | null>(null);
   const [assignmentId, setAssignmentId] = useState(initialAssignmentId);
@@ -416,7 +420,7 @@ export function ScanWorkspace({
       <SampleMenu
         onPick={(sample) => void pickSample(sample)}
         disabled={busy || full || preparing}
-        visionEnabled={visionEnabled}
+        engine={engine}
       />
     </>
   );
@@ -532,7 +536,7 @@ export function ScanWorkspace({
                 </p>
                 <p className="text-[0.8125rem] text-pretty text-muted-foreground">
                   {visionEnabled
-                    ? "GPT-4o reads the expected answers from it. Without one, it uses the assignment's answer key."
+                    ? `${visionName} reads the expected answers from it. Without one, it uses the assignment's answer key.`
                     : "The demo scanner always grades against the assignment's answer key."}
                 </p>
               </div>
@@ -591,7 +595,7 @@ export function ScanWorkspace({
       <div ref={sideRef} className="min-w-0 scroll-mt-24 xl:sticky xl:top-24">
         {phase === "grading" && assignment && student ? (
           <ScanProgress
-            visionEnabled={visionEnabled}
+            engine={engine}
             studentName={student.name}
             assignmentTitle={assignment.title}
             pageCount={pages.length}
@@ -709,7 +713,7 @@ export function ScanWorkspace({
 
                 <Button type="submit" size="lg" className="w-full" disabled={busy || preparing}>
                   {visionEnabled ? <ScanLine aria-hidden /> : <FlaskConical aria-hidden />}
-                  {visionEnabled ? "Grade with GPT-4o" : "Grade with demo scanner"}
+                  {visionEnabled ? `Grade with ${visionName}` : "Grade with demo scanner"}
                 </Button>
                 <p className="flex items-start gap-2 text-[0.8125rem] text-pretty text-muted-foreground">
                   <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-success" aria-hidden />

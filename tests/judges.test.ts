@@ -128,7 +128,7 @@ describe("judges comparison data", () => {
     assert.equal(cells.confidence.status, "partial");
     // Free to run, but real AI needs the user's own keys.
     assert.equal(cells.freePlan.status, "partial");
-    assert.match(cells.freePlan.note, /your own Anthropic and OpenAI keys/);
+    assert.match(cells.freePlan.note, /your own Anthropic API key \(OpenAI optional\)/);
     // No license file yet, so "open" is only partly true.
     assert.equal(cells.openLocal.status, "partial");
     assert.match(cells.openLocal.note, /No open-source license/);
@@ -141,7 +141,7 @@ describe("judges comparison data", () => {
     // The brief has no edit control: it is copied out to edit.
     assert.match(cells.conferenceBrief.note, /copy it as text to edit/);
     // Real AI needs keys; the demo engines are named as such.
-    assert.match(cells.handwritten.note, /GPT-4o/);
+    assert.match(cells.handwritten.note, /Claude \(or GPT-4o\)/);
     assert.match(cells.handwritten.note, /demo scanner reads only the sample photos/);
     assert.match(cells.injection.note, /heuristic/);
   });

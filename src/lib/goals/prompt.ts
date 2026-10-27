@@ -43,6 +43,8 @@ export const GoalExtractionSchema = z.object({
   clarifying_question: z.string().nullable(),
 });
 
+export type GoalExtraction = z.infer<typeof GoalExtractionSchema>;
+
 // "<" inside a student_goal tag becomes U+FF1C FULLWIDTH LESS-THAN SIGN: it
 // reads the same to a person but can no longer open or close the block.
 const GOAL_TAG = /<(?=\s*\/?\s*student_goal)/gi;

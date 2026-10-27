@@ -218,7 +218,7 @@ describe("demoAnswerKey", () => {
   });
 
   it("explains how to read real photos", () => {
-    assert.match(DEMO_UNKNOWN_ANSWER_KEY_ERROR, /OPENAI_API_KEY/);
+    assert.match(DEMO_UNKNOWN_ANSWER_KEY_ERROR, /ANTHROPIC_API_KEY/);
   });
 
   it("produces questions that fit a handwritten-test rubric", () => {
