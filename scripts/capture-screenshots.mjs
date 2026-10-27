@@ -66,16 +66,18 @@ async function goto(page, path) {
 
 /**
  * Pin the look for a capture: the theme being shot, and the default accent,
- * text size and density, whatever the demo account saved. Only this browser
- * tab changes; nothing is saved.
+ * text size, density and look (DEFAULT_PREFERENCES in
+ * src/lib/preferences/schema.ts; a test keeps them equal), whatever the demo
+ * account saved. Only this browser tab changes; nothing is saved.
  */
 async function pinAppearance(page, theme) {
   await page.evaluate((theme) => {
     const root = document.documentElement;
     root.setAttribute("data-theme", theme);
-    root.setAttribute("data-accent", "blue");
+    root.setAttribute("data-accent", "pink");
     root.setAttribute("data-text-size", "default");
     root.setAttribute("data-density", "comfortable");
+    root.setAttribute("data-look", "bold");
     root.style.colorScheme = theme;
   }, theme);
   // Hide toasts, focus rings and the caret.

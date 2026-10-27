@@ -118,7 +118,7 @@ export function StudentHomeView({
           {/* The greeting band: big type on yellow, paint at the right edge (GreetingDecor). Arrange sits
               beside the date, so the greeting keeps the full width; from 34rem the text stops at 55% of
               the band, clear of the art. In the Calm look the band turns plain and the art goes. */}
-          <header className="@container relative isolate grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 overflow-hidden rounded-[2rem] bg-band-yellow px-5 pt-5 pb-7 text-band-foreground [--background:var(--band-yellow)] [--ring:var(--band-foreground)] sm:px-8 sm:pt-7 sm:pb-9 lg:px-10 lg:pb-11">
+          <header className="@container relative isolate grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 overflow-hidden rounded-[2rem] bg-band-yellow px-5 pt-5 pb-7 text-band-foreground [--background:var(--band-yellow)] [--glass-frost:92%] [--ring:var(--band-foreground)] sm:px-8 sm:pt-7 sm:pb-9 lg:px-10 lg:pb-11">
             <GreetingDecor />
             <p className="min-h-5 text-[0.875rem] font-semibold">{today}</p>
             {hasClasses ? <ArrangeButton className="col-start-2 row-start-1" /> : null}

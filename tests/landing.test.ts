@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 
 import { SCREENSHOTS } from "../src/components/landing/screenshots";
+import { DEFAULT_PREFERENCES } from "@/lib/preferences/schema";
 
 // Guards for the landing page: real screenshots that exist in both themes and
 // stay small, plain copy without AI tropes, theme tokens instead of fixed
@@ -135,5 +136,13 @@ describe("capture script", () => {
     assert.match(script, /join\(ROOT, "public\/landing"\)/);
     assert.match(script, /join\(ROOT, "src\/components\/landing\/screenshots\.ts"\)/);
     assert.equal([...script.matchAll(/writeFile\(/g)].length, 2);
+  });
+
+  it("shoots the default look, so the screenshots match what a visitor sees", () => {
+    const pinned = (attribute: string) => script.match(new RegExp(`setAttribute\\("data-${attribute}", "([a-z]+)"\\)`))?.[1];
+    assert.equal(pinned("accent"), DEFAULT_PREFERENCES.accent);
+    assert.equal(pinned("text-size"), DEFAULT_PREFERENCES.textSize);
+    assert.equal(pinned("density"), DEFAULT_PREFERENCES.density);
+    assert.equal(pinned("look"), DEFAULT_PREFERENCES.look);
   });
 });

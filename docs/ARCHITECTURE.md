@@ -162,7 +162,7 @@ draft edits). The batch UI calls this endpoint sequentially, one paper at a time
 ## Preferences
 
 `UserPreferences` stores one validated JSON document per user
-(`src/lib/preferences/schema.ts`): theme, accent, text size, density, the Home
+(`src/lib/preferences/schema.ts`): theme, accent, look, text size, density, the Home
 section layout per role (`main` / `side` columns plus `hidden`), class card
 order, and the To review paper side. The server actions in
 `src/lib/preferences/actions.ts` (`updatePreferences`, `resetSectionLayout`,

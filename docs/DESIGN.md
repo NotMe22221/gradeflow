@@ -1,43 +1,91 @@
 # Markwise design system
 
-Markwise follows the look and structure of **Google Classroom** (Material 3)
-so teachers and students feel at home on day one. We borrow the patterns, not
-the branding: no Google logos, product names, or proprietary fonts.
+Markwise follows the structure of **Google Classroom** (class cards, Stream /
+Classwork / People / Grades, To review, To-do) so teachers and students feel at
+home on day one. We borrow the patterns, not the branding: no Google logos,
+product names, or proprietary fonts.
+
+The look is **Bold**: bright and maximalist, after flat "paint and pattern"
+poster art. A warm cream canvas, big organic paint blobs in sunshine yellow,
+coral, mint, sky, pink and lilac bleeding off the edges, X-mark and dot grids,
+heavy display type ending in a pink period, full-width color bands, and
+**Liquid Glass** buttons and bars. The rule that keeps it usable: **loud frame,
+calm content.** Decoration lives at the edges (heroes, page headers, greeting
+bands, empty states, marketing sections); papers, rubrics, grades, tables and
+forms always sit on plain surfaces. The **Calm** look (Customize → Look) keeps
+the colors and glass but drops every shape and turns bands plain.
 
 ## Foundations
 
 | Token | Value | Use |
 | --- | --- | --- |
-| Canvas `bg-background` | `#f8fafd` | page background |
-| Surface `bg-card` | white | cards, app bar, dialogs |
-| Border `border-border` | `#dadce0` | 1px card and divider borders (cards have no resting shadow) |
-| Primary `bg-primary` / `text-primary` | `#0b57d0` | filled buttons, links, active tab indicator |
-| Secondary container `bg-primary-soft` | `#d3e3fd` on `#041e49` | active nav item, tonal buttons, selected chips |
-| Tonal surface `bg-secondary` | `#eef2f8` | segmented controls, info panels |
-| Text | `#1f1f1f`, muted `#444746` | |
+| Canvas `bg-background` | `#fbf7ef` (warm cream) | page background |
+| Surface `bg-card` | white | cards, dialogs |
+| Border `border-border` | `#e6dccb` | 1px card and divider borders |
+| Primary `bg-primary` / `text-primary` | `#c2166b` (pink, the default accent) | the one primary action, links, active nav |
+| Secondary container `bg-primary-soft` | `#ffd9e4` on `#3f0020` | tonal buttons, selected chips |
+| Tonal surface `bg-secondary` | `#f3ece0` | segmented controls, info panels, Calm bands |
+| Text | `#1b1814`, muted `#5d564c` | |
+| Pop colors `fill-pop-*` / `bg-pop-*` | yellow, coral, mint, sky, pink, lilac | decoration only; marks in `pop-ink`, text on a pop fill in `pop-ink-on` |
+| Bands `bg-band-*` | a pop color (Bold), `secondary` (Calm) | full-width sections and greeting bands; text in `text-band-foreground` |
 | Status | success / warning / danger (+ `-soft`) | status only: confidence, flags, missing, published |
 | Class colors | `--class-blue/green/purple/teal/orange/pink` | class banners and avatars only (`classTheme()` in `src/lib/ui/class-theme.ts`: `color` is the fill for white text, `accent` is for dots and text on ordinary surfaces) |
 | Paper `bg-paper` | white in both themes (slightly dimmed in dark) | student work: papers and photos are never inverted |
 
 These are the light values. `src/app/globals.css` documents every token, its
-dark value (Material 3 surfaces: canvas `#131314`, cards `#1e1f20`, menus and
-dialogs `#282a2c`, text `#e3e3e3`, primary `#a8c7fa`), the density utilities,
-and the `dark:` / `compact:` variants. `tests/theme.test.ts` checks every text
-pair at 4.5:1 and every ring and outline at 3:1, in light and dark, for all six
-accents.
+dark value (an ink canvas `#131116`, cards `#1d1a21`, menus and dialogs
+`#27232c`, text `#f1ece4`, primary `#ffb0cd`, pop colors toned down a step),
+the density utilities, and the `dark:` / `compact:` / `calm:` variants.
+`tests/theme.test.ts` checks every text pair at 4.5:1 and every ring and
+outline at 3:1, in light and dark, for all six accents, including ink on every
+pop color and band.
+
+## Liquid Glass
+
+Glass comes from three utilities in `globals.css`, never hand-rolled (and never
+`backdrop-blur` directly):
+
+- `liquid`: tinted glass. `--liquid` (default `--primary`) at 90% over a
+  blurred, saturated backdrop, a light rim, a specular sheen on the top half,
+  and a soft shadow in its own color. Text stays the token that pairs with the
+  tint, so contrast holds whatever is behind it.
+- `glass`: frosted card glass (`--glass-frost`, 78% light / 70% dark) for
+  outline buttons and floating panels. On a color band, raise the frost
+  (`[--glass-frost:92%]`) so the pill doesn't turn muddy.
+- `glass-bar`: the sticky app and site bars.
+
+Every `Button` variant uses them: `default` (accent glass), `destructive`,
+`tonal`, `secondary`, `outline` (frosted). Without `backdrop-filter`, with
+*prefers-reduced-transparency*, or with *prefers-contrast: more*, all three
+become solid fills; in forced colors they get a system border.
+
+## Decor
+
+`src/components/decor/`: `Blob` (six organic paint shapes, any pop tone, an
+optional slow float), `XGrid`, `DotGrid`, `Squiggle`, `Ring`, and `Period` (a
+heading's pink period: type on the canvas, a paint dot on a band). Decor is
+`aria-hidden`, ignores the pointer, never prints, stops moving under reduced
+motion, and disappears in Calm (`[data-decor]`). Place it inside a
+`relative isolate` parent, absolutely, with `-z-10`, clipped so phones never
+scroll sideways, and never under text. `PageHeader` takes a `decor` slot
+(`HeaderDecor` with two tones) that stays inside the header's box. On a band
+with focusable controls, set `[--ring:var(--band-foreground)]` and
+`[--background:var(--band-*)]` so focus rings stay visible.
 
 ## Personalization
 
 Every user can change how Markwise looks and how Home is arranged. Settings
 are saved per user (`UserPreferences`, validated by
 `src/lib/preferences/schema.ts`) and rendered on the server as `data-theme`,
-`data-accent`, `data-text-size`, and `data-density` on `<html>`, so there is no
-flash on load.
+`data-accent`, `data-text-size`, `data-density`, and `data-look` on `<html>`,
+so there is no flash on load.
 
 - **Theme:** System (default), Light, Dark.
-- **Accent:** Blue (default), Teal, Green, Orange, Pink, Slate. Curated, so
-  contrast always holds; no free color picker. Status and class colors never
-  change with the accent.
+- **Accent:** Pink (default), Blue, Teal, Green, Orange, Slate. Bright but
+  curated, so contrast always holds; no free color picker. Status and class
+  colors never change with the accent.
+- **Look:** Bold (default: shapes, patterns, color bands) or Calm (the same
+  colors on plain backgrounds).
 - **Text size:** 87.5%, 100%, 112.5%, 125% of the root font size. All text is
   in `rem`.
 - **Density:** Comfortable or Compact. Compact tightens list, table, and
@@ -57,11 +105,13 @@ flash on load.
   2.1.4); the arrow keys and buttons always work.
 
 - **Type:** Roboto for text. Figtree (an open stand-in for Google Sans) for
-  headings: `h1`–`h3` and `.font-display` use it automatically. Page titles are
-  26–28px medium; card titles 16px semibold; body 14–15px.
-- **Shape:** cards `rounded-xl` (12px), large containers and banners
-  `rounded-2xl` (16px), dialogs 28px, buttons and nav items fully rounded
-  (pills), inputs 8px.
+  headings: `h1`–`h3` and `.font-display` use it automatically. Big headings
+  use the display utilities (Figtree 800, tight tracking, rem-based clamp):
+  `display-hero` (landing heroes), `display-section` (landing sections),
+  `display-title` (app page titles, with a pink `Period`). Card titles 16px
+  semibold; body 14–15px.
+- **Shape:** cards and class cards `rounded-3xl`, bands `rounded-[2rem]`,
+  dialogs 28px, buttons and nav items fully rounded (glass pills), inputs 8px.
 - **Elevation:** resting cards are flat with a border. Use `hover:shadow-hover`
   on clickable cards and `shadow-raised` for menus and dialogs.
 - **Spacing:** 8pt rhythm (Tailwind 2/4/6/8/12/16). Content max width `max-w-6xl`.
@@ -72,8 +122,8 @@ flash on load.
   main content" link.
 - **Contrast:** every class color carries white text at 4.5:1 or better
   (orange is `#a35200`, teal `#00707a`; keep `globals.css` and
-  `class-theme.ts` in sync). Banner art sits on the right behind a class-color
-  scrim, so text never runs over line art.
+  `class-theme.ts` in sync). Banner line art and paint stay in a right-hand
+  box, clear of the class name, so text never runs over art.
 - **Layout:** `<main>` is a container (`@container`), so page grids switch on
   the content width (`@3xl`, `@4xl`) rather than the viewport, and the open
   drawer never squeezes a two-column layout.
@@ -83,10 +133,11 @@ flash on load.
 
 ## Components
 
-- `Button` variants: `default` (filled, the one primary action per area),
-  `tonal` (secondary emphasis), `outline`, `text` (primary-colored text
-  button), `ghost` (neutral icon buttons), `destructive`. Sizes: default 40px,
-  `sm` 32px, `lg` 48px, `icon` 40px.
+- `Button` variants (Liquid Glass): `default` (accent glass, the one primary
+  action per area), `tonal` (secondary emphasis), `outline` (frosted),
+  `secondary`, `text` (primary-colored text button), `ghost` (neutral icon
+  buttons), `destructive`. Sizes: default 40px, `sm` 32px, `lg` 48px, `icon`
+  40px.
 - `src/components/classroom/`: `ClassBanner` (Stream header), `ClassCardBanner`
   (Home class cards), `ClassAvatar` (colored initials circle), `PageTabs`
   (underline link tabs), `ClassTabBar` + `TeacherClassTabs` / `StudentClassTabs`.
