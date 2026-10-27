@@ -13,8 +13,10 @@ import { SetupCallout } from "@/components/landing/setup-callout";
 import { SiteFooter } from "@/components/landing/site-footer";
 import { SiteHeader } from "@/components/landing/site-header";
 import { StudentSide } from "@/components/landing/student-side";
+import { parseSetupIssue } from "@/lib/auth/demo-accounts";
 import { getCurrentUser } from "@/lib/auth/session";
 import { demoLoginEnabled } from "@/lib/constants";
+import { USES_LOCAL_DATABASE } from "@/lib/db-url";
 import type { Theme } from "@/lib/preferences/schema";
 import { getViewerPreferences } from "@/lib/preferences/server";
 
@@ -35,7 +37,7 @@ async function viewer() {
 export default async function LandingPage({ searchParams }: { searchParams: LandingSearchParams }) {
   const [params, { user, theme }] = await Promise.all([searchParams, viewer()]);
 
-  const needsSeed = params.setup === "seed";
+  const setupIssue = parseSetupIssue(params.setup);
   const appHref = user ? (user.role === "TEACHER" ? "/dashboard" : "/student") : null;
   const demoLogin = demoLoginEnabled();
 
@@ -43,7 +45,7 @@ export default async function LandingPage({ searchParams }: { searchParams: Land
     <div className="flex min-h-dvh flex-col bg-background">
       <SiteHeader appHref={appHref} demoLogin={demoLogin} />
       <main id="main" className="flex-1">
-        {needsSeed ? <SetupCallout /> : null}
+        {setupIssue ? <SetupCallout issue={setupIssue} local={USES_LOCAL_DATABASE} /> : null}
         <Hero demoLogin={demoLogin} theme={theme} />
         <HowItWorks theme={theme} />
         <Features />

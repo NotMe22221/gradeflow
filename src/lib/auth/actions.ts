@@ -3,7 +3,8 @@
 import { redirect } from "next/navigation";
 
 import { db } from "@/lib/db";
-import { DEMO_STUDENT_EMAIL, DEMO_TEACHER_EMAIL, demoLoginEnabled } from "@/lib/constants";
+import { demoLoginEnabled, type Role } from "@/lib/constants";
+import { DEMO_ACCOUNT_EMAILS, pickDemoAccount, type SetupIssue } from "@/lib/auth/demo-accounts";
 import { clearSessionCookie, requireTeacher, setSessionCookie } from "@/lib/auth/session";
 
 /**
@@ -12,20 +13,41 @@ import { clearSessionCookie, requireTeacher, setSessionCookie } from "@/lib/auth
  * enforced server-side on every page, action, and route.
  */
 
-export async function signInAsDemoTeacher() {
+/**
+ * Sign in as the demo account for `role`, or send the visitor back to the
+ * landing page with the reason it couldn't (see SetupIssue). Only reads the
+ * database: a missing demo account is reported, never created.
+ */
+async function signInAsDemo(role: Role, home: string): Promise<never> {
   if (!demoLoginEnabled()) redirect("/");
-  const teacher = await db.user.findUnique({ where: { email: DEMO_TEACHER_EMAIL } });
-  if (!teacher || teacher.role !== "TEACHER") redirect("/?setup=seed");
-  await setSessionCookie(teacher.id);
-  redirect("/dashboard");
+  let account: { id: string } | null = null;
+  let issue: SetupIssue | null = null;
+  try {
+    const rows = await db.user.findMany({
+      where: { email: { in: [...DEMO_ACCOUNT_EMAILS[role]] } },
+      select: { id: true, email: true, role: true },
+    });
+    account = pickDemoAccount(rows, role);
+    // Every row belongs to a user, so no users means the demo data was never loaded.
+    if (!account) issue = (await db.user.count()) === 0 ? "empty" : "no-demo";
+  } catch (error) {
+    console.error("[markwise] Demo sign-in couldn't query the database", {
+      type: error instanceof Error ? error.name : typeof error,
+    });
+    issue = "unreachable";
+  }
+  // Outside the try: redirect() works by throwing.
+  if (!account) redirect(`/?setup=${issue ?? "no-demo"}`);
+  await setSessionCookie(account.id);
+  redirect(home);
+}
+
+export async function signInAsDemoTeacher() {
+  await signInAsDemo("TEACHER", "/dashboard");
 }
 
 export async function signInAsDemoStudent() {
-  if (!demoLoginEnabled()) redirect("/");
-  const student = await db.user.findUnique({ where: { email: DEMO_STUDENT_EMAIL } });
-  if (!student || student.role !== "STUDENT") redirect("/?setup=seed");
-  await setSessionCookie(student.id);
-  redirect("/student");
+  await signInAsDemo("STUDENT", "/student");
 }
 
 /**
