@@ -53,7 +53,7 @@ const QUESTIONS: { question: string; answer: React.ReactNode }[] = [
           are sent to the AI provider to draft the scores. In demo mode nothing leaves the server.
         </p>
         <p>
-          GradeSmart AI is a hackathon project, not a reviewed product. Don&apos;t use it with real student data; the
+          Markwise is a hackathon project, not a reviewed product. Don&apos;t use it with real student data; the
           demo runs on made-up students and papers.
         </p>
       </>

@@ -4,7 +4,7 @@
 import path from "node:path";
 
 /** The local server's name in `prisma dev` (`npx prisma dev ls` lists it). */
-export const SERVER_NAME = "gradesmart";
+export const SERVER_NAME = "markwise";
 
 /**
  * Prisma's dev-server CLI (@prisma/cli-dev), pinned. Without a version,

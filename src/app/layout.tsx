@@ -15,11 +15,11 @@ import { getViewerPreferences } from "@/lib/preferences/server";
 
 export const metadata: Metadata = {
   title: {
-    default: "GradeSmart AI — AI drafts the first pass. You make the call.",
-    template: "%s · GradeSmart AI",
+    default: "Markwise — AI drafts the first pass. You make the call.",
+    template: "%s · Markwise",
   },
   description:
-    "GradeSmart AI bridges paper classrooms and digital grading. AI drafts rubric scores for typed papers and photographed handwritten tests, and nothing publishes until a teacher approves it.",
+    "Markwise bridges paper classrooms and digital grading. AI drafts rubric scores for typed papers and photographed handwritten tests, and nothing publishes until a teacher approves it.",
 };
 
 /** The viewer's saved look, or the defaults (signed out, or before the database is set up). */

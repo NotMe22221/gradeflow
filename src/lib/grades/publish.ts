@@ -7,7 +7,7 @@ import { isOnScoreStep } from "@/lib/review/scores";
 /*
  * THE APPROVAL GATE.
  *
- * publishApprovedGrade() is the only code in GradeSmart AI that writes a
+ * publishApprovedGrade() is the only code in Markwise that writes a
  * PublishedGrade row, and PublishedGrade is the only table the gradebook,
  * CSV export, dashboard stats, and student view read scores from. The AI
  * grader never imports this module.

@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
-// Guards for the public face of GradeSmart AI: the landing page, the logo,
+// Guards for the public face of Markwise: the landing page, the logo,
 // the root metadata, and the 404 page.
 
 const ROOT = join(import.meta.dirname, "..");
@@ -35,7 +35,7 @@ describe("brand surfaces", () => {
   });
 
   for (const path of BRAND_FILES) {
-    it(`${path} uses the GradeSmart AI name, no emoji, and no model ids`, () => {
+    it(`${path} uses the Markwise name, no emoji, and no model ids`, () => {
       const source = read(path);
       assert.doesNotMatch(source, /GradeFlow/, "the old product name");
       assert.doesNotMatch(source, /\p{Extended_Pictographic}/u, "emoji");
@@ -47,9 +47,9 @@ describe("brand surfaces", () => {
 
   it("metadata names the product", () => {
     const layout = read("src/app/layout.tsx");
-    assert.match(layout, /default: "GradeSmart AI/);
-    assert.match(layout, /template: "%s · GradeSmart AI"/);
-    assert.match(collapse(layout), /GradeSmart AI bridges paper classrooms and digital grading/);
+    assert.match(layout, /default: "Markwise/);
+    assert.match(layout, /template: "%s · Markwise"/);
+    assert.match(collapse(layout), /Markwise bridges paper classrooms and digital grading/);
   });
 
   it("the landing page explains which engines run, honestly", () => {
@@ -78,7 +78,7 @@ describe("brand surfaces", () => {
     }
   });
 
-  it("the scope section still lists what GradeSmart AI deliberately skips", () => {
+  it("the scope section still lists what Markwise deliberately skips", () => {
     const small = read("src/components/landing/deliberately-small.tsx");
     for (const skipped of ["Discussion boards", "Messaging", "Calendars", "Video", "Attendance", "Course marketplaces"]) {
       assert.ok(small.includes(`"${skipped}"`), skipped);

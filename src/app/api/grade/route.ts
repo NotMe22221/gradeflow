@@ -90,7 +90,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof AuthError) return errorResponse(error.message, error.status);
     if (error instanceof ScanError) return errorResponse(error.message, error.status, error.code);
-    console.error("[gradesmart] Scan route failed", { type: error instanceof Error ? error.name : typeof error });
+    console.error("[markwise] Scan route failed", { type: error instanceof Error ? error.name : typeof error });
     return errorResponse("Grading the scan failed. Try again.", 500);
   }
 }

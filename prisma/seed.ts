@@ -1,4 +1,4 @@
-// GradeSmart AI demo seed.
+// Markwise demo seed.
 //
 //   npm run seed            (= tsx prisma/seed.ts --push-schema) resets the demo:
 //                           `prisma db push`, then this script.
@@ -399,7 +399,7 @@ async function printSummary(clock: Clock, activities: SeedActivity[]) {
   console.log(
     [
       "",
-      "GradeSmart AI demo data is ready.",
+      "Markwise demo data is ready.",
       `  ${teachers} teacher: ${DEMO_TEACHER.name} <${DEMO_TEACHER_EMAIL}>`,
       `  ${students} students in ${classCount} classes (demo student: ${DEMO_STUDENT_EMAIL})`,
       `  ${essays + tests} assignments (${essays} essays, ${tests} paper quizzes) with ${criteria} rubric criteria`,

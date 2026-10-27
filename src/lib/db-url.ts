@@ -3,7 +3,7 @@
 // Server-side only (reads a file), but no server-only import so the CLI and
 // the seed can use it. The helpers are pure: safe for unit tests.
 //
-// GradeSmart AI runs on Postgres everywhere:
+// Markwise runs on Postgres everywhere:
 // - Hosted (e.g. Vercel with Neon): the host sets DATABASE_URL (pooled) and
 //   usually DATABASE_URL_UNPOOLED for schema changes. POSTGRES_URL /
 //   POSTGRES_URL_NON_POOLING work too.

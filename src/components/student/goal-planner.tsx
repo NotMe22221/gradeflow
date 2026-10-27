@@ -161,7 +161,7 @@ export function GoalPlanner({
       }
     } catch {
       if (controller.signal.aborted) return;
-      setError("Couldn't reach GradeSmart. Check your connection and try again.");
+      setError("Couldn't reach Markwise. Check your connection and try again.");
       setErrorField("goal");
       setAnnouncement("");
     } finally {
@@ -182,7 +182,7 @@ export function GoalPlanner({
       <SectionHeading
         id={headingId}
         title="Goal planner"
-        description="Type the grade you want. GradeSmart works out the exact score you need on everything left."
+        description="Type the grade you want. Markwise works out the exact score you need on everything left."
       />
 
       <div className="overflow-hidden rounded-xl border border-border bg-card">

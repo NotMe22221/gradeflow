@@ -29,10 +29,10 @@ function secret(): string {
     }
     if (!warnedAboutSecret) {
       warnedAboutSecret = true;
-      console.warn("[gradesmart] SESSION_SECRET is not set; using the built-in demo secret.");
+      console.warn("[markwise] SESSION_SECRET is not set; using the built-in demo secret.");
     }
   }
-  return "gradesmart-local-demo-secret-not-for-production";
+  return "markwise-local-demo-secret-not-for-production";
 }
 
 /**

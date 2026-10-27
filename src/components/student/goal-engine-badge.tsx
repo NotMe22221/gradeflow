@@ -12,7 +12,7 @@ const SAVED_EXPLANATION =
   "Your saved goal, re-planned against your latest teacher-approved grades. The study tip is a built-in template, not AI output.";
 
 function openAiExplanation(model: string | null): string {
-  return `OpenAI's ${model ?? "text model"} read your goal and wrote the study tip. It never does the math: every score is calculated by GradeSmart from your teacher-approved grades.`;
+  return `OpenAI's ${model ?? "text model"} read your goal and wrote the study tip. It never does the math: every score is calculated by Markwise from your teacher-approved grades.`;
 }
 
 /**

@@ -23,7 +23,7 @@ export default function NotFound() {
             The link may be out of date, or the demo data was reset.
           </p>
           <Button asChild className="mt-8">
-            <Link href="/">Back to GradeSmart AI</Link>
+            <Link href="/">Back to Markwise</Link>
           </Button>
         </div>
       </main>

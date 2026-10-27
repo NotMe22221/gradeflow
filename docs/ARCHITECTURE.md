@@ -1,6 +1,6 @@
-# GradeSmart AI architecture
+# Markwise architecture
 
-GradeSmart AI does one thing: it takes student papers from submission to published
+Markwise does one thing: it takes student papers from submission to published
 grades. AI drafts the first pass, and a teacher always makes the final call.
 
 ## Stack
@@ -20,7 +20,7 @@ grades. AI drafts the first pass, and a teacher always makes the final call.
   set, Prisma's local Postgres server started by `scripts/local-db.mjs` (its
   reported address is saved to `prisma/.local-database-url`).
 - Local dev server (`scripts/local-db.mjs`, pure parts in `local-db-lib.mjs`):
-  `prisma dev` server `gradesmart`, with the dev-server CLI pinned
+  `prisma dev` server `markwise`, with the dev-server CLI pinned
   (`PRISMA_DEV_VERSION`) and cached in `node_modules/.cache` so only the first
   start needs the network. When Prisma's record of the server (`server.json`:
   live process, fresh lock) says it runs and its port answers, the script
@@ -232,7 +232,7 @@ src/components/
   from `getGrader()` (`src/lib/grading/index.ts`). Validation and the approval
   gate apply automatically.
 
-## GradeSmart AI features (OpenAI)
+## Markwise features (OpenAI)
 
 Six features extend the grading workflow. Every one of them works without an
 API key through a labelled local demo implementation.

@@ -99,7 +99,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof AuthError) return errorResponse(error.message, error.status);
     // Log the error type only: never the key, request headers, or student data.
-    console.error("[gradesmart] Conference brief route failed", {
+    console.error("[markwise] Conference brief route failed", {
       type: error instanceof Error ? error.name : typeof error,
     });
     return errorResponse("The brief could not be drafted. Try again.", 500);

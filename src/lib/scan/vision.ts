@@ -87,7 +87,7 @@ export async function gradeWithVision(
     );
     const message = completion.choices[0]?.message;
     if (message?.refusal) {
-      console.warn("[gradesmart] GPT-4o declined to grade a scanned test");
+      console.warn("[markwise] GPT-4o declined to grade a scanned test");
       throw new VisionGradingError("GPT-4o declined to read these photos. Grade this test by hand.");
     }
     parsed = message?.parsed ?? null;
@@ -97,8 +97,8 @@ export async function gradeWithVision(
   }
 
   if (!parsed) {
-    console.warn("[gradesmart] GPT-4o returned no structured output for a scanned test");
-    throw new VisionGradingError("GPT-4o returned a response GradeSmart AI could not read. Try again.");
+    console.warn("[markwise] GPT-4o returned no structured output for a scanned test");
+    throw new VisionGradingError("GPT-4o returned a response Markwise could not read. Try again.");
   }
   return mapVisionOutput(parsed);
 }

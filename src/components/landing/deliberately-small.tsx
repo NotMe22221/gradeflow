@@ -1,6 +1,6 @@
 import { LandingContainer } from "@/components/landing/section-intro";
 
-/** What GradeSmart AI leaves to the tools a school already has. */
+/** What Markwise leaves to the tools a school already has. */
 const SKIPS = ["Discussion boards", "Messaging", "Calendars", "Video", "Attendance", "Course marketplaces"];
 
 /**
@@ -20,7 +20,7 @@ export function DeliberatelySmall() {
           </h2>
           <div className="lg:col-span-8">
             <p className="max-w-[65ch] text-base leading-7 text-pretty text-muted-foreground">
-              GradeSmart AI covers the stretch from a paper on your desk to a grade back with the student. Everything
+              Markwise covers the stretch from a paper on your desk to a grade back with the student. Everything
               else stays with the tools your school already uses, and approved grades export as CSV.
             </p>
             <p className="mt-5 text-[0.875rem] font-medium text-foreground" id="scope-skips">

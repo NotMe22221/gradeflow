@@ -12,11 +12,11 @@ import { classInputSchema, studentInputSchema, type AddStudentResult, type FormF
 import { fieldErrorsFromIssues } from "@/lib/validation/form";
 import { idSchema } from "@/lib/validation/id";
 
-const STUDENT_EMAIL_DOMAIN = "students.gradesmart.example";
+const STUDENT_EMAIL_DOMAIN = "students.markwise.example";
 
 function failure(error: unknown, fallback: string): FormFailure {
   if (error instanceof AuthError) return { ok: false, error: error.message };
-  console.error("[gradesmart] Class action failed", { type: error instanceof Error ? error.name : typeof error });
+  console.error("[markwise] Class action failed", { type: error instanceof Error ? error.name : typeof error });
   return { ok: false, error: fallback };
 }
 

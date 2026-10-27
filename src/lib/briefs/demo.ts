@@ -190,8 +190,8 @@ export function buildDemoBrief(input: BriefInput): ConferenceBrief {
   }
   talkingPoints.push(
     streak > 0
-      ? `${first} is on a ${streak}-day study streak in GradeSmart AI. This is engagement only, not part of the grade.`
-      : `${first} has no active study streak in GradeSmart AI right now. This is engagement only, not part of the grade.`
+      ? `${first} is on a ${streak}-day study streak in Markwise. This is engagement only, not part of the grade.`
+      : `${first} has no active study streak in Markwise right now. This is engagement only, not part of the grade.`
   );
 
   const nextSteps: string[] = [];

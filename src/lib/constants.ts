@@ -92,7 +92,7 @@ export function parseSubmissionSource(value: string | null | undefined): Submiss
   return (SUBMISSION_SOURCES as readonly string[]).includes(value ?? "") ? (value as SubmissionSource) : "TEXT";
 }
 
-export const DEMO_TEACHER_EMAIL = "morgan.hale@gradesmart.example";
+export const DEMO_TEACHER_EMAIL = "morgan.hale@markwise.example";
 
 /** Illustrative assumption for the time-saved estimate. Not a measurement. */
 export const ILLUSTRATIVE_MINUTES_SAVED_PER_PAPER = 6;
@@ -106,12 +106,12 @@ export function isConfidence(value: string): value is Confidence {
 }
 
 /** The student the "View as a student" landing link signs in as. */
-export const DEMO_STUDENT_EMAIL = "ava.quillon@students.gradesmart.example";
+export const DEMO_STUDENT_EMAIL = "ava.quillon@students.markwise.example";
 
 /**
  * One-click demo sign-in (landing page buttons and the account switcher).
- * On by default for the hackathon demo; set GRADESMART_DEMO_LOGIN=off to hide it.
+ * On by default for the hackathon demo; set MARKWISE_DEMO_LOGIN=off to hide it.
  */
 export function demoLoginEnabled(): boolean {
-  return process.env.GRADESMART_DEMO_LOGIN !== "off";
+  return process.env.MARKWISE_DEMO_LOGIN !== "off";
 }

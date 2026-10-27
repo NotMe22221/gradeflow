@@ -20,7 +20,7 @@ export function Hero({ demoLogin, theme }: { demoLogin: boolean; theme: Theme })
         </h1>
         <p className="mt-6 max-w-[60ch] text-[1.0625rem] leading-8 text-pretty text-muted-foreground sm:text-[1.125rem]">
           <span className="font-medium text-foreground">AI drafts the first pass. You make the call.</span>{" "}
-          GradeSmart AI reads typed essays and photos of handwritten tests against your rubric. For each criterion it
+          Markwise reads typed essays and photos of handwritten tests against your rubric. For each criterion it
           suggests a score and quotes the line from the paper behind it. Nothing reaches a student until you approve it.
         </p>
         <DemoCtas demoLogin={demoLogin} className="mt-8" />

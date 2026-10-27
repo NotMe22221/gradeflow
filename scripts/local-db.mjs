@@ -1,5 +1,5 @@
 // Prisma's local Postgres server for development (`prisma dev`, server name
-// "gradesmart"), used when no database is configured.
+// "markwise"), used when no database is configured.
 //
 //   node scripts/local-db.mjs          start it if needed (npm run dev, npm run seed,
 //                                      npm start, npm run db:start)
@@ -20,7 +20,7 @@
 //   20-30 s) is retried for about 40 s.
 //
 // Prisma's dev-server CLI is pinned (PRISMA_DEV_VERSION) and cached in
-// node_modules/.cache/gradesmart-prisma-dev rather than the temp folder (which
+// node_modules/.cache/markwise-prisma-dev rather than the temp folder (which
 // a reboot may clear), so only the very first start needs the npm registry.
 // The stop/status/delete commands use the same pinned, cached CLI.
 //
@@ -54,7 +54,7 @@ const prismaBin = path.join(prismaPackageDir, "build", "index.js");
 /** Where src/lib/db-url.ts looks for the local server's address. */
 const URL_FILE = path.join(process.cwd(), "prisma", ".local-database-url");
 /** The pinned dev-server CLI's cache (node_modules/.cache/…), and the start lock. */
-const CACHE_DIR = path.join(prismaPackageDir, "..", ".cache", "gradesmart-prisma-dev");
+const CACHE_DIR = path.join(prismaPackageDir, "..", ".cache", "markwise-prisma-dev");
 const START_LOCK = path.join(CACHE_DIR, "start.lock");
 
 const HINTS = [

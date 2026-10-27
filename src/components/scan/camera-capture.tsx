@@ -78,7 +78,7 @@ export function CameraCapture({
         setState({
           status: "error",
           message:
-            "The camera only works over HTTPS or on localhost. Open GradeSmart AI from a secure address, or upload photos instead.",
+            "The camera only works over HTTPS or on localhost. Open Markwise from a secure address, or upload photos instead.",
         });
         return;
       }

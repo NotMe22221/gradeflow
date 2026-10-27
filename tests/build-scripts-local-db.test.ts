@@ -22,7 +22,7 @@ const LOCAL = "postgres://postgres:postgres@localhost:51214/template1?sslmode=di
 
 function record(overrides: Record<string, unknown> = {}) {
   return JSON.stringify({
-    name: "gradesmart",
+    name: "markwise",
     pid: 900,
     port: 51213,
     databasePort: 51214,
@@ -91,7 +91,7 @@ describe("local dev server: Prisma's record of it", () => {
 describe("local dev server: starting it", () => {
   it("pins the dev-server CLI so its cache isn't keyed by the date", () => {
     assert.match(lib.PRISMA_DEV_VERSION, /^\d+\.\d+\.\d+$/);
-    assert.equal(lib.SERVER_NAME, "gradesmart");
+    assert.equal(lib.SERVER_NAME, "markwise");
   });
 
   it("takes the plain postgres:// address from prisma dev's output, never the prisma+postgres:// one", () => {

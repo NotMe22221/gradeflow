@@ -1,6 +1,6 @@
-# GradeSmart AI design system
+# Markwise design system
 
-GradeSmart AI follows the look and structure of **Google Classroom** (Material 3)
+Markwise follows the look and structure of **Google Classroom** (Material 3)
 so teachers and students feel at home on day one. We borrow the patterns, not
 the branding: no Google logos, product names, or proprietary fonts.
 
@@ -28,7 +28,7 @@ accents.
 
 ## Personalization
 
-Every user can change how GradeSmart looks and how Home is arranged. Settings
+Every user can change how Markwise looks and how Home is arranged. Settings
 are saved per user (`UserPreferences`, validated by
 `src/lib/preferences/schema.ts`) and rendered on the server as `data-theme`,
 `data-accent`, `data-text-size`, and `data-density` on `<html>`, so there is no

@@ -10,7 +10,7 @@ export function SiteFooter() {
           <p className="flex items-center gap-3">
             <LogoMark className="size-7" />
             <span className="font-display text-base">
-              <span className="font-semibold text-foreground">GradeSmart</span> AI
+              <span className="font-semibold text-foreground">Markwise</span>
             </span>
           </p>
           <p className="mt-4 max-w-[48ch] text-pretty">

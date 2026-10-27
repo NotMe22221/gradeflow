@@ -92,7 +92,7 @@ async function markFailed(submissionId: string): Promise<void> {
       data: { status: "GRADING_FAILED" },
     });
   } catch (error) {
-    console.error("[gradesmart] Could not mark submission as failed", {
+    console.error("[markwise] Could not mark submission as failed", {
       submissionId,
       type: error instanceof Error ? error.name : typeof error,
     });
@@ -202,7 +202,7 @@ export async function runAiFirstPass(teacherId: string, submissionId: string): P
     if (error instanceof GradingConflictError) throw error;
     await markFailed(submission.id);
     if (error instanceof GradingError) throw error;
-    console.error("[gradesmart] AI first pass failed", {
+    console.error("[markwise] AI first pass failed", {
       submissionId: submission.id,
       type: error instanceof Error ? error.name : typeof error,
     });

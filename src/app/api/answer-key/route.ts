@@ -91,7 +91,7 @@ export async function POST(request: Request) {
     if (error instanceof AuthError) return errorResponse(error.message, error.status);
     if (error instanceof AnswerKeyError) return errorResponse(error.message, error.status);
     // Log the error type only: never the photo, the key, or request headers.
-    console.error("[gradesmart] Answer key route failed", { type: error instanceof Error ? error.name : typeof error });
+    console.error("[markwise] Answer key route failed", { type: error instanceof Error ? error.name : typeof error });
     return errorResponse("The answer key could not be read. Try again.", 500);
   }
 }

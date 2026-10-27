@@ -71,7 +71,7 @@ describe("search index scoping", () => {
     const leaky = {
       classes: [{ ...CLASSES[0], teacherId: "t-1", joinCode: "SECRET" }],
       assignments: [{ ...ASSIGNMENTS[0], instructions: "Answer key: 42", aiGrade: { score: 9 } }],
-      students: [{ ...STUDENTS[0], email: "ava.quillon@students.gradesmart.example", score: 14 }],
+      students: [{ ...STUDENTS[0], email: "ava.quillon@students.markwise.example", score: 14 }],
     };
     const json = JSON.stringify(buildSearchIndex("TEACHER", leaky));
     for (const secret of ["SECRET", "Answer key", "aiGrade", "@", "score", "teacherId", "instructions"]) {

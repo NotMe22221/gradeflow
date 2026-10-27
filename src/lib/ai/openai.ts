@@ -114,7 +114,7 @@ export function openAiErrorKind(error: unknown): OpenAiErrorKind {
 export function describeOpenAiError(error: unknown, context: string): string {
   const kind = openAiErrorKind(error);
   const status = error instanceof OpenAI.APIError ? error.status : undefined;
-  console.error(`[gradesmart] ${context} failed`, { kind, status: status ?? null });
+  console.error(`[markwise] ${context} failed`, { kind, status: status ?? null });
   switch (kind) {
     case "auth":
       return "The OpenAI API key was rejected. Check OPENAI_API_KEY on the server.";

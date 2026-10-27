@@ -107,7 +107,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof AuthError) return errorResponse(error.message, error.status);
     // Log the error type only: never the key, request headers, or the goal text.
-    console.error("[gradesmart] Goal planner route failed", {
+    console.error("[markwise] Goal planner route failed", {
       type: error instanceof Error ? error.name : typeof error,
     });
     return errorResponse("Your goal could not be planned. Try again.", 500);

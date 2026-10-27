@@ -38,7 +38,7 @@ export const DIMMED = "dark:brightness-85";
 
 // --- "Dim page" (a per-viewer convenience, kept in this browser only) --------
 
-const STORAGE_KEY = "gradesmart:review:dim-page";
+const STORAGE_KEY = "markwise:review:dim-page";
 const listeners = new Set<() => void>();
 /** In-memory value, so the toggle still works when storage is blocked. */
 let memory: boolean | null = null;

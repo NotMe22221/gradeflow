@@ -3,7 +3,7 @@
 //
 //   node scripts/capture-screenshots.mjs [baseUrl]      (default http://localhost:3100)
 //
-// Needs a running, seeded GradeSmart AI server and Playwright (it is not a
+// Needs a running, seeded Markwise server and Playwright (it is not a
 // project dependency; any global install that `require("playwright")` finds
 // works). For each theme (light, dark) it signs in through the landing page's
 // demo buttons, captures desktop (1280px) and phone (390px) screens at 2x, and
@@ -322,7 +322,7 @@ const sizes = new Map();
 /** id -> alt text, written to the manifest. */
 const ALT = {
   review:
-    "To review in GradeSmart AI: a student's persuasive essay with the quotes used as evidence highlighted, the suggested score, and the Send back and Approve & return buttons.",
+    "To review in Markwise: a student's persuasive essay with the quotes used as evidence highlighted, the suggested score, and the Send back and Approve & return buttons.",
   reviewPhone:
     "To review on a phone: a student's persuasive essay with highlighted evidence, the suggested score, and the Send back and Approve & return buttons.",
   collect:

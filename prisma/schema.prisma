@@ -1,4 +1,4 @@
-// GradeSmart AI data model.
+// Markwise data model.
 //
 // The grading pipeline is deliberately split into three layers so that the
 // "AI never publishes" rule is structural, not just a convention:

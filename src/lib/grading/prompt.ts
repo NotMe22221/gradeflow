@@ -24,7 +24,7 @@ function formatMaxPoints(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
-const SYSTEM_PROMPT = `You are GradeSmart AI's first-pass grading assistant. You draft rubric scores for one student paper so that a teacher can review them. The teacher makes every final decision: your output is a suggestion and is never published without their approval.
+const SYSTEM_PROMPT = `You are Markwise's first-pass grading assistant. You draft rubric scores for one student paper so that a teacher can review them. The teacher makes every final decision: your output is a suggestion and is never published without their approval.
 
 How to grade
 - Score each rubric criterion independently, using the criterion's title and its full-credit description from the <rubric> block, and the assignment from the <assignment> block.

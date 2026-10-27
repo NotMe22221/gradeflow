@@ -140,14 +140,14 @@ export async function submitPaper(assignmentId: string, formData: FormData): Pro
       onTime = xp.awards.some((award) => award.kind === "ON_TIME");
     } catch (error) {
       // The paper is in; XP is a bonus. Log the error type only.
-      console.error("[gradesmart] Submission XP failed", {
+      console.error("[markwise] Submission XP failed", {
         type: error instanceof Error ? error.name : typeof error,
       });
     }
   } catch (error) {
     if (error instanceof AuthError) return { ok: false, error: error.message };
     // Never log the paper itself: it is student data.
-    console.error("[gradesmart] Student submission failed", {
+    console.error("[markwise] Student submission failed", {
       type: error instanceof Error ? error.name : typeof error,
     });
     return { ok: false, error: "Your paper could not be submitted. Try again." };
@@ -181,7 +181,7 @@ export async function logStudySession(assignmentId: string): Promise<LogStudySes
     });
   } catch (error) {
     if (error instanceof AuthError) return { ok: false, error: error.message };
-    console.error("[gradesmart] Study session log failed", {
+    console.error("[markwise] Study session log failed", {
       type: error instanceof Error ? error.name : typeof error,
     });
     return { ok: false, error: "Your study session could not be logged. Try again." };

@@ -20,7 +20,7 @@ export const SCREENSHOTS = {
     width: 2560,
     height: 1600,
     cssWidth: 1280,
-    alt: "To review in GradeSmart AI: a student's persuasive essay with the quotes used as evidence highlighted, the suggested score, and the Send back and Approve & return buttons.",
+    alt: "To review in Markwise: a student's persuasive essay with the quotes used as evidence highlighted, the suggested score, and the Send back and Approve & return buttons.",
   },
   firstPass: {
     light: "/landing/first-pass-light.webp",

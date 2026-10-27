@@ -122,7 +122,7 @@ async function readWithVision(input: Omit<GradingInput, "paper">, request: ScanR
     output = await gradeWithVision(input, request.pages, request.answerKey);
   } catch (error) {
     if (error instanceof VisionGradingError) throw new ScanError(error.message, 502);
-    console.error("[gradesmart] Camera grading failed", { type: error instanceof Error ? error.name : typeof error });
+    console.error("[markwise] Camera grading failed", { type: error instanceof Error ? error.name : typeof error });
     throw new ScanError("The AI request failed. Try again.", 502);
   }
   if (!output.transcription) {

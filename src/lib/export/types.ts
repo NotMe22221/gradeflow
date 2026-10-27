@@ -13,7 +13,7 @@ export type ExportResult = {
 };
 
 /**
- * Turns a class gradebook into something that can leave GradeSmart AI.
+ * Turns a class gradebook into something that can leave Markwise.
  *
  * GradebookData only ever contains teacher-approved PublishedGrade scores, so
  * every exporter inherits the approval gate: nothing the AI suggested can be

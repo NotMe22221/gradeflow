@@ -13,7 +13,7 @@ export type PrivateComment = {
 /**
  * The teacher's notes to this student, shown like Classroom's private
  * comments: a send-back note, or the overall feedback approved with a grade.
- * Read-only: there is no messaging in GradeSmart.
+ * Read-only: there is no messaging in Markwise.
  */
 export function PrivateComments({ comments, timeZone }: { comments: PrivateComment[]; timeZone?: string }) {
   if (comments.length === 0) return null;

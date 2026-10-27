@@ -63,7 +63,7 @@ export async function GET(
     if (error instanceof AuthError) {
       return error.status === 404 ? notFound() : NextResponse.json({ ok: false, error: error.message }, { status: error.status });
     }
-    console.error("[gradesmart] Photo route failed", { type: error instanceof Error ? error.name : typeof error });
+    console.error("[markwise] Photo route failed", { type: error instanceof Error ? error.name : typeof error });
     return NextResponse.json({ ok: false, error: "Couldn't load that photo." }, { status: 500 });
   }
 }

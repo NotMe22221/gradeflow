@@ -1,8 +1,8 @@
-# GradeSmart AI
+# Markwise
 
 **AI drafts the first pass. You make the call.**
 
-GradeSmart AI links paper classrooms to digital grading. Teachers grade typed
+Markwise links paper classrooms to digital grading. Teachers grade typed
 essays and photographed handwritten tests with an AI first pass. They see where
 the class is losing points and can generate a parent-conference brief in one
 click. Students get a dashboard that plans the scores they need, tracks study
@@ -22,7 +22,7 @@ Material Symbols. See [`docs/DESIGN.md`](docs/DESIGN.md) for the design system
 and route map.
 
 > Every name, paper, photo, and number in this repo is synthetic demo data.
-> Never point GradeSmart AI at real student data.
+> Never point Markwise at real student data.
 
 ---
 
@@ -59,7 +59,7 @@ labelled local demo engine. To use real AI, copy `.env.example` to
 | `DATABASE_URL_UNPOOLED` | same as `DATABASE_URL` | Direct (unpooled) connection used for schema changes (`prisma db push`). Neon on Vercel sets it. |
 | `SESSION_SECRET` | built-in demo secret | Signs the session cookie. Set a long random string anywhere but a local demo. Required in production once demo sign-in is off. |
 | `SESSION_COOKIE_SECURE` | Secure except plain HTTP on localhost or a private LAN address | Force `true` or `false`. Behind a TLS proxy, make sure it sends `X-Forwarded-Proto`. |
-| `GRADESMART_DEMO_LOGIN` | on | Set to `off` to hide the one-click demo sign-in. |
+| `MARKWISE_DEMO_LOGIN` | on | Set to `off` to hide the one-click demo sign-in. |
 
 **Model routing is fixed** in `src/lib/ai/openai.ts`: vision tasks always use
 `gpt-4o`, and text and logic tasks always use `gpt-4o-mini`. No other file
@@ -82,7 +82,7 @@ review queue, the class Stream and To-do, CSV export, and the seed dataset),
 `http://<your-laptop-ip>:3000` on the phone. The webcam capture needs HTTPS or
 localhost; on a phone over plain HTTP, **Upload photos** opens the camera instead.
 
-**Local database:** Prisma's local Postgres server is named `gradesmart`.
+**Local database:** Prisma's local Postgres server is named `markwise`.
 `npm run dev`, `npm run seed`, and `npm start` use it straight away when it is
 running and start it when it isn't (after a reboot, say); several of them can
 start at once. `npm run db:start` starts it on its own, `npm run db:stop` stops
@@ -97,7 +97,7 @@ deletes it with its demo data. Its address is saved in
 - The local database won't start: `npm run db:status` shows its state
   (the same as `npx prisma dev ls`). Try `npm run db:stop`, then the command
   again; if it still fails, `npm run db:delete` and `npm run seed` start over
-  with a fresh one (`npx prisma dev rm --force gradesmart` does the same
+  with a fresh one (`npx prisma dev rm --force markwise` does the same
   delete). Right after a crash, a start keeps trying for up to a minute
   while the old server's lock clears.
 - "Couldn't download Prisma's local Postgres server": the first start needs
@@ -107,7 +107,7 @@ deletes it with its demo data. Its address is saved in
 
 ## Deploy to Vercel
 
-GradeSmart AI needs a Postgres database when it runs on Vercel (serverless
+Markwise needs a Postgres database when it runs on Vercel (serverless
 functions can't keep a local file). Neon's free tier works well.
 
 1. **Import the repo** at vercel.com/new. Keep **Root Directory** as the repo
@@ -165,7 +165,7 @@ Notes:
   or "without VERCEL_ENV", turn on **Settings → Environment Variables →
   Automatically expose System Environment Variables**.
 - The public deployment keeps the one-click demo sign-in. Set
-  `GRADESMART_DEMO_LOGIN=off` once real accounts exist.
+  `MARKWISE_DEMO_LOGIN=off` once real accounts exist.
 - AI routes allow up to 120 seconds (`maxDuration`); Vercel's default Fluid
   compute covers that on every plan.
 - Vercel accepts request bodies up to 4.5 MB, so the browser shrinks scanned
@@ -374,5 +374,5 @@ status machine, every API contract, and the extension points.
 - **Different OpenAI models.** Change `OPENAI_MODELS` in `src/lib/ai/openai.ts`.
   It is the single place model names live.
 - **Real auth.** Replace the demo sign-in in `src/lib/auth/` with your identity
-  provider and set `GRADESMART_DEMO_LOGIN=off` and `SESSION_SECRET`. Role and
+  provider and set `MARKWISE_DEMO_LOGIN=off` and `SESSION_SECRET`. Role and
   ownership checks already run on the server.

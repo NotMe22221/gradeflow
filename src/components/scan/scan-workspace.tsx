@@ -359,7 +359,7 @@ export function ScanWorkspace({
     } catch {
       if (controller.signal.aborted) return;
       setPhase("idle");
-      setError({ message: "Couldn't reach GradeSmart AI. Check your connection and try again." });
+      setError({ message: "Couldn't reach Markwise. Check your connection and try again." });
     } finally {
       if (abortRef.current === controller) abortRef.current = null;
     }
