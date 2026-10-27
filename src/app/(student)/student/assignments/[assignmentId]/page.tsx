@@ -6,6 +6,7 @@ import { StudentAssignmentView } from "@/components/student/assignment-view";
 import { getEnrolledAssignment } from "@/lib/access";
 import { AuthError, requireStudentPage } from "@/lib/auth/session";
 import { viewerTimeZone } from "@/lib/classroom/viewer-time-zone";
+import { parseAssignmentKind } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { idSchema } from "@/lib/validation/id";
 
@@ -74,10 +75,11 @@ export default async function StudentAssignmentPage({ params }: PageProps) {
         kind: assignment.kind,
         dueDate: assignment.dueDate,
         createdAt: assignment.createdAt,
+        // A paper test's criterion descriptions are its answer key: never sent to the student.
         criteria: assignment.criteria.map(({ id, title, description, maxPoints }) => ({
           id,
           title,
-          description,
+          description: parseAssignmentKind(assignment.kind) === "TEST" ? "" : description,
           maxPoints,
         })),
         class: { id: assignment.class.id, name: assignment.class.name, section: assignment.class.section },
