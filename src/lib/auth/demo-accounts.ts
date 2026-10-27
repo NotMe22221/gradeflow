@@ -27,13 +27,23 @@ export function pickDemoAccount<T extends { email: string; role: string }>(rows:
 
 /**
  * Why demo sign-in couldn't find its account (the landing page's ?setup=):
- * "empty": the database has no users at all;
+ * "no-schema": the database answers but has no tables yet;
+ * "empty": it has tables but no users at all;
  * "no-demo": it has users, but not the demo accounts;
- * "unreachable": the database couldn't be queried.
+ * "unreachable": the query failed for any other reason (down, refused, timed out).
  */
-export type SetupIssue = "empty" | "no-demo" | "unreachable";
+export type SetupIssue = "no-schema" | "empty" | "no-demo" | "unreachable";
 
-const ISSUES: readonly SetupIssue[] = ["empty", "no-demo", "unreachable"];
+const ISSUES: readonly SetupIssue[] = ["no-schema", "empty", "no-demo", "unreachable"];
+
+/**
+ * The issue behind a failed sign-in query. Prisma reports a missing table as
+ * P2021; it is recognized by `code`, never `instanceof` (see lib/db.ts).
+ */
+export function setupIssueForError(error: unknown): SetupIssue {
+  const code = error && typeof error === "object" ? (error as { code?: unknown }).code : undefined;
+  return code === "P2021" ? "no-schema" : "unreachable";
+}
 
 /**
  * The issue named in ?setup=, or null. The older ?setup=seed carried no
@@ -44,29 +54,76 @@ export function parseSetupIssue(value: string | string[] | undefined): SetupIssu
   return first && (ISSUES as readonly string[]).includes(first) ? (first as SetupIssue) : null;
 }
 
+/**
+ * Where the app runs, which decides the fix:
+ * "vercel": a Vercel deployment (VERCEL is set);
+ * "dev-server": a computer using Prisma's local dev database (`npm run seed` works);
+ * "own-database": a computer, or another host, with its own DATABASE_URL.
+ */
+export type SetupPlace = "vercel" | "dev-server" | "own-database";
+
+export function setupPlace({ vercel, devServer }: { vercel: boolean; devServer: boolean }): SetupPlace {
+  if (vercel) return "vercel";
+  return devServer ? "dev-server" : "own-database";
+}
+
 export type SetupMessage = { title: string; body: string; command: string | null };
 
+/** Creates the tables, then loads the demo data only if the database is empty. Never erases anything. */
+const OWN_DATABASE_SETUP = "npx prisma db push && npx tsx prisma/seed.ts --if-empty";
+
 /**
- * What the landing page says for each issue. On a computer (the local dev
- * database) the fix is a command. On a hosted deployment it is never
- * `npm run seed`, which only ever changes the local dev database: the
- * Production build loads the demo data into an empty database.
+ * What the landing page says for each issue, by where the app runs. Only the
+ * dev server is told to run `npm run seed`, which refuses any other database.
+ * A Vercel deployment gets no command: its Production build creates the
+ * tables and loads the demo data into an empty database.
  */
-export function setupMessage(issue: SetupIssue, local: boolean): SetupMessage {
-  if (local) {
+export function setupMessage(issue: SetupIssue, place: SetupPlace): SetupMessage {
+  if (place === "dev-server") {
     return issue === "unreachable"
       ? {
           title: "The local database isn't running.",
-          body: "Start it with the command below (it also starts the app), then choose View the demo.",
-          command: "npm run dev",
+          body: "Start it with the command below, then choose View the demo again.",
+          command: "npm run db:start",
         }
       : {
-          title: "Demo data isn't loaded yet.",
-          body: "Load it with the command below, then choose View the demo.",
+          title: issue === "no-schema" ? "The local database has no tables yet." : "Demo data isn't loaded yet.",
+          body: "Create the tables and load the demo data with the command below, then choose View the demo.",
           command: "npm run seed",
         };
   }
+
+  if (place === "own-database") {
+    switch (issue) {
+      case "no-schema":
+      case "empty":
+        return {
+          title: issue === "no-schema" ? "The database has no tables yet." : "Demo data isn't loaded yet.",
+          body: "Create the tables and load the demo data with the command below. It only loads into an empty database and never erases anything.",
+          command: OWN_DATABASE_SETUP,
+        };
+      case "no-demo":
+        return {
+          title: "This database doesn't have the demo accounts.",
+          body: "It holds other data, and the demo data is only ever loaded into an empty database. Point DATABASE_URL at a new, empty database, then run the command below.",
+          command: OWN_DATABASE_SETUP,
+        };
+      case "unreachable":
+        return {
+          title: "Markwise can't reach its database.",
+          body: "Check DATABASE_URL (in .env.local or your host's settings) and that the database is running, then try again.",
+          command: null,
+        };
+    }
+  }
+
   switch (issue) {
+    case "no-schema":
+      return {
+        title: "This deployment's database has no tables yet.",
+        body: "Redeploy the latest Production deployment on Vercel: the Production build creates the tables and loads the demo data. (A Preview build changes its database only with ALLOW_PREVIEW_DB_CHANGES=1.)",
+        command: null,
+      };
     case "empty":
       return {
         title: "The demo data isn't loaded on this deployment yet.",
@@ -82,7 +139,7 @@ export function setupMessage(issue: SetupIssue, local: boolean): SetupMessage {
     case "unreachable":
       return {
         title: "This deployment can't reach its database.",
-        body: "Check DATABASE_URL and DATABASE_URL_UNPOOLED in Vercel → Settings → Environment Variables, then redeploy.",
+        body: "If it worked a moment ago, try again in a minute. Otherwise check DATABASE_URL and DATABASE_URL_UNPOOLED in Vercel → Settings → Environment Variables, then redeploy.",
         command: null,
       };
   }

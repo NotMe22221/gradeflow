@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { db } from "@/lib/db";
 import { demoLoginEnabled, type Role } from "@/lib/constants";
-import { DEMO_ACCOUNT_EMAILS, pickDemoAccount, type SetupIssue } from "@/lib/auth/demo-accounts";
+import { DEMO_ACCOUNT_EMAILS, pickDemoAccount, setupIssueForError, type SetupIssue } from "@/lib/auth/demo-accounts";
 import { clearSessionCookie, requireTeacher, setSessionCookie } from "@/lib/auth/session";
 
 /**
@@ -31,10 +31,14 @@ async function signInAsDemo(role: Role, home: string): Promise<never> {
     // Every row belongs to a user, so no users means the demo data was never loaded.
     if (!account) issue = (await db.user.count()) === 0 ? "empty" : "no-demo";
   } catch (error) {
+    issue = setupIssueForError(error);
+    // The error class and Prisma's code only: never the connection string or query.
+    const code = error && typeof error === "object" ? (error as { code?: unknown }).code : undefined;
     console.error("[markwise] Demo sign-in couldn't query the database", {
       type: error instanceof Error ? error.name : typeof error,
+      code: typeof code === "string" ? code : null,
+      issue,
     });
-    issue = "unreachable";
   }
   // Outside the try: redirect() works by throwing.
   if (!account) redirect(`/?setup=${issue ?? "no-demo"}`);

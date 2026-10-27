@@ -3,7 +3,14 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
-import { DEMO_ACCOUNT_EMAILS, parseSetupIssue, pickDemoAccount, setupMessage } from "@/lib/auth/demo-accounts";
+import {
+  DEMO_ACCOUNT_EMAILS,
+  parseSetupIssue,
+  pickDemoAccount,
+  setupIssueForError,
+  setupMessage,
+  setupPlace,
+} from "@/lib/auth/demo-accounts";
 import { DEMO_STUDENT_EMAIL, DEMO_TEACHER_EMAIL } from "@/lib/constants";
 
 const ROOT = join(import.meta.dirname, "..");
@@ -49,6 +56,7 @@ describe("demo account lookup", () => {
 describe("the setup banner", () => {
   it("reads the reason from ?setup=, and ignores the old reason-less link", () => {
     assert.equal(parseSetupIssue("empty"), "empty");
+    assert.equal(parseSetupIssue("no-schema"), "no-schema");
     assert.equal(parseSetupIssue(["no-demo", "x"]), "no-demo");
     assert.equal(parseSetupIssue("unreachable"), "unreachable");
     assert.equal(parseSetupIssue("seed"), null);
@@ -56,20 +64,49 @@ describe("the setup banner", () => {
     assert.equal(parseSetupIssue(undefined), null);
   });
 
-  it("never tells a hosted deployment to run npm run seed", () => {
-    for (const issue of ["empty", "no-demo", "unreachable"] as const) {
-      const message = setupMessage(issue, false);
-      assert.equal(message.command, null, issue);
-      assert.doesNotMatch(`${message.title} ${message.body}`, /npm run/, issue);
-    }
-    assert.match(setupMessage("empty", false).body, /Redeploy the latest Production deployment/);
-    assert.match(setupMessage("no-demo", false).body, /new, empty database/);
-    assert.match(setupMessage("unreachable", false).body, /DATABASE_URL/);
+  it("tells a database with no tables apart from one it can't reach", () => {
+    // Prisma's code for a missing table (Postgres 42P01).
+    assert.equal(setupIssueForError(Object.assign(new Error("relation does not exist"), { code: "P2021" })), "no-schema");
+    assert.equal(setupIssueForError(Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" })), "unreachable");
+    assert.equal(setupIssueForError(new Error("timeout")), "unreachable");
+    assert.equal(setupIssueForError("odd"), "unreachable");
   });
 
-  it("gives the local command on a computer", () => {
-    assert.equal(setupMessage("empty", true).command, "npm run seed");
-    assert.equal(setupMessage("no-demo", true).command, "npm run seed");
-    assert.equal(setupMessage("unreachable", true).command, "npm run dev");
+  it("picks the fix by where the app runs", () => {
+    assert.equal(setupPlace({ vercel: true, devServer: false }), "vercel");
+    assert.equal(setupPlace({ vercel: true, devServer: true }), "vercel");
+    assert.equal(setupPlace({ vercel: false, devServer: true }), "dev-server");
+    assert.equal(setupPlace({ vercel: false, devServer: false }), "own-database");
+  });
+
+  it("never gives a Vercel deployment a command", () => {
+    for (const issue of ["no-schema", "empty", "no-demo", "unreachable"] as const) {
+      const message = setupMessage(issue, "vercel");
+      assert.equal(message.command, null, issue);
+      assert.doesNotMatch(`${message.title} ${message.body}`, /npm run|npx/, issue);
+    }
+    assert.match(setupMessage("no-schema", "vercel").body, /creates the tables/);
+    assert.match(setupMessage("empty", "vercel").body, /Redeploy the latest Production deployment/);
+    assert.match(setupMessage("no-demo", "vercel").body, /new, empty database/);
+    assert.match(setupMessage("unreachable", "vercel").body, /try again in a minute[\s\S]*DATABASE_URL/);
+  });
+
+  it("gives Prisma's dev database `npm run seed`, and only it", () => {
+    assert.equal(setupMessage("no-schema", "dev-server").command, "npm run seed");
+    assert.equal(setupMessage("empty", "dev-server").command, "npm run seed");
+    assert.equal(setupMessage("no-demo", "dev-server").command, "npm run seed");
+    // The app showing the banner is already running: start only the database.
+    assert.equal(setupMessage("unreachable", "dev-server").command, "npm run db:start");
+    for (const issue of ["no-schema", "empty", "no-demo", "unreachable"] as const) {
+      assert.doesNotMatch(String(setupMessage(issue, "own-database").command), /npm run seed/, issue);
+    }
+  });
+
+  it("gives your own database a command that creates the tables and seeds only an empty database", () => {
+    for (const issue of ["no-schema", "empty", "no-demo"] as const) {
+      assert.equal(setupMessage(issue, "own-database").command, "npx prisma db push && npx tsx prisma/seed.ts --if-empty");
+    }
+    assert.equal(setupMessage("unreachable", "own-database").command, null);
+    assert.match(setupMessage("unreachable", "own-database").body, /DATABASE_URL/);
   });
 });

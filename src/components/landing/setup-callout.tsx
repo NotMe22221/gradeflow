@@ -1,15 +1,15 @@
 import { Database } from "@/components/icons";
 
 import { LandingContainer } from "@/components/landing/section-intro";
-import { setupMessage, type SetupIssue } from "@/lib/auth/demo-accounts";
+import { setupMessage, type SetupIssue, type SetupPlace } from "@/lib/auth/demo-accounts";
 
 /**
  * Shown when a demo sign-in couldn't find its account (`/?setup=<issue>`):
- * what is wrong, and the fix for where the app runs. A hosted deployment is
- * never told to run `npm run seed`, which only changes the local dev database.
+ * what is wrong, and the fix for where the app runs. Only Prisma's local dev
+ * database is told to run `npm run seed`, which refuses any other database.
  */
-export function SetupCallout({ issue, local }: { issue: SetupIssue; local: boolean }) {
-  const message = setupMessage(issue, local);
+export function SetupCallout({ issue, place }: { issue: SetupIssue; place: SetupPlace }) {
+  const message = setupMessage(issue, place);
   return (
     <LandingContainer className="pt-6">
       <div
