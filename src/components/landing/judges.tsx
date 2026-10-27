@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { ChevronDown } from "@/components/icons";
 
 import {
@@ -17,7 +19,7 @@ import { LandingContainer } from "@/components/landing/section-intro";
 /** What Markwise puts together that the comparison didn't find documented together elsewhere. */
 const DIFFERENCES = [
   "An approval gate the server enforces: no grade reaches a student until the teacher approves it",
-  "Every suggested score comes with a quote from the paper, or a flag when the quote is missing or not in the paper",
+  "Every suggested score comes with a quote checked word for word against the paper, or says no supporting quote was found",
   "A heuristic flag when a paper appears to give the AI grader instructions",
   "Handwritten tests graded from a phone photo, with the photo beside the draft",
   "A student side that works out the exact score needed for a goal grade",
@@ -79,8 +81,8 @@ const BEHIND: { title: string; body: string }[] = [
     body: "One click signs in to a seeded account, with no password. Roles are checked on the server, but a school would need real sign-in first.",
   },
   {
-    title: "Confidence is the model's own guess",
-    body: "It is self-reported and uncalibrated, so it only sorts To review. We haven't run a formal accuracy study.",
+    title: "Accuracy is barely measured",
+    body: "The only check so far is 30 public essays scored against human raters, and the live AI run is still to come. The grader's confidence is self-reported and uncalibrated, so it only sorts To review.",
   },
   {
     title: "The injection flag is a heuristic",
@@ -195,7 +197,15 @@ export function Judges({ demoLogin }: { demoLogin: boolean }) {
                 <DemoCtas demoLogin={demoLogin} note={null} />
                 <p className="max-w-[48ch] text-[0.9375rem] leading-6 text-pretty text-muted-foreground">
                   More to try, like Insights and conference briefs, is in the{" "}
-                  <ExternalAnchor href={DEMO_SCRIPT_URL}>demo script on GitHub</ExternalAnchor>.
+                  <ExternalAnchor href={DEMO_SCRIPT_URL}>demo script on GitHub</ExternalAnchor>. How close the scores
+                  are to a human&apos;s, on a small public set:{" "}
+                  <Link
+                    href="/evidence"
+                    className="rounded-sm text-primary underline underline-offset-4 outline-none hover:decoration-2 focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    the evidence
+                  </Link>
+                  .
                 </p>
               </div>
             </>

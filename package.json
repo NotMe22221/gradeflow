@@ -12,6 +12,7 @@
     "start": "node scripts/local-db.mjs && next start",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
+    "eval": "tsx scripts/eval/run-eval.ts",
     "seed": "node scripts/local-db.mjs && tsx prisma/seed.ts --push-schema",
     "db:start": "node scripts/local-db.mjs",
     "db:stop": "node scripts/local-db.mjs stop",

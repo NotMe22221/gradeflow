@@ -79,6 +79,17 @@ const GradingOutputSchema = z.object({
 /** The one SDK method the grader uses: the boundary tests stub. */
 export type ClaudeParseClient = { beta: { messages: Pick<Anthropic["beta"]["messages"], "parse"> } };
 
+/** Where a first pass for this input, model and effort is saved (cache.ts). */
+export function claudeCacheKey(input: GradingInput, model: string, effort: Effort): { key: string; parts: GradeCacheKeyParts } {
+  const parts = {
+    paperHash: paperHash(input.paper),
+    rubricHash: rubricHash(input),
+    model,
+    promptHash: promptHash([REQUEST_FORMAT_VERSION, buildGradingSystemPrompt(), effort, CLAUDE_MAX_TOKENS]),
+  };
+  return { key: gradeCacheKey(parts), parts };
+}
+
 export function buildClaudeGradingRequest(input: GradingInput, model: string, effort: Effort) {
   return {
     model,
@@ -161,15 +172,6 @@ export class ClaudeGrader implements Grader {
     this.model = deps.model;
   }
 
-  private cacheKeyParts(input: GradingInput): GradeCacheKeyParts {
-    return {
-      paperHash: paperHash(input.paper),
-      rubricHash: rubricHash(input),
-      model: this.deps.model,
-      promptHash: promptHash([REQUEST_FORMAT_VERSION, buildGradingSystemPrompt(), this.deps.effort, CLAUDE_MAX_TOKENS]),
-    };
-  }
-
   private async readCache(key: string) {
     try {
       return (await this.deps.cache?.get(key)) ?? null;
@@ -193,8 +195,7 @@ export class ClaudeGrader implements Grader {
 
   async grade(input: GradingInput): Promise<RawGradingResult> {
     this.cacheHit = false;
-    const parts = this.cacheKeyParts(input);
-    const key = gradeCacheKey(parts);
+    const { key, parts } = claudeCacheKey(input, this.deps.model, this.deps.effort);
     const cached = await this.readCache(key);
     if (cached) {
       this.cacheHit = true;

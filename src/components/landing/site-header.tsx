@@ -18,7 +18,16 @@ export const SECTION_LINKS = [
  * in. "View the demo" is the one filled button; signed-in visitors get
  * "Open app" instead.
  */
-export function SiteHeader({ appHref, demoLogin }: { appHref: string | null; demoLogin: boolean }) {
+export function SiteHeader({
+  appHref,
+  demoLogin,
+  sectionBase = "",
+}: {
+  appHref: string | null;
+  demoLogin: boolean;
+  /** "/" on pages other than the landing page, so the section links lead back to it. */
+  sectionBase?: string;
+}) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card">
       <div className="@container mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-4 sm:px-6 lg:gap-6 lg:px-8">
@@ -30,7 +39,7 @@ export function SiteHeader({ appHref, demoLogin }: { appHref: string | null; dem
           {SECTION_LINKS.map((link) => (
             <a
               key={link.href}
-              href={link.href}
+              href={`${sectionBase}${link.href}`}
               className="inline-flex h-10 items-center rounded-full px-3.5 text-[0.875rem] font-medium text-muted-foreground transition-colors outline-none hover:bg-foreground/[0.06] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
             >
               {link.label}

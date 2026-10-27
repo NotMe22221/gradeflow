@@ -33,3 +33,6 @@ npm-debug.log*
 
 # Address of the local Postgres dev server (written by scripts/local-db.mjs)
 /prisma/.local-database-url
+
+# Saved live evaluation results (paid API output; rerunning is free while cached)
+/eval/.cache/

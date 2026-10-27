@@ -97,6 +97,11 @@ anything. There is no override.
 Dates follow the viewer's time zone ("Due today", Missing, Stream times), and a
 due date is the same calendar day for everyone.
 
+`npm run eval` grades a 30-essay public sample with the demo grader and
+compares it with human scores. `npm run eval -- --live` plans the paid
+Claude run: it prints the model, the call count and the worst-case cost, and
+sends nothing until you confirm. See `eval/README.md`.
+
 Other scripts: `npm test` (unit tests covering grading validation, prompt
 injection, the demo engines, goal math, streaks, the heatmap, briefs, the
 review queue, the class Stream and To-do, CSV export, and the seed dataset),
@@ -296,6 +301,7 @@ The click path for judges. Times are a guide.
 | Landing page screenshots | **Real screenshots** of the demo app with synthetic data, captured by `scripts/capture-screenshots.mjs`. No testimonials or usage numbers are claimed. |
 | Dashboard stats | **Real counts** from approved grades. Time saved is an **illustrative estimate** (it assumes about 6 minutes per paper, is not a measurement, and is labelled that way). |
 | AI confidence | The model's **self-reported, uncalibrated** confidence. Used only to sort the queue, never shown as a probability. |
+| Accuracy evidence (`/evidence`) | **Real numbers on a small sample.** 30 public essays (ELLIPSE corpus, CC BY-NC-SA 4.0) scored against human raters: exact agreement, within 1 point, mean error, and an always-3 baseline. The committed run is the demo grader, which does no better than the baseline. The live Claude run is a manual, paid step (30 calls to `claude-haiku-5-5`, at most about $0.13) and hasn't been run yet. See `eval/README.md`. |
 | Live AI limits | **Real.** Per-session, per-network and daily caps plus a kill switch, enforced on the server from the `AiCall` table before any paid call is sent. Spend is an **estimate** from list prices, not a bill. |
 
 When `OPENAI_API_KEY` is set, test photos, answer-key photos, and the

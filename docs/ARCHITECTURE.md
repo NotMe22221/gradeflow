@@ -45,6 +45,12 @@ grades. AI drafts the first pass, and a teacher always makes the final call.
 - `@anthropic-ai/sdk` for the optional Claude grader (default model
   `claude-haiku-5-5`). A local deterministic "demo grader" runs when
   `ANTHROPIC_API_KEY` is not set or `AI_KILL_SWITCH` is on.
+- Evaluation (`eval/`, `scripts/eval/run-eval.ts`, `src/lib/eval/`). The
+  harness grades a fixed 30-essay ELLIPSE sample with the app's grader and
+  validation, scores agreement with the human raters (pure `metrics.ts`), and
+  writes `eval/results/{demo,live}.json`. `/evidence` renders those committed
+  files. The live mode is opt-in, needs `--confirm-calls` to match its
+  printed plan, and runs under its own memory usage guard and a file cache.
 - Live AI usage guard (`src/lib/ai/usage.ts`, pure; `usage-store.ts` for the
   `AiCall` table; `guard.ts` for the request wiring). Every paid call is
   reserved at its worst-case cost before it is sent and settled at its

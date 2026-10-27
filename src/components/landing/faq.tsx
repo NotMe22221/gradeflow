@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { ChevronDown } from "@/components/icons";
 
 import { LandingContainer, SECTION_SPACING } from "@/components/landing/section-intro";
@@ -13,7 +15,15 @@ const QUESTIONS: { question: string; answer: React.ReactNode }[] = [
         </p>
         <p>
           Your teacher Home shows how far, on average, the grades you approved landed from the suggestions, so you can
-          see how much you change. We haven&apos;t run a formal accuracy study.
+          see how much you change. Beyond that, the only check so far is small: 30 public essays scored against human
+          raters, on the{" "}
+          <Link
+            href="/evidence"
+            className="rounded-sm text-primary underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            evidence page
+          </Link>
+          .
         </p>
       </>
     ),

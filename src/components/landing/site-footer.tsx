@@ -2,7 +2,8 @@ import { LogoMark } from "@/components/brand/logo";
 import { LandingContainer } from "@/components/landing/section-intro";
 import { SECTION_LINKS } from "@/components/landing/site-header";
 
-export function SiteFooter() {
+/** `sectionBase` is "/" on pages other than the landing page, so its section links lead back to it. */
+export function SiteFooter({ sectionBase = "" }: { sectionBase?: string }) {
   return (
     <footer className="border-t border-border bg-card">
       <LandingContainer className="grid gap-8 py-10 text-[0.875rem] leading-6 text-muted-foreground md:grid-cols-12">
@@ -20,7 +21,11 @@ export function SiteFooter() {
         </div>
         <nav aria-label="Footer" className="md:col-span-3">
           <ul className="space-y-1">
-            {[...SECTION_LINKS, { href: "#accessibility", label: "Accessibility" }].map((link) => (
+            {[
+              ...SECTION_LINKS.map((link) => ({ ...link, href: `${sectionBase}${link.href}` })),
+              { href: `${sectionBase}#accessibility`, label: "Accessibility" },
+              { href: "/evidence", label: "Evidence" },
+            ].map((link) => (
               <li key={link.href}>
                 <a
                   href={link.href}
