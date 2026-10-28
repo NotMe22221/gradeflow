@@ -19,7 +19,7 @@ import {
   TEXT_SIZES,
   THEMES,
   type Preferences,
-} from "@/lib/preferences/schema";
+} from "@/lib/preferences/constants";
 
 export type Appearance = Pick<Preferences, "theme" | "accent" | "textSize" | "density" | "look">;
 

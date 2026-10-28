@@ -178,7 +178,7 @@ export default async function AssignmentPage({ params, searchParams }: { params:
             className="mt-0.5 size-12 [&_svg]:size-6"
           />
           <div className="min-w-0 space-y-1.5">
-            <h1 className="text-[1.625rem] leading-tight font-medium text-balance break-words text-foreground sm:text-[1.75rem]">
+            <h1 className="display-title break-words text-foreground">
               {assignment.title}
             </h1>
             <p className="tabular text-sm text-muted-foreground">{meta.join(" · ")}</p>

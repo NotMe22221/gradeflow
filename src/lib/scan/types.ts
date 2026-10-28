@@ -45,6 +45,8 @@ export type ScanGradeSuccess = {
   maxScore: number;
   /** Questions whose AI score failed validation and need a teacher score. */
   unscoredCount: number;
+  /** A saved read of the same photos, rubric and model was reused: no new AI call. */
+  reused: boolean;
 };
 
 export type ScanGradeFailure = { ok: false; error: string; code?: ScanErrorCode };

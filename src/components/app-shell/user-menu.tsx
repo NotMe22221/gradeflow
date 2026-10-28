@@ -74,7 +74,7 @@ export function UserMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
-        className="w-72 max-w-[calc(100vw-1rem)] overflow-y-auto [max-height:min(var(--radix-dropdown-menu-content-available-height),40rem)]"
+        className="w-72 max-w-[calc(100vw-1rem)] overflow-y-auto [max-height:min(var(--radix-dropdown-menu-content-available-height),45rem)]"
         onInteractOutside={(event) => {
           const original = event.detail.originalEvent as PointerEvent;
           rightClickOutside.current = original.button === 2 || (original.button === 0 && original.ctrlKey);
@@ -146,7 +146,9 @@ export function UserMenu({
         {demoLogin && user.role === "TEACHER" && students.length > 0 ? (
           <>
             <DropdownMenuLabel>Demo: view as a student</DropdownMenuLabel>
-            <div className="max-h-[min(40dvh,15rem)] overflow-y-auto">
+            {/* Whole rows (2.5rem each) plus half of the next, so the cut-off row shows the list scrolls even
+                where scrollbars are hidden. Under 40% of the screen and 8.5 rows, so Sign out stays in view. */}
+            <div className="overflow-y-auto [max-height:min(21.25rem,round(down,40dvh_-_2.5rem,2.5rem)_+_1.25rem)]">
               {students.map((student) => (
                 <DropdownMenuItem key={student.id} onSelect={() => switchAccount(() => viewAsStudent(student.id))}>
                   <UserRound aria-hidden />

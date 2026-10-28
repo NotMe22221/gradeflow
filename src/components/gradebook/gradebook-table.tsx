@@ -75,6 +75,8 @@ export function GradebookTable({
               >
                 <span className="block text-xs text-muted-foreground">Approved grades</span>
                 <span className="mt-1 block text-sm font-medium text-foreground">Average</span>
+                {/* The student goal planner weights by points instead, so the rule is named here. */}
+                <span className="mt-1 block text-xs text-muted-foreground">each assignment equal</span>
               </th>
               {columns.map((assignment) => (
                 <th

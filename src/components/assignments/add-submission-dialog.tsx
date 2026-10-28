@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { ClipboardPaste, FilePlus2, FileUp, Loader2, ShieldCheck, X } from "@/components/icons";
 import { toast } from "sonner";
 
@@ -136,7 +137,15 @@ export function AddSubmissionDialog({
 
     setError(null);
     startTransition(async () => {
-      const result = await addSubmission(assignmentId, formData);
+      let result: Awaited<ReturnType<typeof addSubmission>>;
+      try {
+        result = await addSubmission(assignmentId, formData);
+      } catch (error) {
+        // Next's own signals (a redirect) go back to Next; anything else means the server was out of reach.
+        unstable_rethrow(error);
+        setError({ message: "Couldn't reach the server. Check your connection and try again." });
+        return;
+      }
       if (!result.ok) {
         setError({ message: result.error, field: result.field });
         return;

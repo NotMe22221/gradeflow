@@ -92,7 +92,8 @@ async function extractWithOpenAI(goal: string, classes: GoalClass[], model: stri
       getOpenAI().chat.completions.parse(request, openAiRequestOptions("text"))
     );
   } catch (error) {
-    // A usage cap stopped the call before it was sent: the route answers 429 with the reason.
+    // A usage cap stopped the call before it was sent: the route answers 429 with Retry-After,
+    // or 503 when waiting won't help (kill switch, a call larger than the daily budget).
     if (error instanceof AiLimitError) throw error;
     // Logs the error class and status only; never the key or the goal text.
     throw new GoalPlannerError(describeOpenAiError(error, "Goal planner"), 502);
@@ -127,7 +128,8 @@ async function extractWithClaude(goal: string, classes: GoalClass[], model: stri
     });
     return { ...toExtraction(parsed), model: answeredBy };
   } catch (error) {
-    // A usage cap stopped the call before it was sent: the route answers 429 with the reason.
+    // A usage cap stopped the call before it was sent: the route answers 429 with Retry-After,
+    // or 503 when waiting won't help (kill switch, a call larger than the daily budget).
     if (error instanceof AiLimitError) throw error;
     if (error instanceof ClaudeCallError) {
       if (error.kind === "refusal") throw new GoalPlannerError(UNCLEAR_GOAL_MESSAGE, 400, "UNCLEAR_GOAL");

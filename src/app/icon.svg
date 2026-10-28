@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- The LogoMark (src/components/brand/logo.tsx) in the default pink accent from globals.css:
+       tone 40 with white strokes in light, tone 80 with tone 20 strokes in dark. -->
+  <style>
+    .tile { fill: #c2166b; }
+    .ink { stroke: #ffffff; }
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: #ffb0cd; }
+      .ink { stroke: #66003a; }
+    }
+  </style>
+  <rect class="tile" width="32" height="32" rx="9" />
+  <g class="ink" stroke-linecap="round">
+    <path d="M9 11h9.5M9 15.5h6" stroke-opacity="0.6" stroke-width="2.2" />
+    <path d="M14.5 21l3.1 3 6.9-7.5" stroke-width="2.6" stroke-linejoin="round" />
+  </g>
+</svg>

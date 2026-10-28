@@ -41,7 +41,8 @@ function errorResponse(error: string, status: number) {
  *
  * The body is read with a hard byte cap, so a chunked request can't stream an
  * unbounded body into memory. A live draft goes through the usage caps
- * (lib/ai/guard.ts): past one, 429 with the reason and Retry-After. The demo
+ * (lib/ai/guard.ts): past one, 429 with Retry-After, or 503 when waiting
+ * won't help (kill switch, a call larger than the daily budget). The demo
  * brief costs nothing and is not limited.
  */
 export async function POST(request: Request) {

@@ -293,7 +293,10 @@ model AiGradeCache {
   rubricHash String
   model      String
   promptHash String
-  // JSON of RawGradingResult plus the model that served it.
+  // JSON of RawGradingResult plus the model that served it. Camera-grader
+  // and answer-key photo reads are stored here too, under "scan:" and
+  // "answer-key:" keys, as JSON of {kind, output, servedModel}
+  // (src/lib/scan/cache.ts).
   result     String
   createdAt  DateTime @default(now())
 }

@@ -222,6 +222,11 @@ export function CriterionCard({
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <Label htmlFor={commentId} className="text-[0.8125rem]">
               Feedback for student
+              {/* Names which field this is in a list of form fields; the visible words stay first. */}
+              <span className="sr-only">
+                {" "}
+                on {test ? "question" : "criterion"} {number}: {criterion.title}
+              </span>
             </Label>
             {draftFeedback ? (
               <span

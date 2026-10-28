@@ -48,7 +48,7 @@ function taskDateLabel(task: GoalPlanView["tasks"][number]): string {
 }
 
 const STANDING_NOTE =
-  "Points earned out of points possible on your approved grades. An average that counts each assignment equally can differ slightly.";
+  "Points earned out of points possible on your approved grades, so bigger assignments count for more. Your teacher's gradebook averages each assignment equally, so its number can differ, most when assignments are worth very different points.";
 
 // Stat tiles. Below sm each tile is a two-column row: label over hint on the
 // left, the number on the right. From sm up they are three columns, and every

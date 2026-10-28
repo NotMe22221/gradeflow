@@ -36,7 +36,7 @@ const STEPS: Step[] = [
     title: "Review the first pass",
     body: "Run the first pass on every paper at once. Each criterion gets a suggested score, a short reason and the quote it rests on, so you check the paper instead of starting from zero. Change any score or comment.",
     details: [
-      "Papers the grader is least sure of come first",
+      "Drafts most worth a second look come first, like a missing quote or a score you often change",
       "Text in a paper aimed at the grader is flagged for you to check",
       "J and K move between papers, A approves, S sends back",
     ],

@@ -8,8 +8,9 @@ import { studentProfileHref } from "@/lib/insights/links";
 import { cn } from "@/lib/utils";
 
 /*
- * Google Classroom's People tab: "Teachers" and "Students" headings in the
- * primary color over a primary rule, then one row per person.
+ * Google Classroom's People tab: "Teachers" and "Students" headings over a
+ * primary rule (the same headings as the student People page), then one row
+ * per person.
  */
 
 function PeopleHeading({
@@ -22,8 +23,11 @@ function PeopleHeading({
   aside?: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-16 flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b border-primary pb-2">
-      <h2 id={id} className="min-w-0 text-[1.75rem] leading-9 font-normal text-primary sm:text-[2rem] sm:leading-10">
+    <div className="flex min-h-16 flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b-[3px] border-primary pb-2">
+      <h2
+        id={id}
+        className="min-w-0 font-display text-[1.5rem] leading-tight font-extrabold tracking-[-0.02em] text-foreground sm:text-[1.75rem]"
+      >
         {title}
       </h2>
       {aside ? <div className="flex shrink-0 items-center gap-2 pb-0.5">{aside}</div> : null}

@@ -45,10 +45,17 @@ pop color and band.
 Glass comes from three utilities in `globals.css`, never hand-rolled (and never
 `backdrop-blur` directly):
 
-- `liquid`: tinted glass. `--liquid` (default `--primary`) at 90% over a
-  blurred, saturated backdrop, a light rim, a specular sheen on the top half,
-  and a soft shadow in its own color. Text stays the token that pairs with the
-  tint, so contrast holds whatever is behind it.
+- `liquid`: tinted glass. `--liquid` (default `--primary`) at
+  `--liquid-tint`: opaque in light (white on a tone 40 accent has no contrast
+  to spare for a pale backdrop) and 90% over a blurred, saturated backdrop in
+  dark. Tonal and secondary buttons keep 90% in light too
+  (`[--liquid-tint:90%]`), because their dark text only gains from a pale
+  backdrop. A light rim, a specular sheen across the top that fades out above
+  the label (by min(30%, 0.85rem)), a little shade along the bottom, and a
+  soft shadow in its own color. On hover the default and destructive buttons
+  brighten the sheen (`--glass-sheen-hover`), not the fill.
+  `tests/theme.test.ts` composites the fill and the sheen and checks every
+  label at 4.5:1 for all six accents in light and dark, at rest and on hover.
 - `glass`: frosted card glass (`--glass-frost`, 78% light / 70% dark) for
   outline buttons and floating panels. On a color band, raise the frost
   (`[--glass-frost:92%]`) so the pill doesn't turn muddy.
@@ -77,13 +84,17 @@ so focus rings stay visible.
 
 Every user can change how Markwise looks and how Home is arranged. Settings
 are saved per user (`UserPreferences`, validated by
-`src/lib/preferences/schema.ts`) and rendered on the server as `data-theme`,
+`src/lib/preferences/schema.ts`), or, while demo sign-in is on, per browser in
+a cookie for each demo account, so visitors sharing it don't see each other's
+settings. The choices and defaults live in `src/lib/preferences/constants.ts`,
+re-exported by `schema.ts`. Settings are rendered on the server as `data-theme`,
 `data-accent`, `data-text-size`, `data-density`, and `data-look` on `<html>`,
 so there is no flash on load.
 
 - **Theme:** System (default), Light, Dark.
 - **Accent:** Pink (default), Blue, Teal, Green, Orange, Slate. Bright but
-  curated, so contrast always holds; no free color picker. Status and class
+  curated, so contrast always holds (checked on the rendered Liquid Glass, not
+  just the token pairs); no free color picker. Status and class
   colors never change with the accent.
 - **Look:** Bold (default: shapes, patterns, color bands) or Calm (the same
   colors on plain backgrounds).
@@ -119,8 +130,18 @@ so there is no flash on load.
 - **Icons:** Material Symbols Rounded (Apache-2.0), generated into `src/components/icons` by `scripts/build-icons.mjs`. Filled variant for the active state. No "AI" glyphs (sparkles, wands, robots): an icon says what a thing does.
 - **Focus:** the `--ring` token is opaque primary (6.4:1 on white). Buttons use
   `ring-2` with a 2px offset; tabs, menu items, and anything inside a scroller
-  use an inset ring so it is never clipped. Every page starts with a "Skip to
-  main content" link.
+  use an inset ring so it is never clipped. A scroller whose content is opaque
+  (To review's desktop paper panel) draws its own ring as an inset outline
+  (`outline-3 -outline-offset-3`), because an inset box-shadow would sit under
+  the content. Every page starts with a "Skip to main content" link.
+- **Sticky bars:** html `scroll-padding` counts every sticky bar: the app bar,
+  the class tab bar, the layout editor's Arranging bar, the phone bottom nav
+  (`data-bottom-nav`), and below `lg` To review's Paper | Grade tabs
+  (`data-review-tabs`) and action bar (`data-review-action-bar`). So a focused
+  control is never hidden under one (WCAG 2.4.11). In windows 480px tall or
+  less (400% zoom, a phone on its side) the app bar (`data-app-bar`), the
+  class tab bar and To review's bars scroll with the page, and the bottom nav
+  steps aside (WCAG 1.4.10); the menu button still reaches every page.
 - **Contrast:** every class color carries white text at 4.5:1 or better
   (orange is `#a35200`, teal `#00707a`; keep `globals.css` and
   `class-theme.ts` in sync). Banner line art and paint stay in a right-hand
@@ -147,7 +168,23 @@ so there is no flash on load.
   Navigation adapts to the width: a bottom bar with 4 labelled destinations
   under 600px, a rail from 600px, and the collapsible drawer with the class
   list from 840px. The active destination has a filled icon, a tonal pill, and
-  `aria-current`.
+  `aria-current`. In the account menu, the "Demo: view as a student" list
+  snaps to whole rows plus half a row, so a cut-off name shows it scrolls even
+  with hidden scrollbars. It stays under 40% of the screen and at most 8.5
+  rows, and the menu's cap is 45rem, so Sign out stays in view. At 1440x900
+  the first eight students (through Rafael Copperleaf) show in full; on
+  shorter windows Rafael or Priya is half-visible at the bottom.
+- Floating panels: popovers default to `collisionPadding` 16, so a panel
+  shifted to fit a phone keeps the 16px page gutter.
+- To review (`src/components/review/`): the grade summary sits above the
+  rubric scroller, so it stays in view and focus never lands under it. On
+  desktop the paper's panel is its own scroller and a single tab stop
+  (PageDown works in every browser); the Grade panel is not a tab stop of its
+  own. Previous and Next paper stay focusable at the ends of the queue
+  (`aria-disabled`). A polite status announces "Paper n of m: Student,
+  Assignment" whenever the open paper changes. Each feedback field is named
+  after its criterion or question for screen readers ("Feedback for student
+  on criterion 2: ...").
 - Search (`src/components/command-palette/`): Ctrl/⌘ K (no single-key
   shortcut, per WCAG 2.1.4). Results are grouped as Classes, Assignments, Students (teachers
   only), Pages, and Actions, built on the server for the signed-in user only.
@@ -156,6 +193,18 @@ so there is no flash on load.
   spoken announcements, plus move buttons).
 - Customize panel (`src/components/customize/`): a side sheet (bottom sheet on
   phones) with native radio groups; every change previews live.
+- Landing (`src/components/landing/`): the hero's sample card is a drawn
+  illustration with a dashed "Example" chip (its label reads "An
+  illustration of a first pass, not real output"). It is not demo grader
+  output. `ExternalAnchor` keeps its new-tab icon on the line of the link's
+  last word (a word joiner and a nowrap span). Wide tables on `/evidence` show
+  a phone-only "Swipe sideways to see every column." hint, as the gradebook,
+  heatmap and comparison do.
+- Favicon (`src/app/icon.svg`): the LogoMark in the default pink accent, tone
+  40 `#c2166b` with white strokes in a light browser scheme, tone 80
+  `#ffb0cd` with tone 20 `#66003a` strokes in dark. Next.js serves it as
+  `/icon.svg` and adds the icon link. It stays on the default accent, not the
+  viewer's chosen one.
 
 ## Page patterns
 
@@ -166,13 +215,17 @@ so there is no flash on load.
 | `/dashboard` (Home) | Home | Greeting and a "what needs you" notice (fixed; it says how many drafts are worth rechecking), then arrangeable sections: This week, Teaching tools, Your classes (essential), Recently returned, Most missed |
 | `/classes` | Home class grid | Class cards (arrangeable order) + "Create class" |
 | `/classes/[id]` | Stream | `ClassBanner`; left column "Upcoming" card; activity stream (assignments posted, grades returned, scans, AI drafts) |
-| `/classes/[id]/classwork` | Classwork | "+ Create" menu (Assignment / Handwritten test); assignment rows with icon circle, title, due date; expandable details with Turned in / Assigned / Graded counts |
-| `/classes/[id]/people` | People | Teachers and Students sections with primary-colored headings and underline; add student; rows link to student profiles |
+| `/classes/[id]/classwork` | Classwork | "+ Create" menu (Assignment / Handwritten test); topic headings (Essays, Handwritten tests); assignment rows with icon circle, title, due date; expandable details with Turned in / Assigned / Graded counts |
+| `/classes/[id]/people` | People | Teachers and Students sections with extrabold display headings over a 3px primary rule (the same headings as the student People page); add student; rows link to student profiles |
 | `/classes/[id]/grades` | Grades | Spreadsheet gradebook of approved grades only (an AI draft never shows a score: the cell reads "Needs review" and links to To review); Missing in red; CSV export |
 | `/classes/[id]/students/[sid]` | (student profile) | Stats, strengths, conference brief |
 | `/assignments/[id]` | Assignment → Student work / Instructions | Big Turned in / Assigned / Graded counts, student list with statuses and grades, AI first pass, review links, "AI vs your grades" ("Demo grader vs your grades" for the demo grader) |
 | `/review` (To review) | Grading tool | Student list rail (worth rechecking first by default, with a marker counting each draft's reasons), paper (left or right, saved), grade panel with a "Worth rechecking" box, "Suggested score" and "Draft feedback"; "Approve & return" publishes after confirmation; in dark mode the paper stays white with "Dim page" |
 | `/scan`, `/insights`, `/gradebook` | — | Same visual language |
+
+Teacher and student Classwork and People share one section-heading
+treatment: `font-display`, extrabold, `text-foreground`, 1.5rem rising to
+1.75rem from `sm`, over a 3px primary rule.
 
 **Student**
 
@@ -198,3 +251,7 @@ Every other page shows "Needs review", and students never see it.
 Our approval action is **Approve & return**: the teacher approves the grade and
 returns it to the student. It still publishes only through the approval gate.
 **Send back** asks for a revision.
+
+Example placeholders start with "e.g." and are short enough to fit a 390px
+field. They never repeat a template's text, so an empty form doesn't look
+filled in.

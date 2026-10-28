@@ -594,7 +594,14 @@ export function ScanWorkspace({
             typedTranscription={showTranscription}
           />
         ) : phase === "done" && result ? (
-          <div ref={resultRef} tabIndex={-1} className="rounded-xl outline-none">
+          // Named, so moving focus here announces "Draft ready in To review".
+          <div
+            ref={resultRef}
+            tabIndex={-1}
+            role="region"
+            aria-labelledby="scan-result-title"
+            className="rounded-xl outline-none"
+          >
             <ScanResult result={result} onScanAnother={scanAnother} />
           </div>
         ) : (
@@ -656,12 +663,15 @@ export function ScanWorkspace({
                     value={student ? studentId : ""}
                     onChange={changeStudent}
                     invalid={error?.field === "student"}
-                    describedBy={error?.field === "student" ? "scan-student-error" : undefined}
+                    describedBy={
+                      error?.field === "student" ? "scan-student-error" : paper ? "scan-student-paper" : undefined
+                    }
                     disabled={busy}
                   />
                   {/* The field error repeats this sentence after a submit, so show only one. */}
                   {student && paper && !fieldMessage(error, "student") ? (
                     <p
+                      id="scan-student-paper"
                       className={cn(
                         "text-[0.8125rem] text-pretty",
                         paper.replaceable ? "text-muted-foreground" : "text-destructive"

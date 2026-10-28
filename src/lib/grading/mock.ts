@@ -1420,8 +1420,10 @@ function pickEvidence(
     })
     .sort((a, b) => b.score - a.score || a.position - b.position);
   for (const { candidate } of ranked) {
-    if (findEvidenceSpan(input.paper, candidate.text) === null) continue;
+    // The cheap relevance check first: on an off-topic paper no candidate
+    // passes it, and the span check need never run.
     if (!quoteRelevance(candidate.text, criterion, topic).relevant) continue;
+    if (findEvidenceSpan(input.paper, candidate.text) === null) continue;
     used.add(candidate.text);
     return candidate.text;
   }

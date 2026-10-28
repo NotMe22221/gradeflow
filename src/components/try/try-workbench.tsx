@@ -15,7 +15,7 @@ import { formatPoints, pluralize } from "@/lib/format";
 import { describeFlag } from "@/lib/grading/flags";
 import { detectPromptInjection } from "@/lib/grading/injection";
 import { layoutEvidence, type InlineSegment } from "@/lib/review/model";
-import type { TryItAllowance, TryItResult } from "@/lib/try/types";
+import { TRY_RUNS_PER_SANDBOX_HOUR, type TryItAllowance, type TryItResult } from "@/lib/try/types";
 import { cn } from "@/lib/utils";
 
 export type TryTemplate = { id: TemplateId; name: string; title: string; criteria: number; points: number };
@@ -65,6 +65,7 @@ export function TryWorkbench({
     setPending(true);
     setError(null);
     let body: Response | null = null;
+    let status = 0;
     try {
       const response = await fetch("/api/try", {
         method: "POST",
@@ -72,6 +73,7 @@ export function TryWorkbench({
         body: JSON.stringify({ templateId, paper }),
         cache: "no-store",
       });
+      status = response.status;
       body = (await response.json().catch(() => null)) as Response | null;
     } catch {
       body = { ok: false, error: "Network error. Check your connection and try again." };
@@ -87,7 +89,9 @@ export function TryWorkbench({
       });
       return;
     }
-    if (body?.code === "AI_LIMIT" && live) setAllowance((current) => ({ ...current, remaining: 0 }));
+    // Only a 429 means this session's calls are used up; a 503 (kill switch, a call larger than the
+    // daily budget) leaves the allowance as it was.
+    if (body?.code === "AI_LIMIT" && status === 429 && live) setAllowance((current) => ({ ...current, remaining: 0 }));
     setError(body?.error ?? "Grading failed. Try again.");
   }
 
@@ -257,8 +261,8 @@ function EngineStrip({ allowance }: { allowance: TryItAllowance }) {
             {allowance.killSwitch
               ? "Live AI is switched off on this server, so the demo grader runs instead. "
               : "No AI key is set on this server, so the demo grader runs instead. "}
-            It is free and unlimited, but its scores and quotes are placeholders from simple text features, not real AI
-            output.
+            It is free, up to {TRY_RUNS_PER_SANDBOX_HOUR} new papers an hour, but its scores and quotes are placeholders
+            from simple text features, not real AI output.
           </p>
         )}
       </div>

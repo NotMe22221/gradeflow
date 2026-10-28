@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { Info, Loader2, UserPlus } from "@/components/icons";
 import { toast } from "sonner";
 
@@ -74,7 +75,15 @@ export function AddStudentDialog({
     const formData = new FormData(event.currentTarget);
     setFormError(null);
     startTransition(async () => {
-      const result = await addStudent(classId, formData);
+      let result: Awaited<ReturnType<typeof addStudent>>;
+      try {
+        result = await addStudent(classId, formData);
+      } catch (error) {
+        // Next's own signals (a redirect) go back to Next; anything else means the server was out of reach.
+        unstable_rethrow(error);
+        setFormError("Couldn't reach the server. Check your connection and try again.");
+        return;
+      }
       if (!result.ok) {
         setFieldErrors(result.fieldErrors ?? {});
         setFormError(result.fieldErrors ? null : result.error);

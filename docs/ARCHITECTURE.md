@@ -72,9 +72,33 @@ grades. AI drafts the first pass, and a teacher always makes the final call.
   reported usage after. The caps are per session and per IP over a rolling
   hour, plus calls and estimated spend per UTC day for the site. A reservation
   reads the counts and inserts its row in one `transaction()`, so concurrent
-  calls can't both take the last slot. Claude first passes are cached in
-  `AiGradeCache` by (paper, rubric, model, prompt) hash
-  (`src/lib/grading/cache.ts`).
+  calls can't both take the last slot. A call whose worst case alone costs
+  more than the whole daily budget is refused first (`call_too_large`). Routes
+  answer it, and the kill switch, with `503` and no `Retry-After`, since
+  waiting won't help. The other caps answer `429` with `Retry-After`.
+- Saved AI reads (`AiGradeCache`). Claude first passes are cached by (paper,
+  rubric, model, prompt) hash (`src/lib/grading/cache.ts`). Live camera-grader
+  and answer-key photo reads (Claude or GPT-4o) share the table under their
+  own key prefixes (`scan:`, `answer-key:`), each with its own parser
+  (`src/lib/scan/cache.ts`, pure; the database store is
+  `src/lib/scan/cache-store.ts`).
+  - A scan key covers every page's bytes in order, the answer-key photo,
+    `rubricHash`, the requested model, and a `promptHash` over the system
+    prompt, the full user turn (each photo replaced by its digest), the JSON
+    schema, the effort and the output limit. An answer-key key covers the
+    photo, the model and the same prompt parts. The model that actually
+    served the read is stored and reported.
+  - A hit makes no provider call and reserves nothing in the usage guard. It
+    still runs `mapVisionOutput()` and `validateScanGrading()`, or
+    `normalizeAnswerKey()`.
+  - Errors, reads with no handwriting, and answer keys that normalization
+    refuses are not saved, so a retry asks the model again. The first save
+    wins.
+  - A failed cache read or write is logged by error type only and never
+    fails the request. The demo engines never reach the cache.
+  - A saved scan read holds the model's transcription of the student's
+    answers, as an essay entry holds its quotes. It is keyed by hashes and
+    linked to no student or submission.
 
 Next 16 notes: `params` and `searchParams` are Promises (`const { id } = await params`),
 `cookies()` is async, and there is no `next lint`. After a mutation, call
@@ -108,7 +132,10 @@ Submission ──AI first pass──▶ AiGrade + CriterionScore (suggestion, dr
 ## Auth and roles
 
 - `src/lib/auth/session.ts`: signed cookie holding a user id. The role is
-  always re-read from the database.
+  always re-read from the database. `getCurrentUser` is wrapped in React
+  `cache()`, so one page render reads the session user once (the layouts, the
+  page and the viewer's preferences share it). Server actions and route
+  handlers read it fresh on each call.
   - Pages: `requireTeacherPage()` / `requireStudentPage()` (redirect).
   - Server actions and route handlers: `requireTeacher()` / `requireStudent()`
     (throw `AuthError` with `.status` 401/403/404).
@@ -123,6 +150,8 @@ Submission ──AI first pass──▶ AiGrade + CriterionScore (suggestion, dr
 | Route | Who | Purpose |
 | --- | --- | --- |
 | `/` | public | Landing page with real screenshots; "View the demo" signs in as the demo teacher |
+| `/try` | public | Try-it sandbox: grade a pasted paper against a built-in rubric |
+| `/evidence` | public | Accuracy evidence from the committed eval results |
 | `/dashboard` | teacher | Home: greeting and "what needs you" notice, then arrangeable sections (stats, tools, classes, recent, missed); `?customize=1` opens arrange mode |
 | `/classes` | teacher | Class cards in the saved order; create a class; `?customize=1` arranges cards |
 | `/classes/[classId]` | teacher | Stream: class banner, Upcoming, activity feed (`src/lib/classroom/stream.ts`) |
@@ -132,7 +161,7 @@ Submission ──AI first pass──▶ AiGrade + CriterionScore (suggestion, dr
 | `/classes/[classId]/students/[studentId]` | teacher | Student profile + conference brief |
 | `/classes/[classId]/assignments/new` | teacher | Assignment + rubric builder (`?kind=TEST` for a handwritten test) |
 | `/assignments/[assignmentId]` | teacher | Student work (counts, student list, add submission, batch AI pass with progress, "AI vs your grades") and Instructions (`?tab=instructions`) |
-| `/review` | teacher | To review: the grading tool. Query: `?assignment=<id>` filter, `?s=<submissionId>` selection, `?sort=confidence\|oldest` order (absent: worth rechecking first) |
+| `/review` | teacher | To review: the grading tool. Query: `?assignment=<id>` filter (a value that isn't a valid id the teacher owns is ignored, so the whole queue shows), `?s=<submissionId>` selection, `?sort=confidence\|oldest` order (absent: worth rechecking first) |
 | `/scan` | teacher | Paper Scanner (`?assignment=<id>`) |
 | `/gradebook` | teacher | Cross-class gradebook (`?class=<id>`), CSV export |
 | `/insights` | teacher | Class heatmap and most-missed questions (`?class=<id>`) |
@@ -143,7 +172,8 @@ Submission ──AI first pass──▶ AiGrade + CriterionScore (suggestion, dr
 | `/student/assignments/[assignmentId]` | student | Instructions and rubric; Your work card (paste or .txt, Turn in) / returned grade + feedback |
 | `POST /api/submissions/[submissionId]/grade` | teacher | Run the AI first pass for one submission |
 | `GET /api/classes/[classId]/gradebook/export` | teacher | Gradebook CSV download |
-| `GET /api/search` | signed in | The user's search index for Ctrl/⌘ K (`Cache-Control: private, no-store`). Teachers: their own classes, assignments, and enrolled students. Students: their enrolled classes and those classes' assignments only. Never AI drafts, scores, or classmates' emails. |
+| `GET /api/search` | signed in | The user's search index for Ctrl/⌘ K (`Cache-Control: private, no-store`). Teachers: their own classes, assignments, and enrolled students. Students: their enrolled classes and those classes' assignments only. Never AI drafts, scores, or classmates' emails. A failure logs the error type only. |
+| `POST /api/try` | public (sandbox cookie) | Run one sandbox first pass. JSON `{ templateId, paper }` only |
 
 ### `POST /api/submissions/[submissionId]/grade`
 
@@ -151,13 +181,41 @@ Response `200`:
 ```json
 { "ok": true, "submission": { "id": "…", "status": "NEEDS_REVIEW", "confidence": "medium", "grader": "demo", "flagCount": 1 } }
 ```
-Errors: `{ "ok": false, "error": "message" }` with 401/403/404/409/422/500/502.
+Errors: `{ "ok": false, "error": "message" }` with 401/403/404/409/422/429/500/502/503.
 `409` when the submission is not in a gradable state (already published,
 approved, returned, or currently grading), `422` when the assignment has no
-rubric criteria, `502` when the grader failed (the paper becomes
+rubric criteria. `429` (live mode only) when a usage cap stops the call, with
+`Retry-After`. `503` (code `AI_LIMIT`, no `Retry-After`) when this one call
+could cost more than the whole daily budget. After a `429` or `503` the paper
+is left as it was. `502` when the grader failed (the paper becomes
 `GRADING_FAILED` and can be retried). Error messages are always safe to show. Gradable states: `SUBMITTED`,
 `GRADING_FAILED`, `NEEDS_REVIEW` (re-run replaces the previous suggestion and
 draft edits). The batch UI calls this endpoint sequentially, one paper at a time.
+
+## Error pages and failed requests
+
+- `src/app/(teacher)/error.tsx` and `src/app/(student)/error.tsx` are client
+  error boundaries inside the app shell. They show "Something went wrong
+  loading this page.", a Try again button (Next 16 `retry()`: it refetches and
+  re-renders the segment) and a Home link (`/dashboard` or `/student`). They
+  never show the error message, stack or digest.
+- `src/app/global-error.tsx` covers root-layout failures. It has its own
+  `<html>` and `<body>`, `globals.css` and the default (system) look, and its
+  link to `/` does a full page load.
+- `src/app/(student)/not-found.tsx` is the in-shell 404 for a missing or
+  not-enrolled class or assignment, matching `(teacher)/not-found.tsx`. The
+  marketing `src/app/not-found.tsx` now only serves unmatched public URLs.
+- Server actions already return `{ ok: false }` for server-side failures. The
+  client calls that await one (creating a class, an assignment or a
+  submission, adding a student, turning in, logging a study session) also
+  wrap it in try/catch for
+  transport failures: a dropped connection, a timeout, or a stale action ID
+  after a redeploy. Each catch first calls `unstable_rethrow(error)`, because
+  a server-action redirect rejects the promise with Next's redirect signal.
+  Then it shows "Couldn't reach the server. Check your connection and try
+  again.": inline in the dialogs and the turn-in form, as a toast in the
+  assignment builder (its Create button sits far from the form's top) and
+  the inbox.
 
 ## Preferences
 
@@ -173,11 +231,36 @@ and essential sections can never be hidden. The root layout renders the
 appearance as `data-*` attributes on `<html>`; layout order never changes what
 data a page loads, only where it is shown.
 
+While one-click demo sign-in is on (`demoLoginEnabled()`), every visitor
+shares the demo accounts, so `getPreferences`, `savePreferences` and
+`resetPreferences` (`src/lib/preferences/server.ts`) keep each browser's
+preferences in an httpOnly cookie per user id, `mw_prefs_<userId>`
+(`src/lib/preferences/cookie.ts`):
+- SameSite=Lax, Secure by the same rule as the session cookie, kept one year.
+- The value is untrusted JSON: it is parsed in a try/catch and always run
+  through `normalizePreferences`.
+- It is capped at 3,000 URL-encoded characters by dropping the tail of the
+  class order; those classes show after the ordered ones.
+- A browser with no cookie, or one that doesn't parse, sees the
+  `UserPreferences` row and then the defaults.
+- Saves never write the shared row in this mode, and "Reset all settings"
+  writes the defaults to this browser's cookie only.
+
+With `MARKWISE_DEMO_LOGIN=off`, preferences are stored per user in
+`UserPreferences` as before.
+
+`src/lib/preferences/constants.ts` holds the choices, types, defaults and
+`htmlAttributes` with no zod, so client code (the root Toaster's appearance
+helpers, the Customize panel) stays free of it. `schema.ts` adds the
+validation (`preferencesPatchSchema`, `normalizePreferences`,
+`mergePreferences`, `orderByIds`) and re-exports `constants.ts`.
+
 ## Modules
 
 ```
 src/lib/
   constants.ts        statuses + status groupings, roles, confidence, grader labels, demo emails
+  ai/                 engines, Claude and OpenAI calls, usage caps (usage.ts, usage-store.ts, guard.ts), pricing.ts
   db.ts, db-url.ts    Prisma client + transaction(); database URLs shared with prisma.config.ts and the seed
   db-retry.ts         which transaction errors are safe to retry (pure)
   auth/               session + demo sign-in actions
@@ -203,6 +286,15 @@ src/lib/
     cache.ts          first-pass cache key (paper, rubric, model, prompt) (pure)
     index.ts          getGrader()
     run.ts            runAiFirstPass(teacherId, submissionId)
+  scan/
+    vision.ts         camera grader call, GPT-4o or Claude (server-only); prompt in vision-prompt.ts
+    grade.ts          the /api/grade pipeline; finalize.ts validates the result (pure)
+    answer-key.ts     answer-key prompt, schema and normalizeAnswerKey() (pure)
+    demo-grader.ts, samples.ts  the demo scanner and the bundled sample photos
+    cache.ts          photo-read cache key and parsers (pure)
+    cache-store.ts    the AiGradeCache store for photo reads (server-only)
+  preferences/        schema.ts (validation), constants.ts (choices and defaults, no zod),
+                      cookie.ts (per-browser copy while demo sign-in is on), server.ts, actions.ts
   grades/
     review.ts         draft save, approve + publish, send back (logic)
     publish.ts        publishApprovedGrade(): the only PublishedGrade writer
@@ -274,9 +366,15 @@ grades" card use the same rule. Student pages never import any of it
   flags; an invalid score is stored as `null` so the teacher must enter it.
 - **Quotes** (`validate.ts`, `relevance.ts`). A quote must appear in the paper
   word for word. Only whitespace, case, quote-mark and dash style, and a final
-  period are ignored. A quote that passes is stored as the paper's own text.
-  A quote is dropped and flagged when it is:
+  period are ignored. It must start and end on whole words: a quote that
+  starts or ends inside a word is dropped. That covers "possible to justify"
+  taken from "impossible to justify", "we can" from "we can't", and "5
+  percent" from "3.5 percent". Chinese, Japanese, Thai, Lao, Khmer and
+  Burmese put no spaces between words, so a quote in those scripts may start
+  or end at any character. A quote that passes is stored as the paper's own
+  text. A quote is dropped and flagged when it is:
   - missing or paraphrased;
+  - cut off inside a word at either end;
   - text addressed to the grader.
 
   The review card then says "No supporting quote found". A kept quote that
@@ -286,7 +384,10 @@ grades" card use the same rule. Student pages never import any of it
   marks it as a weak match. Criteria about grammar, style or conventions
   accept any sentence. A holistic criterion isn't judged. The check makes no
   AI call, and it never changes a score. The demo grader cites only quotes
-  that pass it, or none.
+  that pass it, or none. It runs this cheap check on a candidate quote before
+  locating it in the paper, and the quote matcher (`evidence.ts`) normalizes a
+  paper once for all the quotes checked against it, so a 40,000-character
+  off-topic or non-English paper grades in well under a second.
 - **Roles**: enforced server-side in every page, action, and route. Only a
   teacher who owns the class can grade, approve, publish, send back, or export.
 - **Sessions**: HMAC-signed cookie (httpOnly, sameSite=lax; Secure except plain
@@ -329,7 +430,7 @@ API key through a labelled local demo implementation.
 | Answer-key import from a photo | teacher | vision: Claude or `gpt-4o` | `POST /api/answer-key`, rubric builder |
 | Conference Brief Generator | teacher | text: Claude or `gpt-4o-mini` | `POST /api/conference-brief`, `/classes/[classId]/students/[studentId]` |
 | Class Heatmap | teacher | none (aggregation) | `/insights?class=<id>`, dashboard "Teaching tools" and "Most missed" cards |
-| AI Goal-Seeking Planner | student | text: Claude or `gpt-4o-mini` parses the goal; the math is code | `POST /api/goal-planner`, `/student` |
+| AI Goal-Seeking Planner | student | text: Claude or `gpt-4o-mini` parses the goal and writes a study tip; the math is code | `POST /api/goal-planner`, `/student` |
 | Gamified UI + Assignment Inbox | student | none | `/student` |
 
 **Engine routing** is `engineFor("vision" | "text")` in
@@ -362,9 +463,14 @@ key, 4,000 for a brief, 2,000 for a goal. Keys are read on the server only
   transcription), and `detectPromptInjection()` runs on the transcription.
 - The teacher sees the original photo next to the transcription in the review
   queue (`SubmissionImage`).
-- The goal planner never trusts model arithmetic. The model only extracts
-  `{ classId, target }` from free text; required scores are computed in
-  `src/lib/goals/`. A student only ever sees their own classes and grades.
+- The goal planner never trusts model arithmetic. The model extracts
+  `{ classId, target }` from free text, writes a short study tip, and may ask
+  a clarifying question. Required scores are computed in `src/lib/goals/`.
+  The tip is shown to the student only if it has no digits and fits 280
+  characters (`acceptCoachingTip`); otherwise the template tip is used. When
+  the goal has no target, the model's question is shown as the planner's
+  reply. Neither goes through teacher review, and the engine badge says the
+  model wrote the tip. A student only ever sees their own classes and grades.
 - Conference briefs and heatmaps read only teacher-approved `PublishedGrade`
   data. Briefs are labelled as AI drafts to review before sharing.
 - XP and streaks (`StudyActivity`) are engagement only and never touch grades.
@@ -397,14 +503,25 @@ Errors `{ ok: false, error, code? }`: `400` invalid input (`code:
 `401/403/404`, `409` when the student's paper is published, approved, or being
 graded, `413` request too large, `422` when the assignment is not a
 handwritten test or has no questions (or no handwriting was found), `429` when
-the per-user AI budget is used up (live mode only, with `Retry-After`), `502`
-when the AI provider fails (nothing is stored).
+a live AI cap is reached (per session, per network, or the site's daily calls
+or spend; live mode only, with `Retry-After`), `503` with `code: "AI_LIMIT"`
+and no `Retry-After` when this one call could cost more than the whole daily
+budget (or, as a backstop, when live AI is switched off), `502` when the AI
+provider fails (nothing is stored).
 
 The scanner only accepts `TEST` assignments. Typed answers added to a `TEST`
 assignment are graded on the same test path (answer-key matching), not as an
 essay. Demo scans store `AiGrade.model` as `demo-sample` or `demo-typed` so the
 review queue can say where the transcription came from; the API reports
 `model: null` for demo output.
+
+Sample photos on `/scan`: picking one selects its seeded Unit 3 Quiz and
+student (`sampleSelection` in `src/components/scan/sample-match.ts`). If that
+student's paper can't be replaced (approved, published or being graded), it
+selects the first classmate with no paper, then one whose paper can be
+replaced, and the notice says why. If none qualifies, it selects no student.
+Published grades are still never overwritten. The Grade button stays disabled
+while the selected paper can't be replaced.
 
 Pipeline: auth + ownership → image checks → vision (or demo) → validation →
 one transaction that upserts the submission (`source: "SCAN"`, `content` = the
@@ -436,8 +553,9 @@ each, feasibility, and a short coaching note. Saves `StudentGoal` and awards
 
 Returns the stored photo to the teacher who owns the class, or to the student
 who owns the submission once its grade is published. Before publish, students
-see neither the photo nor the AI transcription. `Cache-Control: private`,
-`nosniff`.
+see neither the photo nor the AI transcription. `Cache-Control: private,
+no-store`: every view re-checks the session, so a photo can't be reopened
+from the browser cache after sign-out or a switch to a student. `nosniff`.
 
 ### Demo implementations (no API key)
 

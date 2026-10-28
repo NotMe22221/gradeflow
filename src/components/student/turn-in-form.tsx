@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { unstable_rethrow, useRouter } from "next/navigation";
 import {
   CircleAlert,
   ClipboardPaste,
@@ -209,7 +209,15 @@ export function TurnInForm({
     }
 
     startTransition(async () => {
-      const result = await submitPaper(assignmentId, formData);
+      let result: Awaited<ReturnType<typeof submitPaper>>;
+      try {
+        result = await submitPaper(assignmentId, formData);
+      } catch (error) {
+        // Next's own signals (a redirect) go back to Next; anything else means the server was out of reach.
+        unstable_rethrow(error);
+        setError("Couldn't reach the server. Check your connection and try again.");
+        return;
+      }
       if (!result.ok) {
         if (result.stale) {
           // Another tab, or the teacher, changed this paper: show the real

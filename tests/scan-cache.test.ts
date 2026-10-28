@@ -454,6 +454,16 @@ describe("photo-read cache wiring", () => {
     assert.equal(answerKey.match(/return answerKeySuccess\("(openai|claude)", read\);/g)?.length, 2);
   });
 
+  it("tells the teacher when a saved read was reused", () => {
+    assert.match(source("lib", "scan", "vision.ts"), /return \{ \.\.\.mapVisionOutput\(parsed\), model, reused: cacheHit \};/);
+    const grade = source("lib", "scan", "grade.ts");
+    assert.match(grade, /reused: read\.reused,/);
+    assert.match(grade.slice(grade.indexOf("async function readWithDemo")), /source, reused: false \}/);
+    assert.match(source("app", "api", "answer-key", "read.ts"), /\.\.\.result, reused: read\.cacheHit \}/);
+    assert.match(source("components", "scan", "scan-result.tsx"), /result\.reused \? " Reused a saved read of the same photos \(no new AI call\)\."/);
+    assert.match(source("components", "assignments", "answer-key-import.tsx"), /phase\.result\.reused \?[\s\S]*Reused a saved read of the same photo \(no new AI call\)\./);
+  });
+
   it("never caches the demo engines", () => {
     const grade = source("lib", "scan", "grade.ts");
     const demo = grade.slice(grade.indexOf("async function readWithDemo"), grade.indexOf("async function saveScan"));

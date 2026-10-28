@@ -23,6 +23,7 @@ import {
   topicsOf,
 } from "@/components/landing/comparison-data";
 import { ComparisonTable } from "@/components/landing/comparison-table";
+import { ExternalAnchor } from "@/components/landing/external-anchor";
 
 // Guards for the landing page's "For judges" section: the comparison data
 // stays complete and sourced, Markwise's own column stays honest, and the
@@ -124,8 +125,9 @@ describe("judges comparison data", () => {
     assert.match(cells.lmsSync.note, /GradebookExporter/);
     assert.equal(cells.privacyCerts.status, "no");
     assert.match(cells.privacyCerts.note, /synthetic data only/);
-    // Confidence is the model's own, uncalibrated guess.
+    // Confidence is the model's own, uncalibrated guess, and one input to the queue's order, not the order.
     assert.equal(cells.confidence.status, "partial");
+    assert.match(cells.confidence.note, /helps order To review and is one of its sort orders/);
     // Free to run, but real AI needs the user's own keys.
     assert.equal(cells.freePlan.status, "partial");
     assert.match(cells.freePlan.note, /your own Anthropic API key \(OpenAI optional\)/);
@@ -349,6 +351,11 @@ describe("judges section", () => {
     assert.ok(anchor.includes('<span className="sr-only"> (opens in a new tab)</span>'));
   });
 
+  it("keeps the new-tab icon on the line of the link's last word", () => {
+    const html = renderToStaticMarkup(createElement(ExternalAnchor, { href: "https://example.com/", children: "sample file" }));
+    assert.match(html, /sample file<span class="sr-only"> \(opens in a new tab\)<\/span><span class="whitespace-nowrap">\u2060<svg[^>]*aria-hidden="true"/);
+  });
+
   it("keeps reading text at 14px or more", () => {
     assert.doesNotMatch(judges, /text-\[0\.8125rem\]|text-\[0\.75rem\]/);
     assert.doesNotMatch(read("src/components/landing/comparison-table.tsx"), /text-\[0\.75rem\]/);
@@ -375,6 +382,10 @@ describe("judges section", () => {
     ]) {
       assert.ok(flat.includes(item), item);
     }
+    // The only committed evaluation is the demo grader's; the live Claude run hasn't been done.
+    assert.ok(flat.includes("AI accuracy isn't measured yet"));
+    assert.ok(flat.includes("The only check so far ran the keyless demo grader on 30 public essays"));
+    assert.ok(flat.includes("The live Claude run hasn't been done."));
   });
 
   it("shows no competitor logos or images", () => {

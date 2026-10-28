@@ -40,11 +40,14 @@ const OPENAI_ANSWER_KEY_MAX_TOKENS = 4000;
  * The checked answer: normalizeAnswerKey() runs on every read, fresh or
  * saved, and a read it refuses is a 422 with its reason.
  */
-function answerKeySuccess(engine: AnswerKeySuccess["engine"], read: PhotoRead<AnswerKeyOutput>): AnswerKeySuccess {
+function answerKeySuccess(
+  engine: AnswerKeySuccess["engine"],
+  read: PhotoRead<AnswerKeyOutput> & { cacheHit: boolean }
+): AnswerKeySuccess {
   const normalized = normalizeAnswerKey(read.parsed);
   if (!normalized.ok) throw new AnswerKeyError(normalized.error, 422);
   const { ok: _ok, ...result } = normalized;
-  return { ok: true, engine, model: read.model, ...result };
+  return { ok: true, engine, model: read.model, ...result, reused: read.cacheHit };
 }
 
 /**

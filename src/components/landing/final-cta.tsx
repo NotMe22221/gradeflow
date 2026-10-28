@@ -35,7 +35,7 @@ export function FinalCta({ demoLogin }: { demoLogin: boolean }) {
             <Period onBand />
           </h2>
           <p className="mt-6 max-w-[60ch] text-[1.0625rem] leading-8 text-pretty sm:text-[1.1875rem] sm:leading-9">
-            Sign in as Morgan Hale, a teacher with two sample classes and four essays waiting for a first pass. Run it,
+            Sign in as Morgan Hale, a teacher with two sample classes and essays waiting for a first pass. Run it,
             change a score you disagree with, and approve a paper. Then open the student view to see a returned grade
             the way a student does.
           </p>

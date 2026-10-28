@@ -45,6 +45,8 @@ export type AnswerKeySuccess = {
   defaultedPoints: number;
   /** More than maxQuestions were found; only the first ones were kept. */
   truncated: boolean;
+  /** A saved read of the same photo and model was reused: no new AI call. */
+  reused: boolean;
 };
 
 export type AnswerKeyFailure = { ok: false; error: string };
@@ -201,7 +203,7 @@ export function normalizeAnswerKey(raw: unknown): NormalizedAnswerKey {
 /** The demo result for a bundled sample answer key. */
 export function sampleAnswerKeyResult(sample: SampleAnswerKeyPhoto): AnswerKeySuccess {
   const result = normalizeQuestions(sample.questions);
-  return { ok: true, engine: "demo", model: null, title: normalizeDocumentTitle(sample.title), ...result };
+  return { ok: true, engine: "demo", model: null, title: normalizeDocumentTitle(sample.title), ...result, reused: false };
 }
 
 /**
@@ -241,6 +243,7 @@ const successResponseSchema = z.object({
   skipped: z.number().int().min(0).catch(0),
   defaultedPoints: z.number().int().min(0).catch(0),
   truncated: z.boolean().catch(false),
+  reused: z.boolean().catch(false),
 });
 
 /** Read the JSON body of POST /api/answer-key on the client, never trusting its shape. */

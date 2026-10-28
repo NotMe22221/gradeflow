@@ -37,7 +37,8 @@ function errorResponse(error: string, status: number, code?: ScanErrorCode) {
  * The graded draft lands in the review queue as NEEDS_REVIEW. Nothing is
  * published from here: publishing needs an explicit teacher approval. The
  * live vision call goes through the usage caps (lib/ai/guard.ts): past one,
- * the route answers 429 with the reason and Retry-After.
+ * the route answers 429 with Retry-After, or 503 when waiting won't help
+ * (kill switch, a call larger than the daily budget).
  */
 export async function POST(request: Request) {
   try {

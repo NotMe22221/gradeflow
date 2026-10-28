@@ -24,7 +24,7 @@ import { Check, LayoutDashboard, Monitor, Moon, PanelLeft, PanelRight, RotateCcw
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { resetAllPreferences, updatePreferences } from "@/lib/preferences/actions";
-import { DEFAULT_PREFERENCES, type PaperSide, type Preferences, type Theme } from "@/lib/preferences/schema";
+import { DEFAULT_PREFERENCES, type PaperSide, type Preferences, type Theme } from "@/lib/preferences/constants";
 import { cn } from "@/lib/utils";
 
 export const THEME_ICONS = { system: Monitor, light: Sun, dark: Moon } as const satisfies Record<Theme, unknown>;
@@ -89,8 +89,9 @@ const forcedFocus = cn(
  * Customize: appearance (theme, accent, text size, density) and layout
  * (arranging Home, the paper side in To review). A side sheet on wide
  * screens, so the page stays visible as a live preview, and a bottom sheet on
- * phones. Every change applies at once and saves to the account; there is
- * no Save button. Each choice is a native radio group (arrow keys move
+ * phones. Every change applies at once and saves to the account (to this
+ * browser while demo sign-in is on: everyone shares the demo accounts); there
+ * is no Save button. Each choice is a native radio group (arrow keys move
  * between options), labelled by its legend.
  */
 export function CustomizeDialog({
@@ -98,11 +99,14 @@ export function CustomizeDialog({
   onOpenChange,
   preferences,
   role,
+  demoLogin = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   preferences: Preferences;
   role: "TEACHER" | "STUDENT";
+  /** One-click demo sign-in is on, so settings are kept per browser (lib/preferences/cookie.ts). */
+  demoLogin?: boolean;
 }) {
   const router = useRouter();
   const wide = useWide();
@@ -228,7 +232,9 @@ export function CustomizeDialog({
         <SheetHeader className="shrink-0 gap-1 border-b border-border px-6 pt-6 pr-16 pb-4">
           <SheetTitle className="font-display text-[1.375rem] leading-tight font-normal">Customize</SheetTitle>
           <SheetDescription className="text-[0.875rem] leading-relaxed text-pretty">
-            Changes show right away and are saved to your account.
+            {demoLogin
+              ? "Changes show right away. The demo account is shared, so they're saved in this browser only."
+              : "Changes show right away and are saved to your account."}
           </SheetDescription>
         </SheetHeader>
 

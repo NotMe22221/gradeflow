@@ -811,3 +811,190 @@ describe("xpForPublishedGrade (awarded on publish)", () => {
     assert.equal(xpForPublishedGrade(12, 10), 50);
   });
 });
+
+// --- To review header and workspace, rendered --------------------------------------
+// Keyboard and screen-reader behaviour of the header's paper switcher and the
+// grade panel, from the server-rendered markup (no browser, no AI).
+
+const { createElement } = await import("react");
+const { renderToStaticMarkup } = await import("react-dom/server");
+const { TooltipProvider } = await import("../src/components/ui/tooltip");
+const { ReviewHeader } = await import("../src/components/review/review-header");
+const { CriterionCard } = await import("../src/components/review/criterion-card");
+const { RubricPane } = await import("../src/components/review/rubric-pane");
+const { MobileActionBar } = await import("../src/components/review/review-action-bar");
+
+/** Visible and screen-reader text: tags dropped, entities decoded, whitespace collapsed. */
+function markupText(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, "")
+    .replace(/&#x27;|&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** The opening tag of the button with this aria-label. */
+function buttonTag(html: string, label: string): string {
+  const tag = html.match(new RegExp(`<button[^>]*aria-label="${label}"[^>]*>`));
+  assert.ok(tag, `no button named ${label}`);
+  return tag[0];
+}
+
+describe("To review header", () => {
+  const first = item({ id: "sub_a" });
+  const second = item({
+    id: "sub_b",
+    student: { id: "stu_2", name: "Ivo Marsh" },
+    assignment: { id: "asg_2", title: "Rock Cycle Essay", className: "Science 7", kind: "ESSAY" },
+  });
+  const header = (current: ReviewItem, position: number) =>
+    renderToStaticMarkup(
+      createElement(
+        TooltipProvider,
+        null,
+        createElement(ReviewHeader, {
+          totalCount: 2,
+          visibleCount: 2,
+          filter: null,
+          filterOptions: [],
+          filterTitle: null,
+          labels: new Map(),
+          totals: new Map(),
+          onFilterChange: () => {},
+          sort: "recheck",
+          onSortChange: () => {},
+          queue: [first, second],
+          current,
+          position,
+          onSelect: () => {},
+          onPrevious: () => {},
+          onNext: () => {},
+          queueOpen: false,
+          onQueueOpenChange: () => {},
+          onShowShortcuts: () => {},
+        })
+      )
+    );
+
+  it("keeps Previous and Next focusable at the ends of the queue: aria-disabled, never disabled", () => {
+    const atFirst = header(first, 1);
+    assert.match(buttonTag(atFirst, "Previous paper"), /aria-disabled="true"/);
+    assert.doesNotMatch(buttonTag(atFirst, "Next paper"), /aria-disabled/);
+    const atLast = header(second, 2);
+    assert.match(buttonTag(atLast, "Next paper"), /aria-disabled="true"/);
+    assert.doesNotMatch(buttonTag(atLast, "Next paper"), /\sopacity-\d/, "only the arrow fades, never the focus ring");
+    assert.doesNotMatch(buttonTag(atLast, "Previous paper"), /aria-disabled/);
+    for (const html of [atFirst, atLast]) {
+      for (const label of ["Previous paper", "Next paper"]) assert.doesNotMatch(buttonTag(html, label), /\sdisabled=""/);
+    }
+  });
+
+  it("says which paper is open in a status region that stays mounted between papers", () => {
+    const status = (html: string) => html.match(/<p role="status" class="sr-only">([^<]*)<\/p>/)?.[1];
+    assert.equal(status(header(first, 1)), "Paper 1 of 2: Wren Ashcombe, Tide Pool Report");
+    assert.equal(status(header(second, 2)), "Paper 2 of 2: Ivo Marsh, Rock Cycle Essay");
+  });
+});
+
+describe("To review grade panel", () => {
+  const card = (kind: "ESSAY" | "TEST", number: number) => {
+    const base = item({ id: "sub_card" });
+    const target = criterion({ id: "c9", title: "Use of evidence" });
+    return renderToStaticMarkup(
+      createElement(
+        TooltipProvider,
+        null,
+        createElement(CriterionCard, {
+          submissionId: base.id,
+          criterion: target,
+          number,
+          draft: createDraft({ ...base, criteria: [target] }).scores.c9,
+          grader: "demo",
+          kind,
+          evidenceVerified: false,
+          onScoreChange: () => {},
+          onCommentChange: () => {},
+          onResetScore: () => {},
+          onShowEvidence: () => {},
+        })
+      )
+    );
+  };
+  const feedbackLabel = (html: string) => {
+    const id = html.match(/<textarea[^>]*id="([^"]+)"/)?.[1];
+    assert.ok(id, "the feedback field");
+    const label = html.match(new RegExp(`<label[^>]*for="${id}"[^>]*>([\\s\\S]*?)</label>`));
+    assert.ok(label, "its label");
+    return markupText(label[1]);
+  };
+
+  it("names each feedback field after its criterion or question, the visible words first", () => {
+    assert.equal(feedbackLabel(card("ESSAY", 2)), "Feedback for student on criterion 2: Use of evidence");
+    assert.equal(feedbackLabel(card("TEST", 3)), "Feedback for student on question 3: Use of evidence");
+    assert.match(card("ESSAY", 2), /Feedback for student<span class="sr-only">/);
+  });
+
+  it("keeps the grade above the scroller, so a field focused from the keyboard never lands under it", () => {
+    const base = item({ id: "sub_pane" });
+    const html = renderToStaticMarkup(
+      createElement(
+        TooltipProvider,
+        null,
+        createElement(RubricPane, {
+          item: base,
+          draft: createDraft(base),
+          summary: summarizeDraft(base, createDraft(base)),
+          layout: layoutEvidence(base.content, base.criteria, []),
+          onDraftChange: () => {},
+          onShowEvidence: () => {},
+          onShowFlagged: () => {},
+          onGoToCriterion: () => {},
+        })
+      )
+    );
+    const scroller = html.search(/<div class="[^"]*lg:overflow-y-auto/);
+    assert.ok(scroller > 0, "the grade panel's scroller");
+    assert.match(html.slice(0, scroller), /aria-live="polite"/, "the grade total sits before the scroller");
+    assert.doesNotMatch(html, /lg:sticky/);
+  });
+
+  it("marks the phone bars so the page's scroll padding clears them", () => {
+    const bar = renderToStaticMarkup(
+      createElement(
+        TooltipProvider,
+        null,
+        createElement(MobileActionBar, {
+          saveState: { status: "idle" },
+          onRetrySave: () => {},
+          onSendBack: () => {},
+          onApprove: () => {},
+          blockedReason: null,
+          busy: false,
+          total: 7,
+          maxTotal: 10,
+        })
+      )
+    );
+    assert.match(bar, /^<div data-review-action-bar=""[^>]*sticky bottom-0/);
+    const workspace = readFileSync(join(ROOT, "src/components/review/review-workspace.tsx"), "utf8");
+    assert.match(workspace, /<div data-review-tabs="" className="sticky top-16/);
+  });
+
+  it("gives the desktop paper one tab stop that scrolls it, and the grade panel none of its own", () => {
+    const workspace = readFileSync(join(ROOT, "src/components/review/review-workspace.tsx"), "utf8");
+    const paper = workspace.match(/<TabsContent\s+key="paper"[\s\S]*?className="([^"]+)"/)?.[1] ?? "";
+    assert.match(paper, /lg:overflow-y-auto/);
+    assert.match(paper, /focus-visible:outline-3/);
+    assert.match(workspace, /<TabsContent\s+key="rubric"\s+value="rubric"\s+forceMount\s+tabIndex=\{-1\}/);
+    const pane = readFileSync(join(ROOT, "src/components/review/paper-pane.tsx"), "utf8");
+    assert.doesNotMatch(pane, /overflow-y-auto/);
+  });
+
+  it("opens every paper at the top, on desktop too: the paper scroller stays mounted across papers", () => {
+    const workspace = readFileSync(join(ROOT, "src/components/review/review-workspace.tsx"), "utf8");
+    const effect = workspace.match(/previousIdRef\.current = currentId;([\s\S]*?)\}, \[currentId\]\);/)?.[1] ?? "";
+    assert.match(effect, /paperPaneRef\.current\?\.scrollTo\(\{ top: 0 \}\)/);
+    assert.match(workspace, /<TabsContent\s+key="paper"[\s\S]*?ref=\{paperPaneRef\}/);
+  });
+});

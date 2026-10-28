@@ -140,6 +140,7 @@ function ClassworkRow({
           {dueLine}
           <span className="max-sm:hidden">
             <span aria-hidden> · </span>
+            <span className="sr-only">, </span>
             {unscannedTest ? PAPER_TEST_NOTE : `Posted ${formatDate(row.postedAt, timeZone)}`}
           </span>
         </span>

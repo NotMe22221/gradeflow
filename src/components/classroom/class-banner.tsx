@@ -106,8 +106,10 @@ export function ClassCardBanner({
   const theme = classTheme({ name });
   return (
     // A size container, so the title link's overlay can match the banner's width (100cqw).
+    // A minimum height, not a fixed one: with a reader's own text spacing the banner grows
+    // instead of clipping the last line.
     <div
-      className="@container relative isolate flex h-[6.5rem] overflow-hidden text-white"
+      className="@container relative isolate flex min-h-[6.5rem] overflow-hidden text-white"
       style={{ backgroundColor: theme.color }}
     >
       <BannerArt

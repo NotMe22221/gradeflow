@@ -4,7 +4,9 @@
 // The match tolerates differences that do not change the words: whitespace
 // and line breaks, curly vs straight quotes, dash variants, letter case, and
 // leading/trailing quote marks or ellipses around the quote. It never
-// tolerates different words, so evidence that is not in the paper is rejected.
+// tolerates different words, so evidence that is not in the paper is rejected,
+// and it matches whole words only: "possible to justify" is not found in
+// "impossible to justify".
 
 export type EvidenceSpan = { start: number; end: number };
 
@@ -56,6 +58,71 @@ function normalizeWithMap(text: string): { normalized: string; map: number[] } {
   return { normalized, map };
 }
 
+// The last paper normalized: graders and the review check many quotes against
+// one paper, and normalizing a long paper per quote made that quadratic.
+let lastPaper: string | null = null;
+let lastHaystack: { normalized: string; map: number[] } = { normalized: "", map: [] };
+
+function normalizePaper(paper: string): { normalized: string; map: number[] } {
+  if (paper !== lastPaper) {
+    lastHaystack = normalizeWithMap(paper);
+    lastPaper = paper;
+  }
+  return lastHaystack;
+}
+
+// Letters, digits and combining marks, except in scripts written without
+// spaces between words (Chinese, Japanese, Thai, Lao, Khmer, Burmese), where
+// a quote may start or end at any character.
+const WORD_CHAR = /[\p{L}\p{N}\p{M}]/u;
+const UNSPACED_SCRIPT = /[\p{scx=Han}\p{scx=Hira}\p{scx=Kana}\p{scx=Thai}\p{scx=Laoo}\p{scx=Khmr}\p{scx=Mymr}]/u;
+const DIGIT = /\p{Nd}/u;
+
+function isWordChar(ch: string | undefined): boolean {
+  return ch !== undefined && WORD_CHAR.test(ch) && !UNSPACED_SCRIPT.test(ch);
+}
+
+// Hyphens as typed in the paper. Normalizing turns every dash into "-", so the
+// paper's own character tells a hyphen ("non-binding") from a dash ("plan—which").
+const HYPHENS = new Set(["-", "\u2010", "\u2011"]);
+
+/**
+ * An apostrophe between letters ("can't"), a hyphen between letters
+ * ("non-binding"; `typed` is the paper's own character), or a point or comma
+ * between digits ("3.5", "10,000").
+ */
+function joins(left: string | undefined, joiner: string | undefined, right: string | undefined, typed?: string): boolean {
+  if (joiner === "'") return isWordChar(left) && isWordChar(right);
+  if (joiner === "-") return typed !== undefined && HYPHENS.has(typed) && isWordChar(left) && isWordChar(right);
+  if (joiner === "." || joiner === ",") return left !== undefined && right !== undefined && DIGIT.test(left) && DIGIT.test(right);
+  return false;
+}
+
+/** Whether a match starting or ending at `at` would cut a word: "im|possible", "can|'t", "3.|5". */
+function cutsWord(text: string, at: number, typed: (index: number) => string | undefined): boolean {
+  const left = text[at - 1];
+  const right = text[at];
+  if (isWordChar(left) && isWordChar(right)) return true;
+  return joins(left, right, text[at + 1], typed(at)) || joins(text[at - 2], left, right, typed(at - 1));
+}
+
+/**
+ * Where `needle` first occurs in `haystack` as whole words, or -1, so
+ * "possible" is not found in "impossible" nor "we can" in "we can't". With
+ * `cutEnd`, the match may end inside a word.
+ */
+function indexOfWords(
+  haystack: string,
+  needle: string,
+  cutEnd: boolean,
+  typed: (index: number) => string | undefined
+): number {
+  for (let index = haystack.indexOf(needle); index !== -1; index = haystack.indexOf(needle, index + 1)) {
+    if (!cutsWord(haystack, index, typed) && (cutEnd || !cutsWord(haystack, index + needle.length, typed))) return index;
+  }
+  return -1;
+}
+
 /** Strip wrapping quote marks, ellipses, and whitespace from a quote. */
 export function cleanEvidence(quote: string): string {
   return quote
@@ -68,23 +135,33 @@ export function cleanEvidence(quote: string): string {
 /** A function that finds a quote in a paper, like findEvidenceSpan. */
 export type EvidenceLocator = (paper: string, quote: string) => EvidenceSpan | null;
 
-/** Find where `quote` appears in `paper`, or null if it does not. */
+// A trailing ellipsis, as on a snippet cut to length ("...give full ma…").
+const CUT_SHORT = /(?:\.{3}|…)["'‘’“”\s]*$/;
+
+/**
+ * Find where `quote` appears in `paper` as whole words, or null if it does
+ * not. A quote that ends with an ellipsis was cut short, so its last word may
+ * be partial; validateGrading strips ellipses before it calls this, so a
+ * grader's quote must always end on a whole word.
+ */
 export function findEvidenceSpan(paper: string, quote: string | null | undefined): EvidenceSpan | null {
   if (!quote) return null;
   const cleaned = cleanEvidence(quote);
   if (cleaned.length < MIN_EVIDENCE_CHARS) return null;
 
-  const haystack = normalizeWithMap(paper);
+  const haystack = normalizePaper(paper);
   const needle = normalizeWithMap(cleaned).normalized;
   if (!needle) return null;
+  const cutEnd = CUT_SHORT.test(quote);
+  const typed = (index: number) => paper[haystack.map[index]];
 
-  let index = haystack.normalized.indexOf(needle);
+  let index = indexOfWords(haystack.normalized, needle, cutEnd, typed);
   if (index === -1) {
     // Models sometimes drop or add a final period. Retry without trailing
     // sentence punctuation, still requiring every word to match.
     const trimmedNeedle = needle.replace(/[.,;:!?]+$/, "");
     if (trimmedNeedle.length < MIN_EVIDENCE_CHARS) return null;
-    index = haystack.normalized.indexOf(trimmedNeedle);
+    index = indexOfWords(haystack.normalized, trimmedNeedle, cutEnd, typed);
     if (index === -1) return null;
     return {
       start: haystack.map[index],

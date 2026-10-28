@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { unstable_rethrow } from "next/navigation";
 import { Loader2, Plus } from "@/components/icons";
 import { toast } from "sonner";
 
@@ -91,6 +92,8 @@ export function RubricBuilder({
   const keyCounter = useRef(1);
   const focusKey = useRef<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  // The last "template applied" or "imported" toast: it says "before you save", so saving closes it.
+  const fillToastId = useRef<string | number | undefined>(undefined);
 
   const [kind, setKind] = useState<AssignmentKind>(initialKind);
   const [title, setTitle] = useState("");
@@ -213,7 +216,7 @@ export function RubricBuilder({
     setTemplateId(id);
     setErrors({});
     setFormError(null);
-    toast.success(`${template.name} template applied`, {
+    fillToastId.current = toast.success(`${template.name} template applied`, {
       description: "Edit anything before you save.",
       action: hadWork ? { label: "Undo", onClick: () => restore(before) } : undefined,
     });
@@ -237,7 +240,7 @@ export function RubricBuilder({
     setTemplateId("");
     setErrors({});
     setFormError(null);
-    toast.success(`Imported ${pluralize(result.questions.length, "question")}`, {
+    fillToastId.current = toast.success(`Imported ${pluralize(result.questions.length, "question")}`, {
       description:
         result.engine !== "demo"
           ? `Read by ${GRADER_LABELS[result.engine]}. Check each answer and point value before you save.`
@@ -274,9 +277,19 @@ export function RubricBuilder({
       return;
     }
     setFormError(null);
+    if (fillToastId.current !== undefined) toast.dismiss(fillToastId.current);
     startTransition(async () => {
-      // On success the action redirects to the new assignment.
-      const result = await createAssignment(classId, check.data);
+      let result: Awaited<ReturnType<typeof createAssignment>>;
+      try {
+        // On success the action redirects to the new assignment.
+        result = await createAssignment(classId, check.data);
+      } catch (error) {
+        // Next's own signals (the redirect) go back to Next; anything else means the server was out of reach.
+        // A toast, not the form alert: the alert sits at the top of a form that may be scrolled far below it.
+        unstable_rethrow(error);
+        toast.error("Couldn't reach the server", { description: "Check your connection and try again." });
+        return;
+      }
       if (result && !result.ok) {
         setErrors(result.fieldErrors ?? {});
         setFormError(result.error);

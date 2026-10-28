@@ -104,17 +104,23 @@ export function Hero({ demoLogin, theme }: { demoLogin: boolean; theme: Theme })
 
 /**
  * A small frosted card of what a first pass looks like: a suggested score with
- * the quote from the paper behind it. One picture with a text alternative, so
- * a screen reader hears one sentence instead of a stray score.
+ * the quote from the paper behind it. A drawn example, not grader output, and
+ * labelled so. One picture with a text alternative, so a screen reader hears
+ * one sentence instead of a stray score.
  */
 function SampleScore({ className }: { className?: string }) {
   return (
     <div
       role="img"
-      aria-label="An example from the demo: a suggested 9 out of 10 for Evidence and reasoning, with the quote from the paper behind it."
+      aria-label="An illustration of a first pass, not real output: a suggested 9 out of 10 for Evidence and reasoning, with the quote from the paper behind it."
       className={cn("glass w-full max-w-sm rounded-3xl p-6", className)}
     >
-      <p className="text-[0.8125rem] font-medium text-muted-foreground">Suggested score</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[0.8125rem] font-medium text-muted-foreground">Suggested score</p>
+        <p className="rounded-full border border-dashed border-border px-2.5 py-0.5 text-[0.8125rem] font-medium text-muted-foreground">
+          Example
+        </p>
+      </div>
       <div className="mt-1 flex items-baseline justify-between gap-4">
         <p className="font-display text-[1.125rem] leading-snug font-bold text-foreground">Evidence and reasoning</p>
         <p className="tabular shrink-0 font-display text-[1.75rem] leading-none font-extrabold tracking-[-0.03em] text-foreground">

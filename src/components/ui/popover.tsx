@@ -17,6 +17,8 @@ function PopoverContent({
   className,
   align = "center",
   sideOffset = 6,
+  // Keeps the panel on the 16px page gutter when it is shifted to fit a phone screen.
+  collisionPadding = 16,
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Content>) {
   return (
@@ -25,6 +27,7 @@ function PopoverContent({
         data-slot="popover-content"
         align={align}
         sideOffset={sideOffset}
+        collisionPadding={collisionPadding}
         className={cn(
           "z-50 w-72 rounded-xl border border-border/70 bg-popover p-4 text-popover-foreground shadow-raised outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
           className

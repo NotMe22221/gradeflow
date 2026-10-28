@@ -289,6 +289,11 @@ export function AnswerKeyImport({
                     <EngineBadge engine={phase.result.engine} />
                     <span className="tabular text-[0.8125rem] text-muted-foreground">{describeImport(phase.result)}</span>
                   </div>
+                  {phase.result.reused ? (
+                    <p className="text-[0.8125rem] text-pretty text-muted-foreground">
+                      Reused a saved read of the same photo (no new AI call).
+                    </p>
+                  ) : null}
                 </>
               ) : (
                 <>

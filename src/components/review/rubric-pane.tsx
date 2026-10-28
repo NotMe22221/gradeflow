@@ -93,52 +93,55 @@ export function RubricPane({
 
   return (
     <div className={cn("flex min-h-0 flex-col bg-card", className)}>
-      {/* `relative` keeps sr-only text inside this scroller on desktop. */}
-      <div className="relative min-h-0 flex-1 lg:overflow-y-auto lg:overscroll-contain">
-        {/* The grade: pinned while the criteria scroll on desktop. */}
-        <div className="z-10 border-b border-border bg-card px-4 pt-3 pb-4 sm:px-5 lg:sticky lg:top-0">
-          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-            <p className="text-[0.8125rem] font-medium text-muted-foreground">Grade</p>
-            {ai ? (
-              <div className="flex flex-wrap items-center gap-1.5">
-                <ConfidenceBadge confidence={ai.confidence} demo={demo} />
-                <GraderBadge grader={ai.grader} model={ai.model} />
-              </div>
-            ) : null}
-          </div>
-          <div className="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-            <p className="flex items-baseline gap-1.5" aria-live="polite">
-              <span className="tabular font-display text-[2.125rem] leading-none font-medium text-foreground">
-                {formatPoints(summary.total)}
-              </span>
-              <span className="tabular text-lg text-muted-foreground">/ {formatPoints(summary.maxTotal)}</span>
-              <span className="sr-only">points</span>
-            </p>
-            {summary.aiTotal !== null ? (
-              <p className="tabular inline-flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground">
-                {demo ? <FlaskConical className="size-4" aria-hidden /> : <PenLine className="size-4" aria-hidden />}
-                {summary.aiTotal === summary.total
-                  ? `Matches the ${demo ? "demo suggestion" : "suggested score"}`
-                  : `${demo ? "Demo suggestion" : "Suggested score"} ${formatPoints(summary.aiTotal)}`}
-              </p>
-            ) : null}
-          </div>
-          <p className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-            {unscored > 0 ? (
-              <span className="font-medium text-warning-soft-foreground">
-                {pluralize(unscored, unit.one, unit.many)} still {unscored === 1 ? "needs" : "need"} a valid score
-              </span>
-            ) : null}
-            {ai ? (
-              <span>
-                {demo
-                  ? "Demo confidence comes from a rule of thumb, not a model."
-                  : "Confidence is the model's self-report, uncalibrated."}
-              </span>
-            ) : null}
-          </p>
+      {/* The grade: above the scroller, so it stays in view while the criteria
+          scroll on desktop, and a control focused from the keyboard never
+          scrolls under it (as it would under a sticky header). `relative`
+          keeps its sr-only text inside it. */}
+      <div className="relative shrink-0 border-b border-border bg-card px-4 pt-3 pb-4 sm:px-5">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <p className="text-[0.8125rem] font-medium text-muted-foreground">Grade</p>
+          {ai ? (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <ConfidenceBadge confidence={ai.confidence} demo={demo} />
+              <GraderBadge grader={ai.grader} model={ai.model} />
+            </div>
+          ) : null}
         </div>
+        <div className="mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <p className="flex items-baseline gap-1.5" aria-live="polite">
+            <span className="tabular font-display text-[2.125rem] leading-none font-medium text-foreground">
+              {formatPoints(summary.total)}
+            </span>
+            <span className="tabular text-lg text-muted-foreground">/ {formatPoints(summary.maxTotal)}</span>
+            <span className="sr-only">points</span>
+          </p>
+          {summary.aiTotal !== null ? (
+            <p className="tabular inline-flex items-center gap-1.5 text-[0.8125rem] text-muted-foreground">
+              {demo ? <FlaskConical className="size-4" aria-hidden /> : <PenLine className="size-4" aria-hidden />}
+              {summary.aiTotal === summary.total
+                ? `Matches the ${demo ? "demo suggestion" : "suggested score"}`
+                : `${demo ? "Demo suggestion" : "Suggested score"} ${formatPoints(summary.aiTotal)}`}
+            </p>
+          ) : null}
+        </div>
+        <p className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+          {unscored > 0 ? (
+            <span className="font-medium text-warning-soft-foreground">
+              {pluralize(unscored, unit.one, unit.many)} still {unscored === 1 ? "needs" : "need"} a valid score
+            </span>
+          ) : null}
+          {ai ? (
+            <span>
+              {demo
+                ? "Demo confidence comes from a rule of thumb, not a model."
+                : "Confidence is the model's self-report, uncalibrated."}
+            </span>
+          ) : null}
+        </p>
+      </div>
 
+      {/* `relative` keeps sr-only text inside this scroller on desktop. */}
+      <div className="relative min-h-0 flex-1 lg:overflow-y-auto lg:overscroll-contain lg:scroll-pb-4">
         <div className="space-y-5 px-4 py-5 sm:px-5">
           {/* One line, not a box, so the scores being approved start near the top of the panel. */}
           {demo ? (

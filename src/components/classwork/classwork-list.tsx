@@ -166,11 +166,14 @@ export function ClassworkList({ items, color }: { items: ClassworkItem[]; color:
         if (topicItems.length === 0) return null;
         return (
           <section key={topic.key} aria-labelledby={`topic-${topic.key}`}>
-            <div className="mb-2 flex items-end justify-between gap-4 border-b border-primary pb-2">
-              <h2 id={`topic-${topic.key}`} className="text-[1.375rem] leading-tight font-normal text-primary sm:text-2xl">
+            <div className="mb-2 flex items-end justify-between gap-4 border-b-[3px] border-primary pb-2">
+              <h2
+                id={`topic-${topic.key}`}
+                className="font-display text-[1.5rem] leading-tight font-extrabold tracking-[-0.02em] text-foreground sm:text-[1.75rem]"
+              >
                 {topic.title}
               </h2>
-              <span className="tabular pb-0.5 text-[0.8125rem] text-muted-foreground">
+              <span className="tabular shrink-0 pb-1 text-[0.8125rem] font-medium text-muted-foreground">
                 {pluralize(topicItems.length, topic.isTest ? "test" : "assignment")}
               </span>
             </div>

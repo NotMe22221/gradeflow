@@ -27,7 +27,11 @@ export function ExternalAnchor({
     >
       {children}
       <span className="sr-only"> (opens in a new tab)</span>
-      <ExternalLink aria-hidden className="ml-0.5 inline size-[1.05em] align-[-0.175em]" />
+      {/* A word joiner and nowrap keep the icon on the line of the link's last word. */}
+      <span className="whitespace-nowrap">
+        {"\u2060"}
+        <ExternalLink aria-hidden className="ml-0.5 inline size-[1.05em] align-[-0.175em]" />
+      </span>
     </a>
   );
 }

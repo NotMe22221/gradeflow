@@ -292,16 +292,30 @@ function StudentSwitcher({
 }) {
   // Radix renders the popover as role="dialog"; name it after its visible heading.
   const headingId = useId();
+  // aria-disabled, not disabled, at either end of the queue: the arrow that
+  // just took the teacher there keeps focus instead of dropping it to the page.
+  const atStart = position <= 1;
+  const atEnd = position >= queue.length;
+  // Only the arrow fades: the focus ring stays at full strength (it keeps focus at the end of the queue).
+  const endClass = "cursor-default text-muted-foreground/50 hover:bg-transparent hover:text-muted-foreground/50";
   return (
     <div className="flex min-w-0 flex-1 items-center gap-1 sm:flex-none">
+      {/* Says which paper is open after J/K, the arrows or the list. It stays
+          mounted across papers, so only a change is announced, not the page load. */}
+      <p role="status" className="sr-only">
+        {`Paper ${position} of ${queue.length}: ${current.student.name}, ${current.assignment.title}`}
+      </p>
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            onClick={onPrevious}
-            disabled={position <= 1}
+            onClick={() => {
+              if (!atStart) onPrevious();
+            }}
+            aria-disabled={atStart || undefined}
+            className={cn(atStart && endClass)}
             aria-label="Previous paper"
           >
             <ChevronLeft className="size-5" />
@@ -362,8 +376,11 @@ function StudentSwitcher({
             type="button"
             variant="ghost"
             size="icon"
-            onClick={onNext}
-            disabled={position >= queue.length}
+            onClick={() => {
+              if (!atEnd) onNext();
+            }}
+            aria-disabled={atEnd || undefined}
+            className={cn(atEnd && endClass)}
             aria-label="Next paper"
           >
             <ChevronRight className="size-5" />

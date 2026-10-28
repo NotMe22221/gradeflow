@@ -40,7 +40,11 @@ export function isBlankCriterion(criterion: CriterionDraft): boolean {
   return criterion.title.trim() === "" && criterion.description.trim() === "";
 }
 
-/** Wording that changes with the assignment kind. For a TEST, criteria read as questions. */
+/**
+ * Wording that changes with the assignment kind. For a TEST, criteria read as questions.
+ * Placeholders are short and start with "e.g.", so an empty form never looks filled in
+ * or looks like a template was already applied.
+ */
 export type BuilderCopy = {
   /** "criterion" | "question" */
   noun: string;
@@ -72,16 +76,16 @@ export const BUILDER_COPY: Record<AssignmentKind, BuilderCopy> = {
     sectionDescription:
       "For each criterion, the AI suggests a score, a one to two sentence justification, and a quote from the paper as evidence.",
     titleLabel: "Title",
-    titlePlaceholder: "Evidence and reasoning",
+    titlePlaceholder: "e.g. Use of evidence",
     descriptionLabel: "What full credit looks like",
-    descriptionPlaceholder: "Supports every claim with specific evidence and explains how it proves the point.",
+    descriptionPlaceholder: "e.g. Supports every claim with specific evidence…",
     pointsLabel: "Max points",
     defaultPoints: "5",
     addLabel: "Add criterion",
-    assignmentTitlePlaceholder: "Persuasive Essay: Should Our School Start the Day Later?",
+    assignmentTitlePlaceholder: "e.g. Persuasive essay on homework",
     instructionsLabel: "Prompt and instructions",
     instructionsHint: "The AI reads this alongside the rubric. Include any length or source requirements.",
-    instructionsPlaceholder: "Write a 350 to 500 word essay that…",
+    instructionsPlaceholder: "e.g. Write a 350 to 500 word essay that…",
   },
   TEST: {
     noun: "question",
@@ -91,16 +95,16 @@ export const BUILDER_COPY: Record<AssignmentKind, BuilderCopy> = {
     sectionDescription:
       "The AI reads each student's handwritten answers from a photo and scores them against this key. You approve every grade.",
     titleLabel: "Question",
-    titlePlaceholder: "Q1. Define a watershed",
+    titlePlaceholder: "e.g. Q1. Define a watershed",
     descriptionLabel: "Answer key (what earns full credit)",
-    descriptionPlaceholder: "All the land that drains into the same river or lake.",
+    descriptionPlaceholder: "e.g. All the land that drains into one river or lake",
     pointsLabel: "Points",
     defaultPoints: "2",
     addLabel: "Add question",
-    assignmentTitlePlaceholder: "Unit 4 Quiz: Soil and Erosion",
+    assignmentTitlePlaceholder: "e.g. Unit 4 quiz",
     instructionsLabel: "Directions",
     instructionsHint: "The directions printed on the test. The AI reads them alongside the answer key.",
-    instructionsPlaceholder: "Answer each question in one or two complete sentences.",
+    instructionsPlaceholder: "e.g. Answer each question in one or two complete sentences.",
   },
 };
 

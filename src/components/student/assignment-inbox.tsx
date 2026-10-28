@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useMemo, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { unstable_rethrow, useRouter } from "next/navigation";
 import { ChevronRight, CircleCheck, ClipboardList, Inbox, MousePointerClick } from "@/components/icons";
 import { toast } from "sonner";
 
@@ -185,7 +185,15 @@ export function AssignmentInbox({
 
   function logStudy(assignmentId: string) {
     startStudy(async () => {
-      const result = await logStudySession(assignmentId);
+      let result: Awaited<ReturnType<typeof logStudySession>>;
+      try {
+        result = await logStudySession(assignmentId);
+      } catch (error) {
+        // Next's own signals (a redirect) go back to Next; anything else means the server was out of reach.
+        unstable_rethrow(error);
+        toast.error("Couldn't reach the server", { description: "Check your connection and try again." });
+        return;
+      }
       if (!result.ok) {
         toast.error(result.error);
         return;

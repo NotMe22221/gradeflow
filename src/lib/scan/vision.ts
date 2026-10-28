@@ -129,19 +129,19 @@ async function readWithClaude(engine: VisionEngine, parts: ClaudePart[]): Promis
 }
 
 /**
- * Read and grade one scanned test. Returns the mapped output and the model
- * that answered; validateScanGrading() checks it before anything is stored.
- * A saved read is mapped and checked the same way, with no provider call and
- * nothing reserved in the usage guard.
+ * Read and grade one scanned test. Returns the mapped output, the model
+ * that answered, and whether a saved read was reused; validateScanGrading()
+ * checks it before anything is stored. A saved read is mapped and checked the
+ * same way, with no provider call and nothing reserved in the usage guard.
  */
 export async function gradeWithVision(
   engine: VisionEngine,
   input: Omit<GradingInput, "paper">,
   pages: CheckedImage[],
   answerKey: CheckedImage | null
-): Promise<MappedVisionOutput & { model: string }> {
+): Promise<MappedVisionOutput & { model: string; reused: boolean }> {
   const claude = engine.kind === "claude";
-  const { parsed, model } = await readScanThroughCache(
+  const { parsed, model, cacheHit } = await readScanThroughCache(
     databasePhotoReadCache,
     {
       engine,
@@ -156,5 +156,5 @@ export async function gradeWithVision(
       return claude ? readWithClaude(engine, parts) : { parsed: await readWithOpenAI(engine, parts), model: engine.model };
     }
   );
-  return { ...mapVisionOutput(parsed), model };
+  return { ...mapVisionOutput(parsed), model, reused: cacheHit };
 }

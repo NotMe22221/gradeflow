@@ -232,7 +232,7 @@ export function AppShell({
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="glass-bar sticky top-0 z-40 flex h-16 shrink-0 items-center gap-1 px-2 min-[37.5rem]:gap-2 min-[37.5rem]:px-3">
+      <header data-app-bar="" className="glass-bar sticky top-0 z-40 flex h-16 shrink-0 items-center gap-1 px-2 min-[37.5rem]:gap-2 min-[37.5rem]:px-3">
         <Tooltip
           open={menuTip}
           onOpenChange={(next) => {
@@ -276,6 +276,7 @@ export function AppShell({
       <div className="flex min-h-0 flex-1">
         <aside
           id={DRAWER_ID}
+          data-nav-rail=""
           className={cn(
             "@container/nav sticky top-16 hidden h-[calc(100dvh-4rem)] w-20 shrink-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar py-3 transition-[width] duration-200 ease-out motion-reduce:transition-none min-[37.5rem]:flex",
             !collapsed && "min-[52.5rem]:w-72"
@@ -342,7 +343,13 @@ export function AppShell({
         fallbackFocus={() => searchButtonRef.current}
         showGoals={showGoals}
       />
-      <CustomizeDialog open={customizeOpen} onOpenChange={changeCustomizeOpen} preferences={preferences} role={user.role} />
+      <CustomizeDialog
+        open={customizeOpen}
+        onOpenChange={changeCustomizeOpen}
+        preferences={preferences}
+        role={user.role}
+        demoLogin={demoLogin}
+      />
     </div>
   );
 }

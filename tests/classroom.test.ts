@@ -1,12 +1,22 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+import { BUILDER_TEMPLATES } from "@/components/assignments/builder-templates";
+import { BUILDER_COPY } from "@/components/assignments/rubric-draft";
 import { isPastDueDay as classworkIsPastDueDay } from "@/components/classwork/due";
+import { StudentClasswork } from "@/components/student/class-classwork";
+import { InboxPanel } from "@/components/student/inbox-panel";
 import { buildStudentStream } from "@/components/student/stream-model";
 import { isAwaitingScan, isOverdue, isPastDue } from "@/components/student/student-status";
 import {
   defaultTodoTab,
   dueSoon,
+  dueWhen,
   groupTodoItems,
   relativeDue,
   todoCounts,
@@ -28,6 +38,7 @@ import {
 import { buildStream, STREAM_LIMIT, type StreamSource } from "@/lib/classroom/feed";
 import { safeTimeZone } from "@/lib/classroom/timezone";
 import { formatDueDate } from "@/lib/format";
+import { SAMPLE_ANSWER_KEY_PHOTOS } from "@/lib/scan/samples";
 
 // Every test names its time zone, so the suite gives the same results under
 // TZ=UTC, TZ=America/Los_Angeles and TZ=Pacific/Auckland.
@@ -457,5 +468,113 @@ describe("time zone cookie validation", () => {
     assert.equal(safeTimeZone("Etc/GMT+5"), "Etc/GMT+5");
     assert.ok(safeTimeZone("Asia/Kolkata"), "alias resolves to a canonical zone");
     assert.equal(safeTimeZone("utc"), "UTC");
+  });
+});
+
+// --- Class pages: markup and copy guards -------------------------------------------
+
+const read = (path: string) => readFileSync(join(import.meta.dirname, "..", path), "utf8");
+
+/** Roughly what a screen reader reads: aria-hidden spans dropped, tags stripped. */
+function spokenText(html: string): string {
+  return html
+    .replace(/<span aria-hidden="true">[^<]*<\/span>/g, "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&#x27;/g, "'")
+    .replace(/\s+/g, " ");
+}
+
+describe("class pages: read aloud", () => {
+  it("separates the due line from the posted date in a classwork row's link name", () => {
+    const html = renderToStaticMarkup(
+      createElement(StudentClasswork, { classId: "c1", classColor: "#000000", rows: [row({ dueDate: due(9) })], now: NOW, timeZone: UTC })
+    );
+    const link = html.match(/<a [^>]*href="\/student\/assignments\/a1"[^>]*>([\s\S]*?)<\/a>/);
+    assert.ok(link, "the row links to the assignment");
+    assert.match(spokenText(link[1]), /Wed, Nov 4, Posted Oct 16/);
+  });
+
+  it("separates the class name from the due date in the inbox's quick actions", () => {
+    const work = row({ dueDate: due(9) });
+    const html = renderToStaticMarkup(
+      createElement(InboxPanel, {
+        row: { ...work, dueText: "Due Nov 4", due: dueWhen(work, NOW, UTC) },
+        onLogStudy: () => {},
+        studyPending: false,
+        studyLoggedToday: false,
+      })
+    );
+    assert.match(spokenText(html), /English 10, Due in 9 days/);
+  });
+});
+
+describe("assignment builder placeholders", () => {
+  const fills = [
+    ...BUILDER_TEMPLATES.flatMap((template) => [
+      template.title,
+      template.instructions,
+      ...template.criteria.flatMap((criterion) => [criterion.title, criterion.description]),
+    ]),
+    ...SAMPLE_ANSWER_KEY_PHOTOS.map((photo) => photo.title),
+  ];
+
+  for (const [kind, copy] of Object.entries(BUILDER_COPY)) {
+    it(`${kind} placeholders read as examples, never as a filled-in or templated form`, () => {
+      for (const placeholder of [
+        copy.assignmentTitlePlaceholder,
+        copy.instructionsPlaceholder,
+        copy.titlePlaceholder,
+        copy.descriptionPlaceholder,
+      ]) {
+        assert.match(placeholder, /^e\.g\. /, placeholder);
+        assert.ok(!fills.includes(placeholder.replace(/^e\.g\. /, "")), `copies a template: ${placeholder}`);
+      }
+    });
+  }
+});
+
+describe("class pages: shared look for teachers and students", () => {
+  const h2Classes = (path: string) =>
+    [...read(path).matchAll(/<h2\s+id=\{.+?\}\s+className="([^"]+)"/g)].map((match) => match[1]);
+
+  it("gives teacher and student Classwork and People the same section headings", () => {
+    const [classwork] = h2Classes("src/components/student/class-classwork.tsx");
+    assert.ok(classwork, "student classwork heading found");
+    assert.deepEqual(h2Classes("src/components/classwork/classwork-list.tsx"), [classwork]);
+    const [people] = h2Classes("src/components/student/class-people.tsx");
+    assert.ok(people, "student people heading found");
+    assert.deepEqual(h2Classes("src/components/classes/people-list.tsx"), [people]);
+  });
+
+  it("lets a class card banner grow with the reader's text spacing", () => {
+    const banner = read("src/components/classroom/class-banner.tsx");
+    const card = banner.slice(banner.indexOf("export function ClassCardBanner"));
+    assert.match(card, /className="@container relative isolate flex min-h-\[6\.5rem\] overflow-hidden/);
+  });
+
+  it("wraps Student work names below md instead of cutting them short, with the full name on hover", () => {
+    const table = read("src/components/assignments/submissions-table.tsx");
+    assert.equal([...table.matchAll(/<p title=\{(?:row\.student|student)\.name\} className="[^"]*\bbreak-words\b[^"]*\bmd:truncate"/g)].length, 2);
+    assert.doesNotMatch(table, /<p className="truncate text-(xs|sm)/);
+  });
+});
+
+describe("assignment builder: saving", () => {
+  const builder = read("src/components/assignments/rubric-builder.tsx");
+
+  it("closes the 'template applied' toast when the teacher saves", () => {
+    assert.equal([...builder.matchAll(/fillToastId\.current = toast\.success\(/g)].length, 2);
+    const submit = builder.slice(builder.indexOf("function handleSubmit"));
+    const dismiss = submit.indexOf("toast.dismiss(fillToastId.current)");
+    assert.ok(dismiss > 0 && dismiss < submit.indexOf("startTransition("), "dismissed before the save starts");
+  });
+
+  it("reports a dropped connection instead of replacing the page", () => {
+    assert.match(builder, /import \{[^}]*\bunstable_rethrow\b[^}]*\} from "next\/navigation";/);
+    const call = builder.indexOf("await createAssignment(");
+    const tryAt = builder.lastIndexOf("try {", call);
+    assert.ok(tryAt > 0 && !builder.slice(tryAt, call).includes("} catch"), "createAssignment is inside a try");
+    const handler = builder.slice(builder.indexOf("} catch (error) {", call));
+    assert.match(handler, /^\} catch \(error\) \{\s*(?:\/\/[^\n]*\s*)*unstable_rethrow\(error\);\s*toast\.error\("Couldn't reach the server"/);
   });
 });

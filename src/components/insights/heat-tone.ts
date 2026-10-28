@@ -23,9 +23,11 @@ import { HEAT_BANDS, type HeatBand } from "@/lib/insights/heatmap";
  * from globals.css), and every cell prints its percent, so color is never the
  * only signal.
  *
- * `cell` fills a value tile or chip, `bar` fills a progress bar on the
- * bg-secondary track (stronger steps, so the bar stands off the track), and
- * `text` is the ink for a value printed next to a band (always a text token).
+ * `cell` fills a value tile or chip, `bar` fills a progress bar or legend dot
+ * on the bg-secondary track (the same hues in stronger steps, so the bar stands
+ * off the track, and still lighter toward the middle), and `text` is the ink
+ * for a value printed next to a band (always a text token). The empty `bar` is
+ * a hollow ring, so "not graded yet" never passes for the pale middle step.
  */
 const ORANGE = "var(--class-orange-accent)";
 const BLUE = "var(--class-blue-accent)";
@@ -43,7 +45,7 @@ export const HEAT_TONE: Record<HeatBand, { cell: string; bar: string; text: stri
   },
   mid: {
     cell: "bg-[color-mix(in_oklab,var(--foreground)_7%,var(--card))] text-foreground",
-    bar: "bg-muted-foreground",
+    bar: "bg-[color-mix(in_oklab,var(--foreground)_28%,var(--card))]",
     text: "text-foreground",
   },
   high: {
@@ -58,7 +60,7 @@ export const HEAT_TONE: Record<HeatBand, { cell: string; bar: string; text: stri
   },
   empty: {
     cell: "bg-transparent text-muted-foreground outline-1 -outline-offset-1 outline-dashed outline-input/40",
-    bar: "bg-muted-foreground/40",
+    bar: "bg-transparent ring-1 ring-muted-foreground ring-inset",
     text: "text-muted-foreground",
   },
 };

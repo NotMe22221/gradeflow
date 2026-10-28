@@ -44,8 +44,9 @@ export type PaperView = "transcription" | "photo";
  * softens the sheet and the photos.
  *
  * The root is `relative` so absolutely positioned screen-reader text stays
- * inside this pane (it is the scroll container on desktop) instead of
- * stretching the page.
+ * inside this pane (inside the scroll container on desktop) instead of
+ * stretching the page. It has no fill of its own: the canvas is the tab
+ * panel's, so the panel's focus ring shows around it.
  */
 export function PaperPane({
   item,
@@ -198,7 +199,7 @@ export function PaperPane({
   );
 
   return (
-    <div className={cn("@container relative bg-background", SHEET_SCOPE, className)}>
+    <div className={cn("@container relative", SHEET_SCOPE, className)}>
       <div className="mx-auto w-full max-w-3xl px-4 py-5 sm:px-6 lg:py-6">
         <header className="mb-5 flex items-start gap-3">
           <ClassAvatar name={item.assignment.className} className="mt-0.5 size-10 text-base" />

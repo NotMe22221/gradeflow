@@ -56,8 +56,9 @@ function errorResponse(error: string, status: number, code?: GoalPlannerFailure[
  *
  * The body is read with a hard byte cap (a chunked request can't stream an
  * unbounded body into memory). A live planner call goes through the usage
- * caps (lib/ai/guard.ts): past one, 429 with the reason and Retry-After. The
- * demo parser costs nothing and is not limited.
+ * caps (lib/ai/guard.ts): past one, 429 with Retry-After, or 503 when waiting
+ * won't help (kill switch, a call larger than the daily budget). The demo
+ * parser costs nothing and is not limited.
  */
 export async function POST(request: Request) {
   try {

@@ -96,6 +96,7 @@ export function InboxPanel({
             <p className="tabular mt-1 text-[0.8125rem] leading-5 text-muted-foreground">
               {row.className}
               <span aria-hidden> · </span>
+              <span className="sr-only">, </span>
               {dueWhenText(due)}
             </p>
           </div>

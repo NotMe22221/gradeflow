@@ -20,7 +20,9 @@ function errorResponse(error: string, status: number) {
  * Run the AI first pass for one submission. Teacher only, and only for
  * submissions in the teacher's own classes. The result lands in the review
  * queue; nothing is published from here. A live call that a usage cap stops
- * answers 429 with the reason and Retry-After, and the paper is left as it was.
+ * answers with the reason, 429 with Retry-After, or 503 when waiting won't
+ * help (kill switch, a call larger than the daily budget), and the paper is
+ * left as it was.
  */
 export async function POST(_request: Request, { params }: { params: Promise<{ submissionId: string }> }) {
   try {

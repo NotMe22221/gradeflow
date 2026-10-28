@@ -27,7 +27,8 @@ function errorResponse(error: string, status: number) {
  * papers and results live only in TryItRun for 24 hours. The route never
  * touches classes, submissions or grades, so nothing here reaches the demo
  * data or a student. A live call goes through the usage caps under the
- * sandbox's session (429 with the reason past one), and every new run counts
+ * sandbox's session (past one, 429 with Retry-After, or 503 when waiting
+ * won't help: kill switch, a call larger than the daily budget), and every new run counts
  * against the sandbox's and the network's hourly run caps. The pasted paper
  * is untrusted data, graded and validated like any submission.
  */

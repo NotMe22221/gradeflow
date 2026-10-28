@@ -38,7 +38,9 @@ export function sampleSelection(
   const paperOf = (studentId: string) => papers[paperKey(match.id, studentId)];
 
   const own = students.find((option) => option.name === sample.studentName);
-  if (!own) return { assignmentId: match.id, studentId: "", notice: `Selected ${match.title} to match the sample photo.` };
+  if (!own) {
+    return { assignmentId: match.id, studentId: "", notice: `Selected ${match.title} to match the sample photo.` };
+  }
   const ownPaper = paperOf(own.id);
   if (!ownPaper || ownPaper.replaceable) {
     return {
@@ -55,7 +57,7 @@ export function sampleSelection(
     return {
       assignmentId: match.id,
       studentId: "",
-      notice: `Selected ${match.title}. ${reason}, and every other student in this class already has a paper on it that can't be replaced, so no student is selected.`,
+      notice: `Selected ${match.title}. ${reason}, and every other student's paper on it can't be replaced either, so no student is selected.`,
     };
   }
   return {

@@ -116,6 +116,8 @@ type ReadResult = {
   grader: ScanGrader;
   model: string | null;
   source: TranscriptionSource;
+  /** A saved read of the same photos was reused (no new AI call). Always false for the demo scanner. */
+  reused: boolean;
 };
 
 async function readWithVision(
@@ -123,7 +125,7 @@ async function readWithVision(
   input: Omit<GradingInput, "paper">,
   request: ScanRequest
 ): Promise<ReadResult> {
-  let output: MappedVisionOutput & { model: string };
+  let output: MappedVisionOutput & { model: string; reused: boolean };
   try {
     output = await gradeWithVision(engine, input, request.pages, request.answerKey);
   } catch (error) {
@@ -160,7 +162,7 @@ async function readWithDemo(input: Omit<GradingInput, "paper">, request: ScanReq
   const raw = gradeScanWithDemo({ ...input, paper: transcription });
   await demoPause(transcription);
   // Stored as AiGrade.model so the review queue can say where the text came from.
-  return { raw, transcription, legibility: "clear", grader: "demo", model: demoScanModel(source), source };
+  return { raw, transcription, legibility: "clear", grader: "demo", model: demoScanModel(source), source, reused: false };
 }
 
 async function saveScan(args: {
@@ -344,5 +346,6 @@ export async function gradeScannedTest(teacherId: string, request: ScanRequest):
     draftScore: scored.length > 0 ? scored.reduce((sum, criterion) => sum + (criterion.aiScore ?? 0), 0) : null,
     maxScore: assignment.criteria.reduce((sum, criterion) => sum + criterion.maxPoints, 0),
     unscoredCount: result.criteria.length - scored.length,
+    reused: read.reused,
   };
 }

@@ -10,6 +10,7 @@ import { describe, it } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import TeacherError from "@/app/(teacher)/error";
 import { CELL_DISPLAY, LEGEND_KEYS } from "@/components/gradebook/cell-display";
 import { StatusBadge } from "@/components/grading/status-badge";
 import { SUBMISSION_STATUSES } from "@/lib/constants";
@@ -20,6 +21,7 @@ const AREAS = [
   "src/app/(teacher)/classes/[classId]",
   "src/app/(teacher)/assignments",
   "src/app/(teacher)/gradebook",
+  "src/app/(teacher)/error.tsx",
   "src/components/classwork",
   "src/components/assignments",
   "src/components/gradebook",
@@ -102,4 +104,57 @@ describe("grades legend", () => {
   it("every legend entry has a visible word or a score sample", () => {
     for (const key of LEGEND_KEYS) assert.ok(CELL_DISPLAY[key].legend.length > 0, key);
   });
+});
+
+describe("teacher error page", () => {
+  const error = Object.assign(new Error("connect ECONNREFUSED db.internal:5432 password=hunter2"), { digest: "3929235505" });
+  const html = renderToStaticMarkup(createElement(TeacherError, { error, retry: () => {} }));
+
+  it("stays plain: no message, stack or digest", () => {
+    const frame = error.stack?.split("\n")[1]?.trim() ?? "";
+    for (const leak of ["ECONNREFUSED", "hunter2", "3929235505", frame]) assert.ok(leak && !html.includes(leak), leak);
+    assert.match(html, /Something went wrong loading this page\./);
+  });
+
+  it("offers Try again and a way Home", () => {
+    assert.match(html, /<button[^>]*type="button"[^>]*>[\s\S]*?Try again<\/button>/);
+    assert.deepEqual([...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1]), ["/dashboard"]);
+  });
+
+  it("renders inside the app shell: no header or main of its own", () => {
+    assert.doesNotMatch(html, /<(header|main)\b/);
+  });
+});
+
+/**
+ * The awaited server action sits in a try, and its catch hands Next's own
+ * signals (a redirect) back before telling the teacher the server was out of
+ * reach, so a dropped connection never replaces the page with an error screen.
+ */
+function assertCaught(source: string, action: string) {
+  const call = source.indexOf(`await ${action}(`);
+  assert.ok(call > 0, `${action} is awaited`);
+  const tryAt = source.lastIndexOf("try {", call);
+  assert.ok(tryAt > 0 && !source.slice(tryAt, call).includes("} catch"), `${action} is inside a try`);
+  const handler = source.slice(source.indexOf("} catch (error) {", call));
+  assert.match(handler, /^\} catch \(error\) \{\s*(?:\/\/[^\n]*\s*)*unstable_rethrow\(error\);\s*[^\n]*Couldn't reach the server/);
+}
+
+describe("server actions on a dropped connection", () => {
+  const cases = [
+    ["src/components/classes/new-class-dialog.tsx", "createClass"],
+    ["src/components/classes/add-student-dialog.tsx", "addStudent"],
+    ["src/components/assignments/add-submission-dialog.tsx", "addSubmission"],
+    // These two answer with a toast: the builder's form alert can be scrolled off screen, and
+    // loading samples has no form.
+    ["src/components/assignments/rubric-builder.tsx", "createAssignment"],
+    ["src/components/assignments/load-samples.tsx", "loadSamplePapers"],
+  ] as const;
+  for (const [path, action] of cases) {
+    it(`${action} shows a message instead of the error screen`, () => {
+      const source = readFileSync(join(ROOT, path), "utf8");
+      assert.match(source, /import \{[^}]*\bunstable_rethrow\b[^}]*\} from "next\/navigation";/);
+      assertCaught(source, action);
+    });
+  }
 });

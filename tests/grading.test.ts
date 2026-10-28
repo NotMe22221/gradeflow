@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import { SAMPLE_PAPERS } from "@/lib/demo/sample-papers";
 import { pluralize, wordCount } from "@/lib/format";
+import { MAX_PAPER_CHARS } from "@/lib/paper";
 import { cleanEvidence, findEvidenceSpan, findTestEvidenceSpan } from "@/lib/grading/evidence";
 import {
   detectPromptInjection,
@@ -643,6 +644,29 @@ describe("DemoGrader", () => {
             assert.equal(result.criteria.find((c) => c.criterionId === flag.criterionId)?.evidence, "");
           }
         }
+      }
+    }
+  });
+
+  it("grades an off-topic paper at the length limit in well under a second per rubric", () => {
+    // Non-repeating text that fits no criterion, so every candidate quote is
+    // tried. Re-reading the paper for each one took over 10 s at 40,000 characters.
+    const words = "the of and a to in is you that it was for on are as with they at be this have from or one had by but not what all were we when your can said there each which she do how their if will up other about out many then them so some her would make like him into time has look two more write go see number no way could people my than first water been call who oil its now find long down day did get come made may part".split(" ");
+    let seed = 7;
+    const next = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+    let paper = "";
+    for (let n = 0; paper.length < MAX_PAPER_CHARS; n++) {
+      paper += words[Math.floor(next() * words.length)];
+      paper += n % 14 === 13 ? (n % 70 === 69 ? ".\n\n" : ". ") : " ";
+    }
+    paper = paper.slice(0, MAX_PAPER_CHARS);
+    for (const { name, criteria, assignment } of RUBRICS) {
+      const started = performance.now();
+      const result = gradeWithDemoHeuristics({ ...assignment, criteria, paper });
+      const elapsed = performance.now() - started;
+      assert.ok(elapsed < 2_000, `${name}: ${Math.round(elapsed)} ms`);
+      for (const c of result.criteria) {
+        if (c.evidence) assert.notEqual(findEvidenceSpan(paper, c.evidence), null, `${name}: evidence not found: ${c.evidence}`);
       }
     }
   });

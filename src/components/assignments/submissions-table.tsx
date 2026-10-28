@@ -360,6 +360,8 @@ function GraderNote({
  * The name track has a 12rem floor: a capped track like minmax(0,20rem) grows to its cap
  * before a 1fr track gets any space, so without the floor the status column took 320px
  * and names were cut to a few letters at 1024px with the drawer open.
+ * Below md the name and its meta line wrap rather than truncate: the action column
+ * leaves the text too little room to cut it short at 320px.
  */
 const ROW =
   "grid min-h-row-min grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-4 py-row md:grid-cols-[auto_minmax(12rem,1fr)_minmax(0,20rem)_9.5rem] md:gap-x-4 md:px-6";
@@ -459,8 +461,10 @@ export function SubmissionsTable({
       <li key={row.id} className={cn(ROW, busy && "bg-primary-soft/40")} aria-busy={busy || undefined}>
         <Avatar name={row.student.name} className="size-8 compact:size-7" />
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-foreground">{row.student.name}</p>
-          <p className="truncate text-xs text-muted-foreground">
+          <p title={row.student.name} className="text-sm font-medium break-words text-foreground md:truncate">
+            {row.student.name}
+          </p>
+          <p className="text-xs break-words text-muted-foreground md:truncate">
             <span title={row.submittedTitle}>{row.submittedLabel}</span>
             {row.source === "SCAN" ? (
               <>
@@ -549,7 +553,9 @@ export function SubmissionsTable({
               <li key={student.id} className={ROW}>
                 <Avatar name={student.name} className="size-8 opacity-70 compact:size-7" />
                 <div className="min-w-0">
-                  <p className="truncate text-sm text-foreground">{student.name}</p>
+                  <p title={student.name} className="text-sm break-words text-foreground md:truncate">
+                    {student.name}
+                  </p>
                 </div>
                 <div className={STATUS_CELL}>
                   {test ? (

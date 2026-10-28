@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 
 import { SCREENSHOTS } from "../src/components/landing/screenshots";
+import { baselineVerdict } from "@/lib/eval/metrics";
+import type { EvalResults } from "@/lib/eval/ellipse";
 import { DEFAULT_PREFERENCES } from "@/lib/preferences/schema";
 
 // Guards for the landing page: real screenshots that exist in both themes and
@@ -117,6 +119,102 @@ describe("landing copy and styling", () => {
     assert.ok(all.includes("Nothing reaches a student until you approve it"));
     assert.ok(all.includes("no API key needed"));
     assert.ok(all.includes("made up"), "says the demo data is synthetic");
+  });
+});
+
+describe("landing claims match the app", () => {
+  const flat = (path: string) => read(path).replace(/\s+/g, " ");
+
+  it("describes To review's default order, not a confidence sort", () => {
+    const steps = flat("src/components/landing/how-it-works.tsx");
+    assert.doesNotMatch(steps, /least sure/);
+    assert.ok(steps.includes("Drafts most worth a second look come first"));
+    for (const path of ["src/components/landing/judges.tsx", "src/app/evidence/page.tsx"]) {
+      assert.doesNotMatch(flat(path), /only sorts To review/, path);
+    }
+  });
+
+  it("claims no accuracy the committed evaluation doesn't back", () => {
+    const faq = flat("src/components/landing/faq.tsx");
+    assert.doesNotMatch(faq, /Good enough to start from/);
+    assert.ok(faq.includes("Not measured yet, so always check."));
+    // Each sentence holds only while the committed results say so; rerunning the eval must revisit it.
+    const demo = JSON.parse(read("eval/results/demo.json")) as EvalResults;
+    const live = JSON.parse(read("eval/results/live.json")) as { run: unknown };
+    assert.equal(demo.run.grader, "demo");
+    assert.notEqual(baselineVerdict(demo.summary, demo.baseline), "beats");
+    assert.ok(faq.includes("it does no better than always answering 3"));
+    assert.equal(live.run, null);
+    assert.ok(faq.includes("The live Claude evaluation hasn&apos;t been run yet"));
+  });
+
+  it("says every kind of student data an AI provider receives", () => {
+    const faq = flat("src/components/landing/faq.tsx");
+    const answer = faq.slice(faq.indexOf("What happens to student work?"), faq.indexOf("What does it cost?"));
+    for (const item of ["answer-key photos", "conference brief", "goal text", "goal planner", "In demo mode nothing leaves the server"]) {
+      assert.ok(answer.includes(item), item);
+    }
+  });
+
+  it("labels the hero's drawn score card as an example, not demo output", () => {
+    const hero = flat("src/components/landing/hero.tsx");
+    const card = hero.slice(hero.indexOf("function SampleScore"));
+    assert.doesNotMatch(card, /from the demo/);
+    assert.match(card, /aria-label="An illustration of a first pass, not real output:/);
+    assert.match(card, />\s*Example\s*</);
+  });
+
+  it("names the engines without implying OpenAI needs both keys", () => {
+    const features = flat("src/components/landing/features.tsx");
+    assert.doesNotMatch(features, /also set/);
+    assert.ok(features.includes("An OpenAI key, with or without that one, moves photos to GPT-4o"));
+    assert.ok(features.includes("essays always use Claude, or the demo grader when no Anthropic key is set"));
+  });
+
+  it("promises nothing that one visitor's grading on the shared demo makes untrue", () => {
+    assert.doesNotMatch(flat("src/components/landing/final-cta.tsx"), /four essays/);
+    const judges = flat("src/components/landing/judges.tsx");
+    assert.ok(judges.includes("(If his quiz is already approved, the photo goes to a classmate; the scanner says who.)"));
+    assert.ok(judges.includes("Only now does the student see a grade"));
+  });
+});
+
+describe("evidence page on a phone", () => {
+  const page = read("src/app/evidence/page.tsx");
+
+  it("says its tables scroll sideways, on phones only", () => {
+    assert.match(page, /className="mt-6 text-\[0\.8125rem\] text-muted-foreground sm:hidden">Swipe sideways to see every column\./);
+    // Both tables go through the scroller that carries the hint.
+    assert.equal(page.split("<TableScroll>").length - 1, 2);
+    assert.equal(page.split("overflow-x-auto").length - 1, 1);
+  });
+});
+
+describe("favicon", () => {
+  const icon = read("src/app/icon.svg");
+  const css = read("src/app/globals.css");
+  const pink = css.match(/:where\(\[data-accent="pink"\]\) \{([^}]*)\}/)?.[1] ?? "";
+  const tone = (n: number) => pink.match(new RegExp(`--primary-${n}: (#[0-9a-f]{6});`))?.[1];
+
+  it("is the logo mark in the default accent, in light and dark", () => {
+    assert.equal(DEFAULT_PREFERENCES.accent, "pink");
+    assert.ok(tone(40) && tone(80) && tone(20), "the pink palette is found");
+    const [light, dark] = icon.split("@media (prefers-color-scheme: dark)");
+    assert.ok(dark, "a dark-scheme block");
+    // Light: tone 40 with white strokes; dark: tone 80 with tone 20 strokes, as LogoMark draws it.
+    assert.ok(light.includes(`.tile { fill: ${tone(40)}; }`));
+    assert.ok(light.includes(".ink { stroke: #ffffff; }"));
+    assert.ok(dark.includes(`.tile { fill: ${tone(80)}; }`));
+    assert.ok(dark.includes(`.ink { stroke: ${tone(20)}; }`));
+  });
+
+  it("draws the same mark as LogoMark", () => {
+    const logo = read("src/components/brand/logo.tsx");
+    for (const shape of [/<rect width="32" height="32" rx="9"/, /d="M9 11h9\.5M9 15\.5h6"/, /d="M14\.5 21l3\.1 3 6\.9-7\.5"/]) {
+      assert.match(logo, shape);
+      assert.match(icon.replace('class="tile" ', ""), shape);
+    }
+    assert.match(icon, /viewBox="0 0 32 32"/);
   });
 });
 

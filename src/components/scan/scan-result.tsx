@@ -105,7 +105,10 @@ export function ScanResult({ result, onScanAnother }: { result: ScanGradeSuccess
               <p className="tabular mt-2 text-xs text-muted-foreground">+ {pluralize(moreLines, "more line")}</p>
             ) : null}
           </div>
-          <p className="text-xs text-pretty text-muted-foreground">{SOURCE_NOTE[result.transcriptionSource](result)}</p>
+          <p className="text-xs text-pretty text-muted-foreground">
+            {SOURCE_NOTE[result.transcriptionSource](result)}
+            {result.reused ? " Reused a saved read of the same photos (no new AI call)." : null}
+          </p>
         </figure>
 
         {result.flags.length > 0 ? (

@@ -52,7 +52,7 @@ export function Accessibility({ theme }: { theme: Theme }) {
           <SectionIntro
             id="accessibility-heading"
             title="Easy on the eyes, easy to get around"
-            description="Everyone sets the app up the way they read best. Settings are saved to your account, so they follow you to any device."
+            description="Everyone sets the app up the way they read best, and Markwise remembers it."
           />
           <dl className="mt-10 grid gap-x-10 sm:grid-cols-2">
             {SETTINGS.map((setting) => (

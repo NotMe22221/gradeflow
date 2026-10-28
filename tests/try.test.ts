@@ -147,4 +147,11 @@ describe("the sandbox is isolated", () => {
     assert.match(workbench, /live tries/);
     assert.match(workbench, /No supporting quote found/);
   });
+
+  it("states the demo grader's run cap instead of calling it unlimited", () => {
+    const workbench = read("src", "components", "try", "try-workbench.tsx");
+    assert.doesNotMatch(workbench, /unlimited/);
+    assert.match(workbench, /It is free, up to \{TRY_RUNS_PER_SANDBOX_HOUR\} new papers an hour/);
+    assert.match(workbench, /import \{ TRY_RUNS_PER_SANDBOX_HOUR, type TryItAllowance, type TryItResult \} from "@\/lib\/try\/types"/);
+  });
 });

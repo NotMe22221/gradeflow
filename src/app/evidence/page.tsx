@@ -275,7 +275,7 @@ const LIMITS: { title: string; body: string }[] = [
   },
   {
     title: "Confidence is not checked",
-    body: "The grader's self-reported confidence is not compared with its errors. It stays uncalibrated and only sorts To review.",
+    body: "The grader's self-reported confidence is not compared with its errors. It stays uncalibrated and only helps order To review.",
   },
 ];
 
@@ -387,10 +387,23 @@ function LiveNotRun() {
   );
 }
 
+/**
+ * A table's sideways scroller. On a phone the tables are wider than the
+ * screen, so a hint above says there are more columns; from sm up they fit.
+ */
+function TableScroll({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <p className="mt-6 text-[0.8125rem] text-muted-foreground sm:hidden">Swipe sideways to see every column.</p>
+      <div className="mt-2 overflow-x-auto rounded-3xl border border-border bg-card sm:mt-6">{children}</div>
+    </>
+  );
+}
+
 function CriteriaTable({ results }: { results: EvalResults }) {
   const { summary, baseline, criteria } = results;
   return (
-    <div className="mt-6 overflow-x-auto rounded-3xl border border-border bg-card">
+    <TableScroll>
       <table className="w-full min-w-[34rem] text-left text-[0.9375rem]">
         <caption className="sr-only">
           Agreement with human scores by criterion, {runName(results)}, {summary.essays} essays
@@ -439,7 +452,7 @@ function CriteriaTable({ results }: { results: EvalResults }) {
           </tr>
         </tbody>
       </table>
-    </div>
+    </TableScroll>
   );
 }
 
@@ -450,7 +463,7 @@ function DisagreementsTable({ results }: { results: EvalResults }) {
     return <p className={`mt-6 ${BODY}`}>Every score was within a quarter point of the human one.</p>;
   }
   return (
-    <div className="mt-6 overflow-x-auto rounded-3xl border border-border bg-card">
+    <TableScroll>
       <table className="w-full min-w-[34rem] text-left text-[0.9375rem]">
         <caption className="sr-only">The largest differences from the human score, {runName(results)}</caption>
         <thead className="border-b border-border text-[0.8125rem] text-muted-foreground">
@@ -487,7 +500,7 @@ function DisagreementsTable({ results }: { results: EvalResults }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </TableScroll>
   );
 }
 

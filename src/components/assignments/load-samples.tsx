@@ -1,5 +1,6 @@
 "use client";
 
+import { unstable_rethrow } from "next/navigation";
 import { useTransition } from "react";
 import { FlaskConical, Loader2 } from "@/components/icons";
 import { toast } from "sonner";
@@ -17,7 +18,15 @@ export function useLoadSamples(assignmentId: string) {
   function load() {
     if (pending) return;
     startTransition(async () => {
-      const result = await loadSamplePapers(assignmentId);
+      let result: Awaited<ReturnType<typeof loadSamplePapers>>;
+      try {
+        result = await loadSamplePapers(assignmentId);
+      } catch (error) {
+        // Next's own signals go back to Next; anything else means the server was out of reach.
+        unstable_rethrow(error);
+        toast.error("Couldn't reach the server", { description: "Check your connection and try again." });
+        return;
+      }
       if (result.ok) {
         toast.success(`Added ${pluralize(result.count, "sample paper")}`, {
           description: "Run the AI first pass to grade them.",

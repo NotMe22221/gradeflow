@@ -259,6 +259,13 @@ describe("parseAnswerKeyResponse", () => {
     if (parsed.ok) assert.equal(parsed.questions.length, 1);
   });
 
+  it("keeps whether a saved read was reused, and assumes a fresh read when the field is missing", () => {
+    const reused = parseAnswerKeyResponse({ ...success, reused: true }, 200);
+    assert.ok(reused.ok && reused.reused === true);
+    const fresh = parseAnswerKeyResponse(success, 200);
+    assert.ok(fresh.ok && fresh.reused === false);
+  });
+
   it("rejects success bodies with out-of-range questions", () => {
     for (const questions of [
       [],
@@ -297,6 +304,7 @@ describe("describeImport", () => {
       skipped: 0,
       defaultedPoints: 0,
       truncated: false,
+      reused: false,
     };
     assert.equal(describeImport(base), "2 questions, 4 points.");
     assert.equal(

@@ -210,7 +210,10 @@ describe("sampleSelection", () => {
     const none = sampleSelection(RAFAEL, [unit3], classes, papers);
     assert.equal(none?.assignmentId, "unit3");
     assert.equal(none?.studentId, "");
-    assert.match(none?.notice ?? "", /Rafael's paper is already published, .*so no student is selected\.$/);
+    assert.equal(
+      none?.notice,
+      `Selected ${unit3.title}. Rafael's paper is already published, and every other student's paper on it can't be replaced either, so no student is selected.`
+    );
   });
 
   it("selects only the assignment when the student isn't enrolled, and nothing when the assignment is missing", () => {

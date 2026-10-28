@@ -56,7 +56,7 @@ function ApproveButton({
       {showKbd ? (
         <Kbd
           aria-hidden
-          className="hidden border-primary-foreground/25 bg-primary-foreground/10 text-primary-foreground shadow-none xl:inline-flex"
+          className="hidden border-primary-foreground/25 bg-transparent text-primary-foreground shadow-none xl:inline-flex"
         >
           A
         </Kbd>
@@ -117,7 +117,11 @@ export function DesktopActionBar({
   );
 }
 
-/** Phone and tablet: sticky bottom bar, visible on both the Paper and Grade tabs. */
+/**
+ * Phone and tablet: sticky bottom bar, visible on both the Paper and Grade
+ * tabs. `data-review-action-bar` adds its height to the page's bottom scroll
+ * padding (globals.css), so a focused control never hides under it.
+ */
 export function MobileActionBar({
   saveState,
   onRetrySave,
@@ -129,7 +133,7 @@ export function MobileActionBar({
   maxTotal,
 }: ActionBarProps & { total: number | null; maxTotal: number }) {
   return (
-    <div className="sticky bottom-0 z-20 border-t border-border bg-card px-4 pt-2.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
+    <div data-review-action-bar="" className="sticky bottom-0 z-20 border-t border-border bg-card px-4 pt-2.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
       <div className="mb-2 flex items-center justify-between gap-3">
         <p className="tabular text-sm text-muted-foreground">
           Grade{" "}

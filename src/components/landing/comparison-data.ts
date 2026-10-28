@@ -239,7 +239,7 @@ export const MARKWISE: Product = {
     },
     confidence: {
       status: "partial",
-      note: "A high, medium or low label sorts To review. It is the model's own guess, not a calibrated accuracy.",
+      note: "A high, medium or low label that helps order To review and is one of its sort orders. It is the model's own guess, not a calibrated accuracy.",
       sourceUrl: REAL_AND_MOCKED_URL,
     },
     insights: {

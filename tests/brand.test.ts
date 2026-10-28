@@ -56,7 +56,7 @@ describe("brand surfaces", () => {
     const features = collapse(read("src/components/landing/features.tsx"));
     assert.ok(
       features.includes(
-        "Uses Claude for essays, handwriting, briefs and goals when an Anthropic API key is set. If an OpenAI key is also set, GPT-4o reads photos and GPT-4o mini drafts briefs and reads goals. Without keys, labelled demo engines run locally."
+        "Claude handles essays, handwriting, briefs and goals when an Anthropic API key is set. An OpenAI key, with or without that one, moves photos to GPT-4o and briefs and goals to GPT-4o mini; essays always use Claude, or the demo grader when no Anthropic key is set. Without keys, labelled demo engines run locally."
       )
     );
   });

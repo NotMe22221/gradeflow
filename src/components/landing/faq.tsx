@@ -13,13 +13,14 @@ const QUESTIONS: { question: string; answer: React.ReactNode }[] = [
     answer: (
       <>
         <p>
-          Good enough to start from, not good enough to skip your check. Each score comes with the quote it rests on,
-          so a wrong one is quick to spot. The confidence label is the model&apos;s own guess, not a measured accuracy.
+          Not measured yet, so always check. Each score comes with the quote it rests on, so a wrong one is quick to
+          spot. The confidence label is the model&apos;s own guess, not a measured accuracy.
         </p>
         <p>
           Your teacher Home shows how far, on average, the grades you approved landed from the suggestions, so you can
-          see how much you change. Beyond that, the only check so far is small: 30 public essays scored against human
-          raters, on the{" "}
+          see how much you change. Beyond that, the only check so far is of the keyless demo grader (a keyword
+          heuristic, not AI) on 30 public essays, and it does no better than always answering 3. The live Claude
+          evaluation hasn&apos;t been run yet; see the{" "}
           <Link
             href="/evidence"
             className="rounded-sm text-primary underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -36,8 +37,8 @@ const QUESTIONS: { question: string; answer: React.ReactNode }[] = [
     answer: (
       <>
         <p>
-          With an Anthropic API key set, the Paper Scanner sends a photo of each page to Claude (or to GPT-4o, if an
-          OpenAI key is set), which writes out the answers and drafts a score for each question. In To review you can switch between the photo and the
+          With an Anthropic or OpenAI API key set, the Paper Scanner sends a photo of each page to Claude (or to
+          GPT-4o, when an OpenAI key is set), which writes out the answers and drafts a score for each question. In To review you can switch between the photo and the
           transcription to check one against the other.
         </p>
         <p>
@@ -63,7 +64,11 @@ const QUESTIONS: { question: string; answer: React.ReactNode }[] = [
       <>
         <p>
           Papers and grades are stored in the app&apos;s own database. When API keys are set, a paper&apos;s text or photos
-          are sent to the AI provider to draft the scores. In demo mode nothing leaves the server.
+          are sent to Anthropic (or, for everything but essays, to OpenAI when its key is set) to draft the scores. So
+          are answer-key photos; a student&apos;s first name, class, approved grades with your feedback, and study
+          streak and XP when you draft a conference brief; and a student&apos;s goal text and their classes (name,
+          section, subject and weakest rubric criteria) when they use the goal planner. In demo mode nothing leaves the
+          server.
         </p>
         <p>
           Markwise is a hackathon project, not a reviewed product. Don&apos;t use it with real student data; the

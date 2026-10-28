@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 
+import { HEAT_TONE } from "@/components/insights/heat-tone";
 import { serializeBreakdown, type BreakdownItem } from "@/lib/grades/breakdown";
 import { buildBriefPicker } from "@/lib/insights/brief-picker";
 import {
   averageDistribution,
   buildHeatmap,
   formatHeatPercent,
+  HEAT_BANDS,
   heatBand,
   heatCellLabel,
   rankMostMissed,
@@ -397,6 +401,81 @@ describe("class snapshot distribution", () => {
     const result = averageDistribution(heatmap.rows);
     assert.equal(result.graded + result.ungraded, heatmap.rows.length);
     assert.equal(result.ungraded, 1); // Cyrus has no approved grade
+  });
+});
+
+// --- Bar steps (the snapshot bar, its legend dots and the Most missed bars) ---------------
+
+const CSS = readFileSync(join(import.meta.dirname, "..", "src/app/globals.css"), "utf8");
+
+/** The custom properties of the first rule whose selector is exactly `selector`. */
+function tokensOf(selector: string): Record<string, string> {
+  const open = CSS.indexOf("{", CSS.indexOf(`${selector} {`));
+  assert.ok(open > 0, `no rule for ${selector}`);
+  const body = CSS.slice(open + 1, CSS.indexOf("}", open)).replace(/\/\*[\s\S]*?\*\//g, "");
+  return Object.fromEntries(
+    [...body.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map((match) => [match[1], match[2].trim()])
+  );
+}
+
+const BAR_THEMES = {
+  light: tokensOf(":where(:root)"),
+  dark: { ...tokensOf(":where(:root)"), ...tokensOf(':where(:root[data-theme="dark"])') },
+};
+
+/** OKLab lightness of a 6-digit hex color. */
+function hexLightness(hex: string): number {
+  const n = parseInt(hex.slice(1), 16);
+  const [r, g, b] = [n >> 16, (n >> 8) & 255, n & 255].map((value) => {
+    const c = value / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s;
+}
+
+/** Lightness of var(--x) or color-mix(in oklab, A P%, B): lightness mixes linearly in OKLab. */
+function lightness(expression: string, tokens: Record<string, string>): number {
+  const value = expression.trim();
+  if (/^#[0-9a-f]{6}$/i.test(value)) return hexLightness(value);
+  const ref = value.match(/^var\((--[\w-]+)\)$/);
+  if (ref) {
+    assert.ok(tokens[ref[1]], `unknown token ${ref[1]}`);
+    return lightness(tokens[ref[1]], tokens);
+  }
+  const mix = value.match(/^color-mix\(in oklab,\s*([\s\S]+?)\s+([\d.]+)%,\s*([\s\S]+)\)$/);
+  assert.ok(mix, `unsupported color: ${value}`);
+  const p = Number(mix[2]) / 100;
+  return p * lightness(mix[1], tokens) + (1 - p) * lightness(mix[3], tokens);
+}
+
+function barFill(classes: string): string {
+  const fill = classes.match(/(?:^|\s)bg-\[([^\]]+)\]/);
+  assert.ok(fill, `no mixed background in "${classes}"`);
+  return fill[1].replace(/_/g, " ");
+}
+
+describe("heat bar steps", () => {
+  for (const [theme, tokens] of Object.entries(BAR_THEMES)) {
+    it(`get lighter toward the middle in ${theme}, like the cells, and stand off the track`, () => {
+      const card = lightness("var(--card)", tokens);
+      const distance = Object.fromEntries(
+        HEAT_BANDS.map((band) => [band.key, Math.abs(lightness(barFill(HEAT_TONE[band.key].bar), tokens) - card)])
+      ) as Record<(typeof HEAT_BANDS)[number]["key"], number>;
+      const steps = JSON.stringify(distance);
+      assert.ok(distance.lowest > distance.low && distance.low > distance.mid, `${theme} orange arm: ${steps}`);
+      assert.ok(distance.highest > distance.high && distance.high > distance.mid, `${theme} blue arm: ${steps}`);
+      const track = lightness("var(--secondary)", tokens);
+      const mid = lightness(barFill(HEAT_TONE.mid.bar), tokens);
+      assert.ok(Math.abs(mid - track) > 0.1, `${theme} middle step vs track: ${mid.toFixed(3)} / ${track.toFixed(3)}`);
+    });
+  }
+
+  it("draws 'not graded yet' as a hollow ring, never a fill that passes for a band", () => {
+    assert.match(HEAT_TONE.empty.bar, /\bbg-transparent\b/);
+    assert.match(HEAT_TONE.empty.bar, /\bring-1\b/);
   });
 });
 

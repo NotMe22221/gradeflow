@@ -30,7 +30,8 @@ export function SiteHeader({
   sectionBase?: string;
 }) {
   return (
-    <header className="glass-bar sticky top-0 z-40">
+    // data-app-bar: in short windows (400% zoom) the header scrolls with the page, like the app bar (globals.css).
+    <header data-app-bar="" className="glass-bar sticky top-0 z-40">
       <div className="@container mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-4 sm:px-6 lg:gap-6 lg:px-8">
         <Logo />
         {/* Shown once the whole row fits on one line (about 58rem of links, wordmark and buttons). A

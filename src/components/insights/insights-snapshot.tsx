@@ -18,7 +18,8 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 
 /**
  * How the students' averages spread across the heatmap's color bands: a
- * segmented bar (low to high, same colors as the cells) and the count per band.
+ * segmented bar (low to high, in the heatmap's bar steps: the cells' hues, in
+ * stronger tones) and the count per band.
  */
 function AverageSpread({ heatmap }: { heatmap: ClassHeatmap }) {
   const { bands, graded, ungraded } = averageDistribution(heatmap.rows);

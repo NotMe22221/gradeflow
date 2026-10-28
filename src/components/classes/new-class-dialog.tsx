@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { Loader2, Plus } from "@/components/icons";
 
 import { createClass } from "@/app/(teacher)/classes/actions";
@@ -65,11 +66,17 @@ export function NewClassDialog({
     const formData = new FormData(event.currentTarget);
     setFormError(null);
     startTransition(async () => {
-      // On success the action redirects to the new class.
-      const result = await createClass(formData);
-      if (result && !result.ok) {
-        setFieldErrors(result.fieldErrors ?? {});
-        setFormError(result.fieldErrors ? null : result.error);
+      try {
+        // On success the action redirects to the new class.
+        const result = await createClass(formData);
+        if (result && !result.ok) {
+          setFieldErrors(result.fieldErrors ?? {});
+          setFormError(result.fieldErrors ? null : result.error);
+        }
+      } catch (error) {
+        // The redirect is a thrown signal for Next; anything else means the server was out of reach.
+        unstable_rethrow(error);
+        setFormError("Couldn't reach the server. Check your connection and try again.");
       }
     });
   }

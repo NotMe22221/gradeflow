@@ -178,6 +178,166 @@ describe("theme tokens", () => {
   });
 });
 
+// --- Liquid Glass as rendered ------------------------------------------------------
+// The liquid utility paints --liquid at --liquid-tint over whatever is behind it,
+// then a sheen (white, fading out down the top of the element) and a shade along
+// the bottom. The token pairs above are flat colors; this composites the fill
+// and the gradient the way the browser does (sRGB alpha blending) and checks the
+// label's contrast across its whole line box, at rest and with the hover sheen.
+
+const LIQUID = CSS.slice(CSS.indexOf("@utility liquid {"), CSS.indexOf("@utility glass {"));
+
+type Rgba = [number, number, number, number];
+
+function rgba(value: string): Rgba {
+  const hex = value.match(/^#([0-9a-f]{6})$/i);
+  if (hex) {
+    const n = parseInt(hex[1], 16);
+    return [n >> 16, (n >> 8) & 255, n & 255, 1];
+  }
+  const rgb = value.match(/^rgb\(\s*([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*(?:\/\s*([\d.]+))?\s*\)$/);
+  assert.ok(rgb, `unsupported color: ${value}`);
+  return [Number(rgb[1]), Number(rgb[2]), Number(rgb[3]), rgb[4] === undefined ? 1 : Number(rgb[4])];
+}
+
+/** `top` drawn over the opaque `bottom` with normal blending. */
+function over(top: Rgba, bottom: Rgba): Rgba {
+  const a = top[3];
+  return [0, 1, 2].map((i) => top[i] * a + bottom[i] * (1 - a)).concat(1) as Rgba;
+}
+
+function hexOf(color: Rgba): string {
+  return `#${color.slice(0, 3).map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** Split on commas outside parentheses. */
+function topLevel(list: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < list.length; i++) {
+    if (list[i] === "(") depth++;
+    else if (list[i] === ")") depth--;
+    else if (list[i] === "," && depth === 0) {
+      parts.push(list.slice(start, i).trim());
+      start = i + 1;
+    }
+  }
+  parts.push(list.slice(start).trim());
+  return parts;
+}
+
+/** The index of the parenthesis that closes the first one opened in `text`. */
+function closingParen(text: string): number {
+  let depth = 0;
+  for (let i = text.indexOf("("); i < text.length; i++) {
+    if (text[i] === "(") depth++;
+    else if (text[i] === ")" && --depth === 0) return i;
+  }
+  throw new Error(`unbalanced: ${text}`);
+}
+
+/** A stop position such as `min(30%, 0.85rem)`, in px for an element `height` px tall (1rem = 16px). */
+function stopAt(expression: string, height: number): number {
+  const js = expression
+    .replace(/calc\(/g, "(")
+    .replace(/\bmin\(/g, "Math.min(")
+    .replace(/\bmax\(/g, "Math.max(")
+    .replace(/(\d*\.?\d+)%/g, `($1*${height}/100)`)
+    .replace(/(\d*\.?\d+)rem/g, "($1*16)");
+  assert.match(js, /^[\d\s.()*/+,-]*(Math\.(min|max)[\d\s.()*/+,-]*)*$/, `unexpected stop: ${expression}`);
+  return Function(`return ${js}`)() as number;
+}
+
+/** The ::before gradient as [color, position in px] stops for an element `height` px tall. */
+function liquidStops(scheme: Scheme, height: number): [Rgba, number][] {
+  const match = LIQUID.match(/background:\s*linear-gradient\(\s*to bottom,([\s\S]*?)\);/);
+  assert.ok(match, "the liquid utility's sheen gradient");
+  const stops = topLevel(match[1]);
+  return stops.map((stop, index) => {
+    const colorEnd = stop.includes("(") && stop.indexOf("(") < stop.search(/\s|$/) ? closingParen(stop) + 1 : stop.search(/\s|$/);
+    const [colorText, position] = [stop.slice(0, colorEnd), stop.slice(colorEnd).trim()];
+    let color: Rgba;
+    const sheen = colorText.match(/^color-mix\(in srgb, var\((--[\w-]+)\) ([\d.]+)%, transparent\)$/);
+    if (sheen) {
+      const base = rgba(scheme[sheen[1]]);
+      color = [base[0], base[1], base[2], (base[3] * Number(sheen[2])) / 100];
+    } else if (colorText === "transparent") color = [0, 0, 0, 0];
+    else color = rgba(colorText);
+    const at = position ? stopAt(position, height) : index === 0 ? 0 : height;
+    return [color, at];
+  });
+}
+
+/** The gradient's color at `y` px (stops are in order; transparent blends by alpha alone). */
+function gradientAt(stops: [Rgba, number][], y: number): Rgba {
+  for (let i = 1; i < stops.length; i++) {
+    const [[c0, p0], [c1, p1]] = [stops[i - 1], stops[i]];
+    if (y > p1) continue;
+    const t = p1 > p0 ? Math.max(0, (y - p0) / (p1 - p0)) : 1;
+    const [from, to] = [c0[3] === 0 ? [...c1.slice(0, 3), 0] : c0, c1[3] === 0 ? [...c0.slice(0, 3), 0] : c1];
+    return [0, 1, 2, 3].map((k) => from[k] + (to[k] - from[k]) * t) as Rgba;
+  }
+  return stops[stops.length - 1][0];
+}
+
+// Button sizes from src/components/ui/button.tsx (height, label size in rem) and
+// the nav drawer's active pill. Roboto's line box is 1.17em, centered.
+const LIQUID_LABELS: [string, number, number][] = [
+  ["sm button", 2, 0.8125],
+  ["button", 2.5, 0.875],
+  ["lg button", 3, 0.9375],
+  ["nav pill", 3, 0.875],
+];
+
+describe("Liquid Glass labels as rendered", () => {
+  it("is opaque in light and lets the backdrop through in dark", () => {
+    assert.match(LIQUID, /background-color: color-mix\(in oklab, var\(--liquid, var\(--primary\)\) var\(--liquid-tint\), transparent\);/);
+    assert.equal(LIGHT["--liquid-tint"], "100%");
+    assert.equal(DARK["--liquid-tint"], "90%");
+  });
+
+  for (const theme of ["light", "dark"] as const) {
+    for (const accent of ACCENTS) {
+      it(`keeps every label at 4.5:1 or more in ${theme} with the ${accent} accent, at rest and on hover`, () => {
+        const s = scheme(theme, accent);
+        const failures: string[] = [];
+        // [fill, text, tint]: the accent and danger fills at the theme's tint; tonal and
+        // secondary at the 90% they set in button.tsx.
+        const pairs: [string, string, number][] = [
+          ["--primary", "--primary-foreground", parseFloat(s["--liquid-tint"]) / 100],
+          ["--destructive", "--destructive-foreground", parseFloat(s["--liquid-tint"]) / 100],
+          ["--primary-soft", "--primary-soft-foreground", 0.9],
+          ["--secondary", "--secondary-foreground", 0.9],
+        ];
+        for (const [fill, text, tint] of pairs) {
+          for (const surface of SURFACES) {
+            const base = over([...rgba(s[fill]).slice(0, 3), tint] as Rgba, rgba(s[surface]));
+            for (const sheen of ["--glass-sheen", "--glass-sheen-hover"]) {
+              for (const [name, height, size] of LIQUID_LABELS) {
+                const [h, f] = [height * 16, size * 16 * 1.17];
+                const stops = liquidStops({ ...s, "--glass-sheen": s[sheen] }, h);
+                for (let y = (h - f) / 2; y <= (h + f) / 2 + 0.01; y += f / 16) {
+                  const ratio = contrast(s[text], hexOf(over(gradientAt(stops, y), base)));
+                  if (ratio < 4.5) failures.push(`${text} on ${fill} over ${surface}, ${name}, ${sheen} at ${y.toFixed(1)}px: ${ratio.toFixed(2)}`);
+                }
+              }
+            }
+          }
+        }
+        assert.deepEqual(failures, []);
+      });
+    }
+  }
+
+  it("keeps a visible sheen: bright at the top edge, faded out by the label", () => {
+    const stops = liquidStops(scheme("light", "pink"), 40);
+    assert.ok(gradientAt(stops, 0)[3] >= 0.35, "the top of the sheen");
+    assert.ok(gradientAt(stops, (40 - 14 * 1.17) / 2)[3] < 0.01, "where the label starts");
+    assert.equal(gradientAt(stops, 20)[3], 0);
+  });
+});
+
 describe("class colors", () => {
   for (const theme of ["light", "dark"] as const) {
     const s = scheme(theme, "blue");
@@ -251,6 +411,53 @@ describe("appearance options", () => {
     assert.match(CSS, /@custom-variant compact/);
     assert.match(CSS, /scroll-padding-top: calc\(var\(--app-bar-h\)/);
     assert.match(CSS, /@media \(prefers-contrast: more\)/);
+  });
+});
+
+describe("sticky bars", () => {
+  /** The body of the first `@media <query> {` block. */
+  function media(query: string): string {
+    const start = CSS.indexOf(`@media ${query} {`);
+    assert.notEqual(start, -1, `no @media ${query}`);
+    let depth = 0;
+    for (let i = CSS.indexOf("{", start); i < CSS.length; i++) {
+      if (CSS[i] === "{") depth++;
+      else if (CSS[i] === "}" && --depth === 0) return CSS.slice(start, i + 1);
+    }
+    throw new Error(`unclosed @media ${query}`);
+  }
+
+  it("counts To review's Paper | Grade tabs and action bar in the scroll padding below lg", () => {
+    const below = media("(width < 64rem)");
+    assert.match(below, /:where\(html:has\(\[data-review-tabs\]\)\) \{\s*--class-bar-h: 4\.0625rem;/);
+    assert.match(below, /:where\(html:has\(\[data-review-action-bar\]\)\) \{\s*--bottom-bar-h: calc\(6rem \+ env\(safe-area-inset-bottom\)\);/);
+    assert.match(CSS, /scroll-padding-bottom: calc\(var\(--bottom-bar-h\) \+ 0\.5rem\);/);
+  });
+
+  it("stops the bars sticking in windows 480px tall or less, and drops their scroll padding", () => {
+    const short = media("(max-height: 30rem)");
+    assert.match(
+      short,
+      /:is\(\[data-app-bar\], \[data-class-tab-bar\], \[data-review-tabs\], \[data-review-action-bar\]\) \{\s*position: relative;\s*top: auto;\s*bottom: auto;/
+    );
+    assert.match(short, /\[data-nav-rail\] \{\s*top: 0;\s*height: 100dvh;/, "the rail leaves no band where the app bar was");
+    assert.match(short, /\[data-bottom-nav\] \{\s*display: none;/);
+    assert.match(short, /html \{\s*--class-bar-h: 0rem;\s*--bottom-bar-h: 0rem;/);
+    assert.match(short, /html:has\(\[data-app-bar\]\) \{\s*--app-bar-h: 0rem;/);
+  });
+
+  it("every bar the rules name carries its data attribute", () => {
+    const sources: [string, string][] = [
+      ["data-app-bar", "src/components/app-shell/app-shell.tsx"],
+      ["data-nav-rail", "src/components/app-shell/app-shell.tsx"],
+      ["data-class-tab-bar", "src/components/classroom/class-tab-bar.tsx"],
+      ["data-bottom-nav", "src/components/app-shell/bottom-nav.tsx"],
+      ["data-review-tabs", "src/components/review/review-workspace.tsx"],
+      ["data-review-action-bar", "src/components/review/review-action-bar.tsx"],
+    ];
+    for (const [attribute, file] of sources) {
+      assert.match(readFileSync(join(ROOT, file), "utf8"), new RegExp(`\\s${attribute}(=""|\\s)`), `${attribute} in ${file}`);
+    }
   });
 });
 

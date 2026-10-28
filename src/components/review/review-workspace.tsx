@@ -260,11 +260,13 @@ export function ReviewWorkspace({
     setSelectedId(urlSubmission);
   }, [urlAssignment, urlSubmission, urlSort, filterOptions, initialAssignmentId, filterTitle]);
 
-  // On phones the whole page scrolls: start each paper at the top.
+  // Start each paper at the top: on desktop the paper pane scrolls (and stays
+  // mounted across papers), on phones the whole page does.
   const previousIdRef = useRef(currentId);
   useEffect(() => {
     if (previousIdRef.current === currentId) return;
     previousIdRef.current = currentId;
+    paperPaneRef.current?.scrollTo({ top: 0 });
     if (window.matchMedia("(max-width: 1023px)").matches && window.scrollY > 0) {
       window.scrollTo({ top: 0 });
     }
@@ -536,13 +538,17 @@ export function ReviewWorkspace({
       busy,
     };
 
+    // From lg up the paper's tab panel is also its scroller, so its one tab stop
+    // scrolls the paper from the keyboard in every browser. It carries the
+    // canvas, so its focus ring (an outline, which content scrolling past
+    // can't cover) shows around the paper.
     const paperPane = (
       <TabsContent
         key="paper"
         ref={paperPaneRef}
         value="paper"
         forceMount
-        className="flex min-w-0 flex-1 flex-col focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset data-[state=inactive]:hidden lg:min-h-0 lg:data-[state=inactive]:flex"
+        className="flex min-w-0 flex-1 flex-col bg-background focus-visible:ring-0 focus-visible:outline-3 focus-visible:-outline-offset-3 focus-visible:outline-solid focus-visible:outline-ring data-[state=inactive]:hidden lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:data-[state=inactive]:flex"
       >
         <PaperPane
           key={current.id}
@@ -550,15 +556,18 @@ export function ReviewWorkspace({
           layout={layout}
           view={currentPaperView}
           onViewChange={(view) => setPaperView({ id: current.id, view })}
-          className="flex-1 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
+          className="flex-1"
         />
       </TabsContent>
     );
+    // Its controls are the stops in the grade panel, so the panel itself is not
+    // one (the WAI-ARIA tabs pattern for a panel that starts with a control).
     const gradePane = (
       <TabsContent
         key="rubric"
         value="rubric"
         forceMount
+        tabIndex={-1}
         className={cn(
           "flex min-w-0 flex-col border-border focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset data-[state=inactive]:hidden lg:min-h-0 lg:w-[min(30rem,48%)] lg:flex-none lg:data-[state=inactive]:flex",
           paperSide === "left" ? "lg:border-l" : "lg:border-r"
@@ -611,8 +620,10 @@ export function ReviewWorkspace({
           onValueChange={(value) => setTab(value as PaneTab)}
           className="flex min-w-0 flex-1 flex-col gap-0 lg:min-h-0"
         >
-          {/* Phones and tablets: Paper | Grade tabs, sticky under the 64px app bar. */}
-          <div className="sticky top-16 z-20 border-b border-border bg-card px-4 py-2 lg:hidden">
+          {/* Phones and tablets: Paper | Grade tabs, sticky under the 64px app bar.
+              `data-review-tabs` adds its height to the page's scroll padding
+              (globals.css), so a focused control never hides under it. */}
+          <div data-review-tabs="" className="sticky top-16 z-20 border-b border-border bg-card px-4 py-2 lg:hidden">
             <TabsList className="grid h-12 w-full grid-cols-2">
               <TabsTrigger value="paper">
                 <FileText aria-hidden />

@@ -6,6 +6,8 @@ import { describe, it } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import StudentError from "@/app/(student)/error";
+import StudentNotFound from "@/app/(student)/not-found";
 import { calmStreak } from "@/components/student/streak-text";
 import {
   absoluteDue,
@@ -182,6 +184,8 @@ const OWNED = [
   ...files("src/app/(student)/student").filter(
     (path) => !/student[\\/](page|loading)\.tsx$/.test(path) && !/classes[\\/]\(list\)/.test(path)
   ),
+  "src/app/(student)/not-found.tsx",
+  "src/app/(student)/error.tsx",
 ];
 
 describe("student page sources", () => {
@@ -224,4 +228,67 @@ describe("student page sources", () => {
     assert.match(read("src/components/student/inbox-panel.tsx"), /Log a study session/);
     assert.match(read("src/components/student/your-work.tsx"), /Your grade/);
   });
+
+  it("the goal planner names the gradebook's averaging rule instead of hedging", () => {
+    const source = readFileSync(join(ROOT, "src/components/student/goal-plan-result.tsx"), "utf8");
+    assert.doesNotMatch(source, /can differ slightly/);
+    assert.ok(source.includes("Your teacher's gradebook averages each assignment equally"));
+  });
+});
+
+// --- Not found and error pages ----------------------------------------------------
+
+const hrefs = (html: string) => [...html.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
+/** Teacher-only routes a student page must never link to. */
+const TEACHER_ROUTES = /^\/(dashboard|classes|assignments|review|gradebook|insights|scan)(\/|$|\?)/;
+
+describe("student not-found page", () => {
+  const html = renderToStaticMarkup(createElement(StudentNotFound));
+
+  it("renders inside the student shell: no second header or main", () => {
+    assert.doesNotMatch(html, /<(header|main)\b/);
+    assert.match(html, /<h1[^>]*>We couldn(&#x27;|')t find that page\.<\/h1>/);
+  });
+
+  it("links back into the student app only", () => {
+    assert.deepEqual(hrefs(html), ["/student", "/student/classes"]);
+  });
+});
+
+describe("student error page", () => {
+  const error = Object.assign(new Error("relation \"Submission\" does not exist; answer key: 42"), { digest: "1234567890" });
+  const html = renderToStaticMarkup(createElement(StudentError, { error, retry: () => {} }));
+
+  it("stays plain: no message, stack or digest", () => {
+    const frame = error.stack?.split("\n")[1]?.trim() ?? "";
+    for (const leak of ["Submission", "answer key", "1234567890", frame]) assert.ok(leak && !html.includes(leak), leak);
+    assert.match(html, /Something went wrong loading this page\./);
+    assert.match(html, /Try again<\/button>/);
+  });
+
+  it("never links to a teacher page", () => {
+    assert.deepEqual(hrefs(html), ["/student"]);
+    for (const href of hrefs(html)) assert.doesNotMatch(href, TEACHER_ROUTES);
+    assert.doesNotMatch(html, /<(header|main)\b/);
+  });
+});
+
+describe("student actions on a dropped connection", () => {
+  // The awaited action sits in a try; its catch hands Next's own signals back,
+  // then says the server was out of reach (instead of the bare error screen).
+  for (const [path, action] of [
+    ["src/components/student/turn-in-form.tsx", "submitPaper"],
+    ["src/components/student/assignment-inbox.tsx", "logStudySession"],
+  ] as const) {
+    it(`${action} reports the problem instead of replacing the page`, () => {
+      const source = readFileSync(join(ROOT, path), "utf8");
+      assert.match(source, /import \{[^}]*\bunstable_rethrow\b[^}]*\} from "next\/navigation";/);
+      const call = source.indexOf(`await ${action}(`);
+      assert.ok(call > 0, `${action} is awaited`);
+      const tryAt = source.lastIndexOf("try {", call);
+      assert.ok(tryAt > 0 && !source.slice(tryAt, call).includes("} catch"), `${action} is inside a try`);
+      const handler = source.slice(source.indexOf("} catch (error) {", call));
+      assert.match(handler, /^\} catch \(error\) \{\s*(?:\/\/[^\n]*\s*)*unstable_rethrow\(error\);\s*[^\n]*Couldn't reach the server/);
+    });
+  }
 });
