@@ -7,6 +7,8 @@ import { describe, it } from "node:test";
 import { zodResponseFormat } from "openai/helpers/zod";
 
 import { findAnswerLineSpan, findEvidenceSpan, findTestEvidenceSpan } from "@/lib/grading/evidence";
+import { sampleSelection } from "@/components/scan/sample-match";
+import { paperKey, type ScanPaperState } from "@/components/scan/types";
 import { DemoGrader } from "@/lib/grading/mock";
 import type { Grader, GradingInput, RawGradingResult, RubricCriterionInput } from "@/lib/grading/types";
 import { validateGrading } from "@/lib/grading/validate";
@@ -148,6 +150,77 @@ describe("sample photos", () => {
     assert.equal(findSampleAnswerKeyByHash(SAMPLE_ANSWER_KEY_PHOTOS[0].sha256)?.id, "unit4-key");
     assert.equal(findSampleTestByHash("0".repeat(64)), undefined);
     assert.equal(findSampleTestByHash(SAMPLE_ANSWER_KEY_PHOTOS[0].sha256), undefined);
+  });
+});
+
+describe("sampleSelection", () => {
+  const unit3 = {
+    id: "unit3",
+    title: RAFAEL.assignmentTitle,
+    kind: "TEST" as const,
+    classId: "env",
+    questionCount: 5,
+    totalPoints: 20,
+  };
+  const classes = [
+    {
+      id: "env",
+      name: "Environmental Science",
+      label: "Environmental Science · Period 4",
+      students: [
+        { id: "iris", name: "Iris Thistledown" },
+        { id: "leo", name: "Leo Ashgrove" },
+        { id: "rafael", name: "Rafael Copperleaf" },
+      ],
+    },
+  ];
+  const published: ScanPaperState = { status: "PUBLISHED", label: "Published", replaceable: false };
+  const inReview: ScanPaperState = { status: "NEEDS_REVIEW", label: "In review", replaceable: true };
+
+  it("selects the photo's own student while their paper can take a scan", () => {
+    for (const papers of [{}, { [paperKey("unit3", "rafael")]: inReview }]) {
+      assert.deepEqual(sampleSelection(RAFAEL, [unit3], classes, papers), {
+        assignmentId: "unit3",
+        studentId: "rafael",
+        notice: `Selected Rafael Copperleaf and ${unit3.title} to match the sample photo.`,
+      });
+    }
+  });
+
+  it("sends the photo to a classmate with no paper once the student's grade is published, and says so", () => {
+    const papers = { [paperKey("unit3", "rafael")]: published, [paperKey("unit3", "iris")]: inReview };
+    const selection = sampleSelection(RAFAEL, [unit3], classes, papers);
+    // Leo, not Iris: a classmate's draft in review is replaced only when no one is free.
+    assert.equal(selection?.studentId, "leo");
+    assert.equal(
+      selection?.notice,
+      `Selected Leo Ashgrove and ${unit3.title}. Rafael's paper is already published, so the sample photo goes to Leo instead.`
+    );
+  });
+
+  it("falls back to a replaceable paper, then to no student, never to one that can't be replaced", () => {
+    const papers = {
+      [paperKey("unit3", "rafael")]: published,
+      [paperKey("unit3", "iris")]: published,
+      [paperKey("unit3", "leo")]: inReview,
+    };
+    assert.equal(sampleSelection(RAFAEL, [unit3], classes, papers)?.studentId, "leo");
+
+    papers[paperKey("unit3", "leo")] = { status: "GRADING", label: "Being graded", replaceable: false };
+    const none = sampleSelection(RAFAEL, [unit3], classes, papers);
+    assert.equal(none?.assignmentId, "unit3");
+    assert.equal(none?.studentId, "");
+    assert.match(none?.notice ?? "", /Rafael's paper is already published, .*so no student is selected\.$/);
+  });
+
+  it("selects only the assignment when the student isn't enrolled, and nothing when the assignment is missing", () => {
+    const strangers = [{ ...classes[0], students: [{ id: "leo", name: "Leo Ashgrove" }] }];
+    assert.deepEqual(sampleSelection(RAFAEL, [unit3], strangers, {}), {
+      assignmentId: "unit3",
+      studentId: "",
+      notice: `Selected ${unit3.title} to match the sample photo.`,
+    });
+    assert.equal(sampleSelection(RAFAEL, [], classes, {}), null);
   });
 });
 

@@ -2,6 +2,7 @@ import { FlaskConical, ScanEye } from "@/components/icons";
 
 import { EngineInfoBadge } from "@/components/grading/engine-info-badge";
 import type { ScanEngineInfo } from "@/lib/scan/types";
+import { cn } from "@/lib/utils";
 
 const VISION_EXPLANATION: Record<Exclude<ScanEngineInfo["kind"], "demo">, (model: string | null) => string> = {
   openai: () =>
@@ -40,7 +41,11 @@ export function ScanEngineBadge({ engine, className }: { engine: ScanEngineInfo;
       label="Demo scanner"
       explanation={DEMO_EXPLANATION}
       align="end"
-      className={className}
+      className={cn(
+        // An outline chip is see-through, and in the page header it sits on the decor's paint.
+        "bg-card",
+        className
+      )}
     />
   );
 }

@@ -128,8 +128,14 @@ export async function clearSessionCookie() {
   store.delete(COOKIE_NAME);
 }
 
-/** The signed-in user, with the role read fresh from the database. */
-export async function getCurrentUser(): Promise<SessionUser | null> {
+/**
+ * The signed-in user, with the role read fresh from the database. Read once
+ * per page render (React cache()): the layouts, the page and the viewer's
+ * preferences share one lookup. Server actions and route handlers run outside
+ * a render, so each of their calls reads the cookie again, and the render
+ * after a sign-in, switch or sign-out starts with a fresh cache.
+ */
+export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const store = await cookies();
   const userId = decode(store.get(COOKIE_NAME)?.value);
   if (!userId) return null;
@@ -139,7 +145,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   });
   if (!user || !isRole(user.role)) return null;
   return { ...user, role: user.role };
-}
+});
 
 /**
  * Who is making a live AI call, for the usage caps (lib/ai/guard.ts): keyed

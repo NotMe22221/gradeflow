@@ -7,6 +7,7 @@ import {
   CircleCheck,
   FlaskConical,
   ImagePlus,
+  Info,
   KeyRound,
   LoaderCircle,
   ScanLine,
@@ -14,7 +15,6 @@ import {
   Upload,
   X,
 } from "@/components/icons";
-import { toast } from "sonner";
 
 import { FieldError, FormAlert } from "@/components/classes/form-feedback";
 import { ClassAvatar } from "@/components/classroom/class-avatar";
@@ -27,6 +27,7 @@ import {
   type PreparedImage,
 } from "@/components/scan/image-prep";
 import { PageList } from "@/components/scan/page-list";
+import { sampleSelection } from "@/components/scan/sample-match";
 import { SampleMenu } from "@/components/scan/sample-menu";
 import { AssignmentPicker, assignmentHint, StudentPicker } from "@/components/scan/scan-pickers";
 import { ScanProgress } from "@/components/scan/scan-progress";
@@ -169,21 +170,13 @@ export function ScanWorkspace({
     setError((current) => (current?.field && fields.includes(current.field) ? null : current));
   }
 
-  /** Select the seeded assignment and student a sample photo belongs to, when they exist. */
+  /** Select the seeded assignment and student a sample photo belongs to, or a classmate who can take it. */
   function applySample(sample: SampleTestPhoto) {
-    // The picker lists handwritten tests only.
-    const match = assignments.find((option) => option.title === sample.assignmentTitle);
-    if (!match) return;
-    const matchStudent = classes
-      .find((option) => option.id === match.classId)
-      ?.students.find((option) => option.name === sample.studentName);
-    setAssignmentId(match.id);
-    setStudentId(matchStudent?.id ?? "");
-    setMatchNotice(
-      matchStudent
-        ? `Selected ${sample.studentName} and ${match.title} to match the sample photo.`
-        : `Selected ${match.title} to match the sample photo.`
-    );
+    const selection = sampleSelection(sample, assignments, classes, papers);
+    if (!selection) return;
+    setAssignmentId(selection.assignmentId);
+    setStudentId(selection.studentId);
+    setMatchNotice(selection.notice);
     clearFieldError("assignment", "student");
   }
 
@@ -354,11 +347,10 @@ export function ScanWorkspace({
         }
         return;
       }
+      // No toast: the focused result card says the same, and on a phone a
+      // toast would sit over its Review now button.
       setResult(data);
       setPhase("done");
-      toast.success("Graded draft is ready in To review", {
-        description: `${data.studentName} · ${data.assignmentTitle}`,
-      });
       router.refresh();
     } catch {
       if (controller.signal.aborted) return;
@@ -620,7 +612,11 @@ export function ScanWorkspace({
                     className="flex items-start gap-2 rounded-xl bg-primary-soft px-3.5 py-2.5 text-[0.8125rem] text-pretty text-primary-soft-foreground"
                     role="status"
                   >
-                    <CircleCheck className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                    {studentId ? (
+                      <CircleCheck className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                    ) : (
+                      <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                    )}
                     {matchNotice}
                   </p>
                 ) : null}
@@ -663,7 +659,8 @@ export function ScanWorkspace({
                     describedBy={error?.field === "student" ? "scan-student-error" : undefined}
                     disabled={busy}
                   />
-                  {student && paper ? (
+                  {/* The field error repeats this sentence after a submit, so show only one. */}
+                  {student && paper && !fieldMessage(error, "student") ? (
                     <p
                       className={cn(
                         "text-[0.8125rem] text-pretty",
@@ -711,7 +708,12 @@ export function ScanWorkspace({
 
                 {error && !error.field ? <FormAlert>{error.message}</FormAlert> : null}
 
-                <Button type="submit" size="lg" className="w-full" disabled={busy || preparing}>
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="w-full"
+                  disabled={busy || preparing || Boolean(paper && !paper.replaceable)}
+                >
                   {visionEnabled ? <ScanLine aria-hidden /> : <FlaskConical aria-hidden />}
                   {visionEnabled ? `Grade with ${visionName}` : "Grade with demo scanner"}
                 </Button>

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { registerHooks } from "node:module";
+import { describe, it, mock } from "node:test";
 
 import { actionsFor, GOAL_PLANNER_HREF, indexItems, pagesFor } from "@/lib/search/catalog";
 import {
@@ -15,6 +16,30 @@ import {
 import { buildSearchIndex, MAX_SEARCH_STUDENTS } from "@/lib/search/scope";
 import { modifierLabel, paletteShortcut } from "@/lib/search/shortcut";
 import type { SearchItem } from "@/lib/search/types";
+
+// The /api/search route, with the session and the index loader stubbed (no
+// database): the loader fails the way Prisma does, with the query's arguments
+// and the database host in the message.
+const LEAKY_MESSAGE = "Invalid `prisma.class.findMany()` invocation: { teacherId: \"user_secret_id\" } db.internal:5432";
+const stub = (source: string) => ({ url: `data:text/javascript,${encodeURIComponent(source)}`, format: "module", shortCircuit: true });
+registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (specifier === "@/lib/auth/session") {
+      return stub(`export async function getCurrentUser() {
+        return { id: "user_secret_id", name: "Demo Teacher", email: "teacher@example.test", role: "TEACHER" };
+      }`);
+    }
+    if (specifier === "@/lib/search/server") {
+      return stub(`export async function loadSearchIndex() {
+        const error = new Error(${JSON.stringify(LEAKY_MESSAGE)});
+        error.name = "PrismaClientKnownRequestError";
+        throw error;
+      }`);
+    }
+    return nextResolve(specifier, context);
+  },
+});
+const { GET: searchRoute } = await import("../src/app/api/search/route");
 
 // --- Fixtures (synthetic) -------------------------------------------------------
 
@@ -143,6 +168,24 @@ describe("pages and actions", () => {
 
   it("uses no AI wording in result names", () => {
     for (const item of teacherItems()) assert.doesNotMatch(item.title, /\b(AI|magic|smart)\b/i);
+  });
+});
+
+describe("/api/search", () => {
+  it("logs only the error type when the index fails, never the query or the database host", async () => {
+    const logged = mock.method(console, "error", () => {});
+    try {
+      const response = await searchRoute();
+      assert.equal(response.status, 500);
+      assert.equal(response.headers.get("Cache-Control"), "private, no-store");
+      assert.deepEqual(await response.json(), { ok: false, error: "Search is unavailable right now." });
+      assert.equal(logged.mock.callCount(), 1);
+      assert.deepEqual(logged.mock.calls[0].arguments, ["[markwise] Search index failed", { type: "PrismaClientKnownRequestError" }]);
+      const text = JSON.stringify(logged.mock.calls[0].arguments);
+      assert.doesNotMatch(text, /user_secret_id|db\.internal|findMany/);
+    } finally {
+      logged.mock.restore();
+    }
   });
 });
 

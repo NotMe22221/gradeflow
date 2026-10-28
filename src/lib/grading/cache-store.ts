@@ -3,7 +3,10 @@ import "server-only";
 import { db } from "@/lib/db";
 import { parseCachedGrade, type GradeCacheStore } from "@/lib/grading/cache";
 
-/** Saved first passes in Postgres (the AiGradeCache table). */
+/**
+ * Saved first passes in Postgres (the AiGradeCache table). Photo reads share
+ * the table under their own prefixed keys (lib/scan/cache-store.ts).
+ */
 export const databaseGradeCache: GradeCacheStore = {
   async get(key) {
     const row = await db.aiGradeCache.findUnique({ where: { key }, select: { result: true } });

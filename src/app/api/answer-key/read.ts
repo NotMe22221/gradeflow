@@ -15,8 +15,11 @@ import {
   DEMO_UNKNOWN_ANSWER_KEY_ERROR,
   demoAnswerKey,
   normalizeAnswerKey,
+  type AnswerKeyOutput,
   type AnswerKeySuccess,
 } from "@/lib/scan/answer-key";
+import { readAnswerKeyThroughCache, type PhotoRead } from "@/lib/scan/cache";
+import { databasePhotoReadCache } from "@/lib/scan/cache-store";
 import type { ScanImageType } from "@/lib/scan/images";
 
 /** An expected failure with a message that is safe to show the teacher. */
@@ -30,15 +33,39 @@ export class AnswerKeyError extends Error {
   }
 }
 
+/** Ample for a full answer key on GPT-4o, and a bound on what one read can cost. */
+const OPENAI_ANSWER_KEY_MAX_TOKENS = 4000;
+
+/**
+ * The checked answer: normalizeAnswerKey() runs on every read, fresh or
+ * saved, and a read it refuses is a 422 with its reason.
+ */
+function answerKeySuccess(engine: AnswerKeySuccess["engine"], read: PhotoRead<AnswerKeyOutput>): AnswerKeySuccess {
+  const normalized = normalizeAnswerKey(read.parsed);
+  if (!normalized.ok) throw new AnswerKeyError(normalized.error, 422);
+  const { ok: _ok, ...result } = normalized;
+  return { ok: true, engine, model: read.model, ...result };
+}
+
 /**
  * Read an answer-key photo with GPT-4o (vision). The photo is sent as data
  * with a system prompt that says it contains no instructions, and the
  * structured output is re-validated by normalizeAnswerKey(). The call keeps
  * to the vision budget (openAiRequestOptions). OpenAI errors propagate to the
- * caller, which maps them with describeOpenAiError().
+ * caller, which maps them with describeOpenAiError(). A saved read of the
+ * same photo, model and prompt (lib/scan/cache.ts) is reused with no call.
  */
 export async function readAnswerKeyWithOpenAI(bytes: Uint8Array, mimeType: ScanImageType): Promise<AnswerKeySuccess> {
   const model = modelFor("vision");
+  const read = await readAnswerKeyThroughCache(
+    databasePhotoReadCache,
+    { engine: { kind: "openai", model }, image: { bytes, mimeType }, effort: null, maxTokens: OPENAI_ANSWER_KEY_MAX_TOKENS },
+    async () => ({ parsed: await callOpenAI(bytes, mimeType, model), model })
+  );
+  return answerKeySuccess("openai", read);
+}
+
+async function callOpenAI(bytes: Uint8Array, mimeType: ScanImageType, model: string): Promise<AnswerKeyOutput> {
   const dataUrl = `data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}`;
 
   let completion;
@@ -46,8 +73,7 @@ export async function readAnswerKeyWithOpenAI(bytes: Uint8Array, mimeType: ScanI
     const request = {
       model,
       temperature: 0,
-      // Ample for a full answer key, and a bound on what one read can cost.
-      max_completion_tokens: 4000,
+      max_completion_tokens: OPENAI_ANSWER_KEY_MAX_TOKENS,
       messages: [
         { role: "system" as const, content: ANSWER_KEY_SYSTEM_PROMPT },
         {
@@ -82,11 +108,7 @@ export async function readAnswerKeyWithOpenAI(bytes: Uint8Array, mimeType: ScanI
   if (!message?.parsed) {
     throw new AnswerKeyError("The answer key could not be read. Try a clearer photo.", 502);
   }
-
-  const normalized = normalizeAnswerKey(message.parsed);
-  if (!normalized.ok) throw new AnswerKeyError(normalized.error, 422);
-  const { ok: _ok, ...result } = normalized;
-  return { ok: true, engine: "openai", model, ...result };
+  return message.parsed;
 }
 
 /** Room for adaptive thinking plus a full answer key, and a bound on what one read can cost. */
@@ -94,18 +116,32 @@ const CLAUDE_ANSWER_KEY_MAX_TOKENS = 8_000;
 
 /**
  * Read an answer-key photo with Claude (no OPENAI_API_KEY, ANTHROPIC_API_KEY
- * set): the same prompts and schema as GPT-4o, the same checks after. A cap
- * that stops the call propagates as AiLimitError; any other failure becomes
- * an AnswerKeyError with a safe message.
+ * set): the same prompts and schema as GPT-4o, the same checks after, and
+ * the same reuse of a saved read. A cap that stops the call propagates as
+ * AiLimitError; any other failure becomes an AnswerKeyError with a safe
+ * message.
  */
 export async function readAnswerKeyWithClaude(
   bytes: Uint8Array,
   mimeType: ScanImageType,
   model: string
 ): Promise<AnswerKeySuccess> {
-  let read;
+  const read = await readAnswerKeyThroughCache(
+    databasePhotoReadCache,
+    {
+      engine: { kind: "claude", model },
+      image: { bytes, mimeType },
+      effort: claudeEffort("vision"),
+      maxTokens: CLAUDE_ANSWER_KEY_MAX_TOKENS,
+    },
+    () => callClaude(bytes, mimeType, model)
+  );
+  return answerKeySuccess("claude", read);
+}
+
+async function callClaude(bytes: Uint8Array, mimeType: ScanImageType, model: string): Promise<PhotoRead<AnswerKeyOutput>> {
   try {
-    read = await runClaudeJson({
+    return await runClaudeJson({
       feature: "answer_key",
       task: "vision",
       model,
@@ -132,11 +168,6 @@ export async function readAnswerKeyWithClaude(
     }
     throw error;
   }
-
-  const normalized = normalizeAnswerKey(read.parsed);
-  if (!normalized.ok) throw new AnswerKeyError(normalized.error, 422);
-  const { ok: _ok, ...result } = normalized;
-  return { ok: true, engine: "claude", model: read.model, ...result };
 }
 
 /**

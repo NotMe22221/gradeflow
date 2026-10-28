@@ -1,13 +1,18 @@
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
+import { registerHooks } from "node:module";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
+import { claudeWorstCaseMicroUsd } from "@/lib/ai/claude-format";
 import {
+  CLAUDE_TOKENS_PER_IMAGE,
   chatInputSize,
   costMicroUsd,
   formatUsd,
   MAX_TOKENS_PER_IMAGE,
+  MODEL_PRICES,
+  priceFor,
   UNKNOWN_MODEL_PRICE,
   worstCaseCostMicroUsd,
 } from "@/lib/ai/pricing";
@@ -45,6 +50,15 @@ import { GradingError, validateGrading } from "@/lib/grading/validate";
 
 // No test here calls a paid API or a database: the provider is a stub at the
 // SDK boundary and the ledger and cache are the in-memory stores.
+
+// engines.ts is server code: stub "server-only" so it can be imported here.
+registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (specifier === "server-only") return { url: "data:text/javascript,", format: "module", shortCircuit: true };
+    return nextResolve(specifier, context);
+  },
+});
+const { getEngineStatus } = await import("../src/lib/ai/engines");
 
 const ROOT = join(import.meta.dirname, "..");
 
@@ -186,6 +200,35 @@ describe("AI cost estimates", () => {
     assert.deepEqual(size, { textChars: "system prompt".length + "page 1".length, images: 2 });
   });
 
+  it("prices every model the code names at its list price, not the unknown tier", () => {
+    // Anthropic list prices, USD per million tokens (input / output).
+    const listed: Record<string, [number, number]> = {
+      "claude-haiku-4-5": [1, 5],
+      "claude-sonnet-5": [2, 10],
+      "claude-sonnet-5-5": [2, 10],
+      "claude-opus-5": [5, 25],
+      "claude-opus-5-5": [4, 20],
+      "claude-fable-5-1": [10, 50],
+    };
+    for (const [model, [input, output]] of Object.entries(listed)) {
+      assert.ok(model in MODEL_PRICES, `${model} is in the price table`);
+      assert.notEqual(priceFor(model), UNKNOWN_MODEL_PRICE, model);
+      assert.deepEqual([priceFor(model).input, priceFor(model).output], [input, output], model);
+    }
+    // Every model sent with a server-side fallback is priced.
+    for (const model of ["claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5"]) {
+      assert.equal(supportsServerFallback(model), true, model);
+      assert.ok(model in MODEL_PRICES, `${model} is in the price table`);
+    }
+  });
+
+  it("fits a five-photo scan on Claude Opus 5 in the default daily budget", () => {
+    // The vision call: up to five photos, a few thousand characters of text,
+    // and max_tokens 16,000 (lib/scan/vision.ts), plus the fallback's second pass.
+    const size = { textChars: 6_000, images: 5, tokensPerImage: CLAUDE_TOKENS_PER_IMAGE, maxOutputTokens: 16_000 };
+    assert.ok(claudeWorstCaseMicroUsd("claude-opus-5", size) <= DEFAULT_USAGE_LIMITS.spendPerDayMicroUsd);
+  });
+
   it("formats small and large amounts", () => {
     assert.equal(formatUsd(2_000_000), "$2.00");
     assert.equal(formatUsd(700), "$0.0007");
@@ -244,6 +287,24 @@ describe("AI usage settings", () => {
     assert.notEqual(key, usageKey("secret-one", "session", "203.0.113.7"));
   });
 
+  it("states the site-wide call and spend caps as two caps in the engines popover", () => {
+    const keys = ["AI_LIMIT_PER_SESSION_HOUR", "AI_LIMIT_PER_IP_HOUR", "AI_LIMIT_PER_DAY", "AI_DAILY_BUDGET_USD"] as const;
+    const saved = keys.map((key) => process.env[key]);
+    for (const key of keys) delete process.env[key];
+    try {
+      assert.equal(
+        getEngineStatus().limits,
+        "Live AI calls are capped at 20 per session and 60 per network an hour. " +
+          "For the whole site: 400 calls or $2.00 of estimated spend a day, whichever comes first."
+      );
+    } finally {
+      keys.forEach((key, index) => {
+        if (saved[index] === undefined) delete process.env[key];
+        else process.env[key] = saved[index];
+      });
+    }
+  });
+
   it("reads the client IP from the proxy headers", () => {
     const headers = (values: Record<string, string>) => ({ get: (name: string) => values[name] ?? null });
     assert.equal(clientIpFrom(headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1" })), "203.0.113.7");
@@ -285,6 +346,21 @@ describe("decideReservation", () => {
     assert.equal(!decision.ok && decision.reason, "daily_spend");
   });
 
+  it("refuses a call larger than the whole budget as never fitting, not as a used-up day", () => {
+    assert.equal(decideReservation(snapshot(), limits, 10_000, now).ok, true);
+    assert.deepEqual(decideReservation(snapshot(), limits, 10_001, now), {
+      ok: false,
+      reason: "call_too_large",
+      retryAfterSeconds: 0,
+    });
+    // Even when the day's budget is also spent, the answer is the one that won't change at midnight.
+    assert.deepEqual(decideReservation(snapshot({ daySpendMicroUsd: 10_000 }), limits, 10_001, now), {
+      ok: false,
+      reason: "call_too_large",
+      retryAfterSeconds: 0,
+    });
+  });
+
   it("explains each limit in plain words", () => {
     const message = (reason: AiLimitError["reason"], seconds: number) => new AiLimitError(reason, seconds, limits).message;
     assert.equal(message("session", 900), "You've used this session's 3 live AI calls for the hour. Try again in 15 minutes.");
@@ -297,9 +373,15 @@ describe("decideReservation", () => {
       message("daily_spend", 3 * 3_600),
       "This site's live AI budget for today ($0.01, estimated) is used up. It resets at midnight UTC, in about 3 hours."
     );
+    assert.equal(
+      message("call_too_large", 0),
+      "This request could cost more than this site's whole daily live AI budget ($0.01, estimated), so it can't run. " +
+        "Send fewer photos or less text, or raise AI_DAILY_BUDGET_USD or choose a cheaper model. Nothing was sent to an AI provider."
+    );
     assert.match(message("kill_switch", 0), /switched off on this server/);
     assert.equal(new AiLimitError("session", 1, limits).status, 429);
     assert.equal(new AiLimitError("kill_switch", 0, limits).status, 503);
+    assert.equal(new AiLimitError("call_too_large", 0, limits).status, 503);
   });
 
   it("counts down to midnight UTC", () => {
@@ -389,6 +471,26 @@ describe("UsageGuard", () => {
     await guard.run(call, async () => ({ value: 2, usage: null }));
     assert.equal(store.rows[1].costMicroUsd, 6_000);
     await assert.rejects(guard.run(call, async () => ({ value: 3, usage: null })), { reason: "daily_spend" });
+  });
+
+  it("never sends a call larger than the whole daily budget, even on a fresh day", async () => {
+    const limits = { ...DEFAULT_USAGE_LIMITS, spendPerDayMicroUsd: 10_000 };
+    const { store, guard } = guardFor(undefined, { limits });
+    let sent = false;
+    await assert.rejects(
+      guard.run({ ...CALL, reserveMicroUsd: 10_001 }, async () => {
+        sent = true;
+        return { value: 1, usage: null };
+      }),
+      (error: unknown) =>
+        error instanceof AiLimitError &&
+        error.reason === "call_too_large" &&
+        error.status === 503 &&
+        error.retryAfterSeconds === 0 &&
+        !/midnight/.test(error.message)
+    );
+    assert.equal(sent, false);
+    assert.equal(store.rows.length, 0);
   });
 
   it("keeps a failed call's worst-case cost and still counts it", async () => {

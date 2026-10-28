@@ -10,6 +10,8 @@ import { describeOpenAiError, getOpenAI, openAiErrorKind, openAiRequestOptions }
 import { AiLimitError } from "@/lib/ai/usage";
 import { GRADER_LABELS } from "@/lib/constants";
 import type { GradingInput } from "@/lib/grading/types";
+import { readScanThroughCache } from "@/lib/scan/cache";
+import { databasePhotoReadCache } from "@/lib/scan/cache-store";
 import type { CheckedImage } from "@/lib/scan/form";
 import {
   buildVisionSystemPrompt,
@@ -25,7 +27,9 @@ import {
  * per question against the answer key, on GPT-4o (OPENAI_API_KEY) or Claude
  * (ANTHROPIC_API_KEY), whichever engineFor("vision") picked. Both get the
  * same prompt, photos and output schema. The keys stay on the server;
- * nothing here logs a key, request headers, images, or student text.
+ * nothing here logs a key, request headers, images, or student text. A read
+ * of the same photos against the same rubric, model and prompt is saved and
+ * reused (lib/scan/cache.ts), so it is paid for once.
  */
 
 /** A camera-grading failure whose message is safe to show to the teacher. */
@@ -41,6 +45,8 @@ export type VisionEngine = { kind: "openai" | "claude"; model: string };
 
 /** Claude reads at most this much: room for adaptive thinking plus the transcription and scores. */
 const CLAUDE_VISION_MAX_TOKENS = 16_000;
+/** GPT-4o's output limit for the same read (no thinking). */
+const OPENAI_VISION_MAX_TOKENS = 8000;
 
 function openAiPart(part: ClaudePart): ChatCompletionContentPart {
   if (part.type === "text") return part;
@@ -60,7 +66,7 @@ async function readWithOpenAI(engine: VisionEngine, parts: ClaudePart[]): Promis
     const request = {
       model: engine.model,
       temperature: 0,
-      max_completion_tokens: 8000,
+      max_completion_tokens: OPENAI_VISION_MAX_TOKENS,
       messages: [
         { role: "system" as const, content: buildVisionSystemPrompt() },
         { role: "user" as const, content: parts.map(openAiPart) },
@@ -125,6 +131,8 @@ async function readWithClaude(engine: VisionEngine, parts: ClaudePart[]): Promis
 /**
  * Read and grade one scanned test. Returns the mapped output and the model
  * that answered; validateScanGrading() checks it before anything is stored.
+ * A saved read is mapped and checked the same way, with no provider call and
+ * nothing reserved in the usage guard.
  */
 export async function gradeWithVision(
   engine: VisionEngine,
@@ -132,10 +140,21 @@ export async function gradeWithVision(
   pages: CheckedImage[],
   answerKey: CheckedImage | null
 ): Promise<MappedVisionOutput & { model: string }> {
-  const parts = visionParts(input, pages, answerKey);
-  if (engine.kind === "claude") {
-    const { parsed, model } = await readWithClaude(engine, parts);
-    return { ...mapVisionOutput(parsed), model };
-  }
-  return { ...mapVisionOutput(await readWithOpenAI(engine, parts)), model: engine.model };
+  const claude = engine.kind === "claude";
+  const { parsed, model } = await readScanThroughCache(
+    databasePhotoReadCache,
+    {
+      engine,
+      input,
+      pages,
+      answerKey,
+      effort: claude ? claudeEffort("vision") : null,
+      maxTokens: claude ? CLAUDE_VISION_MAX_TOKENS : OPENAI_VISION_MAX_TOKENS,
+    },
+    async () => {
+      const parts = visionParts(input, pages, answerKey);
+      return claude ? readWithClaude(engine, parts) : { parsed: await readWithOpenAI(engine, parts), model: engine.model };
+    }
+  );
+  return { ...mapVisionOutput(parsed), model };
 }

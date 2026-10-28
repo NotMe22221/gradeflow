@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { registerHooks } from "node:module";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 
 import {
@@ -37,6 +40,34 @@ import {
 import { isOnScoreStep } from "@/lib/review/scores";
 import { isEditableTarget, shortcutForKey } from "@/lib/review/shortcuts";
 import type { ReviewCriterion, ReviewItem } from "@/lib/review/types";
+
+// lib/grades/review.ts is server code: "server-only" is stubbed, and so is the
+// database, with a stand-in that records each assignment lookup (no database).
+const DB_STUB = `data:text/javascript,${encodeURIComponent(`
+  const lookups = (globalThis.__reviewTestLookups = []);
+  export const db = {
+    assignment: {
+      findFirst: async (args) => {
+        lookups.push(args);
+        return args.where.id === "assign_owned" ? { id: "assign_owned", title: "Persuasive Essay", criteria: [], class: {} } : null;
+      },
+    },
+  };
+  export const transaction = async () => {
+    throw new Error("No transactions in this test.");
+  };
+`)}`;
+registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (specifier === "server-only") return { url: "data:text/javascript,", format: "module", shortCircuit: true };
+    if (specifier === "@/lib/db") return { url: DB_STUB, format: "module", shortCircuit: true };
+    return nextResolve(specifier, context);
+  },
+});
+const { getOwnedAssignmentTitle } = await import("../src/lib/grades/review");
+const assignmentLookups = () => (globalThis as unknown as { __reviewTestLookups: { where: { id: string } }[] }).__reviewTestLookups;
+
+const ROOT = join(import.meta.dirname, "..");
 
 // --- Synthetic fixtures (all names and content are fictional) ---------------
 
@@ -740,6 +771,34 @@ describe("scan media helpers", () => {
   it("names the full-credit description an answer key for tests", () => {
     assert.equal(criterionGuideLabel("TEST"), "Answer key");
     assert.equal(criterionGuideLabel("ESSAY"), "What full credit looks like");
+  });
+});
+
+describe("the To review page's ?assignment= filter", () => {
+  it("looks up only a valid id, and treats anything else as no filter", async () => {
+    const before = assignmentLookups().length;
+    for (const raw of ["a\u0000b", "a b", "../classes", "%00", ""]) {
+      assert.equal(await getOwnedAssignmentTitle("teacher-1", raw), null, JSON.stringify(raw));
+    }
+    assert.equal(assignmentLookups().length, before, "an invalid id never reaches the database");
+
+    assert.equal(await getOwnedAssignmentTitle("teacher-1", "assign_owned"), "Persuasive Essay");
+    assert.equal(await getOwnedAssignmentTitle("teacher-1", "assign_other"), null);
+    assert.deepEqual(
+      assignmentLookups().slice(before).map((args) => args.where.id),
+      ["assign_owned", "assign_other"]
+    );
+  });
+});
+
+describe("scanned-test photo route", () => {
+  it("never lets the browser reuse a photo without re-checking the session", () => {
+    const source = readFileSync(
+      join(ROOT, "src", "app", "api", "submissions", "[submissionId]", "images", "[imageId]", "route.ts"),
+      "utf8"
+    );
+    assert.match(source, /"Cache-Control": "private, no-store"/);
+    assert.doesNotMatch(source, /max-age=[1-9]/);
   });
 });
 
