@@ -55,7 +55,9 @@ export async function GET(
         "Content-Type": image.mimeType as ScanImageType,
         "Content-Length": String(image.data.byteLength),
         "Content-Disposition": "inline",
-        "Cache-Control": "private, max-age=300",
+        // Never served from the browser cache: every view re-checks the session,
+        // so a photo can't outlive a sign-out or a switch to a student.
+        "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",
       },
     });

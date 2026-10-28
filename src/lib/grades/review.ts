@@ -182,11 +182,16 @@ export async function getReviewQueue(teacherId: string): Promise<ReviewItem[]> {
   });
 }
 
-/** Title of an assignment this teacher owns, for the filter's empty state. */
+/**
+ * Title of an assignment this teacher owns, for the filter's empty state.
+ * The id comes from the URL (?assignment=): one that isn't a valid id is no
+ * filter at all, and never reaches the database.
+ */
 export async function getOwnedAssignmentTitle(
   teacherId: string,
   assignmentId: string
 ): Promise<string | null> {
+  if (!idSchema.safeParse(assignmentId).success) return null;
   try {
     const assignment = await getOwnedAssignment(teacherId, assignmentId);
     return assignment.title;

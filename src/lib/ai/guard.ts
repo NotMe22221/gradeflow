@@ -58,7 +58,10 @@ export function guardedOpenAiCall<T extends { usage?: OpenAiUsage }>(
   });
 }
 
-/** The JSON answer for a call the caps stopped: 429 (503 for the kill switch) with Retry-After. */
+/**
+ * The JSON answer for a call the caps stopped: 429 with Retry-After, or 503
+ * without one for the kill switch and a call larger than the daily budget.
+ */
 export function aiLimitResponse(error: AiLimitError, headers?: Record<string, string>) {
   const retry: Record<string, string> =
     error.retryAfterSeconds > 0 ? { "Retry-After": String(error.retryAfterSeconds) } : {};

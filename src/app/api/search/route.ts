@@ -23,7 +23,8 @@ export async function GET() {
     const index = await loadSearchIndex(user);
     return NextResponse.json({ ok: true, index }, { headers: HEADERS });
   } catch (error) {
-    console.error("[search] index failed", error);
+    // Log the error type only: Prisma messages carry query arguments (user and class ids).
+    console.error("[markwise] Search index failed", { type: error instanceof Error ? error.name : typeof error });
     return NextResponse.json({ ok: false, error: "Search is unavailable right now." }, { status: 500, headers: HEADERS });
   }
 }

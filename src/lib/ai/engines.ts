@@ -50,6 +50,7 @@ export function getEngineStatus(): EngineStatus {
     killSwitch: aiKillSwitchOn(),
     limits:
       `Live AI calls are capped at ${limits.perSessionPerHour} per session and ${limits.perIpPerHour} per network ` +
-      `an hour, and ${limits.perDay} (about ${formatUsd(limits.spendPerDayMicroUsd)}) a day for the whole site.`,
+      `an hour. For the whole site: ${limits.perDay} calls or ${formatUsd(limits.spendPerDayMicroUsd)} of estimated ` +
+      `spend a day, whichever comes first.`,
   };
 }

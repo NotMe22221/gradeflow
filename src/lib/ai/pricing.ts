@@ -18,8 +18,12 @@ export type ModelPrice = {
 
 export const MODEL_PRICES: Readonly<Record<string, ModelPrice>> = {
   "claude-haiku-5-5": { input: 0.1, output: 0.5, longPrompt: { aboveInputTokens: 100_000, input: 0.5, output: 2.5 } },
+  "claude-haiku-4-5": { input: 1, output: 5 },
   "claude-sonnet-5-5": { input: 2, output: 10 },
+  "claude-sonnet-5": { input: 2, output: 10 },
   "claude-opus-5-5": { input: 4, output: 20 },
+  "claude-opus-5": { input: 5, output: 25 },
+  "claude-fable-5-1": { input: 10, output: 50 },
   "gpt-4o": { input: 2.5, output: 10 },
   "gpt-4o-mini": { input: 0.15, output: 0.6 },
 };

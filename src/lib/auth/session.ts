@@ -2,6 +2,7 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
 import { clientIpFrom, usageKey } from "@/lib/ai/usage";
 import { db } from "@/lib/db";

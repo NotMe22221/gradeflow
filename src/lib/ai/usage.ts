@@ -86,7 +86,7 @@ export type UsageSnapshot = {
   daySpendMicroUsd: number;
 };
 
-export type LimitReason = "kill_switch" | "session" | "ip" | "daily_calls" | "daily_spend";
+export type LimitReason = "kill_switch" | "call_too_large" | "session" | "ip" | "daily_calls" | "daily_spend";
 
 export type UsageDenied = { ok: false; reason: LimitReason; retryAfterSeconds: number };
 export type UsageDecision = { ok: true } | UsageDenied;
@@ -107,7 +107,9 @@ function secondsUntilWindowFrees(oldest: Date | null, now: Date): number {
 /**
  * Whether one more live call fits. Site-wide caps are checked first, since
  * nobody can make a call once they are reached. The spend cap counts the
- * call's worst case, so the estimated daily total can't pass the budget.
+ * call's worst case, so the estimated daily total can't pass the budget. A
+ * call whose worst case alone is over the whole budget never fits, so it is
+ * refused as such, with no wait to suggest.
  */
 export function decideReservation(
   snapshot: UsageSnapshot,
@@ -115,6 +117,9 @@ export function decideReservation(
   reserveMicroUsd: number,
   now: Date
 ): UsageDecision {
+  if (reserveMicroUsd > limits.spendPerDayMicroUsd) {
+    return { ok: false, reason: "call_too_large", retryAfterSeconds: 0 };
+  }
   if (snapshot.daySpendMicroUsd + reserveMicroUsd > limits.spendPerDayMicroUsd) {
     return { ok: false, reason: "daily_spend", retryAfterSeconds: secondsUntilUtcMidnight(now) };
   }
@@ -159,6 +164,12 @@ export function usageLimitMessage(reason: LimitReason, retryAfterSeconds: number
   switch (reason) {
     case "kill_switch":
       return "Live AI is switched off on this server (AI_KILL_SWITCH). Nothing was sent to an AI provider.";
+    case "call_too_large":
+      return (
+        `This request could cost more than this site's whole daily live AI budget (${formatUsd(limits.spendPerDayMicroUsd)}, estimated), ` +
+        "so it can't run. Send fewer photos or less text, or raise AI_DAILY_BUDGET_USD or choose a cheaper model. " +
+        "Nothing was sent to an AI provider."
+      );
     case "session":
       return `You've used this session's ${limits.perSessionPerHour} live AI calls for the hour. Try again in ${wait}.`;
     case "ip":
@@ -170,7 +181,10 @@ export function usageLimitMessage(reason: LimitReason, retryAfterSeconds: number
   }
 }
 
-/** A cap stopped a live AI call before it was sent. Routes answer 429 (503 for the kill switch). */
+/**
+ * A cap stopped a live AI call before it was sent. Routes answer 429, or 503
+ * when waiting won't help (the kill switch, or a call larger than the budget).
+ */
 export class AiLimitError extends Error {
   readonly status: 429 | 503;
 
@@ -181,7 +195,7 @@ export class AiLimitError extends Error {
   ) {
     super(usageLimitMessage(reason, retryAfterSeconds, limits));
     this.name = "AiLimitError";
-    this.status = reason === "kill_switch" ? 503 : 429;
+    this.status = reason === "kill_switch" || reason === "call_too_large" ? 503 : 429;
   }
 }
 
